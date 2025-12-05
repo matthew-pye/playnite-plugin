@@ -335,6 +335,7 @@ namespace RomM
                         {
                             MappingId = mapping.MappingId,
                             FileName = fileName,
+                            FirstFileName = (string)JObject.Parse(JsonConvert.SerializeObject(item.Files[0]))["file_name"],
                             DownloadUrl = $"{Settings.RomMHost}/api/roms/{item.Id}/content/{fileName}",
                             IsMulti = item.HasMulti
                         };

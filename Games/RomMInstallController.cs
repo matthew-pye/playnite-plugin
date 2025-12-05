@@ -56,6 +56,10 @@ namespace RomM.Games
                         // File name for multi-file archives is the folder name, so we append .zip
                         gamePath = Path.Combine(installDir, info.FileName + ".zip");
                     }
+                    else 
+                    {
+                        gamePath = Path.Combine(installDir, info.FirstFileName);
+                    }
 
                     if (_romM.Playnite.ApplicationInfo.IsPortable)
                     {
