@@ -105,6 +105,9 @@ namespace RomM.Models.RomM.Rom
         [JsonProperty("multi")]
         public bool Multi { get; set; }
 
+        [JsonProperty("has_multiple_files")]
+        public bool HasMulti { get; set; }
+
         [JsonProperty("files")]
         public List<object> Files { get; set; }
 
