@@ -1,25 +1,26 @@
-﻿using Playnite.SDK;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Playnite.SDK;
+using Playnite.SDK.Events;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Controls;
-using System.Web;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Collections.Specialized;
-using System.IO;
-using System.Reflection;
-using System.Linq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using RomM.Settings;
-using Playnite.SDK.Events;
 using RomM.Games;
 using RomM.Models.RomM.Platform;
 using RomM.Models.RomM.Rom;
+using RomM.Settings;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+using System.Web;
+using System.Windows.Controls;
 
 
 namespace RomM
@@ -75,7 +76,8 @@ namespace RomM
             Playnite = api;
             Properties = new LibraryPluginProperties
             {
-                HasSettings = true
+                HasSettings = true,
+                HasCustomizedGameImport = true
             };
         }
 
@@ -196,22 +198,22 @@ namespace RomM
             return await HttpClientSingleton.Instance.GetAsync(uriBuilder.Uri);
         }
 
-        public override IEnumerable<GameMetadata> GetGames(LibraryGetGamesArgs args)
+        public override IEnumerable<Game> ImportGames(LibraryImportGamesArgs args)
         {
             if (Playnite.ApplicationInfo.Mode == ApplicationMode.Fullscreen && !Settings.ScanGamesInFullScreen)
             {
-                return new List<GameMetadata>();
+                return new List<Game>();
             }
 
             // Return early if host, username or password is not set
             if (string.IsNullOrEmpty(Settings.RomMHost) || string.IsNullOrEmpty(Settings.RomMUsername) || string.IsNullOrEmpty(Settings.RomMPassword))
             {
                 Logger.Warn("RomM host, username or password is not set.");
-                return new List<GameMetadata>();
+                return new List<Game>();
             }
 
             IList<RomMPlatform> apiPlatforms = FetchPlatforms();
-            List<GameMetadata> games = new List<GameMetadata>();
+            List<Game> games = new List<Game>();
             IEnumerable<EmulatorMapping> enabledMappings = SettingsViewModel.Instance.Mappings?.Where(m => m.Enabled);
 
             if (enabledMappings == null)
@@ -348,10 +350,9 @@ namespace RomM
                             continue;
                         }
 
-                        var gameNameWithTags  = $"{gameName}{(item.Regions.Count > 0 ? $" ({string.Join(", ", item.Regions)})" : "")}{(!string.IsNullOrEmpty(item.Revision) ? $" (Rev {item.Revision})" : "")}{(item.Tags.Count > 0 ? $" ({string.Join(", ", item.Tags)})" : "")}";
+                        var gameNameWithTags = $"{gameName}{(item.Regions.Count > 0 ? $" ({string.Join(", ", item.Regions)})" : "")}{(!string.IsNullOrEmpty(item.Revision) ? $" (Rev {item.Revision})" : "")}{(item.Tags.Count > 0 ? $" ({string.Join(", ", item.Tags)})" : "")}";
 
-                        // Add newly found game
-                        games.Add(new GameMetadata
+                        games.Add(PlayniteApi.Database.ImportGame(new GameMetadata()
                         {
                             Source = SourceName,
                             Name = gameName,
@@ -363,7 +364,8 @@ namespace RomM
                             Regions = new HashSet<MetadataProperty>(item.Regions.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
                             InstallSize = item.FileSizeBytes,
                             Description = item.Summary,
-                            Icon = !string.IsNullOrEmpty(urlCover) ? new MetadataFile(urlCover) : null,
+                            CoverImage = !string.IsNullOrEmpty(urlCover) ? new MetadataFile(urlCover) : null,
+                         
                             GameActions = new List<GameAction>
                             {
                                 new GameAction
@@ -382,7 +384,7 @@ namespace RomM
                                     IsPlayAction = false
                                 }
                             }
-                        });
+                        }, this));
                     }
 
                     Logger.Debug($"Finished adding new games for {apiPlatform.Name}");
@@ -420,7 +422,6 @@ namespace RomM
 
             return games;
         }
-
 
         public override ISettings GetSettings(bool firstRunSettings)
         {
