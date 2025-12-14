@@ -4,6 +4,30 @@ using Newtonsoft.Json;
 
 namespace RomM.Models.RomM.Rom
 {
+    public class Metadatum
+    {
+        [JsonProperty("genres")]
+        public List<string> Genres { get; set; }
+
+        [JsonProperty("franchises")]
+        public List<string> Franchises { get; set; }
+
+        [JsonProperty("collections")]
+        public List<string> Collections { get; set; }
+
+        [JsonProperty("companies")]
+        public List<string> Companies { get; set; }
+
+        [JsonProperty("game_modes")]
+        public List<string> GameModes { get; set; }
+        [JsonProperty("age_ratings")]
+        public List<string> AgeRatings { get; set; }
+        [JsonProperty("first_release_date")]
+        public long? FirstReleaseDate { get; set; }
+        [JsonProperty("average_rating")]
+        public string AverageRating { get; set; }
+    }
+
     public class RomMRom
     {
         [JsonProperty("id")]
@@ -11,6 +35,12 @@ namespace RomM.Models.RomM.Rom
 
         [JsonProperty("igdb_id")]
         public int? IgdbId { get; set; }
+
+        [JsonProperty("ra_id")]
+        public int? RAId { get; set; }
+
+        [JsonProperty("hltb_id")]
+        public int? HLTBId { get; set; }
 
         [JsonProperty("sgdb_id")]
         public object SgdbId { get; set; }
@@ -54,26 +84,11 @@ namespace RomM.Models.RomM.Rom
         [JsonProperty("summary")]
         public string Summary { get; set; }
 
-        [JsonProperty("first_release_date")]
-        public long? FirstReleaseDate { get; set; }
-
         [JsonProperty("alternative_names")]
         public List<string> AlternativeNames { get; set; }
 
-        [JsonProperty("genres")]
-        public List<string> Genres { get; set; }
-
-        [JsonProperty("franchises")]
-        public List<string> Franchises { get; set; }
-
-        [JsonProperty("collections")]
-        public List<string> Collections { get; set; }
-
-        [JsonProperty("companies")]
-        public List<string> Companies { get; set; }
-
-        [JsonProperty("game_modes")]
-        public List<string> GameModes { get; set; }
+        [JsonProperty("metadatum")]
+        public Metadatum Metadata { get; set; }
 
         [JsonProperty("igdb_metadata")]
         public RomMIgdbMetadata IgdbMetadata { get; set; }

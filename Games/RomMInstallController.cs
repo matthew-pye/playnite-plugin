@@ -31,6 +31,18 @@ namespace RomM.Games
             base.Dispose();
         }
 
+        long DirectorySize(DirectoryInfo dInfo, bool includeSubDir)
+        {
+            long totalSize = dInfo.EnumerateFiles()
+                         .Sum(file => file.Length);
+            if (includeSubDir)
+            {
+                totalSize += dInfo.EnumerateDirectories()
+                         .Sum(dir => DirectorySize(dir, true));
+            }
+            return totalSize;
+        }
+
         public override void Install(InstallActionArgs args)
         {
             var info = Game.GetRomMGameInfo();
@@ -85,6 +97,8 @@ namespace RomM.Games
 
                     Logger.Debug($"Download of {Game.Name} complete.");
 
+
+
                     // Always extract top-level file of multi-file archives
                     if (info.IsMulti || (info.Mapping.AutoExtract && IsFileCompressed(gamePath)))
                     {
@@ -106,17 +120,28 @@ namespace RomM.Games
                         List<string> supportedFileTypes = GetEmulatorSupportedFileTypes(info);
                         string[] actualRomFiles = GetRomFiles(installDir, supportedFileTypes);
 
-                        foreach (var romFile in actualRomFiles) {
+                        foreach (var romFile in actualRomFiles) 
+                        {
+                            if (romFile.Contains($"{installDir}\\dlc\\") || romFile.Contains($"{installDir}\\update\\"))
+                            {
+                                continue;
+                            }
+                                
                             roms.Add(new GameRom(Game.Name, romFile));
                         }
-                    } else {
+                    } 
+                    else 
+                    {
                         // Add the single ROM file to the list
                         roms.Add(new GameRom(Game.Name, gamePath));
                     }
 
+
+
                     // Update the game's installation status
                     var game = _romM.Playnite.Database.Games[Game.Id];
                     game.IsInstalled = true;
+                    game.InstallSize = ((ulong)DirectorySize(new DirectoryInfo(installDir), true));
                     _romM.Playnite.Database.Games.Update(game);
 
                     InvokeOnInstalled(new GameInstalledEventArgs(new GameInstallationData()
@@ -156,7 +181,7 @@ namespace RomM.Games
                         throw new ArgumentException("Invalid file path");
                     }
                     return Directory.GetFiles(installDir, "*." + fileType, SearchOption.AllDirectories)
-                        .Where(file => !file.Contains("../") && !file.Contains(@"..\"));
+                        .Where(file => !file.Contains("../") && !file.Contains(@"..\") && !file.Contains($"{installDir}/dlc/") && !file.Contains($"{installDir}/update/"));
                 }).ToArray();
             }
         }

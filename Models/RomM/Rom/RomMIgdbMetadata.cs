@@ -3,6 +3,18 @@ using Newtonsoft.Json;
 
 namespace RomM.Models.RomM.Rom
 {
+    public class AgeRating
+    {
+        [JsonProperty("rating")]
+        public string Rating { get; set; }
+
+        [JsonProperty("category")]
+        public string RatingBoard { get; set; }
+
+        [JsonProperty("rating_cover_url")]
+        public string RatingImage { get; set; }
+    }
+
     public class RomMIgdbMetadata
     {
         [JsonProperty("total_rating")]
@@ -55,5 +67,8 @@ namespace RomM.Models.RomM.Rom
 
         [JsonProperty("similar_games")]
         public List<RomMSimilarGame> SimilarGames { get; set; }
+
+        [JsonProperty("age_ratings")]
+        public List<AgeRating> AgeRatings { get; set; }
     }
 }

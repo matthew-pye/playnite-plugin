@@ -5,6 +5,7 @@ using Playnite.SDK.Events;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using RomM.Games;
+using RomM.Integrations;
 using RomM.Models.RomM.Platform;
 using RomM.Models.RomM.Rom;
 using RomM.Settings;
@@ -17,6 +18,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
@@ -59,6 +61,9 @@ namespace RomM
         internal static readonly string Icon = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"icon.png");
         internal static readonly Guid PluginId = Guid.Parse("9700aa21-447d-41b4-a989-acd38f407d9f");
         internal static readonly MetadataNameProperty SourceName = new MetadataNameProperty(s_pluginName);
+
+        internal static SuccessStory SuccessStoryPlugin = null;
+        internal static string HLTBPath = null;
 
         public override Guid Id { get; } = PluginId;
         public override string Name { get; } = s_pluginName;
@@ -176,6 +181,23 @@ namespace RomM
             Settings = new SettingsViewModel(this, this);
             HttpClientSingleton.ConfigureBasicAuth(Settings.RomMUsername, Settings.RomMPassword);
             Playnite.UriHandler.RegisterSource("romm", HandleRommUri);
+
+            foreach (var plugin in Playnite.Addons.Plugins)
+            {
+                if (Directory.Exists(plugin.GetPluginUserDataPath() + "/SuccessStory"))
+                {
+                    plugin.GetSettings(false);
+
+                    SuccessStoryPlugin = new SuccessStory(plugin.GetPluginUserDataPath());
+                    Logger.Debug($"\tSuccessStory Found - {plugin.Id}");
+                }
+                if (Directory.Exists(plugin.GetPluginUserDataPath() + "/HowLongToBeat"))
+                {
+                    HLTBPath = plugin.GetPluginUserDataPath();
+                    Logger.Debug($"\tHLTB Found - {plugin.Id}");
+                }
+
+            }
         }
 
         public static async Task<HttpResponseMessage> GetAsync(string baseUrl, HttpCompletionOption completionOption = HttpCompletionOption.ResponseContentRead)
@@ -203,6 +225,11 @@ namespace RomM
             if (Playnite.ApplicationInfo.Mode == ApplicationMode.Fullscreen && !Settings.ScanGamesInFullScreen)
             {
                 return new List<Game>();
+            }
+
+            if (SuccessStoryPlugin != null)
+            {
+                SuccessStoryPlugin.RefreshConfig();
             }
 
             // Return early if host, username or password is not set
@@ -316,6 +343,17 @@ namespace RomM
                 try
                 {
                     Logger.Debug($"Finished parsing response for {apiPlatform.Name}.");
+                    string preferedRatingsBoard = "";
+
+                    switch (PlayniteApi.ApplicationSettings.AgeRatingOrgPriority)
+                    {
+                        case AgeRatingOrg.PEGI:
+                            preferedRatingsBoard = "PEGI";
+                            break;
+                        case AgeRatingOrg.ESRB:
+                            preferedRatingsBoard = "ESRB";
+                            break;
+                    }
 
                     var rootInstallDir = PlayniteApi.Paths.IsPortable
                         ? mapping.DestinationPathResolved.Replace(PlayniteApi.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory)
@@ -326,7 +364,7 @@ namespace RomM
                     {
                         if (args.CancelToken.IsCancellationRequested)
                             break;
-
+                        
                         var gameName = item.Name;
                         var fileName = item.FileName;
                         var urlCover = item.UrlCover;
@@ -352,7 +390,7 @@ namespace RomM
 
                         var gameNameWithTags = $"{gameName}{(item.Regions.Count > 0 ? $" ({string.Join(", ", item.Regions)})" : "")}{(!string.IsNullOrEmpty(item.Revision) ? $" (Rev {item.Revision})" : "")}{(item.Tags.Count > 0 ? $" ({string.Join(", ", item.Tags)})" : "")}";
 
-                        games.Add(PlayniteApi.Database.ImportGame(new GameMetadata()
+                        GameMetadata gameMetadata = new GameMetadata()
                         {
                             Source = SourceName,
                             Name = gameName,
@@ -365,7 +403,9 @@ namespace RomM
                             InstallSize = item.FileSizeBytes,
                             Description = item.Summary,
                             CoverImage = !string.IsNullOrEmpty(urlCover) ? new MetadataFile(urlCover) : null,
-                         
+                            Genres = new HashSet<MetadataProperty>(item.Metadata.Genres.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+                            Series = new HashSet<MetadataProperty>(item.Metadata.Franchises.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+
                             GameActions = new List<GameAction>
                             {
                                 new GameAction
@@ -384,7 +424,44 @@ namespace RomM
                                     IsPlayAction = false
                                 }
                             }
-                        }, this));
+                        };
+
+                        if (item.Metadata.AverageRating != null)
+                        {
+                            gameMetadata.CommunityScore = (int)float.Parse(item.Metadata.AverageRating);
+                        }
+
+                        if (item.Metadata.FirstReleaseDate.HasValue)
+                        {
+                            DateTime rawDate = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                            rawDate = rawDate.AddMilliseconds(item.Metadata.FirstReleaseDate.Value);
+                            gameMetadata.ReleaseDate = new ReleaseDate(rawDate);
+                        }
+
+                        
+
+                        if(item.IgdbMetadata.AgeRatings.Count != 0 && preferedRatingsBoard != "")
+                        {
+                            foreach (var rating in item.IgdbMetadata.AgeRatings)
+                            {
+                                if (rating.RatingBoard == preferedRatingsBoard)
+                                {
+                                    string agerating = rating.RatingBoard + " " + rating.Rating;
+                                    gameMetadata.AgeRatings = new HashSet<MetadataProperty> { new MetadataNameProperty(agerating ?? "") };
+                                    break;
+                                }
+                            }
+                        }
+
+                        games.Add(PlayniteApi.Database.ImportGame(gameMetadata, this));
+
+                        if(SuccessStoryPlugin == null)
+                        {
+                            continue;
+                        }
+                        
+                        SuccessStoryPlugin.AddGame(games.Last().Id.ToString(), gameName, item.RAId);
+
                     }
 
                     Logger.Debug($"Finished adding new games for {apiPlatform.Name}");
@@ -459,5 +536,6 @@ namespace RomM
             }
         }
     }
+  
 }
 
