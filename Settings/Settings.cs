@@ -28,6 +28,7 @@ namespace RomM.Settings
         public string RomMHost { get; set; } = "";
         public string RomMUsername { get; set; } = "";
         public string RomMPassword { get; set; } = "";
+        public bool KeepNonExistantGames { get; set; } = false;
         public ObservableCollection<EmulatorMapping> Mappings { get; set; }
 
         public SettingsViewModel()

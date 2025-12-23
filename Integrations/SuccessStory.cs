@@ -42,6 +42,7 @@ namespace RomM.Integrations
         public string UrlUnlocked { get; set; }
         public string UrlLocked { get; set; }
         public DateTime? DateUnlocked { get; set; }
+        public DateTime? DateUnlockedRaHardCore { get; set; }
         public bool IsHidden { get; set; }
         public int Percent { get; set; }
         public int GamerScore { get; set; }
@@ -51,8 +52,6 @@ namespace RomM.Integrations
         public string ParentCategory { get; set; } = "";
         public string CategoryRpcs3 { get; set; } = "";
         public bool NoRarety { get; set; } = false;
-
-
     }
 
     class SuccessStoryRA
@@ -199,6 +198,7 @@ namespace RomM.Integrations
                             cheevo.UrlUnlocked = $"https://s3-eu-west-1.amazonaws.com/i.retroachievements.org/Badge/{it["BadgeName"]}.png";
                             cheevo.UrlLocked = $"https://s3-eu-west-1.amazonaws.com/i.retroachievements.org/Badge/{it["BadgeName"]}_lock.png";
                             cheevo.DateUnlocked = (it["DateEarned"] == null) ? (DateTime?)null : Convert.ToDateTime((string)it["DateEarned"]);
+                            cheevo.DateUnlockedRaHardCore = (it["DateEarnedHardcore"] == null) ? (DateTime?)null : Convert.ToDateTime((string)it["DateEarnedHardcore"]);
                             cheevo.Percent = it["NumAwarded"] == null || (int)it["NumAwarded"] == 0 || numDistinctPlayersCasual == 0 ? 100 : (int)it["NumAwarded"] * 100 / numDistinctPlayersCasual;
                             cheevo.GamerScore = it["Points"] == null ? 0 : (int)it["Points"];
 

@@ -436,9 +436,7 @@ namespace RomM
                             DateTime rawDate = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
                             rawDate = rawDate.AddMilliseconds(item.Metadata.FirstReleaseDate.Value);
                             gameMetadata.ReleaseDate = new ReleaseDate(rawDate);
-                        }
-
-                        
+                        }         
 
                         if(item.IgdbMetadata.AgeRatings.Count != 0 && preferedRatingsBoard != "")
                         {
@@ -455,40 +453,40 @@ namespace RomM
 
                         games.Add(PlayniteApi.Database.ImportGame(gameMetadata, this));
 
-                        if(SuccessStoryPlugin == null)
+                        if(SuccessStoryPlugin != null && item.RAId != null && item.RAId > 0)
                         {
-                            continue;
+                           SuccessStoryPlugin.AddGame(games.Last().Id.ToString(), gameName, item.RAId);
                         }
-                        
-                        SuccessStoryPlugin.AddGame(games.Last().Id.ToString(), gameName, item.RAId);
-
                     }
 
                     Logger.Debug($"Finished adding new games for {apiPlatform.Name}");
 
-                    // Find games in the database that are not in the response
-                    var gamesInDatabase = Playnite.Database.Games.Where(g =>
-                        g.Source != null && g.Source.Name == SourceName.ToString() &&
-                        g.Platforms != null && g.Platforms.Any(p => p.Name == mapping.Platform.Name)
-                    );
-
-                    Logger.Debug($"Starting to remove not found games for {apiPlatform.Name}.");
-
-                    foreach (var game in gamesInDatabase)
+                    if(!Settings.KeepNonExistantGames)
                     {
-                        if (args.CancelToken.IsCancellationRequested)
-                            break;
+                        // Find games in the database that are not in the response
+                        var gamesInDatabase = Playnite.Database.Games.Where(g =>
+                            g.Source != null && g.Source.Name == SourceName.ToString() &&
+                            g.Platforms != null && g.Platforms.Any(p => p.Name == mapping.Platform.Name)
+                        );
 
-                        if (responseGameIDs.Contains(game.GameId))
+                        Logger.Debug($"Starting to remove not found games for {apiPlatform.Name}.");
+
+                        foreach (var game in gamesInDatabase)
                         {
-                            continue;
+                            if (args.CancelToken.IsCancellationRequested)
+                                break;
+
+                            if (responseGameIDs.Contains(game.GameId))
+                            {
+                                continue;
+                            }
+
+                            // Remove from the playnite database
+                            Playnite.Database.Games.Remove(game.Id);
                         }
 
-                        // Remove from the playnite database
-                        Playnite.Database.Games.Remove(game.Id);
-                    }
-
-                    Logger.Debug($"Finished removing not found games for {apiPlatform.Name}");
+                        Logger.Debug($"Finished removing not found games for {apiPlatform.Name}");
+                    }   
                 }
                 catch (HttpRequestException e)
                 {
@@ -535,7 +533,7 @@ namespace RomM
                 Playnite.Notifications.Add(args.Game.GameId, $"Download of \"{args.Game.Name}\" is complete", NotificationType.Info);
             }
         }
+
     }
   
 }
-
