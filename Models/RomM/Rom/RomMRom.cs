@@ -4,6 +4,31 @@ using Newtonsoft.Json;
 
 namespace RomM.Models.RomM.Rom
 {
+    public class metadatum
+    {
+        [JsonProperty("rom_id")]
+        public int Id { get; set; }
+        [JsonProperty("genres")]
+        public List<string> Genres { get; set; }
+        [JsonProperty("franchises")]
+        public List<string> Franchises { get; set; }
+        [JsonProperty("collections")]
+        public List<string> Collections { get; set; }
+        [JsonProperty("companies")]
+        public List<string> Companies { get; set; }
+        [JsonProperty("game_modes")]
+        public List<string> Gamemodes { get; set; }
+        [JsonProperty("age_ratings")]
+        public List<string> Age_Ratings { get; set; }
+        [JsonProperty("player_count")]
+        public int Player_Count { get; set; }
+        [JsonProperty("first_release_date")]
+        public long Release_Date { get; set; }
+        [JsonProperty("average_rating")]
+        public float Average_Rating { get; set; }
+
+    }
+
     public class RomMRom
     {
         [JsonProperty("id")]
@@ -24,10 +49,10 @@ namespace RomM.Models.RomM.Rom
         [JsonProperty("platform_slug")]
         public string PlatformSlug { get; set; }
 
-        [JsonProperty("platform_name")]
+        [JsonProperty("platform_display_name")]
         public string PlatformName { get; set; }
 
-        [JsonProperty("fs_name")]
+        [JsonProperty("fs_name")] //This already does not have an extention (BUG?)
         public string FileName { get; set; }
 
         [JsonProperty("fs_name_no_tags")]
@@ -36,7 +61,7 @@ namespace RomM.Models.RomM.Rom
         [JsonProperty("fs_name_no_ext")]
         public string FileNameNoExt { get; set; }
 
-        [JsonProperty("fs_extension")]
+        [JsonProperty("fs_extension")] //This is unpopulated
         public string FileExtension { get; set; }
 
         [JsonProperty("fs_path")]
@@ -54,26 +79,11 @@ namespace RomM.Models.RomM.Rom
         [JsonProperty("summary")]
         public string Summary { get; set; }
 
-        [JsonProperty("first_release_date")]
-        public long? FirstReleaseDate { get; set; }
-
         [JsonProperty("alternative_names")]
         public List<string> AlternativeNames { get; set; }
 
-        [JsonProperty("genres")]
-        public List<string> Genres { get; set; }
-
-        [JsonProperty("franchises")]
-        public List<string> Franchises { get; set; }
-
-        [JsonProperty("collections")]
-        public List<string> Collections { get; set; }
-
-        [JsonProperty("companies")]
-        public List<string> Companies { get; set; }
-
-        [JsonProperty("game_modes")]
-        public List<string> GameModes { get; set; }
+        [JsonProperty("metadatum")]
+        public metadatum Metadatum { get; set; }
 
         [JsonProperty("igdb_metadata")]
         public RomMIgdbMetadata IgdbMetadata { get; set; }
@@ -83,9 +93,6 @@ namespace RomM.Models.RomM.Rom
 
         [JsonProperty("path_cover_large")]
         public string PathCoverL { get; set; }
-
-        [JsonProperty("has_cover")]
-        public bool HasCover { get; set; }
 
         [JsonProperty("url_cover")]
         public string UrlCover { get; set; }
@@ -126,7 +133,5 @@ namespace RomM.Models.RomM.Rom
         [JsonProperty("rom_user")]
         public object RomUser { get; set; }
 
-        [JsonProperty("sort_comparator")]
-        public string SortComparator { get; set; }
     }
 }

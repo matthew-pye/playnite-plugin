@@ -20,6 +20,7 @@ using Playnite.SDK.Events;
 using RomM.Games;
 using RomM.Models.RomM.Platform;
 using RomM.Models.RomM.Rom;
+using SharpCompress;
 
 
 namespace RomM
@@ -178,6 +179,7 @@ namespace RomM
             Settings = new SettingsViewModel(this, this);
             HttpClientSingleton.ConfigureBasicAuth(Settings.RomMUsername, Settings.RomMPassword);
             Playnite.UriHandler.RegisterSource("romm", HandleRommUri);
+
         }
 
         public static async Task<HttpResponseMessage> GetAsync(string baseUrl, HttpCompletionOption completionOption = HttpCompletionOption.ResponseContentRead)
@@ -319,6 +321,8 @@ namespace RomM
                 {
                     Logger.Debug($"Finished parsing response for {apiPlatform.Name}.");
 
+                    var playniteRatingsBoard = PlayniteApi.ApplicationSettings.AgeRatingOrgPriority.ToString();
+
                     var rootInstallDir = PlayniteApi.Paths.IsPortable
                         ? mapping.DestinationPathResolved.Replace(PlayniteApi.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory)
                         : mapping.DestinationPathResolved;
@@ -352,6 +356,12 @@ namespace RomM
                         }
 
                         var gameNameWithTags  = $"{gameName}{(item.Regions.Count > 0 ? $" ({string.Join(", ", item.Regions)})" : "")}{(!string.IsNullOrEmpty(item.Revision) ? $" (Rev {item.Revision})" : "")}{(item.Tags.Count > 0 ? $" ({string.Join(", ", item.Tags)})" : "")}";
+                        
+                        DateTime releasedate = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+                        if (item.Metadatum.Release_Date != 0)
+                        { 
+                            releasedate = releasedate.AddMilliseconds(item.Metadatum.Release_Date).ToLocalTime();
+                        }
 
                         // Add newly found game
                         games.Add(new GameMetadata
@@ -364,9 +374,15 @@ namespace RomM
                             GameId = gameId,
                             Platforms = new HashSet<MetadataProperty> { new MetadataNameProperty(mapping.Platform.Name ?? "") },
                             Regions = new HashSet<MetadataProperty>(item.Regions.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+                            Genres = new HashSet<MetadataProperty>(item.Metadatum.Genres.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+                            ReleaseDate =  releasedate.Year == 1970 ? new ReleaseDate() : new ReleaseDate(releasedate), 
+                            Series = new HashSet<MetadataProperty>(item.Metadatum.Franchises.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+                            CommunityScore = (int)item.Metadatum.Average_Rating,
+                            Features = new HashSet<MetadataProperty>(item.Metadatum.Gamemodes.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+                            AgeRatings = new HashSet<MetadataProperty>(item.IgdbMetadata.AgeRatings.Where(r => r.RatingsBoard == playniteRatingsBoard).Select(r => new MetadataNameProperty(r.Rating))),
                             InstallSize = item.FileSizeBytes,
                             Description = item.Summary,
-                            Icon = !string.IsNullOrEmpty(urlCover) ? new MetadataFile(urlCover) : null,
+                            CoverImage = !string.IsNullOrEmpty(urlCover) ? new MetadataFile(urlCover) : null,
                             GameActions = new List<GameAction>
                             {
                                 new GameAction
