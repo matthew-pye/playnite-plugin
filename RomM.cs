@@ -333,6 +333,12 @@ namespace RomM
                         if (args.CancelToken.IsCancellationRequested)
                             break;
 
+                        if(item.IgdbId == null)
+                        {
+                            Logger.Debug($"Skipping {item.Name} - IGDB ID is null!");
+                            continue;
+                        }    
+
                         var gameName = item.Name;
                         var fileName = item.FileName;
                         var urlCover = item.UrlCover;
@@ -377,7 +383,7 @@ namespace RomM
                             Genres = new HashSet<MetadataProperty>(item.Metadatum.Genres.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
                             ReleaseDate =  releasedate.Year == 1970 ? new ReleaseDate() : new ReleaseDate(releasedate), 
                             Series = new HashSet<MetadataProperty>(item.Metadatum.Franchises.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
-                            CommunityScore = (int)item.Metadatum.Average_Rating,
+                            CommunityScore = (int?)item.Metadatum.Average_Rating,
                             Features = new HashSet<MetadataProperty>(item.Metadatum.Gamemodes.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
                             AgeRatings = new HashSet<MetadataProperty>(item.IgdbMetadata.AgeRatings.Where(r => r.RatingsBoard == playniteRatingsBoard).Select(r => new MetadataNameProperty(r.Rating))),
                             InstallSize = item.FileSizeBytes,

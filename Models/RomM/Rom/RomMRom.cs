@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 
 namespace RomM.Models.RomM.Rom
 {
@@ -25,7 +26,7 @@ namespace RomM.Models.RomM.Rom
         [JsonProperty("first_release_date")]
         public long Release_Date { get; set; }
         [JsonProperty("average_rating")]
-        public float Average_Rating { get; set; }
+        public float? Average_Rating { get; set; }
 
     }
 
