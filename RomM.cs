@@ -329,6 +329,12 @@ namespace RomM
                         if (args.CancelToken.IsCancellationRequested)
                             break;
 
+                        if (item.IgdbId == null)
+                        {
+                            Logger.Debug($"Skipping {item.Name} - IGDB ID is null!");
+                            continue;
+                        }
+
                         var gameName = item.Name;
                         var fileName = item.FileName;
                         var urlCover = item.UrlCover;
