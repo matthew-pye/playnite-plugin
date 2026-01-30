@@ -386,6 +386,7 @@ namespace RomM
                             CommunityScore = (int?)item.Metadatum.Average_Rating,
                             Features = new HashSet<MetadataProperty>(item.Metadatum.Gamemodes.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
                             AgeRatings = new HashSet<MetadataProperty>(item.IgdbMetadata.AgeRatings.Where(r => r.RatingsBoard == playniteRatingsBoard).Select(r => new MetadataNameProperty(r.Rating))),
+                            Categories = new HashSet<MetadataProperty>(item.Metadatum.Collections.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
                             InstallSize = item.FileSizeBytes,
                             Description = item.Summary,
                             CoverImage = !string.IsNullOrEmpty(urlCover) ? new MetadataFile(urlCover) : null,
