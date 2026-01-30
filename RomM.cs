@@ -335,6 +335,12 @@ namespace RomM
 
                         if(item.IgdbId == null)
                         {
+                            PlayniteApi.Notifications.Add(new NotificationMessage(
+                                $"RomM-ROM-Import-Failed",
+                                $"{item.Name} failed to import as the ROM does not have a IGDB ID",
+                                NotificationType.Error,
+                                () => { }
+                                    ));
                             Logger.Debug($"Skipping {item.Name} - IGDB ID is null!");
                             continue;
                         }    
