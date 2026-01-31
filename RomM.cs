@@ -20,7 +20,6 @@ using Playnite.SDK.Events;
 using RomM.Games;
 using RomM.Models.RomM.Platform;
 using RomM.Models.RomM.Rom;
-using SharpCompress;
 
 
 namespace RomM
@@ -202,25 +201,6 @@ namespace RomM
             return await HttpClientSingleton.Instance.GetAsync(uriBuilder.Uri);
         }
 
-        private static List<string> GetEmulatorSupportedFileTypes(EmulatorMapping Mapping)
-        {
-            if (Mapping.EmulatorProfile is CustomEmulatorProfile)
-            {
-                var customProfile = Mapping.EmulatorProfile as CustomEmulatorProfile;
-                return customProfile.ImageExtensions;
-            }
-            else if (Mapping.EmulatorProfile is BuiltInEmulatorProfile)
-            {
-                var builtInProfile = (Mapping.EmulatorProfile as BuiltInEmulatorProfile);
-                return API.Instance.Emulation.Emulators
-                    .FirstOrDefault(e => e.Id == Mapping.Emulator.BuiltInConfigId)?
-                    .Profiles
-                    .FirstOrDefault(p => p.Name == builtInProfile.Name)?
-                    .ImageExtensions;
-            }
-
-            return null;
-        }
         public override IEnumerable<GameMetadata> GetGames(LibraryGetGamesArgs args)
         {
             if (Playnite.ApplicationInfo.Mode == ApplicationMode.Fullscreen && !Settings.ScanGamesInFullScreen)
@@ -362,7 +342,7 @@ namespace RomM
                                     ));
                             Logger.Debug($"Skipping {item.Name} - IGDB ID is null!");
                             continue;
-                        }    
+                        }
 
                         var gameName = item.Name;
                         
@@ -382,8 +362,8 @@ namespace RomM
                             FileName = fileName,
                             DownloadUrl = CombineUrl(Settings.RomMHost, $"api/roms/{item.Id}/content/{fileName}"),
                             HasMultipleFiles = item.HasMultipleFiles
-                        };                       
-                        var gameId = info.AsGameId();  
+                        };
+                        var gameId = info.AsGameId();
                         responseGameIDs.Add(gameId);
 
                         // Check if the game is already installed
