@@ -9,25 +9,43 @@ namespace RomM.Models.RomM.Rom
     {
         [JsonProperty("rom_id")]
         public int Id { get; set; }
+
         [JsonProperty("genres")]
         public List<string> Genres { get; set; }
+
         [JsonProperty("franchises")]
         public List<string> Franchises { get; set; }
+
         [JsonProperty("collections")]
         public List<string> Collections { get; set; }
+
         [JsonProperty("companies")]
         public List<string> Companies { get; set; }
+
         [JsonProperty("game_modes")]
         public List<string> Gamemodes { get; set; }
+
         [JsonProperty("age_ratings")]
         public List<string> Age_Ratings { get; set; }
-        [JsonProperty("player_count")]
-        public int Player_Count { get; set; }
+
         [JsonProperty("first_release_date")]
         public long Release_Date { get; set; }
+
         [JsonProperty("average_rating")]
         public float? Average_Rating { get; set; }
 
+    }
+
+    public class RomMFile
+    {
+        [JsonProperty("file_name")]
+        public string FileName { get; set; }
+
+        [JsonProperty("file_size_bytes")]
+        public long? FileSize { get; set; }
+
+        [JsonProperty("full_path")]
+        public string FullPath { get; set; }
     }
 
     public class RomMRom
@@ -53,7 +71,7 @@ namespace RomM.Models.RomM.Rom
         [JsonProperty("platform_display_name")]
         public string PlatformName { get; set; }
 
-        [JsonProperty("fs_name")] //This already does not have an extention (BUG?)
+        [JsonProperty("fs_name")]
         public string FileName { get; set; }
 
         [JsonProperty("fs_name_no_tags")]
@@ -62,7 +80,7 @@ namespace RomM.Models.RomM.Rom
         [JsonProperty("fs_name_no_ext")]
         public string FileNameNoExt { get; set; }
 
-        [JsonProperty("fs_extension")] //This is unpopulated
+        [JsonProperty("fs_extension")]
         public string FileExtension { get; set; }
 
         [JsonProperty("fs_path")]
@@ -120,7 +138,7 @@ namespace RomM.Models.RomM.Rom
         public bool HasMultipleFiles { get; set; }
 
         [JsonProperty("files")]
-        public List<object> Files { get; set; }
+        public List<RomMFile> Files { get; set; }
 
         [JsonProperty("full_path")]
         public string FullPath { get; set; }

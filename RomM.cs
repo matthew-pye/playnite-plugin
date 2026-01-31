@@ -202,6 +202,25 @@ namespace RomM
             return await HttpClientSingleton.Instance.GetAsync(uriBuilder.Uri);
         }
 
+        private static List<string> GetEmulatorSupportedFileTypes(EmulatorMapping Mapping)
+        {
+            if (Mapping.EmulatorProfile is CustomEmulatorProfile)
+            {
+                var customProfile = Mapping.EmulatorProfile as CustomEmulatorProfile;
+                return customProfile.ImageExtensions;
+            }
+            else if (Mapping.EmulatorProfile is BuiltInEmulatorProfile)
+            {
+                var builtInProfile = (Mapping.EmulatorProfile as BuiltInEmulatorProfile);
+                return API.Instance.Emulation.Emulators
+                    .FirstOrDefault(e => e.Id == Mapping.Emulator.BuiltInConfigId)?
+                    .Profiles
+                    .FirstOrDefault(p => p.Name == builtInProfile.Name)?
+                    .ImageExtensions;
+            }
+
+            return null;
+        }
         public override IEnumerable<GameMetadata> GetGames(LibraryGetGamesArgs args)
         {
             if (Playnite.ApplicationInfo.Mode == ApplicationMode.Fullscreen && !Settings.ScanGamesInFullScreen)
@@ -346,7 +365,13 @@ namespace RomM
                         }    
 
                         var gameName = item.Name;
-                        var fileName = item.FileName;
+                        
+                        //SERVER BUG???: This is a fail safe as some of the ROMs tested like Wii U do not have any of these options enabled causing an errors
+                        if (!item.HasMultipleFiles && !item.HasNestedSingleFile && !item.HasSimpleSingleFile)
+                            item.HasMultipleFiles = true;
+
+                        //Pull file name from the list of files when the ROM isn't multi-file excludes sub-folders e.g. dlc, update
+                        var fileName = item.HasMultipleFiles ? item.FileName : item.Files.Where(f => f.FullPath.Count(c => c == '/') <= 3).FirstOrDefault().FileName; 
                         var urlCover = item.UrlCover;
                         var gameInstallDir = Path.Combine(rootInstallDir, Path.GetFileNameWithoutExtension(fileName));
                         var pathToGame = Path.Combine(gameInstallDir, fileName);
@@ -357,13 +382,31 @@ namespace RomM
                             FileName = fileName,
                             DownloadUrl = CombineUrl(Settings.RomMHost, $"api/roms/{item.Id}/content/{fileName}"),
                             HasMultipleFiles = item.HasMultipleFiles
-                        };
-                        var gameId = info.AsGameId();
+                        };                       
+                        var gameId = info.AsGameId();  
                         responseGameIDs.Add(gameId);
 
                         // Check if the game is already installed
                         if (Playnite.Database.Games.Any(g => g.GameId == gameId))
                         {
+                            continue;
+                        }
+
+                        var oldinfo = new RomMGameInfo
+                        {
+                            MappingId = mapping.MappingId,
+                            FileName = item.FileName,
+                            DownloadUrl = CombineUrl(Settings.RomMHost, $"api/roms/{item.Id}/content/{fileName}"),
+                            HasMultipleFiles = item.HasMultipleFiles
+                        };
+                        var oldgameId = info.AsGameId();
+
+                        // Check if the game is already installed with an oldID
+                        if (Playnite.Database.Games.Any(g => g.GameId == oldgameId))
+                        {
+                            var game = Playnite.Database.Games.Where(g => g.GameId == oldgameId).FirstOrDefault();
+                            game.GameId = gameId;
+                            Playnite.Database.Games.Update(game);
                             continue;
                         }
 
