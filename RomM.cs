@@ -178,6 +178,7 @@ namespace RomM
             Settings = new SettingsViewModel(this, this);
             HttpClientSingleton.ConfigureBasicAuth(Settings.RomMUsername, Settings.RomMPassword);
             Playnite.UriHandler.RegisterSource("romm", HandleRommUri);
+
         }
 
         public static async Task<HttpResponseMessage> GetAsync(string baseUrl, HttpCompletionOption completionOption = HttpCompletionOption.ResponseContentRead)
@@ -319,6 +320,8 @@ namespace RomM
                 {
                     Logger.Debug($"Finished parsing response for {apiPlatform.Name}.");
 
+                    var playniteRatingsBoard = PlayniteApi.ApplicationSettings.AgeRatingOrgPriority.ToString();
+
                     var rootInstallDir = PlayniteApi.Paths.IsPortable
                         ? mapping.DestinationPathResolved.Replace(PlayniteApi.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory)
                         : mapping.DestinationPathResolved;
@@ -329,14 +332,26 @@ namespace RomM
                         if (args.CancelToken.IsCancellationRequested)
                             break;
 
-                        if (item.IgdbId == null)
+                        if(item.IgdbId == null)
                         {
+                            PlayniteApi.Notifications.Add(new NotificationMessage(
+                                $"RomM-ROM-Import-Failed",
+                                $"{item.Name} failed to import as the ROM does not have a IGDB ID",
+                                NotificationType.Error,
+                                () => { }
+                                    ));
                             Logger.Debug($"Skipping {item.Name} - IGDB ID is null!");
                             continue;
                         }
 
                         var gameName = item.Name;
-                        var fileName = item.FileName;
+                        
+                        //SERVER BUG???: This is a fail safe as some of the ROMs tested like Wii U do not have any of these options enabled causing an errors
+                        if (!item.HasMultipleFiles && !item.HasNestedSingleFile && !item.HasSimpleSingleFile)
+                            item.HasMultipleFiles = true;
+
+                        //Pull file name from the list of files when the ROM isn't multi-file excludes sub-folders e.g. dlc, update
+                        var fileName = item.HasMultipleFiles ? item.FileName : item.Files.Where(f => f.FullPath.Count(c => c == '/') <= 3).FirstOrDefault().FileName; 
                         var urlCover = item.UrlCover;
                         var gameInstallDir = Path.Combine(rootInstallDir, Path.GetFileNameWithoutExtension(fileName));
                         var pathToGame = Path.Combine(gameInstallDir, fileName);
@@ -357,7 +372,31 @@ namespace RomM
                             continue;
                         }
 
+                        var oldinfo = new RomMGameInfo
+                        {
+                            MappingId = mapping.MappingId,
+                            FileName = item.FileName,
+                            DownloadUrl = CombineUrl(Settings.RomMHost, $"api/roms/{item.Id}/content/{fileName}"),
+                            HasMultipleFiles = item.HasMultipleFiles
+                        };
+                        var oldgameId = info.AsGameId();
+
+                        // Check if the game is already installed with an oldID
+                        if (Playnite.Database.Games.Any(g => g.GameId == oldgameId))
+                        {
+                            var game = Playnite.Database.Games.Where(g => g.GameId == oldgameId).FirstOrDefault();
+                            game.GameId = gameId;
+                            Playnite.Database.Games.Update(game);
+                            continue;
+                        }
+
                         var gameNameWithTags  = $"{gameName}{(item.Regions.Count > 0 ? $" ({string.Join(", ", item.Regions)})" : "")}{(!string.IsNullOrEmpty(item.Revision) ? $" (Rev {item.Revision})" : "")}{(item.Tags.Count > 0 ? $" ({string.Join(", ", item.Tags)})" : "")}";
+                        
+                        DateTime releasedate = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+                        if (item.Metadatum.Release_Date != 0)
+                        { 
+                            releasedate = releasedate.AddMilliseconds(item.Metadatum.Release_Date).ToLocalTime();
+                        }
 
                         // Add newly found game
                         games.Add(new GameMetadata
@@ -370,9 +409,16 @@ namespace RomM
                             GameId = gameId,
                             Platforms = new HashSet<MetadataProperty> { new MetadataNameProperty(mapping.Platform.Name ?? "") },
                             Regions = new HashSet<MetadataProperty>(item.Regions.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+                            Genres = new HashSet<MetadataProperty>(item.Metadatum.Genres.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+                            ReleaseDate =  releasedate.Year == 1970 ? new ReleaseDate() : new ReleaseDate(releasedate), 
+                            Series = new HashSet<MetadataProperty>(item.Metadatum.Franchises.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+                            CommunityScore = (int?)item.Metadatum.Average_Rating,
+                            Features = new HashSet<MetadataProperty>(item.Metadatum.Gamemodes.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+                            AgeRatings = new HashSet<MetadataProperty>(item.IgdbMetadata.AgeRatings.Where(r => r.RatingsBoard == playniteRatingsBoard).Select(r => new MetadataNameProperty(r.Rating))),
+                            Categories = new HashSet<MetadataProperty>(item.Metadatum.Collections.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
                             InstallSize = item.FileSizeBytes,
                             Description = item.Summary,
-                            Icon = !string.IsNullOrEmpty(urlCover) ? new MetadataFile(urlCover) : null,
+                            CoverImage = !string.IsNullOrEmpty(urlCover) ? new MetadataFile(urlCover) : null,
                             GameActions = new List<GameAction>
                             {
                                 new GameAction
