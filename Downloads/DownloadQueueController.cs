@@ -3,6 +3,7 @@ using Playnite.SDK.Plugins;
 using SharpCompress.Archives;
 using SharpCompress.Common;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -14,7 +15,6 @@ namespace RomM.Downloads
     public class DownloadQueueController
     {
         private readonly IPlayniteAPI api;
-        private readonly ILogger logger;
         private readonly DownloadQueueViewModel vm;
 
         private readonly SemaphoreSlim concurrencyGate;
@@ -22,13 +22,13 @@ namespace RomM.Downloads
         private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, CancellationTokenSource> activeDownloads =
             new System.Collections.Concurrent.ConcurrentDictionary<Guid, CancellationTokenSource>();
 
+        public ILogger Logger => LogManager.GetLogger();
         public int MaxConcurrent { get; }
 
         public DownloadQueueController(IPlayniteAPI api, DownloadQueueViewModel vm, int maxConcurrent)
         {
             this.api = api;
             this.vm = vm;
-            this.logger = LogManager.GetLogger();
 
             MaxConcurrent = Math.Max(1, maxConcurrent);
             concurrencyGate = new SemaphoreSlim(MaxConcurrent, MaxConcurrent);
@@ -67,7 +67,7 @@ namespace RomM.Downloads
                 }
                 catch (Exception ex)
                 {
-                    logger.Warn(ex, "An error occurred while cancelling a download.");
+                    Logger.Warn(ex, "An error occurred while cancelling a download.");
                 }
             }
         }
@@ -179,8 +179,16 @@ namespace RomM.Downloads
             if (req.HasMultipleFiles || (req.AutoExtract && IsFileCompressed(req.GamePath)))
             {
                 item.SetStatus(DownloadStatus.Extracting, "Extracting...");
-                ExtractArchiveWithEntryProgress(req.GamePath, req.InstallDir, item, ct);
+                Logger.Info($"Extracting {req.GamePath}...");
 
+                if(req.Use7z && !string.IsNullOrEmpty(req.PathTo7Z) && req.PathTo7Z.EndsWith("7z.exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    ExtractArchiveWith7z(req.PathTo7Z, req.GamePath, req.InstallDir, item, ct);
+                }
+                else
+                {
+                    ExtractArchiveWithEntryProgress(req.GamePath, req.InstallDir, item, ct);
+                }
                 try { File.Delete(req.GamePath); } catch { }
             }
 
@@ -204,6 +212,36 @@ namespace RomM.Downloads
             return ArchiveFactory.IsArchive(filePath, out var type);
         }
 
+
+        private void ExtractArchiveWith7z(string pathTo7z, string archivePath, string installDir, DownloadQueueItem item, CancellationToken ct)
+        {
+            if (archivePath == null || archivePath.Contains("../") || archivePath.Contains(@"..\"))
+            {
+                throw new ArgumentException("Invalid archive path");
+            }
+            if (installDir == null || installDir.Contains("../") || installDir.Contains(@"..\"))
+            {
+                throw new ArgumentException("Invalid install directory path");
+            }
+
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                FileName = pathTo7z,
+                Arguments = $"x \"{archivePath.Replace("\"", "\\\"")}\" -o\"{installDir.Replace("\"", "\\\"")}\" -y",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            ct.ThrowIfCancellationRequested();
+            using (Process process = Process.Start(startInfo))
+            { 
+                process.WaitForExit();
+                if (process.ExitCode != 0)
+                {
+                    throw new Exception($"7z extraction failed for {archivePath} with exit code {process.ExitCode}.");
+                }
+            }
+        }
         private void ExtractArchiveWithEntryProgress(string archivePath, string installDir, DownloadQueueItem item, CancellationToken ct)
         {
             using (var archive = ArchiveFactory.Open(archivePath))
@@ -254,7 +292,7 @@ namespace RomM.Downloads
             }
             catch (Exception ex)
             {
-                logger.Warn(ex, $"Cleanup failed for {req.GameName} ({req.GameId}).");
+                Logger.Warn(ex, $"Cleanup failed for {req.GameName} ({req.GameId}).");
                 // don't rethrow - cancel should still succeed
             }
         }

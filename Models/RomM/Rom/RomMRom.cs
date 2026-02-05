@@ -1,7 +1,6 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace RomM.Models.RomM.Rom
 {
@@ -29,7 +28,7 @@ namespace RomM.Models.RomM.Rom
         public List<string> Age_Ratings { get; set; }
 
         [JsonProperty("first_release_date")]
-        public long Release_Date { get; set; }
+        public long? Release_Date { get; set; }
 
         [JsonProperty("average_rating")]
         public float? Average_Rating { get; set; }
@@ -68,7 +67,7 @@ namespace RomM.Models.RomM.Rom
         [JsonProperty("platform_slug")]
         public string PlatformSlug { get; set; }
 
-        [JsonProperty("platform_display_name")]
+        [JsonProperty("platform_name")]
         public string PlatformName { get; set; }
 
         [JsonProperty("fs_name")]
@@ -98,11 +97,29 @@ namespace RomM.Models.RomM.Rom
         [JsonProperty("summary")]
         public string Summary { get; set; }
 
-        [JsonProperty("alternative_names")]
-        public List<string> AlternativeNames { get; set; }
+        [JsonProperty("first_release_date")]
+        public long? FirstReleaseDate { get; set; }
 
         [JsonProperty("metadatum")]
         public metadatum Metadatum { get; set; }
+
+        [JsonProperty("alternative_names")]
+        public List<string> AlternativeNames { get; set; }
+
+        [JsonProperty("genres")]
+        public List<string> Genres { get; set; }
+
+        [JsonProperty("franchises")]
+        public List<string> Franchises { get; set; }
+
+        [JsonProperty("collections")]
+        public List<string> Collections { get; set; }
+
+        [JsonProperty("companies")]
+        public List<string> Companies { get; set; }
+
+        [JsonProperty("game_modes")]
+        public List<string> GameModes { get; set; }
 
         [JsonProperty("igdb_metadata")]
         public RomMIgdbMetadata IgdbMetadata { get; set; }
@@ -112,6 +129,9 @@ namespace RomM.Models.RomM.Rom
 
         [JsonProperty("path_cover_large")]
         public string PathCoverL { get; set; }
+
+        [JsonProperty("has_cover")]
+        public bool HasCover { get; set; }
 
         [JsonProperty("url_cover")]
         public string UrlCover { get; set; }
@@ -150,7 +170,9 @@ namespace RomM.Models.RomM.Rom
         public DateTime UpdatedAt { get; set; }
 
         [JsonProperty("rom_user")]
-        public object RomUser { get; set; }
+        public RomMRomUser RomUser { get; set; }
 
+        [JsonProperty("sort_comparator")]
+        public string SortComparator { get; set; }
     }
 }
