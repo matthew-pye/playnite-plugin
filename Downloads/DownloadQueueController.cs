@@ -1,5 +1,7 @@
 ﻿using Playnite.SDK;
 using Playnite.SDK.Plugins;
+using ProtoBuf;
+using RomM.Games;
 using SharpCompress.Archives;
 using SharpCompress.Common;
 using System;
@@ -123,73 +125,95 @@ namespace RomM.Downloads
             item.SetStatus(DownloadStatus.Downloading, "Downloading...");
             item.SetProgress(0, 1, true);
 
-            using (var response = await RomM.GetAsync(req.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct)
-                                            .ConfigureAwait(false))
+            int index = 0;
+            foreach (var gameinfo in req.GameInfos)
             {
-                response.EnsureSuccessStatusCode();
+                RomMGameInfo rom = new RomMGameInfo();
 
-                var totalBytes = response.Content.Headers.ContentLength;
-                item.SetProgress(0, totalBytes ?? 1, !totalBytes.HasValue);
+                item.GameName = req.GameInfos.Count > 1 ? (index != 0 ? $"{req.GameName} - Main" : $"{req.GameName} - Version: {rom.FileName}") : req.GameName;
 
-                Directory.CreateDirectory(req.InstallDir);
-
-                byte[] buffer = new byte[1024 * 256];
-                long downloaded = 0;
-                long lastUiUpdate = 0;
-                const long uiUpdateThreshold = 1024 * 512; // 512KB
-
-                using (var httpStream = await response.Content.ReadAsStreamAsync())
-                using (var fileStream = new FileStream(req.GamePath, FileMode.Create, FileAccess.Write, FileShare.None, buffer.Length, true))
+                var gameInfoStr = Convert.FromBase64String(gameinfo.Substring(2));
+                using (var ms = new MemoryStream(gameInfoStr))
                 {
-                    while (true)
+                    rom = Serializer.Deserialize<RomMGameInfo>(ms);
+                }
+
+                //Download to subfolders if the game has siblings
+                var installDir = req.GameInfos.Count > 1 ? Path.Combine(req.DstPath, Path.GetFileNameWithoutExtension(rom.FileName)) : req.DstPath;
+                var downloadFilePath = rom.HasMultipleFiles
+                        ? Path.Combine(installDir, rom.FileName + ".zip")
+                        : Path.Combine(installDir, rom.FileName);
+
+                using (var response = await RomM.GetAsync(rom.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct)
+                                           .ConfigureAwait(false))
+                {
+                    response.EnsureSuccessStatusCode();
+
+                    var totalBytes = response.Content.Headers.ContentLength;
+                    item.SetProgress(0, totalBytes ?? 1, !totalBytes.HasValue);
+
+                    Directory.CreateDirectory(installDir);
+
+                    byte[] buffer = new byte[1024 * 256];
+                    long downloaded = 0;
+                    long lastUiUpdate = 0;
+                    const long uiUpdateThreshold = 1024 * 512; // 512KB
+
+                    using (var httpStream = await response.Content.ReadAsStreamAsync())
+                    using (var fileStream = new FileStream(downloadFilePath, FileMode.Create, FileAccess.Write, FileShare.None, buffer.Length, true))
                     {
-                        ct.ThrowIfCancellationRequested();
-
-                        int read = await httpStream.ReadAsync(buffer, 0, buffer.Length, ct);
-                        if (read <= 0)
+                        while (true)
                         {
-                            break;
-                        }
+                            ct.ThrowIfCancellationRequested();
 
-                        await fileStream.WriteAsync(buffer, 0, read, ct);
-
-                        downloaded += read;
-
-                        if (downloaded - lastUiUpdate >= uiUpdateThreshold)
-                        {
-                            lastUiUpdate = downloaded;
-
-                            if (totalBytes.HasValue && totalBytes.Value > 0)
+                            int read = await httpStream.ReadAsync(buffer, 0, buffer.Length, ct);
+                            if (read <= 0)
                             {
-                                item.SetProgress(downloaded, totalBytes.Value, false);
-                                var pct = (double)downloaded / totalBytes.Value * 100.0;
-                                item.SetStatus(DownloadStatus.Downloading, "Downloading... " + pct.ToString("0") + "%");
+                                break;
                             }
-                            else
+
+                            await fileStream.WriteAsync(buffer, 0, read, ct);
+
+                            downloaded += read;
+
+                            if (downloaded - lastUiUpdate >= uiUpdateThreshold)
                             {
-                                item.SetProgress(downloaded, Math.Max(1, downloaded), true);
-                                item.SetStatus(DownloadStatus.Downloading, "Downloading...");
+                                lastUiUpdate = downloaded;
+
+                                if (totalBytes.HasValue && totalBytes.Value > 0)
+                                {
+                                    item.SetProgress(downloaded, totalBytes.Value, false);
+                                    var pct = (double)downloaded / totalBytes.Value * 100.0;
+                                    item.SetStatus(DownloadStatus.Downloading, "Downloading... " + pct.ToString("0") + "%");
+                                }
+                                else
+                                {
+                                    item.SetProgress(downloaded, Math.Max(1, downloaded), true);
+                                    item.SetStatus(DownloadStatus.Downloading, "Downloading...");
+                                }
                             }
                         }
                     }
-                }
-            }
 
-            // Extract if needed (we treat extract as 0..100 in its own bar)
-            if (req.HasMultipleFiles || (req.AutoExtract && IsFileCompressed(req.GamePath)))
-            {
-                item.SetStatus(DownloadStatus.Extracting, "Extracting...");
-                Logger.Info($"Extracting {req.GamePath}...");
+                    // Extract if needed (we treat extract as 0..100 in its own bar)
+                    if (rom.HasMultipleFiles || (req.AutoExtract && IsFileCompressed(downloadFilePath)))
+                    {
+                        item.SetStatus(DownloadStatus.Extracting, "Extracting...");
+                        Logger.Info($"Extracting {downloadFilePath}...");
 
-                if(req.Use7z && !string.IsNullOrEmpty(req.PathTo7Z) && req.PathTo7Z.EndsWith("7z.exe", StringComparison.OrdinalIgnoreCase))
-                {
-                    ExtractArchiveWith7z(req.PathTo7Z, req.GamePath, req.InstallDir, item, ct);
+                        if (req.Use7z && !string.IsNullOrEmpty(req.PathTo7Z) && req.PathTo7Z.EndsWith("7z.exe", StringComparison.OrdinalIgnoreCase))
+                        {
+                            ExtractArchiveWith7z(req.PathTo7Z, downloadFilePath, installDir, item, ct);
+                        }
+                        else
+                        {
+                            ExtractArchiveWithEntryProgress(downloadFilePath, installDir, item, ct);
+                        }
+                        try { File.Delete(downloadFilePath); } catch { }
+                    }
                 }
-                else
-                {
-                    ExtractArchiveWithEntryProgress(req.GamePath, req.InstallDir, item, ct);
-                }
-                try { File.Delete(req.GamePath); } catch { }
+
+                index++;
             }
 
             // Build rom list + signal installed
@@ -197,7 +221,7 @@ namespace RomM.Downloads
 
             req.OnInstalled?.Invoke(new GameInstalledEventArgs(new GameInstallationData
             {
-                InstallDirectory = req.InstallDir,
+                InstallDirectory = req.DstPath,
                 Roms = roms
             }));
         }
@@ -285,10 +309,10 @@ namespace RomM.Downloads
             try
             {
                 // delete partial downloaded file first
-                SafeDeleteFileWithRetry(req.GamePath);
+                //SafeDeleteFileWithRetry(req.DstPath);
 
                 // delete folder (recursively) if it exists
-                SafeDeleteDirectoryWithRetry(req.InstallDir);
+                SafeDeleteDirectoryWithRetry(req.DstPath);
             }
             catch (Exception ex)
             {

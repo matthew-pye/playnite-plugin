@@ -38,5 +38,8 @@ namespace RomM.Models.RomM.Rom
             { "now_playing", "Playing" },
             { "not_played", "Not Played" }
         };
+
+        [JsonProperty("is_main_sibling")]
+        public bool IsMainSibling { get; set; }
     }
 }

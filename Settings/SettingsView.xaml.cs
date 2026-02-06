@@ -46,7 +46,8 @@ namespace RomM.Settings
             string path;
             if ((path = SettingsViewModel.Instance.PlayniteAPI.Dialogs.SelectFile("7Zip Executable|7z.exe")) == null) return;
 
-            SettingsViewModel.Instance.PathTo7z = path;
+            //SettingsViewModel.Instance.PathTo7z = path;
+			PathTo7zText.Text = path; //Doesn't update UI until the setting menu is reopened if not done this way 
         }
 
         private static string GetSelectedFolderPath()

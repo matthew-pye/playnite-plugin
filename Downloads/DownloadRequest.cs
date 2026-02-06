@@ -9,11 +9,13 @@ namespace RomM.Downloads
     {
         public Guid GameId { get; set; }
         public string GameName { get; set; }
-        public string DownloadUrl { get; set; }
-        public string InstallDir { get; set; }      // folder where to extract/install
-        public string GamePath { get; set; }        // full path to the downloaded file on disk
-        public bool HasMultipleFiles { get; set; }  // whether archive contains multiple top-level files
+        //public string DownloadUrl { get; set; }
+        public string BaseInstallDir { get; set; }      // folder where to extract/install
+        //public string GamePath { get; set; }        // full path to the downloaded file on disk
+        //public bool HasMultipleFiles { get; set; }  // whether archive contains multiple top-level files
+        public string DstPath { get; set; }
         public bool AutoExtract { get; set; } = true;
+        public List<string> GameInfos { get; set; }
         public bool Use7z { get; set; } = false;
         public string PathTo7Z { get; set; } = "";
 

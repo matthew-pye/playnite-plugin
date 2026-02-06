@@ -33,6 +33,7 @@ namespace RomM.Settings
 
         public bool Use7z { get; set; } = false;
         public string PathTo7z { get; set; } = "";
+        public bool CombineRevisions { get; set; } = false; 
 
         public SettingsViewModel()
         {
@@ -60,6 +61,7 @@ namespace RomM.Settings
                 KeepRomMSynced = savedSettings.KeepRomMSynced;
                 Use7z = savedSettings.Use7z;
                 PathTo7z = savedSettings.PathTo7z;
+                CombineRevisions = savedSettings.CombineRevisions;
             }
             
             if (Mappings == null)

@@ -7,6 +7,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using ProtoBuf;
+using Newtonsoft.Json;
 
 namespace RomM.Games
 {
@@ -23,68 +25,99 @@ namespace RomM.Games
 
         public override void Install(InstallActionArgs args)
         {
-            var info = Game.GetRomMGameInfo();
+            var baseinfo = Game.GetRomMGameInfo();
 
-            var dstPath = info.Mapping?.DestinationPathResolved
-                ?? throw new Exception("Mapped emulator data cannot be found, try removing and re-adding.");
+            List<string> gameinfos = new List<string>();
+            gameinfos.Add(Game.GameId);
 
-            // Paths (same as before)
-            var installDir = Path.Combine(dstPath, Path.GetFileNameWithoutExtension(info.FileName));
+            int romMId;
+            if (int.TryParse(Game.Version.Split(':')[1], out romMId))
+            {
+                string itemPath = $"{_romM.Playnite.Paths.ExtensionsDataPath}/9700aa21-447d-41b4-a989-acd38f407d9f/{romMId}.json";
+                if (File.Exists(itemPath))
+                {
+                    var siblinginfos = JsonConvert.DeserializeObject<List<RomMGameInfo>>(File.ReadAllText(itemPath));
 
-            // If RomM indicates multiple files, we download as an archive name (zip) into the install folder.
-            // Otherwise we download the single ROM file.
-            var downloadFilePath = info.HasMultipleFiles
-                ? Path.Combine(installDir, info.FileName + ".zip")
-                : Path.Combine(installDir, info.FileName);
+                    foreach (var siblinginfo in siblinginfos)
+                    {
+                        gameinfos.Add(siblinginfo.AsGameId());
+                    }
+                }
+            }
+
+            
+
+            var dstPath = baseinfo.Mapping?.DestinationPathResolved
+                    ?? throw new Exception("Mapped emulator data cannot be found, try removing and re-adding.");
+
+            //Place different game versions in sub-path
+            dstPath = Path.Combine(dstPath, Path.GetFileNameWithoutExtension(Game.Name));         
 
             var req = new DownloadRequest
             {
                 GameId = Game.Id,
                 GameName = Game.Name,
+                AutoExtract = baseinfo.Mapping != null && baseinfo.Mapping.AutoExtract,
 
-                DownloadUrl = info.DownloadUrl,
-                InstallDir = installDir,
-                GamePath = downloadFilePath,
+                GameInfos = gameinfos,
+                DstPath = dstPath,
                 Use7z = _romM.Settings.Use7z,
                 PathTo7Z = _romM.Settings.PathTo7z,
-
-                HasMultipleFiles = info.HasMultipleFiles,
-                AutoExtract = info.Mapping != null && info.Mapping.AutoExtract,
 
                 // Called by queue AFTER download/extract is done
                 BuildRoms = () =>
                 {
                     var roms = new List<GameRom>();
 
-                    // If the downloaded file still exists and wasn't extracted -> single file ROM
-                    if (File.Exists(downloadFilePath))
+                    foreach (var gameinfo in gameinfos)
                     {
-                        roms.Add(new GameRom(Game.Name, downloadFilePath));
-                        return roms;
-                    }
+                        RomMGameInfo rom = new RomMGameInfo();
 
-                    // Otherwise, we assume extracted files are in installDir
-                    var supported = GetEmulatorSupportedFileTypes(info);
-                    var actualRomFiles = GetRomFiles(installDir, supported);
-
-                    // Prefer .m3u if requested
-                    var useM3u = info.Mapping != null && info.Mapping.UseM3u;
-                    if (useM3u)
-                    {
-                        var m3uFile = actualRomFiles.FirstOrDefault(m =>
-                            m.EndsWith(".m3u", StringComparison.OrdinalIgnoreCase));
-
-                        if (!string.IsNullOrEmpty(m3uFile))
+                        var gameInfoStr = Convert.FromBase64String(gameinfo.Substring(2));
+                        using (var ms = new MemoryStream(gameInfoStr))
                         {
-                            roms.Add(new GameRom(Game.Name, m3uFile));
-                            return roms;
+                            rom = Serializer.Deserialize<RomMGameInfo>(ms);
                         }
-                    }
 
-                    // Otherwise add all rom files except m3u (we don’t want duplicates)
-                    foreach (var f in actualRomFiles.Where(f => !f.EndsWith(".m3u", StringComparison.OrdinalIgnoreCase)))
-                    {
-                        roms.Add(new GameRom(Game.Name, f));
+                        // Paths (same as before)
+                        var installDir = gameinfos.Count > 1 ? Path.Combine(dstPath, Path.GetFileNameWithoutExtension(rom.FileName)) : dstPath;
+
+                        // If RomM indicates multiple files, we download as an archive name (zip) into the install folder.
+                        // Otherwise we download the single ROM file.
+                        var downloadFilePath = rom.HasMultipleFiles
+                            ? Path.Combine(installDir, rom.FileName + ".zip")
+                            : Path.Combine(installDir, rom.FileName);
+
+                        // If the downloaded file still exists and wasn't extracted -> single file ROM
+                        if (File.Exists(downloadFilePath))
+                        {
+                            roms.Add(new GameRom(Path.GetFileNameWithoutExtension(rom.FileName), downloadFilePath));
+                            continue;
+                        }
+
+                        // Otherwise, we assume extracted files are in installDir
+                        var supported = GetEmulatorSupportedFileTypes(rom);
+                        var actualRomFiles = GetRomFiles(installDir, supported);
+
+                        // Prefer .m3u if requested
+                        var useM3u = rom.Mapping != null && rom.Mapping.UseM3u;
+                        if (useM3u)
+                        {
+                            var m3uFile = actualRomFiles.FirstOrDefault(m =>
+                                m.EndsWith(".m3u", StringComparison.OrdinalIgnoreCase));
+
+                            if (!string.IsNullOrEmpty(m3uFile))
+                            {
+                                roms.Add(new GameRom(Game.Name, m3uFile));
+                                return roms;
+                            }
+                        }
+
+                        // Otherwise add all rom files except m3u (we don’t want duplicates)
+                        foreach (var f in actualRomFiles.Where(f => !f.EndsWith(".m3u", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            roms.Add(new GameRom(Game.Name, f));
+                        }
                     }
 
                     return roms;

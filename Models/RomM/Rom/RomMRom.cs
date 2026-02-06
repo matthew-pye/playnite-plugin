@@ -47,6 +47,16 @@ namespace RomM.Models.RomM.Rom
         public string FullPath { get; set; }
     }
 
+    public class RomMSibling
+    {
+        [JsonProperty("id")]
+        public int ID { get; set; }
+
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+    }
+
     public class RomMRom
     {
         [JsonProperty("id")]
@@ -171,6 +181,9 @@ namespace RomM.Models.RomM.Rom
 
         [JsonProperty("rom_user")]
         public RomMRomUser RomUser { get; set; }
+
+        [JsonProperty("siblings")]
+        public List<RomMSibling> Siblings { get; set; }
 
         [JsonProperty("sort_comparator")]
         public string SortComparator { get; set; }
