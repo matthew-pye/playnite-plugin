@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "RomMLibraryP11": {
+      "commandName": "Project"
+    },
+    "LaunchPlaynite": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\Matt\\Documents\\Programming\\Playnite 11\\Playnite11.Desktop.exe"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+﻿id = "Matthew-Pye.RomMLibrary"
+name = "RomM Library"
+author = "Matthew Pye"
+version = "0.0.1"
+module = "RomMLibrary.dll"
