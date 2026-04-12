@@ -4,15 +4,20 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
-             xmlns:p="clr-namespace:Playnite"
              xmlns:s="clr-namespace:RomMLibrary.Settings"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=s:RomMLibrarySettingsHandler}"
-             d:DesignHeight="100" d:DesignWidth="800">
+             d:DesignHeight="1000" d:DesignWidth="800">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
         <s:ImageCacheConverter x:Key="imageCacheConverter" />
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="LightGray" />
+        </Style>
+        <Style TargetType="{x:Type Label}">
+            <Setter Property="Foreground" Value="LightGray" />
+        </Style>
     </UserControl.Resources>
 
     <DockPanel Margin="20" DataContext="{Binding Settings}">
@@ -23,18 +28,18 @@
                 <Grid Margin="0,0,0,10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="180"/>
-                        <ColumnDefinition Width="255"/>
+                        <ColumnDefinition Width="260"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="150"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="60"/>
                         <RowDefinition Height="60"/>
+                        <RowDefinition Height="35"/>
+                        <RowDefinition Height="35"/>
                         <RowDefinition Height="30"/>
-                        <RowDefinition Height="30"/>
-                        <RowDefinition Height="30"/>
-                        <RowDefinition Height="30"/>
-                        <RowDefinition Height="30"/>
+                        <RowDefinition Height="35"/>
+                        <RowDefinition Height="35"/>
                     </Grid.RowDefinitions>
 
                     <!-- RomM User data -->
@@ -45,6 +50,7 @@
                         <Label Content="Test Connection" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Button>
                     <Label Content="Failed!" Grid.Row="1" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12" Foreground="Red" Visibility="{Binding ConnectionFailed, Converter={StaticResource BoolToVisConverter}}"/>
+                    <Label Content="Success!" Grid.Row="1" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12" Foreground="Green" Visibility="{Binding ConnectionSuccess, Converter={StaticResource BoolToVisConverter}}"/>
                     <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Top">
                         <Label Name="RomMServerVersionText" Content="Server Ver." Foreground="DimGray" FontSize="12" VerticalAlignment="Top" HorizontalAlignment="Right"/>
                         <Label Name="RomMServerVersion" Content="{Binding ServerVersion, Mode=OneWay}" Grid.Row="0" Grid.Column="3" Margin="0" Foreground="DimGray" FontSize="12" VerticalAlignment="Top" HorizontalAlignment="Right"/>
@@ -52,15 +58,15 @@
 
                     <!-- RomM Host -->
                     <Label Content="RomM Host" Grid.Row="2" Grid.Column="0" Margin="0,0,5,5"/>
-                    <TextBox x:Name="RomMHost" Grid.Row="2" Grid.Column="1" Margin="2" Width="250" MaxWidth="250" HorizontalAlignment="Left" Text="{Binding RomMHost, Mode=TwoWay}" />
+                    <TextBox x:Name="RomMHost" Grid.Row="2" Grid.Column="1" Margin="3,2,0,2" Width="250" MaxWidth="250" MinHeight="25" HorizontalAlignment="Left" VerticalAlignment="Center"  Text="{Binding RomMHost, Mode=TwoWay}" />
 
                     <!-- RomM Client Token -->
                     <Label Content="RomM Client Token (&gt;=4.8)" Grid.Row="3" Grid.Column="0" Margin="0,0,5,5" VerticalAlignment="Center"/>
-                    <TextBox x:Name="RomMApiKey" Grid.Row="3" Grid.Column="1" Margin="2" Width="250" MaxWidth="250" HorizontalAlignment="Left" Text="{Binding RomMClientToken, Mode=TwoWay}" />
+                    <TextBox x:Name="RomMApiKey" Grid.Row="3" Grid.Column="1" Margin="3,2,0,2" Width="250" MaxWidth="250" MinHeight="25" HorizontalAlignment="Left" VerticalAlignment="Center" Text="{Binding RomMClientToken, Mode=TwoWay}" />
                     <TextBlock Grid.Row="3" Grid.Column="2" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <Hyperlink NavigateUri="{Binding ClientTokenURL}" RequestNavigate="Hyperlink_RequestNavigate">
+                        <!--<Hyperlink NavigateUri="{Binding ClientTokenURL}" RequestNavigate="Hyperlink_RequestNavigate">
                             Get Token
-                        </Hyperlink>
+                        </Hyperlink> -->
                     </TextBlock>
 
                     <CheckBox IsChecked="{Binding UseBasicAuth, Mode=TwoWay}" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center">
@@ -69,17 +75,17 @@
 
                     <!-- Username -->
                     <Label Content="Username" Grid.Row="5" Grid.Column="0" Margin="40,0,5,5" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
-                    <TextBox x:Name="RomMUsername" Grid.Row="5" Grid.Column="1" Margin="2" Width="250" MaxWidth="250" HorizontalAlignment="Left" Text="{Binding RomMUsername, Mode=TwoWay}" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
+                    <TextBox x:Name="RomMUsername" Grid.Row="5" Grid.Column="1" Margin="3,2,0,2" Width="250" MaxWidth="250" MinHeight="25" HorizontalAlignment="Left" VerticalAlignment="Center" Text="{Binding RomMUsername, Mode=TwoWay}" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
 
                     <!-- Password -->
                     <Label Content="Password" Grid.Row="6" Grid.Column="0" Margin="40,5,5,0"  Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
-                    <TextBox x:Name="RomMPassword" Grid.Row="6" Grid.Column="1" Margin="2" Width="250" MaxWidth="250" HorizontalAlignment="Left" Text="{Binding RomMPassword, Mode=TwoWay}" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
+                    <TextBox x:Name="RomMPassword" Grid.Row="6" Grid.Column="1" Margin="3,2,0,2" Width="250" MaxWidth="250" MinHeight="25" HorizontalAlignment="Left" VerticalAlignment="Center" Text="{Binding RomMPassword, Mode=TwoWay}" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
                 </Grid>
                 <Label Content="Emulator path mappings" FontWeight="Bold" />
                 <TextBlock HorizontalAlignment="Right" Margin="0,-16,0,0">
-                    <Hyperlink NavigateUri="https://github.com/rommapp/playnite-plugin/blob/main/README.md" RequestNavigate="Hyperlink_RequestNavigate">
+                    <!-- <Hyperlink NavigateUri="https://github.com/rommapp/playnite-plugin/blob/main/README.md" RequestNavigate="Hyperlink_RequestNavigate">
                         Help
-                    </Hyperlink>
+                    </Hyperlink> -->
                 </TextBlock>
                 <Separator Margin="0,5,0,10" />
 
@@ -108,13 +114,13 @@
                                         </Grid.RowDefinitions>
 
                                         <Label Content="Emulator" Grid.Row="0" Grid.Column="0" Margin="0,0,5,5"/>
-                                        <ComboBox Name="ComboEmulators" Grid.Row="0" Grid.Column="1" Margin="3,2,0,2" DockPanel.Dock="Left" ItemsSource="{Binding AvailableEmulators}" DisplayMemberPath="Name" SelectedItem="{Binding Emulator, Mode=TwoWay}"/>
+                                        <!-- <ComboBox Name="ComboEmulators" Grid.Row="0" Grid.Column="1" Margin="3,2,0,2" DockPanel.Dock="Left" ItemsSource="{Binding AvailableEmulators}" DisplayMemberPath="Name" SelectedItem="{Binding Emulator, Mode=TwoWay}"/> -->
 
                                         <Label Content="Profile" Grid.Row="1" Grid.Column="0" Margin="0,0,5,5"/>
-                                        <ComboBox Name="ComboPlatforms" Grid.Row="1" Grid.Column="1" Margin="3,2,0,2" DockPanel.Dock="Left" ItemsSource="{Binding AvailableProfiles}" DisplayMemberPath="Name" SelectedItem="{Binding EmulatorProfile, Mode=TwoWay}"/>
+                                        <!-- <ComboBox Name="ComboPlatforms" Grid.Row="1" Grid.Column="1" Margin="3,2,0,2" DockPanel.Dock="Left" ItemsSource="{Binding AvailableProfiles}" DisplayMemberPath="Name" SelectedItem="{Binding EmulatorProfile, Mode=TwoWay}"/> -->
 
                                         <Label Content="Platform" Grid.Row="2" Grid.Column="0" Margin="0,0,5,5"/>
-                                        <ComboBox Name="ComboPlatform" Grid.Row="2" Grid.Column="1" Margin="3,2,0,2" DockPanel.Dock="Left" IsTextSearchEnabled="True" ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="Name" SelectedItem="{Binding RomMPlatform, Mode=TwoWay}"/>
+                                        <!-- <ComboBox Name="ComboPlatform" Grid.Row="2" Grid.Column="1" Margin="3,2,0,2" DockPanel.Dock="Left" IsTextSearchEnabled="True" ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="Name" SelectedItem="{Binding RomMPlatform, Mode=TwoWay}"/> -->
 
                                         <Label Content="Path" Grid.Row="3" Grid.Column="0" Margin="0,0,5,5"/>
                                         <TextBox x:Name="Path" Grid.Row="3" Grid.Column="1" Text="{Binding Path=DestinationPath, Mode=TwoWay}"/>
@@ -134,7 +140,7 @@
                                         <Label Content="Mapping ID" Grid.Row="0" Grid.Column="3" Margin="0,0,5,5"/>
                                         <TextBox Grid.Row="0" Grid.Column="4" Margin="0,0,10,0" IsReadOnly="True" HorizontalAlignment="Left" Text="{Binding MappingId, Mode=OneWay}"/>
 
-                                        <Button Grid.Row="0" Grid.Column="5" Content="❌" Tag="{Binding}" ToolTip="Delete mapping!" Click="Click_Delete" Foreground="Red" Width="26" Height="26" Margin="0" Padding="0" />
+                                        <!-- <Button Grid.Row="0" Grid.Column="5" Content="❌" Tag="{Binding}" ToolTip="Delete mapping!" Click="Click_Delete" Foreground="Red" Width="26" Height="26" Margin="0" Padding="0" /> -->
                                     </Grid>
                                 </Expander>
                             </DataTemplate>
@@ -218,9 +224,9 @@
                         <TextBlock Text="Use 7z for archive extraction" TextWrapping="Wrap"/>
                     </CheckBox>
                     <TextBox x:Name="PathTo7zText" Grid.Row="0" Grid.Column="1" Margin="3,2,0,2" Text="{Binding PathTo7z, Mode=TwoWay}" />
-                    <Button Name="Browse7z" Click="Click_Browse7zDestination" Grid.Row="0" Grid.Column="2">
+                    <!-- <Button Name="Browse7z" Click="Click_Browse7zDestination" Grid.Row="0" Grid.Column="2">
                         <Label Content="Browse" Grid.Row="0" Grid.Column="0" Margin="0,0,5,5"/>
-                    </Button>
+                    </Button> -->
                 </Grid>
 
                 <!-- Status Syncing -->

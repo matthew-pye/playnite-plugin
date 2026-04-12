@@ -67,7 +67,7 @@ namespace RomMLibrary.Settings
         public RomMLibrarySettingsHandler(RomMLibraryPlugin plugin, Plugin.GetSettingsHandlerArgs settingsArgs)
         {
             Plugin = plugin;
-            PlayniteApi = RomMLibraryPlugin.PlayniteApi ?? throw new Exception("Playnite API is null cannot continue!"); ;
+            PlayniteApi = RomMLibraryPlugin.PlayniteApi ?? throw new Exception("Playnite API is null cannot continue!");
             SettingsArgs = settingsArgs;
             Instance = this;
         }
@@ -216,7 +216,7 @@ namespace RomMLibrary.Settings
                 Settings.UserType = "----";
                 Settings.ServerVersion = "---";
                 LogManager.GetLogger().Error($"Failed to read response! {ex}");
-                PlayniteApi.Notifications.Add(new NotificationMessage(RomMLibraryPlugin.Id, $"RomM - Failed to poll server: {ex.Message}", NotificationSeverity.Error));
+                PlayniteApi.Notifications.Add(new NotificationMessage(RomMLibraryPlugin.Id, $"{Loc.GetString("ServerPollFailed")}: {ex.Message}", NotificationSeverity.Error));
                 return false;
             }
    

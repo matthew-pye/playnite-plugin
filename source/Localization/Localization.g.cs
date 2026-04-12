@@ -6,9 +6,13 @@ public static partial class Loc
     /// <summary>
     /// "Fluent test string"
     /// </summary>
-    public static string example_string()
+    public static string DownloadViewName()
     {
-        return GetString("example_string");
+        return GetString("DownloadViewName");
+    }
+    public static string DownloadViewTitle()
+    {
+        return GetString("DownloadViewTitle");
     }
 }
 
@@ -16,11 +20,13 @@ public static partial class LocId
 {
     public static readonly HashSet<string> StringIds = new()
     {
-        "example_string"
+        "DownloadViewName",
+        "DownloadViewTitle"
     };
 
     /// <summary>
     /// "Fluent test string"
     /// </summary>
-    public const string example_string = "example_string";
+    public const string DownloadViewName = "DownloadViewName";
+    public const string DownloadViewTitle = "DownloadViewTitle";
 }

@@ -7,6 +7,7 @@ using RomMLibrary.Models.RomM.Rom;
 using System.Collections.Specialized;
 using System.IO;
 using System.Net.Http;
+using System.Runtime.Intrinsics.Arm;
 using System.Text.Json;
 using System.Web;
 
@@ -36,7 +37,7 @@ namespace RomMLibrary.Import
 
             if (enabledMappings == null || !enabledMappings.Any())
             {
-                PlayniteApi.Notifications.Add(new NotificationMessage(RomMLibraryPlugin.Id, "No emulators are configured or enabled in RomM settings. No games will be fetched.", NotificationSeverity.Error));
+                PlayniteApi.Notifications.Add(new NotificationMessage(RomMLibraryPlugin.Id, Loc.GetString("NoEmulatorsConfigured"), NotificationSeverity.Error));
                 return games;
             }
 
@@ -59,7 +60,7 @@ namespace RomMLibrary.Import
                 RomMPlatform? apiPlatform = apiPlatforms.FirstOrDefault(p => p.Id == mapping.RomMPlatformId);
                 if (apiPlatform == null)
                 {
-                    PlayniteApi.Notifications.Add(new NotificationMessage(RomMLibraryPlugin.Id, $"Platform {mapping.RomMPlatform?.Name} with ID {mapping.RomMPlatformId} not found in RomM, skipping.", NotificationSeverity.Error));
+                    PlayniteApi.Notifications.Add(new NotificationMessage(RomMLibraryPlugin.Id, Loc.GetString("PlatformNotFound", ("PlatformName", mapping.RomMPlatform.Name), ("PlatformID", mapping.RomMPlatformId)), NotificationSeverity.Error));
                     continue;
                 }
 

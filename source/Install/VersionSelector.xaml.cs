@@ -1,6 +1,7 @@
 ﻿using RomMLibrary.Models.RomM.Rom;
 
 using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace RomMLibrary.Install
@@ -13,10 +14,19 @@ namespace RomMLibrary.Install
 
         public RomMVersionSelector(List<GameInstallInfo> romVersions)
         {
-
             RomVersions = new ObservableCollection<GameInstallInfo>(romVersions);
-
             InitializeComponent();  
+        }
+
+        private void Click_Cancel(object sender, RoutedEventArgs e)
+        {
+            ((Window)Parent).Close();
+        }
+
+        private void Click_Install(object sender, RoutedEventArgs e)
+        {
+            Cancelled = false;
+            ((Window)Parent).Close();
         }
     }
 }

@@ -1,11 +1,15 @@
 ﻿using Playnite;
 
+using RomM.Import;
+
 using RomMLibrary.Install.Downloads;
 using RomMLibrary.Settings;
 
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Windows.Media;
 
 
 namespace RomMLibrary
@@ -33,7 +37,6 @@ namespace RomMLibrary
         public static HttpClient Instance => httpClient;
     }
 
-
     public class RomMLibraryPlugin : Plugin
     {
         public static readonly string Id = "Matthew-Pye.RomMLibrary";
@@ -47,9 +50,10 @@ namespace RomMLibrary
         public string PluginDLLPath { get; private set; } = "";
         public string PluginDataPath { get; private set; } = "";
 
-        private readonly DownloadQueueViewModel DownloadsViewModel;
-        public DownloadQueueController DownloadQueueController { get; private set; }
-        internal RomMDownloadsSidebarItem DownloadsSidebar { get; private set; }
+        private DownloadQueueViewModel? DownloadsViewModel;
+        internal RomMDownloadsAppViewItem? DownloadsAppView { get; private set; }
+        public DownloadQueueController? DownloadQueueController { get; private set; }
+        
 
         public RomMLibraryPlugin() : base()
         {
@@ -65,23 +69,32 @@ namespace RomMLibrary
             {
                 Name = "RomM Metadata",
                 SupportedDataIds = [
-                BuiltInGameDataId.Name,
-                BuiltInGameDataId.ReleaseDate,
-                BuiltInGameDataId.DesktopCover,
-                BuiltInGameDataId.Genres,
-                BuiltInGameDataId.Description,
-                BuiltInGameDataId.CriticScore,
-                BuiltInGameDataId.Links,
-                BuiltInGameDataId.Features,
-                BuiltInGameDataId.Series,
-                BuiltInGameDataId.Platforms,
-            ]
+                    BuiltInGameDataId.Name,
+                    BuiltInGameDataId.Description,
+                    BuiltInGameDataId.Note,
+                    BuiltInGameDataId.DesktopCover,
+                    BuiltInGameDataId.Genres,
+                    BuiltInGameDataId.Tags,
+                    BuiltInGameDataId.Features,
+                    BuiltInGameDataId.Platforms,
+                    BuiltInGameDataId.Categories,
+                    BuiltInGameDataId.Series,
+                    BuiltInGameDataId.AgeRating,
+                    BuiltInGameDataId.Region,
+                    BuiltInGameDataId.CompletionStatus,
+                    BuiltInGameDataId.UserScore,
+                    BuiltInGameDataId.CommunityScore,
+                    BuiltInGameDataId.ReleaseDate,
+                    BuiltInGameDataId.ObtainedDate,
+                    BuiltInGameDataId.LastPlayedDate,
+                    BuiltInGameDataId.Favorite,
+                    BuiltInGameDataId.Links,
+                    BuiltInGameDataId.TimeToBeatEstimated,
+                    BuiltInGameDataId.TTBMainEstimated,
+                    BuiltInGameDataId.TTBMainSidesEstimated,
+                    BuiltInGameDataId.TTBCompletionEstimated,
+                ]
             };
-
-            DownloadsViewModel = new DownloadQueueViewModel();
-            DownloadQueueController = new DownloadQueueController(this, DownloadsViewModel, maxConcurrent: 10);
-            DownloadsSidebar = new RomMDownloadsSidebarItem(this);
-           
         }
 
         public override async Task InitializeAsync(InitializeArgs args)
@@ -90,10 +103,15 @@ namespace RomMLibrary
             Loc.Api = args.Api;
             Logger = LogManager.GetLogger();
 
-            Settings = RomMLibrarySettingsHandler.LoadSettings(PlayniteApi.UserDataDir);
-
             PluginDataPath = PlayniteApi.UserDataDir;
             PluginDLLPath = args.PluginInstallDir;
+
+            Settings = RomMLibrarySettingsHandler.LoadSettings(PlayniteApi.UserDataDir);
+            Settings.ProfilePath = Path.Combine(PluginDLLPath, @"profile.png");
+
+            DownloadsViewModel = new DownloadQueueViewModel();
+            DownloadQueueController = new DownloadQueueController(this, DownloadsViewModel, maxConcurrent: 10);
+            DownloadsAppView = new RomMDownloadsAppViewItem(this);
 
             await Task.CompletedTask;
         }
@@ -104,9 +122,33 @@ namespace RomMLibrary
             return new RomMLibrarySettingsHandler(this, args);
         }
 
+        public override async Task<MetadataProvider?> GetMetadataProviderAsync(GetMetadataProviderArgs args)
+        {
+            return new RomMLibraryMetadataProvider(this);
+        }
 
 
+        // Download tab
+        public override ICollection<AppViewItemDescriptor>? GetAppViewItemDescriptors(GetAppViewItemDescriptorsArgs args)
+        {
+            return
+            [
+                new AppViewItemDescriptor(
+                $"{Id}.Downloads",
+                Loc.GetString("DownloadViewName"),
+                // Icon used for sidebar item:
+                (iconArgs) => UIIcon.FromBitmapFile(Path.Combine(PluginDLLPath, "pluginiconBW.png")),
+                // Icon used for when the view is activated:
+                (iconArgs) => UIIcon.FromBitmapFile(Path.Combine(PluginDLLPath, "pluginicon.png")))
+            ];
+        }
+        public override AppViewItem? GetAppViewItem(GetAppViewItemsArgs args)
+        {
+            if (args.ViewId == $"{Id}.Downloads")
+                return DownloadsAppView;
 
+            return null;
+        }
 
     }
 }

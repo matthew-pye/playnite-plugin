@@ -31,6 +31,9 @@
     <None Update="icon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="pluginiconBW.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="profile.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -45,7 +48,7 @@
 
   <ItemGroup>
     <PackageReference Include="GrindCore.SharpCompress" Version="0.46.2" />
-    <PackageReference Include="Playnite.SDK" Version="11.0.0-alpha5" />
+    <PackageReference Include="Playnite.SDK" Version="11.0.0-alpha6" />
   </ItemGroup>
 
   <ItemGroup>
@@ -55,8 +58,4 @@
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
   </ItemGroup>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy /E /Y &quot;$(OutDir)*.*&quot; &quot;C:\Users\Matt\Documents\Programming\Playnite 11\UserData\Extensions\Matthew-Pye.RomMLibrary&quot;" />
-  </Target>
 </Project>

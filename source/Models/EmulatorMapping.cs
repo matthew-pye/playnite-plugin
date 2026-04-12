@@ -3,6 +3,10 @@ using System.Text.Json.Serialization;
 
 using RomMLibrary.Models.RomM.Platform;
 
+using Playnite;
+using System.Collections.ObjectModel;
+using System.Windows.Documents;
+
 
 namespace RomMLibrary.Models
 {
@@ -19,12 +23,12 @@ namespace RomMLibrary.Models
         //[JsonIgnore] private EmulatorProfile _emulatorProfile;
         //[JsonIgnore] private IEnumerable<EmulatorProfile> _availableProfiles;
         [JsonIgnore] public string? _emulatorProfileId;
-        [JsonIgnore] private RomMPlatform? _emulatedPlatform;
+        [JsonIgnore] private RomMPlatform _emulatedPlatform = null!;
         [JsonIgnore] private IEnumerable<RomMPlatform>? _availablePlatforms;
         [ObservableProperty] public int _romMPlatformId = -1;
         [ObservableProperty] private string _destinationPath = "";
 
-        public EmulatorMapping(List<RomMPlatform> romMPlatforms)
+        public EmulatorMapping(ObservableCollection<RomMPlatform>? romMPlatforms)
         {
             MappingId = Guid.NewGuid();
             AvailablePlatforms = romMPlatforms;
@@ -95,7 +99,7 @@ namespace RomMLibrary.Models
         }
 
         [JsonIgnore]
-        public RomMPlatform? RomMPlatform
+        public RomMPlatform RomMPlatform
         {
             get => _emulatedPlatform;
             set
@@ -146,20 +150,21 @@ namespace RomMLibrary.Models
 
                 if (_availablePlatforms != null && RomMPlatformId != -1)
                 {
-                    RomMPlatform = AvailablePlatforms?.FirstOrDefault(x => x.Id == RomMPlatformId);
+                    RomMPlatform = AvailablePlatforms?.FirstOrDefault(x => x.Id == RomMPlatformId) ?? null!;
                 }
             }
         }
 
         //[JsonIgnore]
-        //public string DestinationPathResolved
-        //{
-        //    get
-        //    {
-        //        var playnite = SettingsViewModel.Instance.PlayniteAPI;
-        //        return playnite.Paths.IsPortable ? DestinationPath?.Replace(ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath) : DestinationPath;
-        //    }
-        //}
+        public string DestinationPathResolved
+        {
+            get
+            {
+                IPlayniteApi playnite = RomMLibraryPlugin.PlayniteApi ?? throw new Exception("");
+                return playnite.AppInfo.ApplicationDirectory;
+                //return playnite.Paths.IsPortable ? DestinationPath?.Replace(playnite.ExpandableVariables.PlayniteDirectory, playnite.AppInfo.ApplicationDirectory) : DestinationPath;
+            }
+        }
 
         //[JsonIgnore] public string EmulatorBasePath => Emulator?.InstallDir;
 
@@ -179,17 +184,17 @@ namespace RomMLibrary.Models
         //}
 
 
-        //public IEnumerable<string> GetDescriptionLines()
-        //{
-        //    yield return $"{nameof(_emulatorId)}: {_emulatorId}";
-        //    yield return $"{nameof(Emulator)}*: {Emulator?.Name ?? "<Unknown>"}";
-        //    yield return $"{nameof(EmulatorProfileId)}: {EmulatorProfileId ?? "<Unknown>"}";
-        //    yield return $"{nameof(EmulatorProfile)}*: {EmulatorProfile?.Name ?? "<Unknown>"}";
-        //    yield return $"{nameof(PlatformId)}: {PlatformId}";
-        //    yield return $"{nameof(Platform)}*: {Platform?.Name ?? "<Unknown>"}";
-        //    yield return $"{nameof(DestinationPath)}: {DestinationPath ?? "<Unknown>"}";
-        //    yield return $"{nameof(DestinationPathResolved)}*: {DestinationPathResolved ?? "<Unknown>"}";
-        //    yield return $"{nameof(EmulatorBasePathResolved)}*: {EmulatorBasePathResolved ?? "<Unknown>"}";
-        //}
+        public IEnumerable<string> GetDescriptionLines()
+        {
+            yield return $"{nameof(_emulatorId)}: {_emulatorId}";
+            //yield return $"{nameof(Emulator)}*: {Emulator?.Name ?? "<Unknown>"}";
+            yield return $"{nameof(EmulatorProfileId)}: {EmulatorProfileId ?? "<Unknown>"}";
+            //yield return $"{nameof(EmulatorProfile)}*: {EmulatorProfile?.Name ?? "<Unknown>"}";
+            yield return $"{nameof(RomMPlatformId)}: {RomMPlatformId}";
+            //yield return $"{nameof(EmulatedPlatform)}*: {EmulatedPlatform?.Name ?? "<Unknown>"}";
+            yield return $"{nameof(DestinationPath)}: {DestinationPath ?? "<Unknown>"}";
+            yield return $"{nameof(DestinationPathResolved)}*: {DestinationPathResolved ?? "<Unknown>"}";
+            //yield return $"{nameof(EmulatorBasePathResolved)}*: {EmulatorBasePathResolved ?? "<Unknown>"}";
+        }
     }
 }

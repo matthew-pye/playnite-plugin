@@ -83,7 +83,7 @@ namespace RomMLibrary.Import
                 // Skip if ROM has no filename
                 if (string.IsNullOrEmpty(ROM.FileName))
                 {
-                    PlayniteApi.Notifications.Add(new NotificationMessage(RomMLibraryPlugin.Id, $"Filename for ROM ID: {ROM.Id} doesn't exist!\nDoes ROM exist on the servers filesystem?", NotificationSeverity.Error));
+                    PlayniteApi.Notifications.Add(new NotificationMessage(RomMLibraryPlugin.Id, Loc.GetString("NoFileNameWithID", ("ROMID", ROM.Id)), NotificationSeverity.Error));
                     continue;
                 }
 

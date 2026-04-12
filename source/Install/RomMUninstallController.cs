@@ -25,7 +25,9 @@ namespace RomMLibrary.Install.Downloads
             {
                 RomMLibraryPlugin.PlayniteApi?.Dialogs.ShowErrorMessageAsync($"\"{Game.Name}\" folder could not be found. Marking as uninstalled.", "Game not found");
             }
-            Game.Roms.Clear();
+
+            //Game.Roms.Clear();
+
             await GameUninstalledAsync(new GameUninstalledArgs());
         }
     }

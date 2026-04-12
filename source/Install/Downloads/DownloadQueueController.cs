@@ -50,9 +50,7 @@ namespace RomMLibrary.Install.Downloads
             item.SetStatus(DownloadStatus.Queued, "Queued");
             item.SetProgress(0, 1, true);
 
-            DownloadQueueVM.Items.Add(item);
-
-            //PlayniteApi.MainView.UIDispatcher.Invoke(() => vm.Items.Add(item));
+            UIDispatcher.Invoke(() => DownloadQueueVM.Items.Add(item));
 
             // fire and forget background worker
             Task.Run(async () => await ProcessItem(item, req));

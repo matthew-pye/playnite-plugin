@@ -42,7 +42,7 @@ public class RomMPlatform : IEquatable<RomMPlatform>
         public string? FsSlug { get; set; }
 
         [JsonPropertyName("name")]
-        public string? Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [JsonPropertyName("rom_count")]
         public int RomCount { get; set; }
