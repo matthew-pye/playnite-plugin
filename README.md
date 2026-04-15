@@ -19,7 +19,7 @@
 </div>
 
 > [!WARNING]
-> This plugin is not yet working as it is a port for playnite 11! Do NOT download to try using
+> This branch **DOES NOT** work yet! Don't download and try using waiting for emulator support to be added back to P11-dev
 
 # Overview
 
