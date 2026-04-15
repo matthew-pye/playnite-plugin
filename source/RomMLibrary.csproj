@@ -48,7 +48,7 @@
 
   <ItemGroup>
     <PackageReference Include="GrindCore.SharpCompress" Version="0.46.2" />
-    <PackageReference Include="Playnite.SDK" Version="11.0.0-alpha6" />
+    <PackageReference Include="Playnite.SDK" Version="11.0.0-alpha9" />
   </ItemGroup>
 
   <ItemGroup>
