@@ -95,7 +95,7 @@ namespace RomMLibrary.Import
 
         private string BuildROMUrl()
         {
-            string url = $"{Plugin.Settings.Host.Trim('/')}/api/roms";
+            string url = $"{Plugin.Settings.Host}/api/roms";
 
             if (Plugin.Settings.SkipMissingFiles)
             {
@@ -132,7 +132,7 @@ namespace RomMLibrary.Import
         }
         private IList<RomMPlatform> FetchPlatforms()
         {
-            string apiPlatformsUrl = $"{Plugin.Settings.Host.Trim('/')}/api/platforms";
+            string apiPlatformsUrl = $"{Plugin.Settings.Host}/api/platforms";
             try
             {
                 HttpResponseMessage response = HttpClientSingleton.Instance.GetAsync(apiPlatformsUrl).GetAwaiter().GetResult();

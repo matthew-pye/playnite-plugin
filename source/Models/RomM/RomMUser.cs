@@ -1,4 +1,6 @@
-﻿using System.Text.Json.Serialization;
+﻿using RomMLibrary.Models.RomM.Metadata;
+
+using System.Text.Json.Serialization;
 
 namespace RomMLibrary.Models.RomM
 {
@@ -22,5 +24,8 @@ namespace RomMLibrary.Models.RomM
         public string LastActive { get; set; } = string.Empty;
         [JsonPropertyName("ra_username")]
         public string RAUsername { get; set; } = string.Empty;
+
+        [JsonPropertyName("ra_progression")]
+        public RetroAchievmentProgression? RAProgression;
     }
 }

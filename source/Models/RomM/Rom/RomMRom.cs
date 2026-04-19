@@ -1,38 +1,9 @@
-﻿using System.Text.Json.Serialization;
+﻿using RomMLibrary.Models.RomM.Metadata;
+
+using System.Text.Json.Serialization;
 
 namespace RomMLibrary.Models.RomM.Rom
 {
-    public class metadatum
-    {
-        [JsonPropertyName("rom_id")]
-        public int Id { get; set; }
-
-        [JsonPropertyName("genres")]
-        public List<string> Genres { get; set; } = new List<string>();
-
-        [JsonPropertyName("franchises")]
-        public List<string> Franchises { get; set; } = new List<string>();
-
-        [JsonPropertyName("collections")]
-        public List<string> Collections { get; set; } = new List<string>();
-
-        [JsonPropertyName("companies")]
-        public List<string> Companies { get; set; } = new List<string>();
-
-        [JsonPropertyName("game_modes")]
-        public List<string> Gamemodes { get; set; } = new List<string>();
-
-        [JsonPropertyName("age_ratings")]
-        public List<string> Age_Ratings { get; set; } = new List<string>();
-
-        [JsonPropertyName("first_release_date")]
-        public long? Release_Date { get; set; }
-
-        [JsonPropertyName("average_rating")]
-        public float? Average_Rating { get; set; }
-
-    }
-
     public class RomMFile
     {
         [JsonPropertyName("id")]
@@ -65,6 +36,7 @@ namespace RomMLibrary.Models.RomM.Rom
 
     public class RomMRom
     {
+        // IDs
         [JsonPropertyName("id")]
         public int Id { get; set; }
 
@@ -89,15 +61,17 @@ namespace RomMLibrary.Models.RomM.Rom
         [JsonPropertyName("hltb_id")]
         public int? HLTBId { get; set; }
 
+        // Platform
         [JsonPropertyName("platform_id")]
         public int PlatformId { get; set; }
 
         [JsonPropertyName("platform_slug")]
         public string? PlatformSlug { get; set; }
 
-        [JsonPropertyName("platform_name")]
+        [JsonPropertyName("platform_display_name")]
         public string? PlatformName { get; set; }
 
+        // ROM Data
         [JsonPropertyName("fs_name")]
         public string FileName { get; set; } = string.Empty;
 
@@ -125,32 +99,27 @@ namespace RomMLibrary.Models.RomM.Rom
         [JsonPropertyName("summary")]
         public string? Summary { get; set; }
 
-        [JsonPropertyName("first_release_date")]
-        public long? FirstReleaseDate { get; set; }
-
+        // Metadata
         [JsonPropertyName("metadatum")]
-        public metadatum? Metadatum { get; set; }
-
-        [JsonPropertyName("alternative_names")]
-        public List<string>? AlternativeNames { get; set; }
-
-        [JsonPropertyName("genres")]
-        public List<string>? Genres { get; set; }
-
-        [JsonPropertyName("franchises")]
-        public List<string>? Franchises { get; set; }
-
-        [JsonPropertyName("collections")]
-        public List<string>? Collections { get; set; }
-
-        [JsonPropertyName("companies")]
-        public List<string>? Companies { get; set; }
-
-        [JsonPropertyName("game_modes")]
-        public List<string>? GameModes { get; set; }
+        public Metadatum? Metadatum { get; set; }
 
         [JsonPropertyName("igdb_metadata")]
-        public RomMIgdbMetadata? IgdbMetadata { get; set; }
+        public IGDBMetadata? IgdbMetadata { get; set; }
+
+        [JsonPropertyName("ss_metadata")]
+        public SSMetadata? SSMetadata { get; set; }
+
+        [JsonPropertyName("hltb_metadata")]
+        public HLTBMetadata? HLTBMetadata { get; set; }
+
+        [JsonPropertyName("regions")]
+        public List<string>? Regions { get; set; }
+
+        [JsonPropertyName("languages")]
+        public List<string>? Languages { get; set; }
+
+        [JsonPropertyName("tags")]
+        public List<string>? Tags { get; set; }
 
         [JsonPropertyName("path_cover_small")]
         public string? PathCoverS { get; set; }
@@ -164,17 +133,15 @@ namespace RomMLibrary.Models.RomM.Rom
         [JsonPropertyName("url_cover")]
         public string? UrlCover { get; set; }
 
+        [JsonPropertyName("has_manual")]
+        public bool HasManual { get; set; }
+
+        [JsonPropertyName("path_manual")]
+        public string? ManualPath { get; set; }
+
+        // ROM Info
         [JsonPropertyName("revision")]
         public string? Revision { get; set; }
-
-        [JsonPropertyName("regions")]
-        public List<string>? Regions { get; set; }
-
-        [JsonPropertyName("languages")]
-        public List<string>? Languages { get; set; }
-
-        [JsonPropertyName("tags")]
-        public List<string>? Tags { get; set; }
 
         [JsonPropertyName("has_simple_single_file")]
         public bool HasSimpleSingleFile { get; set; }
@@ -191,14 +158,14 @@ namespace RomMLibrary.Models.RomM.Rom
         [JsonPropertyName("siblings")]
         public List<RomMSibling>? Siblings { get; set; }
 
+        [JsonPropertyName("crc_hash")]
+        public string? CRC { get; set; }
+
+        [JsonPropertyName("md5_hash")]
+        public string? MD5 { get; set; }
+
         [JsonPropertyName("sha1_hash")]
         public string? SHA1 { get; set; }
-
-        [JsonPropertyName("has_manual")]
-        public bool HasManual {  get; set; }
-
-        [JsonPropertyName("path_manual")]
-        public string? ManualPath { get; set; }
 
         [JsonPropertyName("full_path")]
         public string? FullPath { get; set; }
@@ -209,12 +176,10 @@ namespace RomMLibrary.Models.RomM.Rom
         [JsonPropertyName("updated_at")]
         public DateTime UpdatedAt { get; set; }
 
+        // User Data
         [JsonPropertyName("rom_user")]
         public RomMRomUser? RomUser { get; set; }
 
-        [JsonPropertyName("sort_comparator")]
-        public string? SortComparator { get; set; }
-
         public bool Processed { get; set; } = false;
-}
+    }
 }

@@ -28,6 +28,9 @@ namespace RomMLibrary.Models.RomM.Rom
         [JsonPropertyName("status")]
         public string? Status { get; set; }
 
+        [JsonPropertyName("hidden")]
+        public bool Hidden { get; set; }
+
         public static readonly Dictionary<string, string> CompletionStatusMap = new Dictionary<string, string>
         {
             { "never_playing", "Abandoned" },

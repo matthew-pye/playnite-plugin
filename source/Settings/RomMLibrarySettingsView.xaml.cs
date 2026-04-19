@@ -59,7 +59,7 @@ namespace RomMLibrary.Settings
 
             try
             {
-                HttpResponseMessage response = await HttpClientSingleton.Instance.GetAsync($"{RomMLibrarySettingsHandler.Instance?.Settings.Host.Trim('/')}/api/platforms");
+                HttpResponseMessage response = await HttpClientSingleton.Instance.GetAsync($"{RomMLibrarySettingsHandler.Instance?.Settings.Host}/api/platforms");
                 response.EnsureSuccessStatusCode();
 
                 string body = await response.Content.ReadAsStringAsync();

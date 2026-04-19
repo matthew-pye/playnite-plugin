@@ -20,7 +20,7 @@ namespace RomMLibrary.Settings
 {
     public partial class RomMLibraryPluginSettings : ObservableObject
     {
-        [ObservableProperty] private string _host = "";
+        private string _host = "";
         [ObservableProperty] private string _serverVersion = "---";
         [ObservableProperty] private string _clientToken = "";
         [ObservableProperty] private bool _useBasicAuth = false;
@@ -49,6 +49,17 @@ namespace RomMLibrary.Settings
         [ObservableProperty][property: JsonIgnore] private bool _connectionFailed = false;
         [ObservableProperty][property: JsonIgnore] private bool _platformSynced = false;
         [ObservableProperty][property: JsonIgnore] private bool _platformSyncFailed = false;
+
+        public string Host
+        {
+            get => _host;
+            set
+            {
+                _host = value.Trim('/');
+                OnPropertyChanged();
+            }
+        }
+
     }
 
     [INotifyPropertyChanged]

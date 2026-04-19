@@ -4,12 +4,12 @@ using RomM.Import;
 
 using RomMLibrary.Install.Downloads;
 using RomMLibrary.Settings;
+using RomMLibrary.Status;
 
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Windows.Media;
 
 
 namespace RomMLibrary
@@ -17,6 +17,7 @@ namespace RomMLibrary
     public static class HttpClientSingleton
     {
         private static readonly HttpClient httpClient = new HttpClient();
+        public static HttpClient Instance => httpClient;
 
         static HttpClientSingleton()
         {
@@ -32,9 +33,7 @@ namespace RomMLibrary
         public static void ConfigureClientToken(string clientToken)
         {
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", clientToken);
-        }
-
-        public static HttpClient Instance => httpClient;
+        }    
     }
 
     public class RomMLibraryPlugin : Plugin
@@ -49,6 +48,8 @@ namespace RomMLibrary
 
         public string PluginDLLPath { get; private set; } = "";
         public string PluginDataPath { get; private set; } = "";
+
+        public StatusController? StatusController { get; private set; }
 
         private DownloadQueueViewModel? DownloadsViewModel;
         internal RomMDownloadsAppViewItem? DownloadsAppView { get; private set; }
@@ -89,7 +90,6 @@ namespace RomMLibrary
                     BuiltInGameDataId.LastPlayedDate,
                     BuiltInGameDataId.Favorite,
                     BuiltInGameDataId.Links,
-                    BuiltInGameDataId.TimeToBeatEstimated,
                     BuiltInGameDataId.TTBMainEstimated,
                     BuiltInGameDataId.TTBMainSidesEstimated,
                     BuiltInGameDataId.TTBCompletionEstimated,
@@ -103,11 +103,15 @@ namespace RomMLibrary
             Loc.Api = args.Api;
             Logger = LogManager.GetLogger();
 
+            await PlayniteApi.Library.Sources.AddAsync(new Source(Id, "RomM"));
+
             PluginDataPath = PlayniteApi.UserDataDir;
             PluginDLLPath = args.PluginInstallDir;
 
             Settings = RomMLibrarySettingsHandler.LoadSettings(PlayniteApi.UserDataDir);
             Settings.ProfilePath = Path.Combine(PluginDLLPath, @"profile.png");
+
+            StatusController = new StatusController(this);
 
             DownloadsViewModel = new DownloadQueueViewModel();
             DownloadQueueController = new DownloadQueueController(this, DownloadsViewModel, maxConcurrent: 10);
@@ -148,6 +152,26 @@ namespace RomMLibrary
                 return DownloadsAppView;
 
             return null;
+        }
+
+
+        public override Task<List<Game>> ImportGamesAsync(ImportGamesArgs args)
+        {
+            return base.ImportGamesAsync(args);
+        }
+
+        public override Task OnGameStartingAsync(OnGameStartingEventArgs args)
+        {
+            if(File.Exists($"{PluginDataPath}//Games//{args.Game.LibraryGameId}.json"))
+            {
+
+            }
+
+            return base.OnGameStartingAsync(args);
+        }
+        public override Task OnGameStoppedAsync(OnGameStoppedEventArgs args)
+        {
+            return base.OnGameStoppedAsync(args);
         }
 
     }

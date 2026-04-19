@@ -49,7 +49,7 @@ namespace RomM.Import
 
         public RomMRom FetchRom(string romId)
         {
-            string romUrl = $"{Plugin.Settings.Host.Trim('/')}/api/roms/{romId}";
+            string romUrl = $"{Plugin.Settings.Host}/api/roms/{romId}";
             try
             {
                 HttpResponseMessage response = HttpClientSingleton.Instance.GetAsync(romUrl).GetAwaiter().GetResult();
@@ -103,7 +103,7 @@ namespace RomM.Import
                 case BuiltInGameDataId.CommunityScore:
                     return ROM.Metadatum?.Average_Rating;
                 case BuiltInGameDataId.ReleaseDate:
-                    return ROM.FirstReleaseDate;
+                    return ROM.Metadatum?.ReleaseDate;
                 case BuiltInGameDataId.ObtainedDate:
                     return ROM.CreatedAt;
                 case BuiltInGameDataId.LastPlayedDate:
@@ -112,14 +112,12 @@ namespace RomM.Import
                 //    return null;
                 //case BuiltInGameDataId.Links:
                 //    return null;
-                //case BuiltInGameDataId.TimeToBeatEstimated:
-                //    return null;
-                //case BuiltInGameDataId.TTBMainEstimated:
-                //    return null;
-                //case BuiltInGameDataId.TTBMainSidesEstimated:
-                //    return null;
-                //case BuiltInGameDataId.TTBCompletionEstimated:
-                //    return null;
+                case BuiltInGameDataId.TTBMainEstimated:
+                    return ROM.HLTBMetadata?.MainStory;
+                case BuiltInGameDataId.TTBMainSidesEstimated:
+                    return ROM.HLTBMetadata?.MainStoryExtra;
+                case BuiltInGameDataId.TTBCompletionEstimated:
+                    return ROM.HLTBMetadata?.Completionist;
                 default:
                     return null;
             }
