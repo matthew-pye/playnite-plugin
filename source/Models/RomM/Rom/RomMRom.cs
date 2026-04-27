@@ -180,6 +180,7 @@ namespace RomMLibrary.Models.RomM.Rom
         [JsonPropertyName("rom_user")]
         public RomMRomUser? RomUser { get; set; }
 
-        public bool Processed { get; set; } = false;
+        // This is used for linking games together
+        public bool Processed = false;
     }
 }

@@ -41,9 +41,6 @@ namespace RomMLibrary.Import
                 return games;
             }
 
-            //IList<RomMCollection> favoritCollections = Plugin.FetchFavorites();
-            //var favorites = favoritCollections.FirstOrDefault(c => c.IsFavorite)?.RomIds ?? new List<int>();
-
             // Pull ROM data for each enabled mapping and add the games to playnite
             foreach (var mapping in enabledMappings)
             {
@@ -65,7 +62,6 @@ namespace RomMLibrary.Import
                 }
 
                 // Pull data from server
-                // Could be made async, but when testing (4.7.0) found a performance degradation
                 var romMROMs = DownloadROMData(args, url, apiPlatform);
                 if(romMROMs == null)
                 {

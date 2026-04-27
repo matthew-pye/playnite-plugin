@@ -46,8 +46,8 @@
                     <Image Name="RomMProfileIcon" Grid.Column="0" Grid.Row="0" Grid.RowSpan="2" Source="{Binding ProfilePath, Mode=OneWay, Converter={StaticResource imageCacheConverter}}" Width="120" HorizontalAlignment="Left" Margin="5,5,0,5" />
                     <Label Name="RomMUser" Content="{Binding RomMUser, Mode=OneWay}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" FontSize="22" VerticalAlignment="Bottom" Margin="-30,0,0,0"/>
                     <Label Name="RomMProfileType" Content="{Binding RomMProfileType, Mode=OneWay}" Grid.Row="1" Grid.Column="1" Margin="-30,0,0,0" Foreground="DimGray" FontSize="12" VerticalAlignment="Top"/>
-                    <Button Name="TestServer" Click="Click_TestConnection" Grid.Row="1" Grid.Column="3" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Top">
-                        <Label Content="Test Connection" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Button Name="TestServer" Click="Click_Authenticate" Grid.Row="1" Grid.Column="3" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Top">
+                        <Label Content="Authenticate" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Button>
                     <Label Content="Failed!" Grid.Row="1" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12" Foreground="Red" Visibility="{Binding ConnectionFailed, Converter={StaticResource BoolToVisConverter}}"/>
                     <Label Content="Success!" Grid.Row="1" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="12" Foreground="Green" Visibility="{Binding ConnectionSuccess, Converter={StaticResource BoolToVisConverter}}"/>

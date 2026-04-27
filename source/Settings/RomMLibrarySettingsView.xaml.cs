@@ -25,9 +25,9 @@ namespace RomMLibrary.Settings
             InitializeComponent();
         }
 
-        private void Click_TestConnection(object sender, RoutedEventArgs e)
-        {
-            RomMLibrarySettingsHandler.Instance?.TestConnection();
+        private void Click_Authenticate(object sender, RoutedEventArgs e)
+        { 
+            RomMLibrarySettingsHandler.Instance?.Authenticate();
             e.Handled = true;
         }
 

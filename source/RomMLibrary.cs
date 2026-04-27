@@ -11,7 +11,6 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 
-
 namespace RomMLibrary
 {
     public static class HttpClientSingleton
@@ -41,6 +40,7 @@ namespace RomMLibrary
         public static readonly string Id = "Matthew-Pye.RomMLibrary";
         public static readonly string ExternalIdType = "romm";
         public static readonly string ExternalIdName = "RomM";
+        public static readonly Version Version = new Version(0,0,4);
 
         public static IPlayniteApi? PlayniteApi { get; private set; }
         public static ILogger? Logger { get; private set; }
@@ -131,7 +131,7 @@ namespace RomMLibrary
             return new RomMLibraryMetadataProvider(this);
         }
 
-
+        #region Views
         // Download tab
         public override ICollection<AppViewItemDescriptor>? GetAppViewItemDescriptors(GetAppViewItemDescriptorsArgs args)
         {
@@ -154,6 +154,28 @@ namespace RomMLibrary
             return null;
         }
 
+        public override ICollection<MenuItemDescriptor> GetAppMenuItemDescriptors(GetAppMenuItemDescriptorsArgs args)
+        {
+            return
+            [
+                new MenuItemDescriptor("RomM.open.web", "Open RomM library"),
+            new MenuItemDescriptor("RomM.open.account", "Open RomM profile")
+            ];
+        }
+        public override ICollection<MenuItemImpl>? GetAppMenuItems(GetAppMenuItemsArgs args)
+        {
+            if(!string.IsNullOrEmpty(Settings.Host))
+            {
+                if (args.ItemId == "RomM.open.web")
+                    return [new MenuItemImpl("Open RomM library", () => System.Diagnostics.Process.Start(Settings.Host)?.Dispose())];
+
+                if (args.ItemId == "RomM.open.account" && Settings.UserID >= 0)
+                    return [new MenuItemImpl("Open RomM profile", () => System.Diagnostics.Process.Start($"{Settings.Host}/user/{Settings.UserID}")?.Dispose())];
+            }
+            
+            return null;
+        }
+        #endregion
 
         public override Task<List<Game>> ImportGamesAsync(ImportGamesArgs args)
         {

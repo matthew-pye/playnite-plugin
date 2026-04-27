@@ -3,13 +3,11 @@
 using Playnite;
 
 using RomMLibrary.Models;
-using RomMLibrary.Models.RomM;
 using RomMLibrary.Models.RomM.Platform;
 
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
-using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows.Controls;
@@ -29,6 +27,8 @@ namespace RomMLibrary.Settings
         [ObservableProperty] private string _profilePath = "";
         [ObservableProperty] private string _user = "----";
         [ObservableProperty] private string _userType = "----";
+        [ObservableProperty] private int _userID = -1;
+        [ObservableProperty] private string _deviceID = "";
 
         [ObservableProperty] private string _excludeGenres = "";
         [ObservableProperty] private bool _mergeRevisions = false;
@@ -127,7 +127,7 @@ namespace RomMLibrary.Settings
                 try
                 {
                     var file = File.ReadAllText(setFile);
-                    settings = JsonSerializer.Deserialize<RomMLibraryPluginSettings>(file);                    
+                    settings = JsonSerializer.Deserialize<RomMLibraryPluginSettings>(file);
                 }
                 catch (Exception ex)
                 {
@@ -145,78 +145,43 @@ namespace RomMLibrary.Settings
             }
         }
 
-        public bool TestConnection()
+        public bool Authenticate()
         {
             try
             {
+                // Check Host and Client token/UsernamePassword are set!
                 if (string.IsNullOrEmpty(Settings.Host))
                 {
-                    throw new ArgumentException("host not set!");
+                    throw new ArgumentException("Host not set!");
                 }
 
                 if (Settings.UseBasicAuth)
                 {
                     if (string.IsNullOrEmpty(Settings.Username) || string.IsNullOrEmpty(Settings.Password))
-                    {
-                        throw new ArgumentException("username or password not set!");
-                    }
+                        throw new ArgumentException("Username or Password not set!");
 
                     HttpClientSingleton.ConfigureBasicAuth(Settings.Username, Settings.Password);
                 }
                 else
                 {
                     if (string.IsNullOrEmpty(Settings.ClientToken))
-                    {
-                        throw new ArgumentException("client token not set!");
-                    }
+                        throw new ArgumentException("Client token not set!");
 
                     HttpClientSingleton.ConfigureClientToken(Settings.ClientToken);
                 }
 
-                // Check server is present
-                HttpResponseMessage response = HttpClientSingleton.Instance.GetAsync($"{Settings.Host}/api/heartbeat", HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken()).GetAwaiter().GetResult();
-                response.EnsureSuccessStatusCode();
+                // Check status controller is not null!
+                if (Plugin.StatusController == null)
+                    throw new ArgumentException("Status controller is null, cannot authenticate!");
 
-                Stream body = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
+                if(!Plugin.StatusController.SyncUserData(ref Settings))
+                    return false;
 
-                using (StreamReader reader = new StreamReader(body))
-                {
-                    var jsonResponse = JsonDocument.Parse(reader.ReadToEnd());
-                    ServerInfo info = jsonResponse.RootElement.GetProperty("SYSTEM").Deserialize<ServerInfo>();
+                if (!Plugin.StatusController.RegisterDevice(ref Settings))
+                    return false;
 
-                    Settings.ServerVersion = info.Version;
-                }
 
-                // Get user info
-                response = HttpClientSingleton.Instance.GetAsync($"{Settings.Host}/api/users/me", System.Net.Http.HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken()).GetAwaiter().GetResult();
-                response.EnsureSuccessStatusCode();
-
-                body = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
-                RomMUser userinfo;
-
-                using (StreamReader reader = new StreamReader(body))
-                {
-                    var jsonResponse = JsonDocument.Parse(reader.ReadToEnd());
-                    userinfo = jsonResponse.RootElement.Deserialize<RomMUser>() ?? throw new Exception("Unable to deserialize UserInfo!");
-                }
-
-                if (!string.IsNullOrEmpty(userinfo.IconPath))
-                {
-                    response = HttpClientSingleton.Instance.GetAsync($"{Settings.Host}/api/raw/assets/{userinfo.IconPath}", System.Net.Http.HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken()).GetAwaiter().GetResult();
-                    response.EnsureSuccessStatusCode();
-                    var imagebytes = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
-                    File.WriteAllBytes($"{PlayniteApi.UserDataDir}\\avatar.png", imagebytes);
-                    Settings.ProfilePath = $"{PlayniteApi.UserDataDir}\\avatar.png";
-                }
-                else
-                {
-                    Settings.ProfilePath = Path.Combine(Plugin.PluginDLLPath, @"profile.png");
-                }
-
-                Settings.UserType = userinfo.Role;
-                Settings.User = userinfo.Username;
-                Settings.ConnectionFailed = false;
-                Settings.ConnectionSuccess = true;
+                return true;
             }
             catch (Exception ex)
             {
@@ -226,12 +191,10 @@ namespace RomMLibrary.Settings
                 Settings.User = "----";
                 Settings.UserType = "----";
                 Settings.ServerVersion = "---";
-                LogManager.GetLogger().Error($"Failed to read response! {ex}");
+                LogManager.GetLogger().Error($"[Authenticate] Failed to read response! {ex}");
                 PlayniteApi.Notifications.Add(new NotificationMessage(RomMLibraryPlugin.Id, $"{Loc.GetString("ServerPollFailed")}: {ex.Message}", NotificationSeverity.Error));
                 return false;
             }
-   
-            return true;
         }
     }
 

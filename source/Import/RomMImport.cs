@@ -3,7 +3,6 @@
 using RomMLibrary.Models;
 using RomMLibrary.Models.RomM.Rom;
 
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -45,27 +44,7 @@ namespace RomMLibrary.Import
             CancelToken = cancelToken;
             Mapping = mapping;
             ROMs = roms;
-        }
-
-        private RomMFile? DetermineFile(RomMRom ROM)
-        {
-            if(ROM.Files == null)
-                return null;
-
-            if(ROM.Files.Count > 1)
-            {
-                List<string> fullpaths = new List<string>();
-                foreach (RomMFile file in ROM.Files)
-                {
-                    fullpaths.Add(file.FullPath);
-                }
-
-                fullpaths = fullpaths.OrderBy(x => x.Count(c => c == '/')).ToList();
-                return ROM.Files.Where(x => x.FullPath == fullpaths[0]).FirstOrDefault();
-            }
-
-            return ROM.Files.FirstOrDefault();
-        }
+        }      
 
         // Main library import functions
         public List<Game> ProcessData()
@@ -80,8 +59,8 @@ namespace RomMLibrary.Import
             {
                 PlayniteApi.Library.Platforms.AddAsync(new Platform(Mapping.RomMPlatform.Name));
             }
-
-           
+   
+            // Process ROMs
             foreach (var ROM in ROMs)
             {
                 if (CancelToken.IsCancellationRequested)
@@ -95,11 +74,13 @@ namespace RomMLibrary.Import
                     if(result.Value.NewGame != null)
                         games.Add(result.Value.NewGame);
                 }
-
-                
-
             }
             Logger?.Info($"[Importer] Finished adding new games for {Mapping.RomMPlatform?.Name}");
+
+            if(Plugin.Settings.MergeRevisions)
+            {
+                MergeSiblings();
+            }
 
             if (!Plugin.Settings.KeepDeletedGames)
             {
@@ -107,6 +88,26 @@ namespace RomMLibrary.Import
             }
 
             return games;
+        }
+
+        private RomMFile? DetermineFile(RomMRom ROM)
+        {
+            if (ROM.Files == null)
+                return null;
+
+            if (ROM.Files.Count > 1)
+            {
+                List<string> fullpaths = new List<string>();
+                foreach (RomMFile file in ROM.Files)
+                {
+                    fullpaths.Add(file.FullPath);
+                }
+
+                fullpaths = fullpaths.OrderBy(x => x.Count(c => c == '/')).ToList();
+                return ROM.Files.Where(x => x.FullPath == fullpaths[0]).FirstOrDefault();
+            }
+
+            return ROM.Files.FirstOrDefault();
         }
 
         private void PreProcessData()
@@ -120,6 +121,17 @@ namespace RomMLibrary.Import
 
             foreach (var ROM in ROMs)
             {
+                // Some newer platforms don't get a hash value so we will compromise with this
+                if (string.IsNullOrEmpty(ROM.SHA1))
+                {
+                    var tohash = Encoding.UTF8.GetBytes($"{ROM.Name}{ROM.FileSizeBytes}");
+                    ROM.SHA1 = Encoding.UTF8.GetString(SHA1.HashData(tohash));
+                }
+
+                // Fail-safe incase none of these are set to true
+                if (!ROM.HasSimpleSingleFile & !ROM.HasNestedSingleFile & !ROM.HasMultipleFiles)
+                    ROM.HasMultipleFiles = true;
+
                 var ROMGenres = ROM.Metadatum?.Genres?.Select(x => new Genre(x, x)).ToList();
                 if(ROMGenres != null)
                     genres.AddRange(ROMGenres);
@@ -199,45 +211,22 @@ namespace RomMLibrary.Import
                 return null;
             }
 
-            // Fail-safe incase none of these are set to true
-            if (!ROM.HasSimpleSingleFile & !ROM.HasNestedSingleFile & !ROM.HasMultipleFiles)
-                ROM.HasMultipleFiles = true;
-
-            // Migrate old RomMGameInfo id to new romMId:SHA1 id
             string gameID = $"{ROM.Id}:{ROM.SHA1}";
-
-            // Merging revisions
-            if (Plugin.Settings.MergeRevisions && ROM.Siblings?.Count > 0)
-            {
-                if (CheckForMainSibling(ROM) == MainSibling.Other)
-                {
-                    var siblinggame = PlayniteApi.Library.Games.FirstOrDefault(x => x.LibraryGameId == gameID);
-                    if (siblinggame != null)
-                    {
-                        PlayniteApi.Library.Games.RemoveAsync(siblinggame.Id);
-                    }
-                    return null;
-                }
-
-                if (ROM.Processed)
-                {
-                    var siblinggame = PlayniteApi.Library.Games.FirstOrDefault(x => x.LibraryGameId == gameID);
-                    if (siblinggame != null)
-                    {
-                        PlayniteApi.Library.Games.RemoveAsync(siblinggame.Id);
-                    }
-                    return null;
-                }
-
-            }
 
             // Save Game ROM data to file
             SaveGameData(ROM);
 
-            // Skip full import if ROM has already been imported 
-            Guid statusID = new Guid();
+            // If keep deleted games is enabled and a deleted game gets re-added back to the server under a new romMId, Update playnite entry
+            if (Plugin.Settings.KeepDeletedGames)
+            {
+                if (UpdatedDeletedGame(ROM))
+                {
+                    return new(gameID);
+                }
+            }
+
             var game = PlayniteApi.Library.Games.FirstOrDefault(g => g.LibraryGameId == gameID);
-            if (game != null)
+            if (game != null) // Skip full import if ROM has already been imported 
             {
                 // Sync user data
                 if (Plugin.Settings.KeepRomMSynced)
@@ -253,32 +242,26 @@ namespace RomMLibrary.Import
                     //_plugin.Playnite.Database.Games.Update(game);
                 }
 
-                
+
                 return new(gameID);
             }
-
-            // If keep deleted games is enabled and a deleted game gets re-added back to the server under a new romMId, Update playnite entry
-            if (Plugin.Settings.KeepDeletedGames)
+            else // Import game
             {
-                if (UpdatedDeletedGame(ROM))
+                var importedGame = ImportGame(ROM);
+                if (importedGame != null)
                 {
-                    return new(gameID);
+                    PlayniteApi.Library.Games.AddAsync(importedGame);
+                    return new(gameID, importedGame);
                 }
-            }
-
-            var importedGame = ImportGame(ROM, statusID);
-            if (importedGame != null)
-            {
-                return new(gameID, importedGame);
-            }
-            else
-            {
-                Logger?.Error($"[Importer] Failed to import RomM GameID: {ROM.Id}");
-                return null;
+                else
+                {
+                    Logger?.Error($"[Importer] Failed to import RomM GameID: {ROM.Id}");
+                    return null;
+                }
             }
         }
 
-        private Game ImportGame(RomMRom ROM, Guid StatusID)
+        private Game ImportGame(RomMRom ROM)
         {
             Game game = new Game();
 
@@ -352,6 +335,7 @@ namespace RomMLibrary.Import
 
             return game;
         }
+
         private void RemoveMissingGames(List<string> ImportedGames)
         {
             var gamesInDatabase = PlayniteApi.Library.Games.Where(g =>
@@ -374,8 +358,7 @@ namespace RomMLibrary.Import
             }
 
             Logger?.Info($"[Importer] Finished removing not found games for {Mapping.RomMPlatform?.Name}");
-        }
-        
+        }       
         private bool UpdatedDeletedGame(RomMRom ROM)
         {
             // Check to see if a game already exists with an old romMId
@@ -392,31 +375,93 @@ namespace RomMLibrary.Import
             }
         }
 
-        private MainSibling CheckForMainSibling(RomMRom ROM)
+        private void MergeSiblings()
         {
-            if(ROM.RomUser == null)
-                return MainSibling.None;
+            Logger?.Info($"[Importer] Started merging new games for {Mapping.RomMPlatform?.Name}");
 
-            //Check to see if ROM is the main sibling
-            if (ROM.RomUser.IsMainSibling)
-                return MainSibling.Current;
-
-            if(ROM.Siblings != null && ROM.Siblings.Count > 0)
+            foreach (var ROM in ROMs)
             {
-                //Find if there is a main sibling
-                foreach (var sibling in ROM.Siblings)
+                if (ROM.Siblings?.Count > 0)
                 {
-                    var siblingROM = ROMs.Find(x => x.Id == sibling.Id);
+                    if(ROM.Processed)
+                        continue;       
 
-                    if (siblingROM?.RomUser != null && siblingROM.RomUser.IsMainSibling)
+                    // Check to see if ROM already has a game relation setup
+                    var game = PlayniteApi.Library.Games.First(x => x.LibraryGameId == $"{ROM.Id}:{ROM.SHA1}");
+                    if (PlayniteApi.Library.GameRelations.Any(x => x.PrimaryGame == game.Id))
                     {
-                        return MainSibling.Other;
+                        continue;
+                    }
+                    else
+                    {
+                        bool GameRelationAlreadySetup = false;
+
+                        foreach (var sibling in ROM.Siblings!)
+                        {
+                            var siblingROM = ROMs.Find(x => x.Id == sibling.Id);
+                            if (siblingROM == null)
+                                continue;
+
+                            game = PlayniteApi.Library.Games.First(x => x.LibraryGameId == $"{siblingROM.Id}:{siblingROM.SHA1}");
+                            if (PlayniteApi.Library.GameRelations.Any(x => x.PrimaryGame == game.Id))
+                            {
+                                var gamerelation = PlayniteApi.Library.GameRelations.First(x => x.PrimaryGame == game.Id);
+                                gamerelation.LinkedGames.Add(PlayniteApi.Library.Games.First(x => x.LibraryGameId == $"{siblingROM.Id}:{siblingROM.SHA1}").Id);
+                                PlayniteApi.Library.GameRelations.UpdateAsync(gamerelation);
+                                GameRelationAlreadySetup = true;
+                                break;
+                            }
+                        }
+
+                        if (GameRelationAlreadySetup)
+                            continue;
+                    }
+
+                    //Check to see if ROM is the main sibling
+                    MainSibling isMainSibling = MainSibling.None;
+                    if (ROM.RomUser != null && ROM.RomUser.IsMainSibling)
+                    {
+                        isMainSibling = MainSibling.Current;
+                    }
+                    else if (ROM.Siblings != null && ROM.Siblings.Count > 0)
+                    {
+                        //Find if there is a main sibling
+                        foreach (var sibling in ROM.Siblings)
+                        {
+                            var siblingROM = ROMs.Find(x => x.Id == sibling.Id);
+
+                            if (siblingROM?.RomUser != null && siblingROM.RomUser.IsMainSibling)
+                            {
+                                isMainSibling = MainSibling.Other;
+                            }
+                        }
+                    }
+
+                    // Create new game relation
+                    if(isMainSibling != MainSibling.Other) 
+                    {
+                        GameRelation newgamerelation = new GameRelation();
+                        newgamerelation.PrimaryGame = game.Id;
+                        ROM.Processed = true;
+                        foreach (var sibling in ROM.Siblings!)
+                        {
+                            var siblingROM = ROMs.Find(x => x.Id == sibling.Id);
+                            if (siblingROM == null)
+                                continue;
+
+                            game = PlayniteApi.Library.Games.First(x => x.LibraryGameId == $"{siblingROM.Id}:{siblingROM.SHA1}");
+                            newgamerelation.LinkedGames.Add(game.Id);
+                            ROMs.Find(x => x.Id == sibling.Id)?.Processed = true;
+                        }
+
+                        PlayniteApi.Library.GameRelations.AddAsync(newgamerelation);
                     }
                 }
             }
 
-            return MainSibling.None;
+            Logger?.Info($"[Importer] Finished merging new games for {Mapping.RomMPlatform?.Name}");
         }
+
         private void SaveGameData(RomMRom ROM)
         {
             string[] versionBreakdown = Plugin.Settings.ServerVersion.Split('.');
@@ -448,75 +493,12 @@ namespace RomMLibrary.Import
                 toSave.FileName = ROM.FileName;
                 toSave.DownloadURL = $"{Plugin.Settings.Host}/api/roms/{ROM.Id}/content/{ROM.FileName}";
             } 
-            toSave.IsSelected = false;
             toSave.MappingID = Mapping.MappingId;
-
-            // Save sibling data
-            if (Plugin.Settings.MergeRevisions && ROM.Siblings?.Count > 0)
-            {
-                toSave.Siblings = new List<RomMSavedSibing>();
-
-                foreach (var sibling in ROM.Siblings)
-                {
-                    var siblingROM = ROMs.Find(x => x.Id == sibling.Id);
-                    if(siblingROM != null)
-                    {
-                        RomMSavedSibing saveSibling = new RomMSavedSibing();
-
-                        saveSibling.Id = siblingROM.Id;
-                        saveSibling.HasMultipleFiles = siblingROM.HasMultipleFiles;
-                        if (!siblingROM.HasMultipleFiles)
-                        {
-                            var romfile = DetermineFile(siblingROM);
-                            if (romfile == null)
-                            {
-                                Logger?.Error("[Importer] Unable to save sibling ROM data as there is no rom file!");
-                                continue;
-                            }
-
-                            saveSibling.FileName = romfile.FileName;
-                            toSave.DownloadURL = versionParsed <= 4.7 ?
-                                           $"{Plugin.Settings.Host}/api/romsfiles/{romfile.Id}/content/{romfile.FileName}" :
-                                           $"{Plugin.Settings.Host}/api/roms/{romfile.Id}/files/content/{romfile.FileName}";
-                        }
-                        else
-                        {
-                            saveSibling.FileName = siblingROM.FileName;
-                            saveSibling.DownloadURL = $"{Plugin.Settings.Host}/api/roms/{siblingROM.Id}/content/{siblingROM.FileName}";
-                        }          
-                        saveSibling.IsSelected = false;
-                        ROMs.First(x => x.Id == sibling.Id).Processed = true;
-
-                        toSave.Siblings.Add(saveSibling);
-                    }
-                }
-            }
 
             // Write data to file
             string json = JsonSerializer.Serialize(toSave);
             File.WriteAllText($"{Plugin.PluginDataPath.Trim('/')}/Games/{ROM.SHA1}.json", json);
 
-        }
-
-        //private Guid DetermineCompletionStatus(RomMRom ROM)
-        //{
-        //    string completionStatus;
-        //    // Determine status in Playnite. Backlogged and "now playing" take precedent over the status options
-        //    if (ROM.RomUser.Backlogged || ROM.RomUser.NowPlaying)
-        //    {
-        //        completionStatus = ROM.RomUser.NowPlaying ? RomMRomUser.CompletionStatusMap["now_playing"] : RomMRomUser.CompletionStatusMap["backlogged"];
-        //    }
-        //    else
-        //    {
-        //        completionStatus = RomMRomUser.CompletionStatusMap[ROM.RomUser.Status ?? "not_played"];
-        //    }
-        //
-        //    _completionStatusMap.TryGetValue(completionStatus, out var statusId);
-        //    
-        //    var status = _plugin.Playnite.Database.CompletionStatuses.Get(statusId);
-        //    var completionStatusProperty = status != null ? new MetadataNameProperty(status.Name) : null;
-        //
-        //    return statusId;
-        //}    
+        }  
     }
 }
