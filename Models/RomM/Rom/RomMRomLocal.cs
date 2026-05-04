@@ -20,7 +20,7 @@ namespace RomM.Models.RomM.Rom
         public EmulatorMapping Mapping { get; set; }
     }
 
-    public struct RomMRevision
+    public class RomMRevision
     {
         public int Id { get; set; }
         public string FileName { get; set; }

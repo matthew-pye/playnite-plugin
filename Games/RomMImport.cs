@@ -441,6 +441,27 @@ namespace RomM.Games
                 }
             }
 
+            // Apply isSelected to data that is about to be saved
+            if (File.Exists($"{_plugin.ROMDataPath}{ROM.SHA1}.json"))
+            {
+                try
+                {
+                    string localROMjson = File.ReadAllText($"{_plugin.ROMDataPath}{ROM.SHA1}.json");
+                    var localROM = JsonConvert.DeserializeObject<RomMRomLocal>(localROMjson);
+                    foreach (var revision in localROM.ROMVersions)
+                    {
+                        var matchedRevision = toSave.ROMVersions.FirstOrDefault(x => x.Id == revision.Id);
+
+                        if (matchedRevision != null)
+                            matchedRevision.IsSelected = revision.IsSelected;
+                    }
+                }
+                catch (Exception)
+                {
+                    _plugin.Logger.Error($"{ROM.Name} GameID is malformed or {ROM.SHA1} json file is corrupted!");
+                }
+            }
+
             // Write data to file
             string json = JsonConvert.SerializeObject(toSave);
             File.WriteAllText($"{_plugin.ROMDataPath}{ROM.SHA1}.json", json);

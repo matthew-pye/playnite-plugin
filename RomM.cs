@@ -460,9 +460,14 @@ namespace RomM
                             
                             gameData.ROMVersions = VersionSelectorControl.RomVersions.ToList();
 
-                            File.WriteAllText($"{ROMDataPath}{romMSHA1}.json", JsonConvert.SerializeObject(gameData));
                         }
                     }
+                    else
+                    {
+                        gameData.ROMVersions[0].IsSelected = true;
+                    }
+
+                    File.WriteAllText($"{ROMDataPath}{romMSHA1}.json", JsonConvert.SerializeObject(gameData));
                 }
 
                 yield return new RomMInstallController(args.Game, this, romData);
