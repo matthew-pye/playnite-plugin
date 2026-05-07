@@ -92,6 +92,7 @@ namespace RomM.Games
                 games.AddRange(task.Result);
             }
 
+            _plugin.Settings.SaveController.ReloadROMs();
             return games;
         }
 

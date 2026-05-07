@@ -1,14 +1,17 @@
 ﻿using Newtonsoft.Json;
+
 using Playnite.SDK;
 using Playnite.SDK.Events;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
-using RomM.Games;
+
 using RomM.Downloads;
-using RomM.VersionSelector;
+using RomM.Games;
 using RomM.Models.RomM.Collection;
 using RomM.Models.RomM.Rom;
 using RomM.Settings;
+using RomM.VersionSelector;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -73,7 +76,7 @@ namespace RomM
         public DownloadQueueController DownloadQueueController { get; private set; }
         internal RomMDownloadsSidebarItem DownloadsSidebar { get; private set; }
         private readonly DownloadQueueViewModel downloadsVm;
-        
+
         // Implementing Client adds ability to open it via special menu in playnite
         public override LibraryClient Client { get; } = new RomMClient();
 
@@ -494,6 +497,23 @@ namespace RomM
         {
             return new RomMMetadataProvider(this);
         }
+
+        public override void OnGameStarting(OnGameStartingEventArgs args)
+        {
+            if(args.Game.PluginId == PluginId)
+            {
+                Settings.SaveController.GameLaunched(args.Game);
+            }
+        }
+
+        public override void OnGameStopped(OnGameStoppedEventArgs args)
+        {
+            if (args.Game.PluginId == PluginId)
+            {
+                Settings.SaveController.GameStopped();
+            }
+        }
+
         #endregion
 
     #region RomM Status Syncing

@@ -368,7 +368,7 @@ namespace RomM.Games
         {
             Version versionParsed  = new Version(_plugin.Settings.ServerVersion);
 
-            RomMRomLocal toSave = new RomMRomLocal();        
+            RomMRomLocal toSave = new RomMRomLocal();
             toSave.Name = ROM.Name;
             toSave.SHA1 = ROM.SHA1;
             toSave.MappingID = _mapping.MappingId;
@@ -377,9 +377,9 @@ namespace RomM.Games
             RomMRevision baseROM = new RomMRevision();
 
             // Save base ROM data
-            baseROM.Id = ROM.Id;       
+            baseROM.Id = ROM.Id;
             baseROM.HasMultipleFiles = ROM.HasMultipleFiles;
-            if(!ROM.HasMultipleFiles)
+            if (!ROM.HasMultipleFiles)
             {
                 var romfile = DetermineFile(ROM);
                 if (romfile == null)
@@ -399,7 +399,7 @@ namespace RomM.Games
                 baseROM.DownloadURL = _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/roms/{ROM.Id}/content/{ROM.FileName}");
             }
             baseROM.IsSelected = false;
-           toSave.ROMVersions.Add(baseROM);
+            toSave.ROMVersions.Add(baseROM);
 
             // Save sibling data
             if (_plugin.Settings.MergeRevisions && ROM.Siblings?.Count > 0)
@@ -408,7 +408,7 @@ namespace RomM.Games
                 foreach (var sibling in ROM.Siblings)
                 {
                     var siblingROM = _ROMs.Find(x => x.Id == sibling.Id);
-                    if(siblingROM != null)
+                    if (siblingROM != null)
                     {
                         RomMRevision saveSibling = new RomMRevision();
 
@@ -432,7 +432,7 @@ namespace RomM.Games
                         {
                             saveSibling.FileName = siblingROM.FileName;
                             saveSibling.DownloadURL = _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/roms/{siblingROM.Id}/content/{siblingROM.FileName}");
-                        }          
+                        }
                         saveSibling.IsSelected = false;
                         _ROMs.First(x => x.Id == sibling.Id).Processed = true;
 
@@ -448,13 +448,57 @@ namespace RomM.Games
                 {
                     string localROMjson = File.ReadAllText($"{_plugin.ROMDataPath}{ROM.SHA1}.json");
                     var localROM = JsonConvert.DeserializeObject<RomMRomLocal>(localROMjson);
-                    foreach (var revision in localROM.ROMVersions)
-                    {
-                        var matchedRevision = toSave.ROMVersions.FirstOrDefault(x => x.Id == revision.Id);
 
-                        if (matchedRevision != null)
-                            matchedRevision.IsSelected = revision.IsSelected;
+                    // Check to see if game is installed but no revision is selected!
+                    var game = _plugin.PlayniteApi.Database.Games.FirstOrDefault(x => x.GameId == $"{ROM.Id}:{ROM.SHA1}");
+                    if(localROM.ROMVersions.All(x => !x.IsSelected) && game != null && game.IsInstalled)
+                    {
+                        if(localROM.ROMVersions.Count <= 1)
+                        {
+                            var matchedRevision = toSave.ROMVersions.FirstOrDefault(x => x.Id == localROM.ROMVersions[0].Id);
+
+                            if (matchedRevision != null)
+                            {
+                                matchedRevision.IsSelected = true;
+                                matchedRevision.Save = localROM.ROMVersions[0].Save;
+                            }
+                        }
+                        else
+                        {
+                            foreach (var revision in localROM.ROMVersions)
+                            {
+                                var dstPath = _mapping.DestinationPathResolved;
+                                var installDir = Path.Combine(dstPath, Path.GetFileNameWithoutExtension(revision.FileName));
+
+                                if (Directory.Exists(installDir))
+                                {
+                                    var matchedRevision = toSave.ROMVersions.FirstOrDefault(x => x.Id == revision.Id);
+
+                                    if (matchedRevision != null)
+                                    {
+                                        matchedRevision.IsSelected = true;
+                                        matchedRevision.Save = revision.Save;
+                                        break;
+                                    }
+                                }
+
+                            }
+                        }  
                     }
+                    else // Apply isSelected and Save data to revisions with matching ID
+                    {
+                        foreach (var revision in localROM.ROMVersions)
+                        {
+                            var matchedRevision = toSave.ROMVersions.FirstOrDefault(x => x.Id == revision.Id);
+
+                            if (matchedRevision != null)
+                            {
+                                matchedRevision.IsSelected = revision.IsSelected;
+                                matchedRevision.Save = revision.Save;
+                            }
+
+                        }
+                    }    
                 }
                 catch (Exception)
                 {

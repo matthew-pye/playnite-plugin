@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using Playnite.SDK;
 using RomM.Models.RomM;
 using RomM.Models.RomM.Platform;
+using RomM.Models.RomM.Rom;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,8 +17,6 @@ namespace RomM.Settings
 {
     public partial class SettingsView : UserControl
     {
-        private bool InManualCellCommit = false;
-
         public SettingsView()
         {
             InitializeComponent();
@@ -106,35 +105,115 @@ namespace RomM.Settings
             return SettingsViewModel.Instance.PlayniteAPI.Dialogs.SelectFolder();
         }
 
-        private void DataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
-        {
-            if (!InManualCellCommit && sender is DataGrid grid)
-            {
-                InManualCellCommit = true;
-
-                // HACK!!!!
-                // Alternate approach 1: try to find new value here and store that somewhere as the currently selected emu
-                // Alternate approach 2: the "right" way(?) https://stackoverflow.com/a/34332709
-                if (e.Column.Header?.ToString() == "Emulator" || e.Column.Header?.ToString() == "Profile")
-                {
-                    grid.CommitEdit(DataGridEditingUnit.Row, true);
-                }
-
-                InManualCellCommit = false;
-            }
-        }
-
-        private void DataGrid_CurrentCellChanged(object sender, EventArgs e)
-        {
-
-        }
-
         private void Click_Browse7zDestination(object sender, RoutedEventArgs e)
         {
             string path;
             if ((path = SettingsViewModel.Instance.PlayniteAPI.Dialogs.SelectFile("7Zip Executable|7z.exe")) == null) return;
 
             SettingsViewModel.Instance.PathTo7z = path;
+            e.Handled = true;
+        }
+
+        private void Click_SyncSaves(object sender, RoutedEventArgs e)
+        {
+            SettingsViewModel.Instance.SaveController.SyncRemoteSaves(true);
+        }
+
+        private void Click_SaveDirectory(object sender, RoutedEventArgs e)
+        {
+            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
+
+            if (mapping != null)
+            {
+                string path = SettingsViewModel.Instance.PlayniteAPI.Dialogs.SelectFolder();
+                if (string.IsNullOrEmpty(path)) 
+                    return;
+
+                mapping.GeneralSavePath = path;
+                SettingsViewModel.Instance.SaveController.SyncPotentialSaves();
+            }
+
+            e.Handled = true;
+        }
+
+        private void Click_BrowseSavefile(object sender, RoutedEventArgs e)
+        {
+            var save = ((FrameworkElement)sender).DataContext as RomMSave;
+
+            string path = SettingsViewModel.Instance.PlayniteAPI.Dialogs.SelectFolder(SettingsViewModel.Instance.SaveController.CurrentMapping.GeneralSavePath);
+            if (string.IsNullOrEmpty(path))
+                return;
+
+            if(!path.StartsWith(SettingsViewModel.Instance.SaveController.CurrentMapping.GeneralSavePath))
+            {
+                SettingsViewModel.Instance.UpdateNotifcationBar("Selected folder is not in the general save directory!", true);
+                return;
+            }
+
+            save.SaveFolder = path;
+            e.Handled = true;
+        }
+
+        private void Click_SyncNow(object sender, RoutedEventArgs e)
+        {
+            var save = ((FrameworkElement)sender).DataContext as RomMSave;
+            SettingsViewModel.Instance.SaveController.SyncSave(save, SettingsViewModel.Instance.SaveController.CurrentMapping.MappingId);
+            e.Handled = true;
+        }
+
+        private void Checked_RemoteEnableSync(object sender, RoutedEventArgs e)
+        {
+            var save = ((FrameworkElement)sender).DataContext as RomMSave;
+            SettingsViewModel.Instance.SaveController.RemoteSaveEnabled(save);
+            e.Handled = true;
+        }
+
+        private void Checked_LocalEnableSync(object sender, RoutedEventArgs e)
+        {
+            var save = ((FrameworkElement)sender).DataContext as RomMSave;
+            SettingsViewModel.Instance.SaveController.LocalSaveEnabled(save);
+            e.Handled = true;
+        }
+
+        private void Click_UploadSave(object sender, RoutedEventArgs e)
+        {
+            var possiblesave = ((FrameworkElement)sender).DataContext as PossibleSave;
+            SettingsViewModel.Instance.SaveController.UploadNewSave(possiblesave);
+            e.Handled = true;
+        }
+
+        private void Click_DeleteSave(object sender, RoutedEventArgs e)
+        {
+            var save = ((FrameworkElement)sender).DataContext as RomMSave;
+            SettingsViewModel.Instance.SaveController.DeleteSave(save);
+            e.Handled = true;
+        }
+
+        private void FocusChanged_SaveExtentionsBox(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        {
+            SettingsViewModel.Instance.SaveController.SyncPotentialSaves();
+            e.Handled = true;
+        }
+
+        private void LostKeyboard_GeneralSavePath(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        {
+            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
+
+            if (mapping != null)
+            {
+                if (string.IsNullOrEmpty(mapping.GeneralSavePath))
+                    return;
+
+                SettingsViewModel.Instance.SaveController.SyncPotentialSaves();
+            }
+
+            e.Handled = true;
+        }
+
+        private void Click_RemoveSave(object sender, RoutedEventArgs e)
+        {
+            var save = ((FrameworkElement)sender).DataContext as RomMSave;
+            SettingsViewModel.Instance.SaveController.RemoveSaveEntry(save);
             e.Handled = true;
         }
     }

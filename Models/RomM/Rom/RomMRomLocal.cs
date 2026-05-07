@@ -27,6 +27,8 @@ namespace RomM.Models.RomM.Rom
         public bool HasMultipleFiles { get; set; }
         public string DownloadURL { get; set; }
         public bool IsSelected { get; set; }
+        public bool NeverSave { get; set; } = false;
+        public RomMSave Save { get; set; }
     }
 
     public class RomMRomLocal

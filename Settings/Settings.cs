@@ -6,7 +6,7 @@ using Playnite.SDK.Plugins;
 
 using RomM.Models.RomM;
 using RomM.Models.RomM.Platform;
-
+using RomM.Save;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -23,11 +23,12 @@ namespace RomM.Settings
 {
     public class SettingsViewModel : ObservableObject, ISettings
     {
-        private readonly Plugin _plugin;
+        private readonly RomM _plugin;
         private SettingsViewModel editingClone { get; set; }
         [JsonIgnore] internal readonly IPlayniteAPI PlayniteAPI;
         [JsonIgnore] internal readonly IRomM RomM;
         public static SettingsViewModel Instance { get; private set; }
+        [JsonIgnore] public SaveController SaveController { get; private set; }
 
         #region Backing Variables
 
@@ -128,6 +129,8 @@ namespace RomM.Settings
         }
 
         #endregion
+
+        #region Properties
 
         public string RomMHost
         {
@@ -272,15 +275,18 @@ namespace RomM.Settings
                 }
             }
         }
+        #endregion
 
         public SettingsViewModel(){}
 
-        internal SettingsViewModel(Plugin plugin, IRomM romM)
+        internal SettingsViewModel(RomM plugin, IRomM romM)
         {
             RomM = romM;
             PlayniteAPI = plugin.PlayniteApi;
             Instance = this;
             _plugin = plugin;
+
+            SaveController = new SaveController(_plugin);
 
             bool forceSave = false;
             var savedSettings = plugin.LoadPluginSettings<SettingsViewModel>();
@@ -304,6 +310,7 @@ namespace RomM.Settings
 
                 // ----- These need to stay in this order -----
                 Mappings = savedSettings.Mappings;
+                SaveController.Mappings = savedSettings.Mappings;
                 RomMPlatforms = savedSettings.RomMPlatforms;
                 // --------------------------------------------
 
@@ -426,7 +433,7 @@ namespace RomM.Settings
                 RomMUser = "----";
                 RomMProfileType = "----";
                 ServerVersion = "---";
-                LogManager.GetLogger().Error($"Failed to read response! {ex}");
+                _plugin.Logger.Error($"Failed to read response! {ex}");
 
                 if (UpdateNotificationBar)
                     UpdateNotifcationBar($"Authentication failed: {ex.Message}", true);
@@ -469,6 +476,11 @@ namespace RomM.Settings
 
         private void SavePluginSettings<SettingsViewModel>(SettingsViewModel settings)
         {
+            if(SaveController.CurrentMapping != null)
+            {
+                SaveController.SaveROMRevisions(SaveController.CurrentMapping.MappingId);
+            }
+
             var setDir = _plugin.GetPluginUserDataPath();
             var setFile = Path.Combine(setDir, "config.json");
             if (!Directory.Exists(setDir))

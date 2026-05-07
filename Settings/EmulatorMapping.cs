@@ -8,39 +8,30 @@ using System.Linq;
 using System.Xml.Serialization;
 using RomM.Models.RomM.Platform;
 using SharpCompress;
+using System.Web;
 
 namespace RomM.Settings
 {
     public class EmulatorMapping : ObservableObject
     {
-        [JsonIgnore]
-        private Guid _mappingId;
-        [JsonIgnore]
-        private string _mappingName = "";
-        [JsonIgnore]
-        private bool _enabled = true;
-        [JsonIgnore]
-        private bool _autoExtract = false;
-        [JsonIgnore]
-        private bool _useM3U = false;
-        [JsonIgnore]
-        private Emulator _emulator;
-        [JsonIgnore]
-        private Guid _emulatorId;
-        [JsonIgnore]
-        private EmulatorProfile _emulatorProfile;
-        [JsonIgnore]
-        private IEnumerable<EmulatorProfile> _availableProfiles;
-        [JsonIgnore]
-        public string _emulatorProfileId;
-        [JsonIgnore]
-        private RomMPlatform _emulatedPlatform = new RomMPlatform();
-        [JsonIgnore]
-        private IEnumerable<RomMPlatform> _availablePlatforms;
-        [JsonIgnore]
-        public int _romMPlatformId = -1;
-        [JsonIgnore]
-        private string _destinationPath = "";
+        [JsonIgnore] private Guid _mappingId;
+        [JsonIgnore] private string _mappingName = "";
+        [JsonIgnore] private bool _enabled = true;
+        [JsonIgnore] private bool _autoExtract = false;
+        [JsonIgnore] private bool _useM3U = false;
+        [JsonIgnore] private Emulator _emulator;
+        [JsonIgnore] private Guid _emulatorId;
+        [JsonIgnore] private EmulatorProfile _emulatorProfile;
+        [JsonIgnore] private IEnumerable<EmulatorProfile> _availableProfiles;
+        [JsonIgnore] public string _emulatorProfileId;
+        [JsonIgnore] private RomMPlatform _emulatedPlatform = new RomMPlatform();
+        [JsonIgnore] private IEnumerable<RomMPlatform> _availablePlatforms;
+        [JsonIgnore] public int _romMPlatformId = -1;
+        [JsonIgnore] private string _destinationPath = "";
+        [JsonIgnore] private string _savePath = "";
+        [JsonIgnore] private bool _downloadSaves = false;
+        [JsonIgnore] private bool _uploadSaves = true;
+        [JsonIgnore] private string _savefileExtentions = "";
 
         public EmulatorMapping(List<RomMPlatform> romMPlatforms)
         {
@@ -232,11 +223,11 @@ namespace RomM.Settings
             {
                 _destinationPath = value;
                 OnPropertyChanged();
-    }
+        }
 }
 
-[JsonIgnore]
-        public static IEnumerable<Emulator> AvailableEmulators => SettingsViewModel.Instance.PlayniteAPI.Database.Emulators?.OrderBy(x => x.Name) ?? Enumerable.Empty<Emulator>();
+        [JsonIgnore] public static IEnumerable<Emulator> AvailableEmulators => SettingsViewModel.Instance.PlayniteAPI.Database.Emulators?.OrderBy(x => x.Name) ?? Enumerable.Empty<Emulator>();
+       
         [JsonIgnore]
         public IEnumerable<EmulatorProfile> AvailableProfiles
         {
@@ -294,6 +285,45 @@ namespace RomM.Settings
             }
         }
 
+        public string GeneralSavePath
+        {
+            get => _savePath;
+            set
+            {
+                _savePath = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool DownloadSaveBeforeGame
+        {
+            get => _downloadSaves;
+            set
+            {
+                _downloadSaves = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool UploadSaveAfterGame
+        {
+            get => _uploadSaves;
+            set
+            {
+                _uploadSaves = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string SaveFileExtentions
+        {
+            get => _savefileExtentions;
+            set
+            {
+                _savefileExtentions = value;
+                OnPropertyChanged();
+            }
+        }
 
         public IEnumerable<string> GetDescriptionLines()
         {
