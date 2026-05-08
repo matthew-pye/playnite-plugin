@@ -31,7 +31,7 @@ namespace RomM.Settings
         [JsonIgnore] private string _savePath = "";
         [JsonIgnore] private bool _downloadSaves = false;
         [JsonIgnore] private bool _uploadSaves = true;
-        [JsonIgnore] private string _savefileExtentions = "";
+        [JsonIgnore] private string _savefileExtensions = "";
 
         public EmulatorMapping(List<RomMPlatform> romMPlatforms)
         {
@@ -315,12 +315,12 @@ namespace RomM.Settings
             }
         }
 
-        public string SaveFileExtentions
+        public string SaveFileExtensions
         {
-            get => _savefileExtentions;
+            get => _savefileExtensions;
             set
             {
-                _savefileExtentions = value;
+                _savefileExtensions = value.TrimEnd(';');
                 OnPropertyChanged();
             }
         }

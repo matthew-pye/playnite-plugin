@@ -318,13 +318,13 @@
 
                                 <TextBlock Text="Savefile Extention(s)" Grid.Row="2" Grid.Column="0" Margin="10,2,0,2" FontSize="12" VerticalAlignment="Center"/>
                                 <Grid Grid.Row="2" Grid.Column="1">
-                                    <TextBox VerticalAlignment="Center" HorizontalAlignment="Stretch" x:Name="SaveTextBox" Margin="5" Text="{Binding CurrentMapping.SaveFileExtentions, Mode=TwoWay}" LostKeyboardFocus="FocusChanged_SaveExtentionsBox"/>
+                                    <TextBox VerticalAlignment="Center" HorizontalAlignment="Stretch" x:Name="SaveExtentionTextBox" Margin="5" Text="{Binding CurrentMapping.SaveFileExtensions, Mode=TwoWay}" LostKeyboardFocus="LostKeyboard_SaveExtensionsBox"/>
                                     <TextBlock IsHitTestVisible="False" Text="sav;srm; or leave empty for all files!" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
                                         <TextBlock.Style>
                                             <Style TargetType="{x:Type TextBlock}">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Text, ElementName=SaveTextBox}" Value="">
+                                                    <DataTrigger Binding="{Binding Text, ElementName=SaveExtentionTextBox}" Value="">
                                                         <Setter Property="Visibility" Value="Visible"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>

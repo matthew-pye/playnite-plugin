@@ -71,11 +71,13 @@ namespace RomM.Settings
 
         private void Click_AddMapping(object sender, RoutedEventArgs e)
         {
+            SettingsViewModel.Instance.Notify = false;
             SettingsViewModel.Instance.Mappings.Add(new EmulatorMapping(SettingsViewModel.Instance.RomMPlatforms));
         }
 
         private void Click_Delete(object sender, RoutedEventArgs e)
         {
+            SettingsViewModel.Instance.Notify = false;
             if (((FrameworkElement)sender).DataContext is EmulatorMapping mapping)
             {
                 var res = SettingsViewModel.Instance.PlayniteAPI.Dialogs.ShowMessage(string.Format("Delete this mapping?\r\n\r\n{0}", mapping.GetDescriptionLines().Aggregate((a, b) => $"{a}{Environment.NewLine}{b}")), "Confirm delete", MessageBoxButton.YesNo);
@@ -88,6 +90,7 @@ namespace RomM.Settings
 
         private void Click_BrowseDestination(object sender, RoutedEventArgs e)
         {
+            SettingsViewModel.Instance.Notify = false;
             var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
             string path;
             if ((path = GetSelectedFolderPath()) == null) return;
@@ -102,11 +105,13 @@ namespace RomM.Settings
 
         private static string GetSelectedFolderPath()
         {
+            SettingsViewModel.Instance.Notify = false;
             return SettingsViewModel.Instance.PlayniteAPI.Dialogs.SelectFolder();
         }
 
         private void Click_Browse7zDestination(object sender, RoutedEventArgs e)
         {
+            SettingsViewModel.Instance.Notify = false;
             string path;
             if ((path = SettingsViewModel.Instance.PlayniteAPI.Dialogs.SelectFile("7Zip Executable|7z.exe")) == null) return;
 
@@ -116,11 +121,13 @@ namespace RomM.Settings
 
         private void Click_SyncSaves(object sender, RoutedEventArgs e)
         {
+            SettingsViewModel.Instance.Notify = false;
             SettingsViewModel.Instance.SaveController.SyncRemoteSaves(true);
         }
 
         private void Click_SaveDirectory(object sender, RoutedEventArgs e)
         {
+            SettingsViewModel.Instance.Notify = false;
             var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
 
             if (mapping != null)
@@ -136,8 +143,33 @@ namespace RomM.Settings
             e.Handled = true;
         }
 
+        private void LostKeyboard_SaveExtensionsBox(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        {
+            SettingsViewModel.Instance.Notify = false;
+            SettingsViewModel.Instance.SaveController.CurrentMapping.SaveFileExtensions = SaveExtentionTextBox.Text;
+            SettingsViewModel.Instance.SaveController.SyncPotentialSaves();
+            e.Handled = true;
+        }
+
+        private void LostKeyboard_GeneralSavePath(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        {
+            SettingsViewModel.Instance.Notify = false;
+            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
+
+            if (mapping != null)
+            {
+                if (string.IsNullOrEmpty(mapping.GeneralSavePath))
+                    return;
+
+                SettingsViewModel.Instance.SaveController.SyncPotentialSaves();
+            }
+
+            e.Handled = true;
+        }
+
         private void Click_BrowseSavefile(object sender, RoutedEventArgs e)
         {
+            SettingsViewModel.Instance.Notify = false;
             var save = ((FrameworkElement)sender).DataContext as RomMSave;
 
             string path = SettingsViewModel.Instance.PlayniteAPI.Dialogs.SelectFolder(SettingsViewModel.Instance.SaveController.CurrentMapping.GeneralSavePath);
@@ -156,6 +188,7 @@ namespace RomM.Settings
 
         private void Click_SyncNow(object sender, RoutedEventArgs e)
         {
+            SettingsViewModel.Instance.Notify = false;
             var save = ((FrameworkElement)sender).DataContext as RomMSave;
             SettingsViewModel.Instance.SaveController.SyncSave(save, SettingsViewModel.Instance.SaveController.CurrentMapping.MappingId);
             e.Handled = true;
@@ -163,6 +196,7 @@ namespace RomM.Settings
 
         private void Checked_RemoteEnableSync(object sender, RoutedEventArgs e)
         {
+            SettingsViewModel.Instance.Notify = false;
             var save = ((FrameworkElement)sender).DataContext as RomMSave;
             SettingsViewModel.Instance.SaveController.RemoteSaveEnabled(save);
             e.Handled = true;
@@ -170,50 +204,33 @@ namespace RomM.Settings
 
         private void Checked_LocalEnableSync(object sender, RoutedEventArgs e)
         {
+            SettingsViewModel.Instance.Notify = false;
             var save = ((FrameworkElement)sender).DataContext as RomMSave;
             SettingsViewModel.Instance.SaveController.LocalSaveEnabled(save);
             e.Handled = true;
         }
 
-        private void Click_UploadSave(object sender, RoutedEventArgs e)
+        private void Click_RemoveSave(object sender, RoutedEventArgs e)
         {
-            var possiblesave = ((FrameworkElement)sender).DataContext as PossibleSave;
-            SettingsViewModel.Instance.SaveController.UploadNewSave(possiblesave);
+            SettingsViewModel.Instance.Notify = false;
+            var save = ((FrameworkElement)sender).DataContext as RomMSave;
+            SettingsViewModel.Instance.SaveController.RemoveSaveEntry(save);
             e.Handled = true;
         }
 
         private void Click_DeleteSave(object sender, RoutedEventArgs e)
         {
+            SettingsViewModel.Instance.Notify = false;
             var save = ((FrameworkElement)sender).DataContext as RomMSave;
             SettingsViewModel.Instance.SaveController.DeleteSave(save);
             e.Handled = true;
-        }
+        } 
 
-        private void FocusChanged_SaveExtentionsBox(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        private void Click_UploadSave(object sender, RoutedEventArgs e)
         {
-            SettingsViewModel.Instance.SaveController.SyncPotentialSaves();
-            e.Handled = true;
-        }
-
-        private void LostKeyboard_GeneralSavePath(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
-        {
-            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
-
-            if (mapping != null)
-            {
-                if (string.IsNullOrEmpty(mapping.GeneralSavePath))
-                    return;
-
-                SettingsViewModel.Instance.SaveController.SyncPotentialSaves();
-            }
-
-            e.Handled = true;
-        }
-
-        private void Click_RemoveSave(object sender, RoutedEventArgs e)
-        {
-            var save = ((FrameworkElement)sender).DataContext as RomMSave;
-            SettingsViewModel.Instance.SaveController.RemoveSaveEntry(save);
+            SettingsViewModel.Instance.Notify = false;
+            var possiblesave = ((FrameworkElement)sender).DataContext as PossibleSave;
+            SettingsViewModel.Instance.SaveController.UploadNewSave(possiblesave);
             e.Handled = true;
         }
     }

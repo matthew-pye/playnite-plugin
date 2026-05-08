@@ -46,8 +46,10 @@ namespace RomM.Save
             get => _currentMapping;
             set
             {
+                SettingsViewModel.Instance.Notify = false;
+
                 // Save save data to file
-                if(_currentMapping != null)
+                if (_currentMapping != null)
                     SaveROMRevisions(_currentMapping.MappingId);
 
                 _currentMapping = value;       
@@ -329,17 +331,17 @@ namespace RomM.Save
             if (CurrentMapping != null && !string.IsNullOrEmpty(CurrentMapping.GeneralSavePath) && Directory.Exists(CurrentMapping.GeneralSavePath))
             {
                 var newpossiblesaves = new ObservableCollection<PossibleSave>();
-                List<string> fileExtentions = new List<string>();
+                List<string> fileExtensions = new List<string>();
 
-                if (!string.IsNullOrEmpty(CurrentMapping.SaveFileExtentions))
+                if (!string.IsNullOrEmpty(CurrentMapping.SaveFileExtensions))
                 {
-                    if(CurrentMapping.SaveFileExtentions.TrimEnd(';').Contains(';'))
+                    if(CurrentMapping.SaveFileExtensions.Contains(';'))
                     {
-                        fileExtentions = CurrentMapping.SaveFileExtentions.TrimEnd(';').Split(';').ToList();
+                        fileExtensions = CurrentMapping.SaveFileExtensions.Split(';').ToList();
                     }
                     else
                     {
-                        fileExtentions.Add(CurrentMapping.SaveFileExtentions.TrimEnd(';'));
+                        fileExtensions.Add(CurrentMapping.SaveFileExtensions);
                     }
                 }
                     
@@ -347,9 +349,9 @@ namespace RomM.Save
                 {
                     var possiblesave = new PossibleSave();
 
-                    if (fileExtentions.Count != 0)
+                    if (fileExtensions.Count != 0)
                     {
-                        if(fileExtentions.Any(x => Path.GetExtension(file.FullName) == x))
+                        if(fileExtensions.Any(x => file.Extension.TrimStart('.').ToLower() == x.ToLower()))
                         {
                             possiblesave.File = file;
                         }
@@ -483,18 +485,18 @@ namespace RomM.Save
                         {
                             var files = new DirectoryInfo(mapping.GeneralSavePath).GetFiles("*.*", SearchOption.AllDirectories);
                             var saveFiles = new ObservableCollection<PossibleSave>();
-                            string[] fileExtentions = new string[0];
+                            string[] fileExtensions = new string[0];
 
-                            if (!string.IsNullOrEmpty(CurrentMapping.SaveFileExtentions))
+                            if (!string.IsNullOrEmpty(CurrentMapping.SaveFileExtensions))
                             {
-                                if (CurrentMapping.SaveFileExtentions.TrimEnd(';').Contains(';'))
+                                if (CurrentMapping.SaveFileExtensions.TrimEnd(';').Contains(';'))
                                 {
-                                    fileExtentions = CurrentMapping.SaveFileExtentions.Split(';');
+                                    fileExtensions = CurrentMapping.SaveFileExtensions.Split(';');
                                 }
                                 else
                                 {
-                                    fileExtentions = new string[1];
-                                    fileExtentions[0] = CurrentMapping.SaveFileExtentions;
+                                    fileExtensions = new string[1];
+                                    fileExtensions[0] = CurrentMapping.SaveFileExtensions;
                                 }
                             }
 
@@ -503,10 +505,10 @@ namespace RomM.Save
                                 // Check for new or updated possible save files 
                                 if(!PossibleSaveFiles.Contains(file) || PossibleSaveFiles.Find(x => x.FullName == file.FullName).LastWriteTime != file.LastWriteTime)
                                 {
-                                    // If mapping has set file extentions filter out files that don't have that extention
-                                    if(fileExtentions.Length != 0)
+                                    // If mapping has set file Extensions filter out files that don't have that extention
+                                    if(fileExtensions.Length != 0)
                                     {
-                                        if (fileExtentions.Any(x => Path.GetExtension(file.FullName) == x))
+                                        if (fileExtensions.Any(x => Path.GetExtension(file.FullName) == x))
                                         {
                                             var save = new PossibleSave();
                                             save.File = file;
@@ -700,6 +702,8 @@ namespace RomM.Save
         }
         private void DownloadSave(RomMSave save, Guid mappingID)
         {
+            SettingsViewModel.Instance.Notify = false;
+
             try
             {
                 if (!Uri.IsWellFormedUriString(Settings.RomMHost, UriKind.RelativeOrAbsolute))
@@ -744,6 +748,8 @@ namespace RomM.Save
         }
         private void UploadSave(RomMSave save, Guid mappingID, bool NewSave = false, bool UpdateNotifBar = false)
         {
+            SettingsViewModel.Instance.Notify = false;
+
             var rom = ROMs.Where(x => x.MappingID == mappingID).SelectMany(y => y.ROMVersions).First(z => z.Id == save.ROMID);
             HttpResponseMessage response = null;
 
