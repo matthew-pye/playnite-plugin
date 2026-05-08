@@ -455,7 +455,7 @@
                             </StackPanel>
 
                             <!-- Local Saves -->
-                            <TextBlock Text="Local saves" FontWeight="Bold" Margin="0,5,0,0"/>
+                            <TextBlock Text="Local saves" FontWeight="Bold" Margin="0,20,0,0"/>
                             <Separator Margin="0,5,0,10" />
                             <StackPanel x:Name="LocalSaveFileStack">
                                 <ItemsControl ItemsSource="{Binding LocalSaves}">
@@ -581,7 +581,7 @@
                             </StackPanel>
 
                             <!-- Potential Saves -->
-                            <TextBlock Text="Possible saves" FontWeight="Bold" Margin="0,5,0,0"/>
+                            <TextBlock Text="Possible saves" FontWeight="Bold" Margin="0,20,0,0"/>
                             <Separator Margin="0,5,0,10" />
                             <StackPanel x:Name="PotentialSaveFileStack">
                                 <ItemsControl ItemsSource="{Binding PossibleSaves}">

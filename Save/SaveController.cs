@@ -660,9 +660,7 @@ namespace RomM.Save
                         Settings.UpdateNotifcationBar(ex.Message, true);
                         Plugin.Logger.Error(ex.ToString());
                     }
-                }
-                else
-                {
+
                     rom.Save.IsInSync = SaveSyncStatus.NotUploaded;
                 }
 
@@ -671,6 +669,9 @@ namespace RomM.Save
                     File.Delete($"{rom.Save.SaveFolder}/{rom.Save.FileName}");
                     rom.Save = null;
                 }
+
+                SyncLocalSaves();
+                SyncRemoteSaves();
             }
 
             SaveROMRevisions(CurrentMapping.MappingId);
