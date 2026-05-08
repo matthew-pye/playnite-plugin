@@ -743,6 +743,7 @@ namespace RomM.Save
             }
             catch (Exception ex)
             {
+                Plugin.PlayniteApi.Notifications.Add(new Playnite.SDK.NotificationMessage($"RomM.Save.Downloaded.Failed", $"Save download failed: {ex.Message}", Playnite.SDK.NotificationType.Info));
                 Settings.UpdateNotifcationBar(ex.Message, true);
             }
         }
@@ -803,7 +804,7 @@ namespace RomM.Save
                 else
                     filesizestring = $"({save.FileSize}B)";
 
-                Plugin.PlayniteApi.Notifications.Add(new Playnite.SDK.NotificationMessage("RomM.Save.Updated", $"Backed up {save.FileName} to RomM Server! {filesizestring}", Playnite.SDK.NotificationType.Info));
+                Plugin.PlayniteApi.Notifications.Add(new Playnite.SDK.NotificationMessage($"RomM.Save.Upload.{rom.Id}", $"Backed up {save.FileName} to RomM Server! {filesizestring}", Playnite.SDK.NotificationType.Info));
                 Settings.UpdateNotifcationBar($"Backed up {save.FileName} to RomM Server! {filesizestring}");
 
                 SyncLocalSaves();
@@ -814,6 +815,7 @@ namespace RomM.Save
             catch (Exception ex)
             {
                 Plugin.Logger.Error(ex.ToString());
+                Plugin.PlayniteApi.Notifications.Add(new Playnite.SDK.NotificationMessage("RomM.Save.Upload.Failed", $"Save upload failed: {ex.Message}", Playnite.SDK.NotificationType.Info));
                 Settings.UpdateNotifcationBar(ex.Message, true);
 
                 if (response != null && response.StatusCode == System.Net.HttpStatusCode.NotFound)
