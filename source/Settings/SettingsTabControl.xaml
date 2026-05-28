@@ -74,7 +74,7 @@
 
             <!-- Dev options -->
             <TabItem Name="DEVTAB" Header="&#xeef4; Dev Settings">
-
+                <s:DevTab FontSize="14" Margin="5,10,5,5"/>
             </TabItem>
 
         </TabControl>

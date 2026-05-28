@@ -71,7 +71,7 @@ namespace Graviton.Import
                 // Import games for current mapping 
                 tasks.Add(Task<List<Game>>.Factory.StartNew(() =>
                 {
-                    RomMImport newImport = new RomMImport(_plugin, args.CancelToken, mapping, rommROMs);
+                    RomMImport newImport = new RomMImport(args.CancelToken, mapping, rommROMs);
                     return newImport.ProcessData();
                 }));
 

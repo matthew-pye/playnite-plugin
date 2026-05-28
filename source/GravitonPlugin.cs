@@ -18,7 +18,7 @@ namespace Graviton
 {
     public class GravitonPlugin : Plugin
     {
-        public static readonly string Id = "Matthew-Pye.Graviton.Graviton";
+        public static readonly string Id = "Matthew-Pye.Graviton";
         public static readonly string ExternalIdType = "graviton";
         public static readonly string ExternalIdName = "Graviton (RomM Library)";
         public static readonly Version Version = new Version(0,0,1);
@@ -27,9 +27,8 @@ namespace Graviton
         public string PluginDataPath { get; private set; } = "";
 
         public static GravitonPlugin Instance { get; private set; } = null!;
-
-        internal static IPlayniteApi? PlayniteApi { get; private set; }
-        internal static ILogger? Logger { get; private set; }
+        public static IPlayniteApi PlayniteApi { get; private set; } = null!;
+        public static ILogger Logger { get; private set; } = null!;
 
         internal RomMImportController? ImportController { get; private set; }
         internal StatusController? StatusController { get; private set; }
@@ -53,6 +52,7 @@ namespace Graviton
                 ClientName = "RomM",
                 ProvidesStoreMetadata = true,
                 HasCustomGameImport = true,
+                CanImportPlaySessions = true
             };
             MetadataSettings = new()
             {
@@ -87,9 +87,9 @@ namespace Graviton
 
         public override async Task InitializeAsync(InitializeArgs args)
         {
-            PlayniteApi = args.Api;
-            Loc.Api = args.Api;
-            Logger = LogManager.GetLogger();
+            PlayniteApi = args.Api ?? throw new Exception("Failed to set playnite instance!");
+            Loc.Api = args.Api ?? throw new Exception("Failed to set localization api instance!");
+            Logger = LogManager.GetLogger() ?? throw new Exception("Failed to set logger instance!");
 
             await PlayniteApi.Library.Sources.AddAsync(new Source(Id, "Graviton"));
 
@@ -108,6 +108,7 @@ namespace Graviton
 
         public override async Task OnApplicationStartupAsync(OnApplicationStartupArgs args)
         {
+
             Settings = GravitonSettingsHandler.LoadSettings(PluginDataPath);
             Settings.ProfilePath = string.IsNullOrEmpty(Settings.ProfilePath) ? Path.Combine(PluginDLLPath, @"profile.png") : Settings.ProfilePath;
 
