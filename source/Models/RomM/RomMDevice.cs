@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace RomMLibrary.Models.RomM
+namespace Graviton.Models.RomM
 {
     public class RomMRegisterDevice
     {
@@ -16,23 +16,12 @@ namespace RomMLibrary.Models.RomM
         [JsonPropertyName("client_version")]
         public string? ClientVersion { get; set; }
 
-        [JsonPropertyName("ip_address")]
-        public string? IPAddress { get; set; }
-
         [JsonPropertyName("mac_address")]
         public string? MACAddress { get; set; }
 
         [JsonPropertyName("hostname")]
         public string? HostName { get; set; }
 
-        [JsonPropertyName("allow_existing")]
-        public bool? AllowExisting { get; set; }
-
-        [JsonPropertyName("allow_duplicate")]
-        public bool? AllowDuplicate { get; set; }
-
-        [JsonPropertyName("reset_syncs")]
-        public bool? ResetSyncs { get; set; }
     }
 
     public class RomMRegisterDeviceResponse

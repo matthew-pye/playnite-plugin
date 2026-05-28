@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace RomMLibrary.Models.RomM.Collection
+namespace Graviton.Models.RomM.Collection
 {
     public class RomMCollection
     {

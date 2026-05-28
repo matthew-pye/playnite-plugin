@@ -1,0 +1,247 @@
+﻿using Graviton.Import;
+using Graviton.Install.Downloads;
+using Graviton.Models.Notifications;
+using Graviton.Properties;
+using Graviton.Settings;
+using Graviton.Status;
+
+using Playnite;
+
+using RomM.Import;
+
+using System.IO;
+using System.Net.Http.Headers;
+using System.Text.RegularExpressions;
+
+
+namespace Graviton
+{
+    public class GravitonPlugin : Plugin
+    {
+        public static readonly string Id = "Matthew-Pye.Graviton.Graviton";
+        public static readonly string ExternalIdType = "graviton";
+        public static readonly string ExternalIdName = "Graviton (RomM Library)";
+        public static readonly Version Version = new Version(0,0,1);
+
+        public string PluginDLLPath { get; private set; } = "";
+        public string PluginDataPath { get; private set; } = "";
+
+        public static GravitonPlugin Instance { get; private set; } = null!;
+
+        internal static IPlayniteApi? PlayniteApi { get; private set; }
+        internal static ILogger? Logger { get; private set; }
+
+        internal RomMImportController? ImportController { get; private set; }
+        internal StatusController? StatusController { get; private set; }
+        internal DownloadQueueController? DownloadQueueController { get; private set; }
+
+        internal GravitonPluginSettings Settings { get; set; } = new();
+        internal GravitonSettingsHandler SettingsHandler { get; set; } = new();
+        internal RomMAccount Account { get; private set; } = new();
+
+        private RomMDownloadsAppViewItem? DownloadsAppView { get; set; }
+        private DownloadQueueViewModel? _downloadsViewModel;
+
+        public GravitonPlugin() : base()
+        {
+            Instance = this ?? throw new Exception("Failed to set plugin instance!");
+
+            XamlId = "Graviton.RomM";
+            LibrarySettings = new()
+            {
+                LibraryName = ExternalIdName,
+                ClientName = "RomM",
+                ProvidesStoreMetadata = true,
+                HasCustomGameImport = true,
+            };
+            MetadataSettings = new()
+            {
+                Name = "RomM Metadata",
+                SupportedDataIds = [
+                    BuiltInGameDataId.Name,
+                    BuiltInGameDataId.Description,
+                    BuiltInGameDataId.Note,
+                    BuiltInGameDataId.DesktopCover,
+                    BuiltInGameDataId.Genres,
+                    BuiltInGameDataId.Tags,
+                    BuiltInGameDataId.Features,
+                    BuiltInGameDataId.Platforms,
+                    BuiltInGameDataId.Categories,
+                    BuiltInGameDataId.Series,
+                    BuiltInGameDataId.AgeRating,
+                    BuiltInGameDataId.Region,
+                    BuiltInGameDataId.CompletionStatus,
+                    BuiltInGameDataId.UserScore,
+                    BuiltInGameDataId.CommunityScore,
+                    BuiltInGameDataId.ReleaseDate,
+                    BuiltInGameDataId.ObtainedDate,
+                    BuiltInGameDataId.LastPlayedDate,
+                    BuiltInGameDataId.Favorite,
+                    BuiltInGameDataId.Links,
+                    BuiltInGameDataId.TTBMainEstimated,
+                    BuiltInGameDataId.TTBMainSidesEstimated,
+                    BuiltInGameDataId.TTBCompletionEstimated,
+                ]
+            };
+        }
+
+        public override async Task InitializeAsync(InitializeArgs args)
+        {
+            PlayniteApi = args.Api;
+            Loc.Api = args.Api;
+            Logger = LogManager.GetLogger();
+
+            await PlayniteApi.Library.Sources.AddAsync(new Source(Id, "Graviton"));
+
+            PluginDataPath = PlayniteApi.UserDataDir;
+            PluginDLLPath = args.PluginInstallDir;
+
+            ImportController = new();
+            StatusController = new(this);
+            Account = new();
+
+            _downloadsViewModel = new();
+            DownloadQueueController = new(this, _downloadsViewModel, maxConcurrent: 10);
+            DownloadsAppView = new(this);
+
+        }
+
+        public override async Task OnApplicationStartupAsync(OnApplicationStartupArgs args)
+        {
+            Settings = GravitonSettingsHandler.LoadSettings(PluginDataPath);
+            Settings.ProfilePath = string.IsNullOrEmpty(Settings.ProfilePath) ? Path.Combine(PluginDLLPath, @"profile.png") : Settings.ProfilePath;
+
+            if(Settings.LastAuthenticated != null)
+            {
+                if (Settings.UseBasicAuth)
+                {
+                    HttpClientSingleton.ConfigureBasicAuth(Settings.Username, Settings.Password);
+                }
+                else
+                {
+                    HttpClientSingleton.ConfigureClientToken(Settings.ClientToken);
+                }
+
+                await Account.Heartbeat(Settings);
+            }      
+        }
+
+        public override async Task<PluginSettingsHandler?> GetSettingsHandlerAsync(GetSettingsHandlerArgs args)
+        {
+            await Task.CompletedTask;
+            return SettingsHandler;
+        }
+
+        public override async Task<MetadataProvider?> GetMetadataProviderAsync(GetMetadataProviderArgs args)
+        {
+            return new GravitonMetadataProvider();
+        }
+
+       
+        //public override Task<List<Game>> ImportGamesAsync(ImportGamesArgs args)
+        //{
+        //    return ImportController?.Import(args) ?? throw new Exception("Import controller is null, cannot continue");
+        //}
+
+        public override Task OnGameStartingAsync(OnGameStartingEventArgs args)
+        {
+            return base.OnGameStartingAsync(args);
+        }
+        public override Task OnGameStoppedAsync(OnGameStoppedEventArgs args)
+        {
+            return base.OnGameStoppedAsync(args);
+        }
+
+        #region Views
+
+        // Download tab
+        public override ICollection<AppViewItemDescriptor>? GetAppViewItemDescriptors(GetAppViewItemDescriptorsArgs args)
+        {
+            return
+            [
+                new AppViewItemDescriptor(
+                $"{ExternalIdType}.Downloads",
+                Loc.GetString("DownloadViewName"),
+                // Icon used for sidebar item:
+                (iconArgs) => UIIcon.FromBitmapFile(Path.Combine(PluginDLLPath, "pluginiconBW.png")),
+                // Icon used for when the view is activated:
+                (iconArgs) => UIIcon.FromBitmapFile(Path.Combine(PluginDLLPath, "pluginicon.png")))
+            ];
+        }
+        public override AppViewItem? GetAppViewItem(GetAppViewItemsArgs args)
+        {
+            if (args.ViewId == $"{ExternalIdType}.Downloads")
+                return DownloadsAppView;
+
+            return null;
+        }
+
+        public override ICollection<MenuItemDescriptor> GetAppMenuItemDescriptors(GetAppMenuItemDescriptorsArgs args)
+        {
+            return
+            [
+                new MenuItemDescriptor($"graviton.open.web", "Open RomM library"),
+                new MenuItemDescriptor($"graviton.open.account", "Open RomM profile")
+            ];
+        }
+        public override ICollection<MenuItemImpl>? GetAppMenuItems(GetAppMenuItemsArgs args)
+        {
+
+            if (args.ItemId == "graviton.open.web")
+            {
+                return [new MenuItemImpl("Open RomM library", (_) =>
+                {
+                    if(!string.IsNullOrEmpty(Settings.Host) && Uri.IsWellFormedUriString(Settings.Host, UriKind.Absolute))
+                        System.Diagnostics.Process.Start(Settings.Host)?.Dispose();
+                    else
+                        PlayniteApi?.Notifications.Add(new NotificationMessage("graviton.appmenu.openlibrary", "RomM host is null or incorrectly formatted!", NotificationSeverity.Error));
+                })];
+            }
+
+            if (args.ItemId == "graviton.open.account")
+            {
+                return [new MenuItemImpl("Open RomM profile", (_) =>
+                {
+                    if(!string.IsNullOrEmpty(Settings.Host) && Uri.IsWellFormedUriString(Settings.Host, UriKind.Absolute) && Settings.UserID >= 0)
+                        System.Diagnostics.Process.Start($"{Settings.Host}/user/{Settings.UserID}")?.Dispose();
+                    else
+                        PlayniteApi?.Notifications.Add(new NotificationMessage("graviton.appmenu.openprofile", "User is not authenticated!", NotificationSeverity.Error));
+                })];
+            }
+
+
+            return null;
+        }
+
+        public override ICollection<MenuItemDescriptor> GetGameMenuItemDescriptors(GetGameMenuItemDescriptorsArgs args)
+        {
+
+
+            return
+            [
+                new MenuItemDescriptor("graviton.open.manual", "Open RomM manual")
+            ];
+        }
+
+        public override ICollection<MenuItemImpl>? GetGameMenuItems(GetGameMenuItemsArgs args)
+        {
+            if (args.Games.Count != 1)
+                return null;
+
+            if (args.ItemId == "graviton.open.manual" && args.Games[0].LibraryId == Id)
+            {
+                var sha1 = args.Games[0].LibraryId.Split(':')[1];
+                if (Regex.IsMatch(sha1, @"^[0-9a-fA-F]{40}$"))
+                {
+                    //return [new MenuItemImpl("Open game manual", (_) => ProcessStarter.StartProcess(manualFile))];
+                }
+
+            }
+
+            return null;
+        }
+
+        #endregion
+
+    }
+}

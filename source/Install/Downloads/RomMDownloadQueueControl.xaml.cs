@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 
-namespace RomMLibrary.Install.Downloads
+namespace Graviton.Install.Downloads
 {
     public partial class RomMDownloadQueueControl : UserControl
     {

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace RomMLibrary.Models.RomM.Rom
+namespace Graviton.Models.RomM.Rom
 {
     public class RomMRomUser
     {

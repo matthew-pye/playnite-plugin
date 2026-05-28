@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace RomMLibrary.Models.RomM
+namespace Graviton.Models.RomM
 {
     struct ServerInfo
     {

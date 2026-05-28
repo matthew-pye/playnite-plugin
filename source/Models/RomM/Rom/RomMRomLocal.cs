@@ -1,13 +1,7 @@
 ﻿
-namespace RomMLibrary.Models.RomM.Rom
+namespace Graviton.Models.RomM.Rom
 {
-    enum MainSibling
-    {
-        None = -1,
-        Current = 0,
-        Other = 1
-    }
-
+  
     public struct GameInstallInfo
     {
         public int Id { get; set; }
@@ -27,19 +21,5 @@ namespace RomMLibrary.Models.RomM.Rom
         public string? DownloadURL { get; set; }
         public Guid MappingID { get; set; }
 
-    }
-
-    public class RomMSave
-    {
-        public int UserID;
-        public int SaveID;
-        public string FileName = "";
-        public string FilePath = "";
-        public int Slot;
-        public bool SyncStatus;
-    }
-    public class RomMSaveState
-    {
-        
     }
 }

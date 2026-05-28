@@ -1,11 +1,11 @@
-<UserControl x:Class="RomMLibrary.Install.RomMVersionSelector"
+<UserControl x:Class="Graviton.Install.RomMVersionSelector"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:p="clr-namespace:Playnite"
-             xmlns:s="clr-namespace:RomMLibrary.Install"
+             xmlns:s="clr-namespace:Graviton.Install"
              DataContext="{Binding RelativeSource={RelativeSource Self}}"
              mc:Ignorable="d">
 

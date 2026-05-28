@@ -3,7 +3,7 @@ using Playnite;
 
 using static Playnite.InstallController;
 
-namespace RomMLibrary.Install.Downloads
+namespace Graviton.Install.Downloads
 {
     public class DownloadRequest
     {

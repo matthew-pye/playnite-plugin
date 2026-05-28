@@ -1,14 +1,14 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Text.Json.Serialization;
 
-using RomMLibrary.Models.RomM.Platform;
+using Graviton.Models.RomM.Platform;
 
 using Playnite;
 using System.Collections.ObjectModel;
 using System.Windows.Documents;
 
 
-namespace RomMLibrary.Models
+namespace Graviton.Models
 {
     public partial class EmulatorMapping : ObservableObject
     {
@@ -160,7 +160,7 @@ namespace RomMLibrary.Models
         {
             get
             {
-                IPlayniteApi playnite = RomMLibraryPlugin.PlayniteApi ?? throw new Exception("");
+                IPlayniteApi playnite = GravitonPlugin.PlayniteApi ?? throw new Exception("");
                 return playnite.AppInfo.ApplicationDirectory;
                 //return playnite.Paths.IsPortable ? DestinationPath?.Replace(playnite.ExpandableVariables.PlayniteDirectory, playnite.AppInfo.ApplicationDirectory) : DestinationPath;
             }

@@ -1,13 +1,15 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace RomMLibrary.Models.RomM.Metadata
+namespace Graviton.Models.RomM.Metadata
 {
-    public struct AgeRating
+    public struct IGDBAgeRating
     {
         [JsonPropertyName("rating")]
         public float Rating { get; set; }
+
         [JsonPropertyName("category")]
         public float RatingBoard { get; set; }
+
         [JsonPropertyName("rating_cover_url")]
         public float RatingIcon { get; set; }
     }
@@ -27,7 +29,7 @@ namespace RomMLibrary.Models.RomM.Metadata
         public List<string>? Franchises { get; set; }
 
         [JsonPropertyName("age_ratings")]
-        public List<AgeRating>? AgeRatings { get; set; }
+        public List<IGDBAgeRating>? AgeRatings { get; set; }
 
     }
 }

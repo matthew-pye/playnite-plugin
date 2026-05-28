@@ -1,9 +1,16 @@
-﻿using RomMLibrary.Models.RomM.Metadata;
+﻿using Graviton.Models.RomM.Metadata;
 
 using System.Text.Json.Serialization;
 
-namespace RomMLibrary.Models.RomM.Rom
+namespace Graviton.Models.RomM.Rom
 {
+    enum MainSibling
+    {
+        None = -1,
+        Current = 0,
+        Other = 1
+    }
+
     public class RomMFile
     {
         [JsonPropertyName("id")]

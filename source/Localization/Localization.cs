@@ -1,15 +1,15 @@
-﻿using RomMLibrary;
+﻿using Graviton;
 using Playnite.Markup;
 
 namespace Playnite;
 
 public class LocalizedString : LocStringMarkup
 {
-    public LocalizedString() : base(RomMLibraryPlugin.Id)
+    public LocalizedString() : base(GravitonPlugin.Id)
     {
     }
 
-    public LocalizedString(string stringId) : base(RomMLibraryPlugin.Id, stringId)
+    public LocalizedString(string stringId) : base(GravitonPlugin.Id, stringId)
     {
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace RomMLibrary.Models.RomM.Metadata
+namespace Graviton.Models.RomM.Metadata
 {
     public class Metadatum
     {

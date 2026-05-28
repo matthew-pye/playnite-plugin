@@ -1,8 +1,8 @@
-﻿using RomMLibrary.Models.RomM.Metadata;
+﻿using Graviton.Models.RomM.Metadata;
 
 using System.Text.Json.Serialization;
 
-namespace RomMLibrary.Models.RomM
+namespace Graviton.Models.RomM
 {
     public class RomMUser
     {

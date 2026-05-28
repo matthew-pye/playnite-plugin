@@ -6,7 +6,7 @@ using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Shell;
 
-namespace RomMLibrary.Install.Downloads
+namespace Graviton.Install.Downloads
 {
     public partial class SidebarItemControl : UserControl
     {
@@ -23,7 +23,7 @@ namespace RomMLibrary.Install.Downloads
             WindowChrome.SetIsHitTestVisibleInChrome(textBlockLink, true);
 
             Hyperlink hyperlink = new Hyperlink();
-            //hyperlink.Click += (s, e) => { RomMLibraryPlugin.PlayniteApi?.MainView.SwitchToLibraryView(); };
+            //hyperlink.Click += (s, e) => { GravitonPlugin.PlayniteApi?.MainView.SwitchToLibraryView(); };
             hyperlink.Inlines.Add(new TextBlock
             {
                 Text = "\uea5c",

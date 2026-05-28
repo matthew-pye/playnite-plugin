@@ -1,7 +1,7 @@
 ﻿using Playnite;
 
-using RomMLibrary.Models;
-using RomMLibrary.Models.RomM.Rom;
+using Graviton.Models;
+using Graviton.Models.RomM.Rom;
 
 using System.IO;
 using System.Security.Cryptography;
@@ -9,7 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 
-namespace RomMLibrary.Import
+namespace Graviton.Import
 {
     struct ProcessedGame
     {
@@ -29,18 +29,18 @@ namespace RomMLibrary.Import
 
     internal class RomMImport
     {
-        private readonly RomMLibraryPlugin Plugin;
+        private readonly GravitonPlugin Plugin;
         private readonly IPlayniteApi PlayniteApi;
         private readonly ILogger? Logger;
         CancellationToken CancelToken;
         EmulatorMapping Mapping;
         List<RomMRom> ROMs;
 
-        public RomMImport(RomMLibraryPlugin plugin, CancellationToken cancelToken, EmulatorMapping mapping, List<RomMRom> roms)
+        public RomMImport(GravitonPlugin plugin, CancellationToken cancelToken, EmulatorMapping mapping, List<RomMRom> roms)
         {
             Plugin = plugin;
-            PlayniteApi = RomMLibraryPlugin.PlayniteApi ?? throw new Exception("Playnite API is null cannot continue!"); ;
-            Logger = RomMLibraryPlugin.Logger;
+            PlayniteApi = GravitonPlugin.PlayniteApi ?? throw new Exception("Playnite API is null cannot continue!"); ;
+            Logger = GravitonPlugin.Logger;
             CancelToken = cancelToken;
             Mapping = mapping;
             ROMs = roms;
@@ -87,6 +87,7 @@ namespace RomMLibrary.Import
                 RemoveMissingGames(ImportedGamesIDs);
             }
 
+            Logger?.Info($"[Importer] Finished import of ROMs for {Mapping.RomMPlatform?.Name}.");
             return games;
         }
 
@@ -207,7 +208,7 @@ namespace RomMLibrary.Import
             // Skip if ROM has no filename
             if (string.IsNullOrEmpty(ROM.FileName))
             {
-                PlayniteApi.Notifications.Add(new NotificationMessage(RomMLibraryPlugin.Id, Loc.GetString("NoFileNameWithID", ("ROMID", ROM.Id)), NotificationSeverity.Error));
+                PlayniteApi.Notifications.Add(new NotificationMessage(GravitonPlugin.Id, Loc.GetString("NoFileNameWithID", ("ROMID", ROM.Id)), NotificationSeverity.Error));
                 return null;
             }
 
@@ -265,8 +266,8 @@ namespace RomMLibrary.Import
         {
             Game game = new Game();
 
-            game.SourceId = RomMLibraryPlugin.Id;
-            game.LibraryId = RomMLibraryPlugin.Id;
+            game.SourceId = GravitonPlugin.Id;
+            game.LibraryId = GravitonPlugin.Id;
             game.LibraryGameId = $"{ROM.Id}:{ROM.SHA1}";
 
             game.Name = ROM.Name ?? throw new Exception("ROM doesn't have a name cannot continue!");
@@ -339,7 +340,7 @@ namespace RomMLibrary.Import
         private void RemoveMissingGames(List<string> ImportedGames)
         {
             var gamesInDatabase = PlayniteApi.Library.Games.Where(g =>
-                        g.SourceId != null && g.SourceId == RomMLibraryPlugin.Id &&
+                        g.SourceId != null && g.SourceId == GravitonPlugin.Id &&
                         g.PlatformIds != null && g.PlatformIds.Any(p => p == Mapping.RomMPlatform.Name)
                     );
 
@@ -362,7 +363,7 @@ namespace RomMLibrary.Import
         private bool UpdatedDeletedGame(RomMRom ROM)
         {
             // Check to see if a game already exists with an old romMId
-            var oldgame = PlayniteApi.Library.Games.FirstOrDefault(g => g.LibraryId == RomMLibraryPlugin.Id && g.LibraryGameId?.Split(':')[1] == ROM.SHA1);
+            var oldgame = PlayniteApi.Library.Games.FirstOrDefault(g => g.LibraryId == GravitonPlugin.Id && g.LibraryGameId?.Split(':')[1] == ROM.SHA1);
             if (oldgame != null)
             {
                 oldgame.LibraryGameId = $"{ROM.Id}:{ROM.SHA1}";

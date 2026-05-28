@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace RomMLibrary.Install.Downloads
+namespace Graviton.Install.Downloads
 {
     public enum DownloadStatus
     {

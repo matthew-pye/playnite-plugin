@@ -1,13 +1,13 @@
 ﻿using Playnite;
 
-using RomMLibrary.Install.Downloads;
-using RomMLibrary.Models.RomM.Rom;
+using Graviton.Install.Downloads;
+using Graviton.Models.RomM.Rom;
 
 using SharpCompress.Archives;
 
 using System.IO;
 
-namespace RomMLibrary.Install
+namespace Graviton.Install
 {
     enum InstallStatus
     {
@@ -16,17 +16,17 @@ namespace RomMLibrary.Install
 
     internal class RomMInstallController : InstallController
     {
-        protected readonly RomMLibraryPlugin Plugin;
+        protected readonly GravitonPlugin Plugin;
         private readonly IPlayniteApi PlayniteApi;
         public ILogger Logger => LogManager.GetLogger();
         public GameInstallInfo GameData;
 
         private Game Game;
 
-        internal RomMInstallController(RomMLibraryPlugin romM, Game game, GameInstallInfo gameData) : base(RomMLibraryPlugin.Id, "Download", game.LibraryGameId ?? throw new Exception("Game doesn't have libraryID!"))
+        internal RomMInstallController(GravitonPlugin romM, Game game, GameInstallInfo gameData) : base(GravitonPlugin.Id, "Download", game.LibraryGameId ?? throw new Exception("Game doesn't have libraryID!"))
         {
             Plugin = romM;
-            PlayniteApi = RomMLibraryPlugin.PlayniteApi ?? throw new Exception("Playnite API is null, cannot continue!");
+            PlayniteApi = GravitonPlugin.PlayniteApi ?? throw new Exception("Playnite API is null, cannot continue!");
             GameData = gameData;
             Game = game;
         }
@@ -129,7 +129,7 @@ namespace RomMLibrary.Install
                 OnFailed = ex =>
                 {
                     PlayniteApi.Notifications.Add(new NotificationMessage(
-                        Game.LibraryGameId ?? RomMLibraryPlugin.Id,
+                        Game.LibraryGameId ?? GravitonPlugin.Id,
                         $"{Loc.GetString("DownloadFailed")} {Game.Name}.\n\n{ex.Message}",
                         NotificationSeverity.Error)); 
 

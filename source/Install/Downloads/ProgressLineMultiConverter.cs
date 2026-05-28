@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Windows.Data;
 
-namespace RomMLibrary.Install.Downloads
+namespace Graviton.Install.Downloads
 {
     /// <summary>
     /// MultiValueConverter used to display download progress as a single text line.

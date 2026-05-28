@@ -1,12 +1,12 @@
 ﻿using Playnite;
 
-namespace RomMLibrary.Install.Downloads
+namespace Graviton.Install.Downloads
 {
     public class RomMDownloadsAppViewItem : AppViewItem
     {
-        private readonly RomMLibraryPlugin Plugin;
+        private readonly GravitonPlugin Plugin;
     
-        public RomMDownloadsAppViewItem(RomMLibraryPlugin plugin)
+        public RomMDownloadsAppViewItem(GravitonPlugin plugin)
         {
             Plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
             if(Plugin.DownloadQueueController == null)

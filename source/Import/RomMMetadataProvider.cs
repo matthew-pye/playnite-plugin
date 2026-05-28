@@ -2,9 +2,9 @@
 
 using RomM.Properties;
 
-using RomMLibrary;
-using RomMLibrary.Models.RomM.Rom;
-using RomMLibrary.Settings;
+using Graviton;
+using Graviton.Models.RomM.Rom;
+using Graviton.Settings;
 
 using System.Net.Http;
 using System.Text.Json;
@@ -13,16 +13,16 @@ using static Playnite.MetadataProvider;
 
 namespace RomM.Import
 {
-    public class RomMLibraryMetadataProviderGameSession : MetadataProviderGameSession
+    public class GravitonMetadataProviderGameSession : MetadataProviderGameSession
     {
-        private readonly RomMLibraryPlugin Plugin;
+        private readonly GravitonPlugin Plugin;
         private readonly ILogger Logger = LogManager.GetLogger();
         private RomMRom? ROM = null;
 
-        public RomMLibraryMetadataProviderGameSession(RomMLibraryPlugin plugin, Game game) : base(game)
+        public GravitonMetadataProviderGameSession(Game game) : base(game)
         {
-            Plugin = plugin;
-            if (game.LibraryId == "RomMLibrary")
+            Plugin = GravitonPlugin.Instance;
+            if (game.LibraryId == "Graviton")
             {
                 try
                 {
@@ -81,19 +81,19 @@ namespace RomM.Import
                 case BuiltInGameDataId.DesktopCover:
                     return ROM.HasCover ? ROM.PathCoverL : null;
                 case BuiltInGameDataId.Genres:
-                    return ROM.Metadatum?.Genres.Count > 0 ? ROM.Metadatum.Genres : null;
+                    return ROM.Metadatum?.Genres?.Count > 0 ? ROM.Metadatum.Genres : null;
                 case BuiltInGameDataId.Tags:
                     return ROM.Tags?.Count > 0 ? ROM.Tags : null;
                 case BuiltInGameDataId.Features:
-                    return ROM.Metadatum?.Gamemodes.Count > 0 ? ROM.Metadatum.Gamemodes : null;
+                    return ROM.Metadatum?.Gamemodes?.Count > 0 ? ROM.Metadatum.Gamemodes : null;
                 case BuiltInGameDataId.Platforms:
                     return ROM.PlatformName;
                 case BuiltInGameDataId.Categories:
-                    return ROM.Metadatum?.Collections.Count > 0 ? ROM.Metadatum.Collections : null;
+                    return ROM.Metadatum?.Collections?.Count > 0 ? ROM.Metadatum.Collections : null;
                 case BuiltInGameDataId.Series:
-                    return ROM.Metadatum?.Franchises.Count > 0 ? ROM.Metadatum.Franchises : null;
+                    return ROM.Metadatum?.Franchises?.Count > 0 ? ROM.Metadatum.Franchises : null;
                 case BuiltInGameDataId.AgeRating:
-                    return ROM.Metadatum?.Age_Ratings.Count > 0 ? ROM.Metadatum.Age_Ratings : null;
+                    return ROM.Metadatum?.Age_Ratings?.Count > 0 ? ROM.Metadatum.Age_Ratings : null;
                 case BuiltInGameDataId.Region:
                     return ROM.Regions?.Count > 0 ? ROM.Regions : null;
                 //case BuiltInGameDataId.CompletionStatus:
@@ -124,18 +124,18 @@ namespace RomM.Import
         }
     }
 
-    public class RomMLibraryMetadataProvider : MetadataProvider
+    public class GravitonMetadataProvider : MetadataProvider
     {
-        private readonly RomMLibraryPlugin Plugin;
-        public RomMLibraryMetadataProvider(RomMLibraryPlugin plugin)
+        private readonly GravitonPlugin Plugin;
+        public GravitonMetadataProvider()
         {
-            Plugin = plugin;
+            Plugin = GravitonPlugin.Instance;
         }
 
         public override async Task<MetadataProviderGameSession?> CreateGameSessionAsync(CreateGameMetadataSessionArgs args)
         {
             // This gets called for each game and returned MetadataProviderGameSession is disposed when Playnite is done with it.
-            return new RomMLibraryMetadataProviderGameSession(Plugin, args.Game);
+            return new GravitonMetadataProviderGameSession(args.Game);
         }
     }
 

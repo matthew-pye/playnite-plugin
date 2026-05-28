@@ -1,10 +1,10 @@
-﻿using RomMLibrary.Models.RomM.Rom;
+﻿using Graviton.Models.RomM.Rom;
 
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace RomMLibrary.Install
+namespace Graviton.Install
 {
     public partial class RomMVersionSelector : UserControl
     {

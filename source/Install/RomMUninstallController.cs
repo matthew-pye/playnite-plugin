@@ -2,14 +2,14 @@
 
 using System.IO;
 
-namespace RomMLibrary.Install.Downloads
+namespace Graviton.Install.Downloads
 {
     internal class RomMUninstallController : UninstallController
     {
-        private readonly RomMLibraryPlugin Plugin;
+        private readonly GravitonPlugin Plugin;
         private Game Game;
 
-        internal RomMUninstallController(Game game, RomMLibraryPlugin romM) : base("", "Uninstall", game.Id)
+        internal RomMUninstallController(Game game, GravitonPlugin romM) : base("", "Uninstall", game.Id)
         {
             Plugin = romM;
             Game = game;
@@ -23,7 +23,7 @@ namespace RomMLibrary.Install.Downloads
             }
             else
             {
-                RomMLibraryPlugin.PlayniteApi?.Dialogs.ShowErrorMessageAsync($"\"{Game.Name}\" folder could not be found. Marking as uninstalled.", "Game not found");
+                GravitonPlugin.PlayniteApi?.Dialogs.ShowErrorMessageAsync($"\"{Game.Name}\" folder could not be found. Marking as uninstalled.", "Game not found");
             }
 
             //Game.Roms.Clear();

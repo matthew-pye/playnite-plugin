@@ -9,11 +9,11 @@ using System.Net.Http;
 
 using static Playnite.InstallController;
 
-namespace RomMLibrary.Install.Downloads
+namespace Graviton.Install.Downloads
 {
     public class DownloadQueueController
     {
-        private readonly RomMLibraryPlugin Plugin;
+        private readonly GravitonPlugin Plugin;
         private readonly DownloadQueueViewModel DownloadQueueVM;
 
         private readonly SemaphoreSlim concurrencyGate;
@@ -24,7 +24,7 @@ namespace RomMLibrary.Install.Downloads
         public ILogger Logger => LogManager.GetLogger();
         public int MaxConcurrent { get; }
 
-        public DownloadQueueController(RomMLibraryPlugin plugin, DownloadQueueViewModel downloadQueueVM, int maxConcurrent)
+        public DownloadQueueController(GravitonPlugin plugin, DownloadQueueViewModel downloadQueueVM, int maxConcurrent)
         {
             Plugin = plugin;
             DownloadQueueVM = downloadQueueVM;

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace RomMLibrary.Models.RomM.Platform
+namespace Graviton.Models.RomM.Platform
 {
     public class RomMPlatformFirmware
     {
