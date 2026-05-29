@@ -25,10 +25,10 @@ namespace Graviton.Settings
 
         private async void MappingTabItem_Selected(object sender, System.Windows.RoutedEventArgs e)
         {
-            foreach (var mapping in GravitonSettingsHandler.Instance?.Settings.Mappings!)
-            {
-                mapping.AvailablePlatforms = GravitonSettingsHandler.Instance.Settings.RomMPlatforms;
-            }
+            //foreach (var mapping in GravitonSettingsHandler.Instance?.Settings.Mappings!)
+            //{
+            //    mapping.AvailablePlatforms = GravitonSettingsHandler.Instance.Settings.RomMPlatforms;
+            //}
 
 
                 //var importcontroller = GravitonPlugin.Instance?.ImportController;

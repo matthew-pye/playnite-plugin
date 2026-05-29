@@ -44,7 +44,7 @@ namespace Graviton.Settings
 
         private void Click_AddMapping(object sender, RoutedEventArgs e)
         {
-            GravitonSettingsHandler.Instance?.Settings.Mappings.Add(new EmulatorMapping(GravitonSettingsHandler.Instance?.Settings.RomMPlatforms));
+            GravitonSettingsHandler.Instance?.Settings.Mappings.Add(new EmulatorMapping(GravitonSettingsHandler.Instance.Settings.RomMPlatforms));
         }
 
         private void Click_Delete(object sender, RoutedEventArgs e)

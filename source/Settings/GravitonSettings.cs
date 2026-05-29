@@ -75,6 +75,43 @@ namespace Graviton.Settings
             }
         }
 
+        public GravitonPluginSettings Clone()
+        {
+            return new GravitonPluginSettings()
+            { 
+                Host = this.Host,
+                ClientToken = this.ClientToken,
+                UseBasicAuth = this.UseBasicAuth,
+                Username = this.Username,
+                Password = this.Password,
+
+                ProfilePath = this.ProfilePath,
+                User = this.User,
+                UserType = this.UserType,
+                UserID = this.UserID,
+                DeviceID = this.DeviceID,
+
+                LastAuthenticated = this.LastAuthenticated,
+                
+                ExcludeGenres = this.ExcludeGenres,
+                MergeRevisions = this.MergeRevisions,
+                SkipMissingFiles = this.SkipMissingFiles,
+                KeepDeletedGames = this.KeepDeletedGames,
+
+                Use7z = this.Use7z,
+                PathTo7z = this.PathTo7z,
+
+                KeepStatusSynced = this.KeepStatusSynced,
+                KeepFavouritesSynced = this.KeepFavouritesSynced,
+                KeepPrivateNotesSynced = this.KeepPrivateNotesSynced,
+                KeepPublicNotesSynced = this.KeepPublicNotesSynced,
+
+                RomMPlatforms = this.RomMPlatforms,
+                Mappings = this.Mappings
+
+            };
+        }
+
     }
 
     [INotifyPropertyChanged]
@@ -117,11 +154,7 @@ namespace Graviton.Settings
 
         public override async Task BeginEditAsync(BeginEditArgs args)
         {
-            Settings = JsonSerializer.Deserialize<GravitonPluginSettings>(JsonSerializer.Serialize(_plugin.Settings)) ?? throw new Exception("Failed to clone object via serialization");
-            foreach (var mapping in Settings.Mappings)
-            {
-                mapping.AvailablePlatforms = Settings.RomMPlatforms;
-            }
+            Settings = _plugin.Settings.Clone();
             InEditingMode = true;
             await Task.CompletedTask;
         }

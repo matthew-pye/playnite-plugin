@@ -28,6 +28,8 @@ namespace Graviton.Models
         [ObservableProperty] private int _romMPlatformId = -1;
         [ObservableProperty] private string _destinationPath = "";
 
+        [ObservableProperty] [property: JsonIgnore] private bool _isSelected = false;
+
 
         [JsonConstructor]
         public EmulatorMapping() {}
@@ -112,7 +114,7 @@ namespace Graviton.Models
                 if(value != null)
                 {
                     RomMPlatformId = value.Id;
-                    MappingName = value.Name;
+                    MappingName = "Emulator test value - " + "Profile test value - " + value.Name;
 
                     //if(Emulator != null)
                     //{
