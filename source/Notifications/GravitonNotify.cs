@@ -18,19 +18,19 @@ namespace Graviton
             switch (Notification.severity)
             {
                 case GravitonSeverity.Info:
-                    LogManager.GetLogger().Info($"[{Notification.method} @ line {Notification.lineNumber}] {Notification.message}");
+                    LogManager.GetLogger().Info($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
                     break;
 
                 case GravitonSeverity.Success:
-                    LogManager.GetLogger().Trace($"[{Notification.method} @ line {Notification.lineNumber}] {Notification.message}");
+                    LogManager.GetLogger().Info($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
                     break;
 
                 case GravitonSeverity.Warn:
-                    LogManager.GetLogger().Warn($"[{Notification.method} @ line {Notification.lineNumber}] {Notification.message}");
+                    LogManager.GetLogger().Warn($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
                     break;
 
                 case GravitonSeverity.Error:
-                    LogManager.GetLogger().Error($"[{Notification.method} @ line {Notification.lineNumber}] {Notification.message}");
+                    LogManager.GetLogger().Error($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
                     break;
 
             }

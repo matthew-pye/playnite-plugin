@@ -46,7 +46,7 @@ namespace Graviton.Import
         }      
 
         // Main library import functions
-        public List<Game> ProcessData()
+        public async Task<List<Game>> ProcessData()
         {
             // Add all series, genres, collections, etc to playnite database
             PreProcessData();
@@ -56,7 +56,7 @@ namespace Graviton.Import
 
             if (Mapping.RomMPlatform?.Name != null && !_playniteAPI.Library.Platforms.Any(x => x.Name == Mapping.RomMPlatform.Name))
             {
-                _playniteAPI.Library.Platforms.AddAsync(new Platform(Mapping.RomMPlatform.Name));
+                await _playniteAPI.Library.Platforms.AddAsync(new Platform(Mapping.RomMPlatform.Name));
             }
    
             // Process ROMs
@@ -65,7 +65,7 @@ namespace Graviton.Import
                 if (CancelToken.IsCancellationRequested)
                     break;
 
-                ProcessedGame? result = ProcessROM(ROM);
+                ProcessedGame? result = await ProcessROM(ROM);
                 if(result.HasValue)
                 {
                     ImportedGamesIDs.Add(result.Value.GameID);
@@ -184,17 +184,17 @@ namespace Graviton.Import
                 _playniteAPI.Library.Regions.AddAsync(regions);
             }
 
-            _playniteAPI.Library.Platforms.AddAsync(new Platform(Mapping.RomMPlatform.Name, Mapping.RomMPlatform.Name));
+            _playniteAPI.Library.Platforms.AddAsync(new Platform(Mapping.RomMPlatform!.Name, Mapping.RomMPlatform.Name));
 
         }
 
-        private ProcessedGame? ProcessROM(RomMRom ROM)
+        private async Task<ProcessedGame?> ProcessROM(RomMRom ROM)
         {
-            // Some newer platforms don't get a hash value so we will compromise with this
-            if (string.IsNullOrEmpty(ROM.SHA1))
+            // Skip if ROM has no filename
+            if (string.IsNullOrEmpty(ROM.FileName))
             {
-                var tohash = Encoding.UTF8.GetBytes($"{ROM.Name}{ROM.FileSizeBytes}");
-                ROM.SHA1 = Encoding.UTF8.GetString(SHA1.HashData(tohash));
+                _playniteAPI.Notifications.Add(new NotificationMessage(GravitonPlugin.Id, Loc.GetString("NoFileNameWithID", ("ROMID", ROM.Id)), NotificationSeverity.Error));
+                return null;
             }
 
             // Skip game import if the ROM is apart of the exclusion list
@@ -204,11 +204,11 @@ namespace Graviton.Import
             //    continue;
             //}
 
-            // Skip if ROM has no filename
-            if (string.IsNullOrEmpty(ROM.FileName))
+            // Some newer platforms don't get a hash value so we will compromise with this
+            if (string.IsNullOrEmpty(ROM.SHA1))
             {
-                _playniteAPI.Notifications.Add(new NotificationMessage(GravitonPlugin.Id, Loc.GetString("NoFileNameWithID", ("ROMID", ROM.Id)), NotificationSeverity.Error));
-                return null;
+                var tohash = Encoding.UTF8.GetBytes($"{ROM.Id}{ROM.FileNameNoExt}");
+                ROM.SHA1 = Encoding.UTF8.GetString(SHA1.HashData(tohash));
             }
 
             string gameID = $"{ROM.Id}:{ROM.SHA1}";
@@ -228,20 +228,27 @@ namespace Graviton.Import
             var game = _playniteAPI.Library.Games.FirstOrDefault(g => g.LibraryGameId == gameID);
             if (game != null) // Skip full import if ROM has already been imported 
             {
-                // Sync user data
-                if (_plugin.Settings.KeepRomMSynced)
-                {
-                    //statusID = DetermineCompletionStatus(ROM);
-                    //
-                    //game.Favorite = _favourites.Exists(f => f == ROM.Id);
-                    //
-                    //if (statusID != Guid.Empty)
-                    //{
-                    //    game.CompletionStatusId = statusID;
-                    //}
-                    //_plugin.Playnite.Database.Games.Update(game);
-                }
+                if(ROM.Collections != null)
+                    game.Favorite = ROM.Collections.Any(x => x.Name == "Favorites") ? true : false;
 
+                if (ROM.Notes != null)
+                {
+                    foreach (var note in ROM.Notes)
+                    {
+                        if(_playniteAPI.Library.GameNotes.Any(x => x.Id == $"romm.note.{note.Id}"))
+                        {
+                            var playnitenotes = _playniteAPI.Library.GameNotes.Where(x => x.Id == $"romm.note.{note.Id}");
+                            playnitenotes.First().Text = note.Note;
+                            await _playniteAPI.Library.GameNotes.UpdateAsync(playnitenotes);
+                        }
+                        else
+                        {
+                            GameNote newNote = new($"romm.note.{note.Id}", note.Note, GameNoteFormat.Markdown);
+                            newNote.Name = note.Title;
+                            await _playniteAPI.Library.GameNotes.AddAsync(newNote);
+                        }
+                    }
+                }
 
                 return new(gameID);
             }
@@ -250,7 +257,7 @@ namespace Graviton.Import
                 var importedGame = ImportGame(ROM);
                 if (importedGame != null)
                 {
-                    _playniteAPI.Library.Games.AddAsync(importedGame);
+                    await _playniteAPI.Library.Games.AddAsync(importedGame);
                     return new(gameID, importedGame);
                 }
                 else
@@ -279,7 +286,7 @@ namespace Graviton.Import
                 game.TimeToBeatEstimated = new(ROM.HLTBMetadata.MainStory, ROM.HLTBMetadata.MainStoryExtra, ROM.HLTBMetadata.Completionist);
 
             game.GenreIds = ROM.Metadatum?.Genres?.ToHashSet();
-            game.PlatformIds = new HashSet<string>([Mapping.RomMPlatform.Name]);
+            game.PlatformIds = new HashSet<string>([Mapping.RomMPlatform!.Name]);
             game.CategoryIds = ROM.Metadatum?.Collections?.ToHashSet();
             game.FeatureIds = ROM.Metadatum?.Gamemodes?.ToHashSet();
             game.SeriesIds = ROM.Metadatum?.Franchises?.ToHashSet();
@@ -340,7 +347,7 @@ namespace Graviton.Import
         {
             var gamesInDatabase = _playniteAPI.Library.Games.Where(g =>
                         g.SourceId != null && g.SourceId == GravitonPlugin.Id &&
-                        g.PlatformIds != null && g.PlatformIds.Any(p => p == Mapping.RomMPlatform.Name)
+                        g.PlatformIds != null && g.PlatformIds.Any(p => p == Mapping.RomMPlatform!.Name)
                     );
 
             _logger.Info($"[Importer] Starting to remove not found games for {Mapping.RomMPlatform?.Name}.");

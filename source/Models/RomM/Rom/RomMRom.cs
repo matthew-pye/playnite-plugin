@@ -1,4 +1,5 @@
-﻿using Graviton.Models.RomM.Metadata;
+﻿using Graviton.Models.RomM.Collection;
+using Graviton.Models.RomM.Metadata;
 
 using System.Text.Json.Serialization;
 
@@ -186,6 +187,12 @@ namespace Graviton.Models.RomM.Rom
         // User Data
         [JsonPropertyName("rom_user")]
         public RomMRomUser? RomUser { get; set; }
+
+        [JsonPropertyName("user_collections")]
+        public List<RomMCollection>? Collections { get; set; }
+
+        [JsonPropertyName("all_user_notes")]
+        public List<RomMUserNotes>? Notes { get; set; }
 
         // This is used for linking games together
         public bool Processed = false;

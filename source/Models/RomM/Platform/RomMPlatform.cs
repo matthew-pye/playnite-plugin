@@ -56,7 +56,7 @@ public class RomMPlatform : IEquatable<RomMPlatform>
         [JsonPropertyName("moby_id")]
         public object? MobyId { get; set; }
 
-        [JsonPropertyName("logo_path")]
+        [JsonPropertyName("url_logo")]
         public string? LogoPath { get; set; }
 
         [JsonPropertyName("firmware")]

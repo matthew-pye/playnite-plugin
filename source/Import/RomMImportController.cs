@@ -1,13 +1,24 @@
-﻿using Playnite;
-using static Playnite.Plugin;
-
-using Graviton.Models;
+﻿using Graviton.Models;
+using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Platform;
 using Graviton.Models.RomM.Rom;
+using Graviton.Settings;
 
+using Playnite;
+
+using Svg;
+
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Net;
 using System.Net.Http;
+using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Web;
+using System.Windows.Media.Imaging;
+
+using static Playnite.Plugin;
 
 namespace Graviton.Import
 {
@@ -28,10 +39,12 @@ namespace Graviton.Import
                 return new List<Game>();
             }
 
-            IList<RomMPlatform>? apiPlatforms = FetchPlatforms();
+            IList<RomMPlatform>? apiPlatforms = await FetchPlatforms();
             if (apiPlatforms == null)
                 return new List<Game>();
-     
+
+            GravitonSettingsHandler.Instance?.Settings.RomMPlatforms = apiPlatforms.ToObservableCollection();
+
             string url = BuildGeneralROMUrl();
 
             // Pull ROM data for each enabled mapping and add the games to playnite
@@ -51,29 +64,24 @@ namespace Graviton.Import
                 RomMPlatform? apiPlatform = apiPlatforms.FirstOrDefault(p => p.Id == mapping.RomMPlatformId);
                 if (apiPlatform == null)
                 {
-                    _playniteApi.Notifications.Add(new NotificationMessage($"graviton.platform.{mapping.RomMPlatform.Id}.notfound", Loc.GetString("PlatformNotFound", ("PlatformName", mapping.RomMPlatform.Name), ("PlatformID", mapping.RomMPlatformId)), NotificationSeverity.Error));
+                    GravitonNotify.Add(new GravitonNotification($"graviton.platform.{mapping.RomMPlatform!.Id}.notfound", Loc.GetString("PlatformNotFound", ("PlatformName", mapping.RomMPlatform.Name), ("PlatformID", mapping.RomMPlatformId)), GravitonSeverity.Error));
                     continue;
                 }
 
                 // Pull data from server
-                _logger.Info($"[Import Controller] Started parsing response for {apiPlatform.Name}.");
+                _logger.Debug($"[Import Controller] Started parsing response for {apiPlatform.Name}.");
                 var rommROMs = DownloadROMData(args, url, apiPlatform);
                 if (rommROMs == null)
                 {
-                    _logger.Warn($"[Import Controller] Failed to get ROMs for {apiPlatform.Name}.");
+                    _logger.Error($"[Import Controller] Failed to get ROMs for {apiPlatform.Name}.");
                     continue;
                 }
                 else
-                    _logger.Info($"[Import Controller] Finished parsing response for {apiPlatform.Name}.");
+                    _logger.Debug($"[Import Controller] Finished parsing response for {apiPlatform.Name}.");
 
 
-                _logger.Info($"[Import Controller] Creating new import task for {apiPlatform.Name}.");
-                // Import games for current mapping 
-                tasks.Add(Task<List<Game>>.Factory.StartNew(() =>
-                {
-                    RomMImport newImport = new RomMImport(args.CancelToken, mapping, rommROMs);
-                    return newImport.ProcessData();
-                }));
+                _logger.Debug($"[Import Controller] Creating new import task for {apiPlatform.Name}.");
+                tasks.Add(new RomMImport(args.CancelToken, mapping, rommROMs).ProcessData());
 
             }
 
@@ -88,13 +96,54 @@ namespace Graviton.Import
             return games;
         }
 
-        private IList<RomMPlatform>? FetchPlatforms()
+        public async Task<List<RomMPlatform>?> FetchPlatforms()
         {
-            var result = HttpClientSingleton.RomMGetAsync("/api/platforms").GetAwaiter().GetResult();
+            var result = await HttpClientSingleton.RomMGetAsync("/api/platforms");
             if (result == null)
                 return null;
 
-            return JsonSerializer.Deserialize<List<RomMPlatform>>(result) ?? throw new Exception("Failed to deseralize plaforms from server!");
+            var platforms = JsonSerializer.Deserialize<List<RomMPlatform>>(result) ?? throw new Exception("Failed to deseralize plaforms from server!");
+
+            if (!Directory.Exists($"{GravitonPlugin.Instance.PluginDataPath}/Platforms/"))
+                Directory.CreateDirectory($"{GravitonPlugin.Instance.PluginDataPath}/Platforms/");
+
+            foreach (var platform in platforms)
+            {
+                Stream stream;
+                try
+                {
+                    stream = await HttpClientSingleton.Instance?.GetStreamAsync($"{GravitonSettingsHandler.Instance?.Settings.Host}/assets/platforms/{platform.Slug}.svg")!;
+                    var svg = SvgDocument.Open<SvgDocument>(stream);
+                    var image = svg.Draw();
+
+                    image.Save($"{GravitonPlugin.Instance.PluginDataPath}/Platforms/{platform.Slug}.png", ImageFormat.Png);
+                }
+                catch
+                {
+                    stream = await HttpClientSingleton.Instance?.GetStreamAsync($"{GravitonSettingsHandler.Instance?.Settings.Host}/assets/default-C7fJO_0F.ico")!;
+
+                    Bitmap? png = null;
+                    using (var iconStream = new MemoryStream())
+                    {
+                        var decoder = new IconBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.None);
+                        using (var pngStream = new MemoryStream())
+                        {
+                            var encoder = new PngBitmapEncoder();
+                            foreach (var frame in decoder.Frames)
+                            {
+                                encoder.Frames.Add(frame);
+                            }
+                            encoder.Save(pngStream);
+                            png = (Bitmap)Bitmap.FromStream(pngStream);
+                        }
+                    }
+                    png.Save($"{GravitonPlugin.Instance.PluginDataPath}/Platforms/{platform.Slug}.png", ImageFormat.Png);
+                }
+
+                
+            }
+
+            return platforms;
         }
 
         private string BuildGeneralROMUrl()
@@ -165,8 +214,7 @@ namespace Graviton.Import
                 }
                 catch (HttpRequestException ex)
                 {
-                    _playniteApi.Notifications.Add(new NotificationMessage($"graviton.pull.{platform.Id}.failed", Loc.GetString("DownloadROMDataFailed", ("PlatformName", platform.Name), ("Error", ex.Message)), NotificationSeverity.Error));
-                    _logger.Error($"[Import Controller] Request exception: {ex}");
+                    GravitonNotify.Add(new GravitonNotification($"graviton.GET.roms.{platform.Id}.failed", Loc.GetString("DownloadROMDataFailed", ("PlatformName", platform.Name), ("Error", ex.Message)), GravitonSeverity.Error));
                     hasMoreData = false;
                 }
             }

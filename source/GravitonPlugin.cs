@@ -1,7 +1,5 @@
 ﻿using Graviton.Import;
 using Graviton.Install.Downloads;
-using Graviton.Models.Notifications;
-using Graviton.Properties;
 using Graviton.Settings;
 using Graviton.Status;
 
@@ -9,8 +7,10 @@ using Playnite;
 
 using RomM.Import;
 
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http.Headers;
+using System.Security.Policy;
 using System.Text.RegularExpressions;
 
 
@@ -108,7 +108,6 @@ namespace Graviton
 
         public override async Task OnApplicationStartupAsync(OnApplicationStartupArgs args)
         {
-
             Settings = GravitonSettingsHandler.LoadSettings(PluginDataPath);
             Settings.ProfilePath = string.IsNullOrEmpty(Settings.ProfilePath) ? Path.Combine(PluginDLLPath, @"profile.png") : Settings.ProfilePath;
 
@@ -193,7 +192,7 @@ namespace Graviton
                 return [new MenuItemImpl("Open RomM library", (_) =>
                 {
                     if(!string.IsNullOrEmpty(Settings.Host) && Uri.IsWellFormedUriString(Settings.Host, UriKind.Absolute))
-                        System.Diagnostics.Process.Start(Settings.Host)?.Dispose();
+                        Process.Start(new ProcessStartInfo(Settings.Host) { UseShellExecute = true })?.Dispose();
                     else
                         PlayniteApi?.Notifications.Add(new NotificationMessage("graviton.appmenu.openlibrary", "RomM host is null or incorrectly formatted!", NotificationSeverity.Error));
                 })];
@@ -204,7 +203,7 @@ namespace Graviton
                 return [new MenuItemImpl("Open RomM profile", (_) =>
                 {
                     if(!string.IsNullOrEmpty(Settings.Host) && Uri.IsWellFormedUriString(Settings.Host, UriKind.Absolute) && Settings.UserID >= 0)
-                        System.Diagnostics.Process.Start($"{Settings.Host}/user/{Settings.UserID}")?.Dispose();
+                        Process.Start(new ProcessStartInfo($"{Settings.Host}/user/{Settings.UserID}") { UseShellExecute = true })?.Dispose();
                     else
                         PlayniteApi?.Notifications.Add(new NotificationMessage("graviton.appmenu.openprofile", "User is not authenticated!", NotificationSeverity.Error));
                 })];

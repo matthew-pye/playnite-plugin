@@ -16,22 +16,27 @@
             <Setter Property="Foreground" Value="LightGray" />
         </Style>
         
-        <Storyboard x:Key="SlideIn">
-            <DoubleAnimation Storyboard.TargetName="RootBorder"
-                             Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
-                             From="-80" To="0"
-                             Duration="0:0:0.35">
+        <Storyboard x:Key="SlideInAnimation">
+            <DoubleAnimation 
+                Storyboard.TargetName="RootBorder"
+                Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                From="-80" To="0"
+                Duration="0:0:0.35"
+            >
                 <DoubleAnimation.EasingFunction>
                     <CubicEase EasingMode="EaseOut"/>
                 </DoubleAnimation.EasingFunction>
             </DoubleAnimation>
-            <DoubleAnimation Storyboard.TargetName="RootBorder"
-                             Storyboard.TargetProperty="Opacity"
-                             From="0" To="1"
-                             Duration="0:0:0.25"/>
+            
+            <DoubleAnimation 
+                Storyboard.TargetName="RootBorder"
+                Storyboard.TargetProperty="Opacity"
+                From="0" To="1"
+                Duration="0:0:0.25"
+            />
         </Storyboard>
 
-        <Storyboard x:Key="SlideOut" Completed="SlideOut_Completed">
+        <Storyboard x:Key="SlideOutAnimation" Completed="SlideOut_Completed">
             <DoubleAnimation Storyboard.TargetName="RootBorder"
                              Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
                              From="0" To="-80"
@@ -46,11 +51,13 @@
                              Duration="0:0:0.25"/>
         </Storyboard>
 
-        <Storyboard x:Key="ProgressShrink" Completed="Progress_Completed">
-            <DoubleAnimation Storyboard.TargetName="ProgressBar"
-                             Storyboard.TargetProperty="Width"
-                             From="336" To="0"
-                             Duration="0:0:4"/>
+        <Storyboard x:Key="ProgressBarAnimation" Completed="Progress_Completed">
+            <DoubleAnimation
+                Storyboard.TargetName="ProgressBar"
+                Storyboard.TargetProperty="Width"
+                From="336" To="0"
+                Duration="0:0:4"
+            />
         </Storyboard>
 
     </UserControl.Resources>
@@ -87,33 +94,33 @@
                 <TextBlock Grid.Column="1" Text="{Binding Message}" Foreground="{Binding TextColour}" HorizontalAlignment="Left" VerticalAlignment="Center" TextWrapping="Wrap" Margin="10,0,0,0"/>
 
                 <Button Grid.Column="2" x:Name="CloseButton" Click="CloseButton_Click" Width="16" Height="16" VerticalAlignment="Center" Margin="8,0,0,0" Cursor="Hand" ToolTip="Dismiss">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="BorderBrush" Value="Transparent"/>
-                        <Setter Property="Foreground" Value="#888"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Background="{TemplateBinding Background}"
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="#888"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
                                             CornerRadius="12">
-                                        <ContentPresenter HorizontalAlignment="Center"
+                                            <ContentPresenter HorizontalAlignment="Center"
                                                           VerticalAlignment="Center"/>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#33FFFFFF"/>
-                                            <Setter Property="Foreground" Value="White"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Button.Style>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#33FFFFFF"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
                     <TextBlock Text="✕" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
                 </Button>
-            </Grid>s
+            </Grid>
 
             <Border Grid.Row="1" Background="#22FFFFFF" Height="4">
                 <Rectangle x:Name="ProgressBar" Height="4" HorizontalAlignment="Left" Fill="{Binding ProgressBarColour}"/>

@@ -2,6 +2,7 @@
 
 using Graviton.Models;
 using Graviton.Models.RomM.Platform;
+using Graviton.Properties;
 using Graviton.Status;
 
 using Playnite;
@@ -39,13 +40,14 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _mergeRevisions = false;
         [ObservableProperty] private bool _skipMissingFiles = false;
         [ObservableProperty] private bool _keepDeletedGames= false;
-        [ObservableProperty] private bool _scanGamesInFullScreen = false;
 
         [ObservableProperty] private bool _use7z = false;
         [ObservableProperty] private string _pathTo7z = "";      
-        [ObservableProperty] private bool _notifyOnInstallComplete = false;
 
-        [ObservableProperty] private bool _keepRomMSynced = false;      
+        [ObservableProperty] private bool _keepStatusSynced = false;      
+        [ObservableProperty] private bool _keepFavouritesSynced = false;      
+        [ObservableProperty] private bool _keepPrivateNotesSynced = false;      
+        [ObservableProperty] private bool _keepPublicNotesSynced = false;      
 
         [ObservableProperty] private ObservableCollection<RomMPlatform> _romMPlatforms = new ObservableCollection<RomMPlatform>();
         [ObservableProperty] private ObservableCollection<EmulatorMapping> _mappings = new ObservableCollection<EmulatorMapping>();
@@ -65,6 +67,9 @@ namespace Graviton.Settings
             get => _profilePath;
             set
             {
+                if(value.Contains('?'))
+                    value = value.Substring(0, value.IndexOf('?'));
+                
                 _profilePath = string.IsNullOrEmpty(value) ? Path.Combine(GravitonPlugin.Instance.PluginDLLPath, @"profile.png") : value + "?" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 OnPropertyChanged(nameof(ProfilePath));
             }
@@ -113,6 +118,10 @@ namespace Graviton.Settings
         public override async Task BeginEditAsync(BeginEditArgs args)
         {
             Settings = JsonSerializer.Deserialize<GravitonPluginSettings>(JsonSerializer.Serialize(_plugin.Settings)) ?? throw new Exception("Failed to clone object via serialization");
+            foreach (var mapping in Settings.Mappings)
+            {
+                mapping.AvailablePlatforms = Settings.RomMPlatforms;
+            }
             InEditingMode = true;
             await Task.CompletedTask;
         }
@@ -153,6 +162,10 @@ namespace Graviton.Settings
                 {
                     var file = File.ReadAllText(setFile);
                     settings = JsonSerializer.Deserialize<GravitonPluginSettings>(file);
+                    foreach (var mapping in settings!.Mappings)
+                    {
+                        mapping.AvailablePlatforms = settings.RomMPlatforms;  
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -181,13 +194,18 @@ namespace Graviton.Settings
             var path = (string)value;
             path = path.Contains('?') ? path.Substring(0, path.IndexOf('?')) : path;
 
+            if (string.IsNullOrEmpty(path))
+                return new BitmapImage();
+
+            if (!File.Exists(path))
+                return new BitmapImage();
+
             var image = new BitmapImage();
             image.BeginInit();
             image.UriSource = new Uri(path);
             image.CacheOption = BitmapCacheOption.OnLoad;
             image.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
             image.EndInit();
-            image.Freeze();
 
             return image;
 

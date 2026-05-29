@@ -17,33 +17,12 @@ namespace Graviton.Settings
     /// </summary>
     public partial class GravitonSettingsView : UserControl
     {
-        Dictionary<string, string[]> PathTo7zFileType = new Dictionary<string, string[]>();
+        
+
 
         public GravitonSettingsView()
         {
-            PathTo7zFileType.Add("7Zip Executable", ["7z.exe"]);
             InitializeComponent();
-        }
-
-        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
-        {
-            try
-            {
-                if (e.Uri.Scheme == Uri.UriSchemeHttp || e.Uri.Scheme == Uri.UriSchemeHttps)
-                {
-                    var psi = new ProcessStartInfo
-                    {
-                        FileName = e.Uri.AbsoluteUri,
-                        UseShellExecute = true
-                    };
-                    Process.Start(psi);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to open URL: {ex.Message}");
-            }
-            e.Handled = true;
         }
 
         private async void Click_PullPlatforms(object sender, RoutedEventArgs e)
@@ -107,12 +86,7 @@ namespace Graviton.Settings
         private void Click_Browse7zDestination(object sender, RoutedEventArgs e)
         {
 
-            var path = GravitonPlugin.PlayniteApi?.Dialogs.SelectFileAsync(PathTo7zFileType, false).GetAwaiter().GetResult();
-
-            if (path?[0] == null) return;
-
-             GravitonSettingsHandler.Instance?.Settings.PathTo7z = path[0];
-            e.Handled = true;
+            
         }
     }
 }

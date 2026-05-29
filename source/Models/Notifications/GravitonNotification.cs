@@ -1,19 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace Graviton.Models.Notifications
 {
     public struct GravitonNotification
     {
-        public GravitonNotification(string ID, string Message, GravitonSeverity Severity, [CallerLineNumber] int LineNumber = 0, [CallerMemberName] string Method = "")
+        public GravitonNotification(string ID, string Message, GravitonSeverity Severity, [CallerLineNumber] int LineNumber = 0, [CallerFilePath] string File = "")
         {
             id = ID;
             message = Message;
             severity = Severity;
             lineNumber = LineNumber;
-            method = Method;
+            file = Path.GetFileName(File);
         }
 
         public string id;
@@ -21,6 +19,6 @@ namespace Graviton.Models.Notifications
         public GravitonSeverity severity;
 
         public int lineNumber;
-        public string method;
+        public string file;
     }
 }

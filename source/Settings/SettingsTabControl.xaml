@@ -54,12 +54,12 @@
 
             <!-- Options -->
             <TabItem Header="&#xf013; Options">
-
+                <s:OptionsTab FontSize="14" Margin="5,10,5,5"/>
             </TabItem>
 
             <!-- Mappings -->
-            <TabItem Header="&#xf0eb6; Mappings">
-
+            <TabItem Header="&#xf0eb6; Mappings" Selector.Selected="MappingTabItem_Selected">
+                <s:MappingsTab FontSize="14" Margin="5,10,5,5"/>
             </TabItem>
 
             <!-- Saves -->

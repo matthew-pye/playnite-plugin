@@ -43,7 +43,7 @@ namespace Graviton
                 GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", $"Request Failed - Please Reauthenticate!", GravitonSeverity.Error));
                 return null;
             }
-            HttpResponseMessage response = await httpClient.GetAsync($"{GravitonPlugin.Instance.Settings.Host}{APIPath}", new System.Threading.CancellationToken());
+            HttpResponseMessage response = await httpClient.GetAsync($"{GravitonSettingsHandler.Instance.Settings.Host}{APIPath}", new System.Threading.CancellationToken());
 
             try
             { 
@@ -73,9 +73,7 @@ namespace Graviton
                 return null;
             }
 
-            string path = $"{GravitonPlugin.Instance.Settings.Host}{APIPath}";
-
-            HttpResponseMessage response = await httpClient.PostAsJsonAsync(path, JSON, new System.Threading.CancellationToken());
+            HttpResponseMessage response = await httpClient.PostAsJsonAsync($"{GravitonSettingsHandler.Instance.Settings.Host}{APIPath}", JSON, new System.Threading.CancellationToken());
             try
             {
                 response = response.EnsureSuccessStatusCode();
@@ -104,8 +102,7 @@ namespace Graviton
                 return null;
             }
                 
-
-            HttpResponseMessage response = await httpClient.PutAsJsonAsync($"{GravitonPlugin.Instance.Settings.Host}{APIPath}", JSON, new System.Threading.CancellationToken());
+            HttpResponseMessage response = await httpClient.PutAsJsonAsync($"{GravitonSettingsHandler.Instance.Settings.Host}{APIPath}", JSON, new System.Threading.CancellationToken());
             try
             {
                 response = response.EnsureSuccessStatusCode();

@@ -2,6 +2,7 @@
 
 using Playnite;
 
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -95,6 +96,21 @@ namespace Graviton.Settings
                 }
                 e.Handled = true;
             }
+        }
+
+        private void Hyperlink_ClientToken(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+
+            if(string.IsNullOrEmpty(GravitonSettingsHandler.Instance?.Settings.Host))
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.openuri.clienttoken.failed", "Cannot open client token address as host is not set!", GravitonSeverity.Error));
+                e.Handled= true;
+                return;
+            }
+
+            string clienttokenaddress = GravitonSettingsHandler.Instance?.Settings.Host + "/client-api-tokens";
+            Process.Start(new ProcessStartInfo(clienttokenaddress) { UseShellExecute = true })?.Dispose();
+            e.Handled = true;
         }
     }
 }

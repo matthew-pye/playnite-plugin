@@ -22,8 +22,11 @@ namespace Graviton.Settings
 
             Loaded += (_, _) =>
             {
-                ((Storyboard)Resources["SlideIn"]).Begin();
-                ((Storyboard)Resources["ProgressShrink"]).Begin();
+                var animation = (DoubleAnimation)((Storyboard)Resources["ProgressBarAnimation"]).Children[0];
+                animation.Duration = new Duration(TimeSpan.FromSeconds(notification.message.Length * 0.2));
+                animation.From = RootBorder.ActualWidth;
+                ((Storyboard)Resources["SlideInAnimation"]).Begin();
+                ((Storyboard)Resources["ProgressBarAnimation"]).Begin();
             };
         }
 
@@ -33,10 +36,12 @@ namespace Graviton.Settings
 
         public void BeginDismiss()
         {
-            if (_dismissing) return;
+            if (_dismissing) 
+                return;
+                
             _dismissing = true;
-            ((Storyboard)Resources["ProgressShrink"]).Stop();
-            ((Storyboard)Resources["SlideOut"]).Begin();
+            ((Storyboard)Resources["ProgressBarAnimation"]).Stop();
+            ((Storyboard)Resources["SlideOutAnimation"]).Begin();
         }
 
         private void SlideOut_Completed(object sender, EventArgs e)

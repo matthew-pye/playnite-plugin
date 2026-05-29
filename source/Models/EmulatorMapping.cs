@@ -5,7 +5,7 @@ using Graviton.Models.RomM.Platform;
 
 using Playnite;
 using System.Collections.ObjectModel;
-using System.Windows.Documents;
+using Graviton.Settings;
 
 
 namespace Graviton.Models
@@ -14,7 +14,7 @@ namespace Graviton.Models
     {
         
         [ObservableProperty] private Guid _mappingId;
-        [ObservableProperty] private string _mappingName = "";
+        [ObservableProperty] [property: JsonIgnore] private string _mappingName = "Unknown Mapping";
         [ObservableProperty] private bool _enabled = true;
         [ObservableProperty] private bool _autoExtract = false;
         [ObservableProperty] private bool _useM3U = false;
@@ -23,12 +23,16 @@ namespace Graviton.Models
         //[JsonIgnore] private EmulatorProfile _emulatorProfile;
         //[JsonIgnore] private IEnumerable<EmulatorProfile> _availableProfiles;
         [JsonIgnore] public string? _emulatorProfileId;
-        [JsonIgnore] private RomMPlatform _emulatedPlatform = null!;
-        [JsonIgnore] private IEnumerable<RomMPlatform>? _availablePlatforms;
+        [JsonIgnore] private RomMPlatform? _emulatedPlatform = null;
+        [JsonIgnore] private ObservableCollection<RomMPlatform> _availablePlatforms = new ObservableCollection<RomMPlatform>();
         [ObservableProperty] public int _romMPlatformId = -1;
         [ObservableProperty] private string _destinationPath = "";
 
-        public EmulatorMapping(ObservableCollection<RomMPlatform>? romMPlatforms)
+
+        [JsonConstructor]
+        public EmulatorMapping() {}
+
+        public EmulatorMapping(ObservableCollection<RomMPlatform> romMPlatforms)
         {
             MappingId = Guid.NewGuid();
             AvailablePlatforms = romMPlatforms;
@@ -99,7 +103,7 @@ namespace Graviton.Models
         }
 
         [JsonIgnore]
-        public RomMPlatform RomMPlatform
+        public RomMPlatform? RomMPlatform
         {
             get => _emulatedPlatform;
             set
@@ -109,6 +113,7 @@ namespace Graviton.Models
                 if(value != null)
                 {
                     RomMPlatformId = value.Id;
+                    MappingName = value.Name;
 
                     //if(Emulator != null)
                     //{
@@ -123,6 +128,7 @@ namespace Graviton.Models
 
                 }
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(PlatformIcon));
             }
         }
 
@@ -140,7 +146,7 @@ namespace Graviton.Models
         //    }
         //}    
         [JsonIgnore]
-        public IEnumerable<RomMPlatform>? AvailablePlatforms
+        public ObservableCollection<RomMPlatform> AvailablePlatforms
         {
             get => _availablePlatforms;
             set
@@ -155,7 +161,13 @@ namespace Graviton.Models
             }
         }
 
-        //[JsonIgnore]
+        [JsonIgnore]
+        public string? PlatformIcon
+        {
+            get => RomMPlatformId != -1 ? $"{GravitonPlugin.Instance.PluginDataPath}/Platforms/{AvailablePlatforms?.FirstOrDefault(x => x.Id == RomMPlatformId)?.Slug}.png" : "";
+        }
+
+        [JsonIgnore]
         public string DestinationPathResolved
         {
             get
