@@ -27,8 +27,19 @@ namespace Graviton.Settings
         private void Mapping_Click(object sender, RoutedEventArgs e)
         {
             var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
-            MappingOptions.DataContext = mapping;
-            MappingOptions.Visibility = Visibility.Visible;
+
+            if (mapping != null && GravitonSettingsHandler.Instance?.Settings.RomMPlatforms != null)
+            {
+                mapping.AvailablePlatforms = GravitonSettingsHandler.Instance.Settings.RomMPlatforms;
+                MappingOptions.DataContext = mapping;
+                MappingOptions.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                MappingOptions.Visibility = Visibility.Hidden;
+            }
+
+           
             e.Handled = true;
         }
 

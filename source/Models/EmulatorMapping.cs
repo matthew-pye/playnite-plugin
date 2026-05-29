@@ -22,10 +22,10 @@ namespace Graviton.Models
         [JsonIgnore] private Guid? _emulatorId;
         //[JsonIgnore] private EmulatorProfile _emulatorProfile;
         //[JsonIgnore] private IEnumerable<EmulatorProfile> _availableProfiles;
-        [JsonIgnore] public string? _emulatorProfileId;
+        [JsonIgnore] private string? _emulatorProfileId;
         [JsonIgnore] private RomMPlatform? _emulatedPlatform = null;
         [JsonIgnore] private ObservableCollection<RomMPlatform> _availablePlatforms = new ObservableCollection<RomMPlatform>();
-        [ObservableProperty] public int _romMPlatformId = -1;
+        [ObservableProperty] private int _romMPlatformId = -1;
         [ObservableProperty] private string _destinationPath = "";
 
 
@@ -108,8 +108,7 @@ namespace Graviton.Models
             get => _emulatedPlatform;
             set
             {
-                _emulatedPlatform = value;
-                RomMPlatformId = -1;
+                _emulatedPlatform = value;             
                 if(value != null)
                 {
                     RomMPlatformId = value.Id;
@@ -127,6 +126,11 @@ namespace Graviton.Models
                     //}
 
                 }
+                else
+                {
+                    RomMPlatformId = -1;
+                }
+
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(PlatformIcon));
             }
@@ -156,7 +160,7 @@ namespace Graviton.Models
 
                 if (_availablePlatforms != null && RomMPlatformId != -1)
                 {
-                    RomMPlatform = AvailablePlatforms?.FirstOrDefault(x => x.Id == RomMPlatformId) ?? null!;
+                    RomMPlatform = AvailablePlatforms?.FirstOrDefault(x => x.Id == RomMPlatformId) ?? null;
                 }
             }
         }
@@ -164,7 +168,7 @@ namespace Graviton.Models
         [JsonIgnore]
         public string? PlatformIcon
         {
-            get => RomMPlatformId != -1 ? $"{GravitonPlugin.Instance.PluginDataPath}/Platforms/{AvailablePlatforms?.FirstOrDefault(x => x.Id == RomMPlatformId)?.Slug}.png" : "";
+            get => RomMPlatformId != -1 ? $"{GravitonPlugin.Instance.PluginDataPath}/Platforms/{RomMPlatform?.Slug}.png" : "";
         }
 
         [JsonIgnore]
@@ -198,7 +202,7 @@ namespace Graviton.Models
 
         public IEnumerable<string> GetDescriptionLines()
         {
-            yield return $"{nameof(_emulatorId)}: {_emulatorId}";
+            yield return $"{nameof(EmulatorId)}: {EmulatorId}";
             //yield return $"{nameof(Emulator)}*: {Emulator?.Name ?? "<Unknown>"}";
             yield return $"{nameof(EmulatorProfileId)}: {EmulatorProfileId ?? "<Unknown>"}";
             //yield return $"{nameof(EmulatorProfile)}*: {EmulatorProfile?.Name ?? "<Unknown>"}";
