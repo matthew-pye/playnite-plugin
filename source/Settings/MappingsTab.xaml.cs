@@ -63,5 +63,21 @@ namespace Graviton.Settings
 
             e.Handled = true;
         }
+
+        private async void DeleteMapping_Click(object sender, RoutedEventArgs e)
+        {
+            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
+
+            var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{mapping!.GetDescriptionLines()}", "Are you sure you want to delete this mapping?", Playnite.MessageBoxButtons.YesNoCancel);
+            
+            if(response == Playnite.MessageBoxResult.Yes)
+            {
+                GravitonSettingsHandler.Instance?.Settings.Mappings.Remove(mapping!);
+                MappingOptions.DataContext = null;
+                MappingOptions.Visibility = Visibility.Hidden;
+            }
+            
+            e.Handled = true;
+        }
     }
 }

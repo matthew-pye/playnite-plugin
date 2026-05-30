@@ -28,7 +28,7 @@
         <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled" Width="300">
             <StackPanel Margin="2,0,0,0">
 
-                <Button Click="AddMapping_Click" FontSize="20" Margin="5,5,5,0" HorizontalAlignment="Left">
+                <Button Click="AddMapping_Click" FontSize="20" Margin="5" HorizontalAlignment="Left">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Background" Value="Transparent"/>
@@ -53,10 +53,10 @@
                     </Button.Style>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Name="AddMappingIcon"  Text="&#xea60;" Margin="2,0,5,0"/>
-                        <TextBlock Text="Add mapping"/>
+                        <TextBlock Text="New mapping"/>
                     </StackPanel>
                 </Button>
-                <Separator Margin="5"/>
+                <Separator Margin="5,5,5,20"/>
 
                 <StackPanel x:Name="MappingsStack">
                     <ItemsControl ItemsSource="{Binding Mappings, Mode=OneWay}">
@@ -123,28 +123,59 @@
             </StackPanel>
             <Separator Margin="5,2,5,10"/>
 
-            <StackPanel Orientation="Horizontal">
-                <CheckBox HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" IsChecked="{Binding Enabled, Mode=TwoWay}"/>
-                <TextBlock Text="Enabled" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-            </StackPanel>
+            <Grid>
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" IsChecked="{Binding Enabled, Mode=TwoWay}"/>
+                    <TextBlock Text="Enabled" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
+                </StackPanel>
+
+                <Button Click="DeleteMapping_Click" FontSize="24" Margin="5" HorizontalAlignment="Right">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="Red"/>
+                            <Setter Property="Opacity" Value="0.6"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        </ContentPresenter>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Opacity" Value="1"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="DeleteMappingIcon"  Text="&#xf05e8;" Margin="2,0,5,0"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+            
 
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Emulator" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" Width="100"/>
+                <TextBlock Text="Emulator" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
                 <ComboBox Name="ComboEmulators"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailableEmulators}" DisplayMemberPath="Name" SelectedItem="{Binding Emulator, Mode=TwoWay}"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Profile" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" Width="100"/>
+                <TextBlock Text="Profile" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
                 <ComboBox Name="ComboProfiles"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailableProfiles}" DisplayMemberPath="Name" SelectedItem="{Binding EmulatorProfile, Mode=TwoWay}"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Platform" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" Width="100"/>
+                <TextBlock Text="Platform" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
                 <ComboBox Name="ComboPlatform"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="Name" SelectedItem="{Binding RomMPlatform, Mode=TwoWay}"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="ROM location" Margin="5" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                <TextBlock Text="ROM location" Margin="5" MinWidth="100" MaxWidth="150" VerticalAlignment="Center" HorizontalAlignment="Left"/>
                 <TextBox x:Name="Path" Margin="5" MinWidth="300" Text="{Binding Path=DestinationPath, Mode=TwoWay}"/>
                 <Button Click="Click_BrowseDestination" Margin="5">
                     <Label Content="Browse"/>
@@ -166,8 +197,7 @@
             </StackPanel>
 
         </StackPanel>
-            
-        </Grid>
+    </Grid>
         
 
 </UserControl>

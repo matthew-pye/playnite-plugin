@@ -47,18 +47,6 @@ namespace Graviton.Settings
             GravitonSettingsHandler.Instance?.Settings.Mappings.Add(new EmulatorMapping(GravitonSettingsHandler.Instance.Settings.RomMPlatforms));
         }
 
-        private void Click_Delete(object sender, RoutedEventArgs e)
-        {
-            if (((FrameworkElement)sender).DataContext is EmulatorMapping mapping)
-            {
-                var res =  GravitonPlugin.PlayniteApi?.Dialogs.ShowMessageAsync(string.Format("Delete this mapping?\r\n\r\n{0}", mapping.GetDescriptionLines().Aggregate((a, b) => $"{a}{Environment.NewLine}{b}")), "Confirm delete", MessageBoxButtons.YesNo);
-                if (res?.Result == Playnite.MessageBoxResult.Yes)
-                {
-                     GravitonSettingsHandler.Instance?.Settings.Mappings.Remove(mapping);
-                }
-            }
-        }
-
         private void Click_BrowseDestination(object sender, RoutedEventArgs e)
         {
             var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
