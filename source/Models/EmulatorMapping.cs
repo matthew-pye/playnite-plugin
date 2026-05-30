@@ -202,16 +202,19 @@ namespace Graviton.Models
         //}
 
 
-        public IEnumerable<string> GetDescriptionLines()
+        public string GetDescriptionLines()
         {
-            yield return $"{nameof(EmulatorId)}: {EmulatorId}";
+
+            return $"{nameof(EmulatorId)}: {EmulatorId}\n" +
+                   $"{nameof(EmulatorProfileId)}: {EmulatorProfileId ?? "<Unknown>"}\n" +
+                   $"{nameof(RomMPlatformId)}: {RomMPlatformId}\n" +
+                   $"{nameof(RomMPlatform)}*: {RomMPlatform?.Name ?? "<Unknown>"}\n" +
+                   $"{nameof(DestinationPath)}: {DestinationPath ?? "<Unknown>"}\n" +
+                   $"{nameof(DestinationPathResolved)}*: {DestinationPathResolved ?? "<Unknown>"}";
+
+
             //yield return $"{nameof(Emulator)}*: {Emulator?.Name ?? "<Unknown>"}";
-            yield return $"{nameof(EmulatorProfileId)}: {EmulatorProfileId ?? "<Unknown>"}";
-            //yield return $"{nameof(EmulatorProfile)}*: {EmulatorProfile?.Name ?? "<Unknown>"}";
-            yield return $"{nameof(RomMPlatformId)}: {RomMPlatformId}";
-            //yield return $"{nameof(EmulatedPlatform)}*: {EmulatedPlatform?.Name ?? "<Unknown>"}";
-            yield return $"{nameof(DestinationPath)}: {DestinationPath ?? "<Unknown>"}";
-            yield return $"{nameof(DestinationPathResolved)}*: {DestinationPathResolved ?? "<Unknown>"}";
+            //yield return $"{nameof(EmulatorProfile)}*: {EmulatorProfile?.Name ?? "<Unknown>"}";      
             //yield return $"{nameof(EmulatorBasePathResolved)}*: {EmulatorBasePathResolved ?? "<Unknown>"}";
         }
     }

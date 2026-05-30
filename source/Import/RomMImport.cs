@@ -5,6 +5,7 @@ using Graviton.Models.RomM.Rom;
 using Playnite;
 
 using System.IO;
+using System.Runtime.Intrinsics.Arm;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -74,6 +75,9 @@ namespace Graviton.Import
                         games.Add(result.Value.NewGame);
                 }
             }
+
+
+
             _logger?.Info($"[Importer] Finished adding new games for {Mapping.RomMPlatform?.Name}");
 
             if(_plugin.Settings.MergeRevisions)
@@ -112,6 +116,7 @@ namespace Graviton.Import
 
         private void PreProcessData()
         {
+
             List<Genre> genres = new();
             List<Category> categories = new();
             List<Series> series = new();
@@ -153,7 +158,7 @@ namespace Graviton.Import
                 if (ROMRegions != null)
                     regions.AddRange(ROMRegions);
 
-                var ROMAgeRatings = ROM.IgdbMetadata?.AgeRatings?.Select(x => new AgeRating($"{x.RatingBoard}-{x.Rating}", $"{x.RatingBoard} {x.Rating}")).ToList();
+                var ROMAgeRatings = ROM.IgdbMetadata?.AgeRatings?.Select(x => new AgeRating($"{x.RatingBoard} {x.Rating}", $"{x.RatingBoard} {x.Rating}")).ToList();
                 if (ROMAgeRatings != null)
                     ageRatings.AddRange(ROMAgeRatings);
             }
@@ -193,7 +198,7 @@ namespace Graviton.Import
             // Skip if ROM has no filename
             if (string.IsNullOrEmpty(ROM.FileName))
             {
-                _playniteAPI.Notifications.Add(new NotificationMessage(GravitonPlugin.Id, Loc.GetString("NoFileNameWithID", ("ROMID", ROM.Id)), NotificationSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification($"graviton.proccess.{ROM.Id}.nofilename", Loc.GetString("NoFileNameWithID", ("ROMID", ROM.Id)), GravitonSeverity.Error));
                 return null;
             }
 
@@ -235,15 +240,15 @@ namespace Graviton.Import
                 {
                     foreach (var note in ROM.Notes)
                     {
-                        if(_playniteAPI.Library.GameNotes.Any(x => x.Id == $"romm.note.{note.Id}"))
+                        if(_playniteAPI.Library.GameNotes.Any(x => x.Id == game.Id))
                         {
-                            var playnitenotes = _playniteAPI.Library.GameNotes.Where(x => x.Id == $"romm.note.{note.Id}");
+                            var playnitenotes = _playniteAPI.Library.GameNotes.Where(x => x.Id == game.Id);
                             playnitenotes.First().Text = note.Note;
                             await _playniteAPI.Library.GameNotes.UpdateAsync(playnitenotes);
                         }
                         else
                         {
-                            GameNote newNote = new($"romm.note.{note.Id}", note.Note, GameNoteFormat.Markdown);
+                            GameNote newNote = new(game.Id, note.Note, GameNoteFormat.Markdown);
                             newNote.Name = note.Title;
                             await _playniteAPI.Library.GameNotes.AddAsync(newNote);
                         }
@@ -258,12 +263,26 @@ namespace Graviton.Import
                 if (importedGame != null)
                 {
                     await _playniteAPI.Library.Games.AddAsync(importedGame);
+                    await PostProccessROM(_playniteAPI.Library.Games.First(x => x.LibraryGameId == gameID).Id, ROM);
                     return new(gameID, importedGame);
                 }
                 else
                 {
-                    GravitonNotify.Add(new GravitonNotification($"graviton.import.game.{ROM.Id}", $"Failed to import {ROM.Name} [ID:{ROM.Id}]", GravitonSeverity.Error));
+                    GravitonNotify.Add(new GravitonNotification($"graviton.import.game.{ROM.Id}.failed", $"Failed to import {ROM.Name} [ID:{ROM.Id}]", GravitonSeverity.Error));
                     return null;
+                }
+            }
+        }
+
+        private async Task PostProccessROM(string PlayniteID, RomMRom ROM)
+        {
+            await _playniteAPI.Library.GameDescriptions.AddAsync(new GameDescription(PlayniteID, ROM.Summary, GameDescriptionFormat.Markdown));
+
+            if (ROM.Notes != null)
+            {
+                foreach (var note in ROM.Notes!)
+                {
+                    await _playniteAPI.Library.GameNotes.AddAsync(new GameNote(PlayniteID, note.Note, GameNoteFormat.Markdown));
                 }
             }
         }
@@ -280,8 +299,12 @@ namespace Graviton.Import
             game.EstimatedInstallSize = ROM.FileSizeBytes;
             if (ROM.Metadatum?.ReleaseDate != null && ROM.Metadatum?.ReleaseDate > 0)
                 game.ReleaseDate = new PartialDate(new DateTime(((ROM.Metadatum?.ReleaseDate ?? 0) + 62135607600000) * 10000));
+
             game.CommunityScore = (ROM.Metadatum?.Average_Rating != null && ROM.Metadatum?.Average_Rating > 0) ? (int)ROM.Metadatum!.Average_Rating : -1;
+
             game.ObtainedDate = ROM.CreatedAt;
+            game.AddedDate = DateTime.UtcNow;
+            
             if (ROM.HLTBMetadata != null)
                 game.TimeToBeatEstimated = new(ROM.HLTBMetadata.MainStory, ROM.HLTBMetadata.MainStoryExtra, ROM.HLTBMetadata.Completionist);
 
@@ -294,10 +317,10 @@ namespace Graviton.Import
             game.AgeRatingIds = ROM.IgdbMetadata?.AgeRatings?.Select(x => $"{x.RatingBoard}-{x.Rating}").ToHashSet();
 
             game.UserScore = (ROM.RomUser?.Rating != null && ROM.RomUser?.Rating > 0) ? ROM.RomUser!.Rating * 10 : -1;
-            game.Favorite = _plugin.StatusController?.PullFavourites()?.RomIDs?.Any(x => x == ROM.Id) ?? false;
+            game.Favorite = ROM.Collections?.Any(x => x.Name == "Favorites") ?? false;
             game.Hidden = ROM.RomUser?.Hidden ?? false;
             game.LastPlayedDate = ROM.RomUser?.LastPlayed;
-            game.CompletionStatusId = ROM.RomUser?.Status != null ? RomMRomUser.CompletionStatusMap[ROM.RomUser.Status] : null;
+            game.CompletionStatusId = ROM.RomUser?.Status != null ? _playniteAPI.Library.CompletionStatuses.First(x => x.Name == RomMRomUser.CompletionStatusMap[ROM.RomUser.Status]).Id : null;
 
             game.Links = new();
             game.ExternalIdentifiers = new();
@@ -319,6 +342,7 @@ namespace Graviton.Import
             }    
             if (ROM.HLTBId != null)
             {
+                
                 game.Links.Add(new WebLink("HowLongToBeat", $"https://howlongtobeat.com/game/{ROM.HLTBId}"));
                 game.ExternalIdentifiers?.Add(new("HowLongToBeat", ROM.HLTBId.ToString()!));
             }
@@ -328,12 +352,6 @@ namespace Graviton.Import
             //            : Mapping.DestinationPathResolved;
             //var gameInstallDir = Path.Combine(rootInstallDir, Path.GetFileNameWithoutExtension(ROM.Name));
             //var pathToGame = Path.Combine(gameInstallDir, ROM.Name);
-
-            var gameNameWithTags =
-                        $"{ROM.Name}" +
-                        $"{(ROM.Regions?.Count > 0 ? $" ({string.Join(", ", ROM.Regions)})" : "")}" +
-                        $"{(!string.IsNullOrEmpty(ROM.Revision) ? $" (Rev {ROM.Revision})" : "")}" +
-                        $"{(ROM.Tags?.Count > 0 ? $" ({string.Join(", ", ROM.Tags)})" : "")}";
 
             //if (ROM.HasManual)
             //{
@@ -471,9 +489,6 @@ namespace Graviton.Import
 
         private void SaveGameData(RomMRom ROM)
         {
-            string[] versionBreakdown = _plugin.Settings.ServerVersion.Split('.');
-            float versionParsed = float.Parse(versionBreakdown[0]) + (float.Parse(versionBreakdown[1]) / 100);
-
             RomMRomLocal toSave = new RomMRomLocal();
 
             // Save base ROM data
@@ -491,9 +506,7 @@ namespace Graviton.Import
                 }
 
                 toSave.FileName = romfile.FileName;
-                toSave.DownloadURL = versionParsed <= 4.7 ?
-                                           $"{_plugin.Settings.Host}/api/romsfiles/{romfile.Id}/content/{romfile.FileName}" : 
-                                           $"{_plugin.Settings.Host}/api/roms/{romfile.Id}/files/content/{romfile.FileName}"; // TODO: Sanitize the input so trim doesn't have the be called everywhere
+                toSave.DownloadURL = $"{_plugin.Settings.Host}/api/roms/{romfile.Id}/files/content/{romfile.FileName}";
             }
             else
             {

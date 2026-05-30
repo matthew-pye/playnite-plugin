@@ -96,6 +96,12 @@ namespace Graviton
             PluginDataPath = PlayniteApi.UserDataDir;
             PluginDLLPath = args.PluginInstallDir;
 
+            if (!Directory.Exists($"{PluginDataPath}/Platforms/"))
+                Directory.CreateDirectory($"{PluginDataPath}/Platforms/");
+
+            if(!Directory.Exists($"{PluginDataPath}/Games/"))
+                Directory.CreateDirectory($"{PluginDataPath}/Games/");
+
             ImportController = new();
             StatusController = new(this);
             Account = new();
@@ -111,7 +117,18 @@ namespace Graviton
             Settings = GravitonSettingsHandler.LoadSettings(PluginDataPath);
             Settings.ProfilePath = string.IsNullOrEmpty(Settings.ProfilePath) ? Path.Combine(PluginDLLPath, @"profile.png") : Settings.ProfilePath;
 
-            if(Settings.LastAuthenticated != null)
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("Screenscraper", "Screenscraper"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("Hasheous", "Hasheous"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("RetroAchievements", "RetroAchievements"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("HowLongToBeat", "HowLongToBeat"));
+
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("RomM", "RomM"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("Screenscraper", "Screenscraper"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("Hasheous", "Hasheous"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("RetroAchievements", "RetroAchievements"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("HowLongToBeat", "HowLongToBeat"));
+
+            if (Settings.LastAuthenticated != null)
             {
                 if (Settings.UseBasicAuth)
                 {
@@ -122,7 +139,9 @@ namespace Graviton
                     HttpClientSingleton.ConfigureClientToken(Settings.ClientToken);
                 }
 
-                await Account.Heartbeat(Settings);
+                var result = await Account.Heartbeat(Settings);
+                if(result != null)
+                    Settings.ServerVersion = result.Value.Version;
             }      
         }
 
@@ -136,12 +155,11 @@ namespace Graviton
         {
             return new GravitonMetadataProvider();
         }
-
-       
-        //public override Task<List<Game>> ImportGamesAsync(ImportGamesArgs args)
-        //{
-        //    return ImportController?.Import(args) ?? throw new Exception("Import controller is null, cannot continue");
-        //}
+      
+        public override Task<List<Game>> ImportGamesAsync(ImportGamesArgs args)
+        {
+            return ImportController?.Import(args) ?? throw new Exception("Import controller is null, cannot continue");
+        }
 
         public override Task OnGameStartingAsync(OnGameStartingEventArgs args)
         {
@@ -215,8 +233,6 @@ namespace Graviton
 
         public override ICollection<MenuItemDescriptor> GetGameMenuItemDescriptors(GetGameMenuItemDescriptorsArgs args)
         {
-
-
             return
             [
                 new MenuItemDescriptor("graviton.open.manual", "Open RomM manual")
@@ -228,15 +244,15 @@ namespace Graviton
             if (args.Games.Count != 1)
                 return null;
 
-            if (args.ItemId == "graviton.open.manual" && args.Games[0].LibraryId == Id)
-            {
-                var sha1 = args.Games[0].LibraryId.Split(':')[1];
-                if (Regex.IsMatch(sha1, @"^[0-9a-fA-F]{40}$"))
-                {
-                    //return [new MenuItemImpl("Open game manual", (_) => ProcessStarter.StartProcess(manualFile))];
-                }
-
-            }
+            //if (args.ItemId == "graviton.open.manual" && args.Games[0].LibraryId == Id)
+            //{
+            //    var sha1 = args.Games[0].LibraryId.Split(':')[1];
+            //    if (Regex.IsMatch(sha1, @"^[0-9a-fA-F]{40}$"))
+            //    {
+            //        //return [new MenuItemImpl("Open game manual", (_) => ProcessStarter.StartProcess(manualFile))];
+            //    }
+            //
+            //}
 
             return null;
         }

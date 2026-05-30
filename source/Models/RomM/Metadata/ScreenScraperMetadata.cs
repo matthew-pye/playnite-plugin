@@ -32,7 +32,7 @@ namespace Graviton.Models.RomM.Metadata
         public string? Screenshot { get; set; }
 
         [JsonPropertyName("ss_score")]
-        public float Score { get; set; }
+        public string? Score { get; set; }
 
         [JsonPropertyName("genres")]
         public List<string> Genres { get; set; } = new List<string>();

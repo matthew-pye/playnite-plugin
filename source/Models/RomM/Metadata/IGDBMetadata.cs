@@ -5,22 +5,22 @@ namespace Graviton.Models.RomM.Metadata
     public struct IGDBAgeRating
     {
         [JsonPropertyName("rating")]
-        public float Rating { get; set; }
+        public string Rating { get; set; }
 
         [JsonPropertyName("category")]
-        public float RatingBoard { get; set; }
+        public string RatingBoard { get; set; }
 
         [JsonPropertyName("rating_cover_url")]
-        public float RatingIcon { get; set; }
+        public string RatingIcon { get; set; }
     }
 
     public class IGDBMetadata
     {
         [JsonPropertyName("total_rating")]
-        public float TotalRating { get; set; }
+        public string? TotalRating { get; set; }
 
         [JsonPropertyName("aggregated_rating")]
-        public float AggregatedRating { get; set; }
+        public string? AggregatedRating { get; set; }
 
         [JsonPropertyName("genres")]
         public List<string>? Genres { get; set; }

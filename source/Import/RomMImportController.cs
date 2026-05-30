@@ -146,7 +146,7 @@ namespace Graviton.Import
 
         private string BuildGeneralROMUrl()
         {
-            string url = $"{_plugin.Settings.Host}/api/roms";
+            string url = $"/api/roms";
             string options = "?";
 
             options += $"genres_logic=none&";
@@ -159,14 +159,18 @@ namespace Graviton.Import
             }
 
             // Exclude genres from import
-            List<string> excludeGenres = _plugin.Settings.ExcludeGenres.TrimEnd(' ').TrimEnd(';').Split(';').ToList() ?? new List<string>();
-            if (excludeGenres.Count > 0)
+            if(!string.IsNullOrEmpty(_plugin.Settings.ExcludeGenres))
             {
-                foreach (var genre in excludeGenres)
+                List<string> excludeGenres = _plugin.Settings.ExcludeGenres.TrimEnd(' ').TrimEnd(';').Split(';').ToList() ?? new List<string>();
+                if (excludeGenres.Count > 0)
                 {
-                    options += $"genres={HttpUtility.UrlEncode(genre)}&";
+                    foreach (var genre in excludeGenres)
+                    {
+                        options += $"genres={HttpUtility.UrlEncode(genre)}&";
+                    }
                 }
             }
+
             options.TrimEnd('&');
 
             return (url + options);
