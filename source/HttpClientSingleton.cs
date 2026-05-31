@@ -17,6 +17,8 @@ namespace Graviton
 {
     public static class HttpClientSingleton
     {
+        private static GravitonPlugin _plugin { get => GravitonPlugin.Instance; } 
+
         private static readonly HttpClient httpClient = new HttpClient();
         public static HttpClient Instance => httpClient;
 
@@ -38,12 +40,12 @@ namespace Graviton
 
         public static async Task<JsonDocument?> RomMGetAsync(string APIPath)
         {
-            if (GravitonSettingsHandler.Instance?.Settings.LastAuthenticated == null)
+            if (_plugin.Settings.LastAuthenticated == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", $"Request Failed - Please Reauthenticate!", GravitonSeverity.Error));
                 return null;
             }
-            HttpResponseMessage response = await httpClient.GetAsync($"{GravitonSettingsHandler.Instance.Settings.Host}{APIPath}", new System.Threading.CancellationToken());
+            HttpResponseMessage response = await httpClient.GetAsync($"{_plugin.Settings.Host}{APIPath}", new System.Threading.CancellationToken());
 
             try
             { 
@@ -67,13 +69,13 @@ namespace Graviton
 
         public static async Task<JsonDocument?> RomMPostWithJsonAsync(string APIPath, object JSON)
         {
-            if (GravitonSettingsHandler.Instance?.Settings.LastAuthenticated == null)
+            if (_plugin.Settings.LastAuthenticated == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", $"Request Failed - Please Reauthenticate!", GravitonSeverity.Error));
                 return null;
             }
 
-            HttpResponseMessage response = await httpClient.PostAsJsonAsync($"{GravitonSettingsHandler.Instance.Settings.Host}{APIPath}", JSON, new System.Threading.CancellationToken());
+            HttpResponseMessage response = await httpClient.PostAsJsonAsync($"{_plugin.Settings.Host}{APIPath}", JSON, new System.Threading.CancellationToken());
             try
             {
                 response = response.EnsureSuccessStatusCode();
@@ -96,13 +98,13 @@ namespace Graviton
 
         public static async Task<JsonDocument?> RomMPutWithJsonAsync(string APIPath, object JSON)
         {
-            if (GravitonSettingsHandler.Instance?.Settings.LastAuthenticated == null)
+            if (_plugin.Settings.LastAuthenticated == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", $"Request Failed - Please Reauthenticate!", GravitonSeverity.Error));
                 return null;
             }
                 
-            HttpResponseMessage response = await httpClient.PutAsJsonAsync($"{GravitonSettingsHandler.Instance.Settings.Host}{APIPath}", JSON, new System.Threading.CancellationToken());
+            HttpResponseMessage response = await httpClient.PutAsJsonAsync($"{_plugin.Settings.Host}{APIPath}", JSON, new System.Threading.CancellationToken());
             try
             {
                 response = response.EnsureSuccessStatusCode();

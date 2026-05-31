@@ -13,25 +13,9 @@ using System.Xml.Linq;
 
 namespace Graviton.Import
 {
-    struct ProcessedGame
-    {
-        public ProcessedGame(string gameID)
-        {
-            GameID = gameID;
-        }
-        public ProcessedGame(string gameID, Game newGame)
-        {
-            GameID = gameID;
-            NewGame = newGame;
-        }
-
-        public string GameID;
-        public Game? NewGame;
-    }
-
     internal class RomMImport
     {
-        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+        private GravitonPlugin _plugin {get => GravitonPlugin.Instance; }
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
         private ILogger _logger { get => GravitonPlugin.Logger; }
 
@@ -47,7 +31,7 @@ namespace Graviton.Import
         }      
 
         // Main library import functions
-        public async Task<List<Game>> ProcessData()
+        public async Task<(List<Game> NewGames, List<string> ProcessedGames)> ProcessData()
         {
             // Add all series, genres, collections, etc to playnite database
             PreProcessData();
@@ -66,13 +50,13 @@ namespace Graviton.Import
                 if (CancelToken.IsCancellationRequested)
                     break;
 
-                ProcessedGame? result = await ProcessROM(ROM);
+                var result = await ProcessROM(ROM);
                 if(result.HasValue)
                 {
-                    ImportedGamesIDs.Add(result.Value.GameID);
+                    ImportedGamesIDs.Add(result.Value.gameID);
 
-                    if(result.Value.NewGame != null)
-                        games.Add(result.Value.NewGame);
+                    if(result.Value.newGame != null)
+                        games.Add(result.Value.newGame);
                 }
             }
 
@@ -85,13 +69,9 @@ namespace Graviton.Import
                 MergeSiblings();
             }
 
-            if (!_plugin.Settings.KeepDeletedGames)
-            {
-                RemoveMissingGames(ImportedGamesIDs);
-            }
 
             _logger?.Info($"[Importer] Finished import of ROMs for {Mapping.RomMPlatform?.Name}.");
-            return games;
+            return (games, ImportedGamesIDs);
         }
 
         private RomMFile? DetermineFile(RomMRom ROM)
@@ -193,7 +173,7 @@ namespace Graviton.Import
 
         }
 
-        private async Task<ProcessedGame?> ProcessROM(RomMRom ROM)
+        private async Task<(string gameID, Game? newGame)?> ProcessROM(RomMRom ROM)
         {
             // Skip if ROM has no filename
             if (string.IsNullOrEmpty(ROM.FileName))
@@ -226,7 +206,7 @@ namespace Graviton.Import
             {
                 if (UpdatedDeletedGame(ROM))
                 {
-                    return new(gameID);
+                    return new(gameID, null);
                 }
             }
 
@@ -255,7 +235,7 @@ namespace Graviton.Import
                     }
                 }
 
-                return new(gameID);
+                return new(gameID, null);
             }
             else // Import game
             {
@@ -320,6 +300,7 @@ namespace Graviton.Import
             game.Favorite = ROM.Collections?.Any(x => x.Name == "Favorites") ?? false;
             game.Hidden = ROM.RomUser?.Hidden ?? false;
             game.LastPlayedDate = ROM.RomUser?.LastPlayed;
+
             game.CompletionStatusId = ROM.RomUser?.Status != null ? _playniteAPI.Library.CompletionStatuses.First(x => x.Name == RomMRomUser.CompletionStatusMap[ROM.RomUser.Status]).Id : null;
 
             game.Links = new();
@@ -360,30 +341,7 @@ namespace Graviton.Import
 
             return game;
         }
-
-        private void RemoveMissingGames(List<string> ImportedGames)
-        {
-            var gamesInDatabase = _playniteAPI.Library.Games.Where(g =>
-                        g.SourceId != null && g.SourceId == GravitonPlugin.Id &&
-                        g.PlatformIds != null && g.PlatformIds.Any(p => p == Mapping.RomMPlatform!.Name)
-                    );
-
-            _logger.Info($"[Importer] Starting to remove not found games for {Mapping.RomMPlatform?.Name}.");
-
-            foreach (var game in gamesInDatabase)
-            {
-            
-                if (ImportedGames.Contains(game.LibraryGameId!))
-                {
-                    continue;
-                }
-            
-                _playniteAPI.Library.Games.RemoveAsync(game.Id);
-                _logger.Info($"[Importer] Removing {game.Name} - {game.Id} for {Mapping.RomMPlatform?.Name}");
-            }
-
-            _logger.Info($"[Importer] Finished removing not found games for {Mapping.RomMPlatform?.Name}");
-        }       
+    
         private bool UpdatedDeletedGame(RomMRom ROM)
         {
             // Check to see if a game already exists with an old romMId

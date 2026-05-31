@@ -16,7 +16,7 @@ namespace Graviton.Settings
     /// </summary>
     public partial class AuthenticationTab : UserControl
     {
-        static GravitonPlugin _plugin { get => GravitonPlugin.Instance ?? throw new Exception("Plugin is null, cannot continue"); }
+        static GravitonPlugin _plugin {get => GravitonPlugin.Instance ?? throw new Exception("Plugin is null, cannot continue"); }
         static IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi ?? throw new Exception("PlayniteAPI is null, cannot continue"); }
         static GravitonSettingsHandler SettingsHandler { get => GravitonSettingsHandler.Instance ?? throw new Exception("Settings is null, cannot continue"); }
 
@@ -101,14 +101,14 @@ namespace Graviton.Settings
         private void Hyperlink_ClientToken(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
         {
 
-            if(string.IsNullOrEmpty(GravitonSettingsHandler.Instance?.Settings.Host))
+            if(string.IsNullOrEmpty(_plugin.Settings.Host))
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.openuri.clienttoken.failed", "Cannot open client token address as host is not set!", GravitonSeverity.Error));
                 e.Handled= true;
                 return;
             }
 
-            string clienttokenaddress = GravitonSettingsHandler.Instance?.Settings.Host + "/client-api-tokens";
+            string clienttokenaddress = _plugin.Settings.Host + "/client-api-tokens";
             Process.Start(new ProcessStartInfo(clienttokenaddress) { UseShellExecute = true })?.Dispose();
             e.Handled = true;
         }

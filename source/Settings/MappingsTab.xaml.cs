@@ -10,8 +10,7 @@ namespace Graviton.Settings
     /// </summary>
     public partial class MappingsTab : UserControl
     {
-
-        GravitonPluginSettings Settings { get => GravitonSettingsHandler.Instance?.Settings ?? throw new Exception("Seetings is null, cannot continue!"); }
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
 
         public MappingsTab()
         {
@@ -21,25 +20,25 @@ namespace Graviton.Settings
 
         private void AddMapping_Click(object sender, RoutedEventArgs e)
         {
-            Settings.Mappings.Add(new EmulatorMapping(Settings.RomMPlatforms));
+            _plugin.Settings.Mappings.Add(new EmulatorMapping(_plugin.Settings.RomMPlatforms));
         }
 
         private void Mapping_Click(object sender, RoutedEventArgs e)
         {
 
-            if (GravitonSettingsHandler.Instance?.Settings.Mappings == null)
+            if (_plugin.Settings.Mappings == null)
                 return;
 
-            foreach (var map in GravitonSettingsHandler.Instance.Settings.Mappings)
+            foreach (var map in _plugin.Settings.Mappings)
             {
                 map.IsSelected = false;
             }
 
             var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
 
-            if (mapping != null && GravitonSettingsHandler.Instance?.Settings.RomMPlatforms != null)
+            if (mapping != null && _plugin.Settings.RomMPlatforms != null)
             {
-                mapping.AvailablePlatforms = GravitonSettingsHandler.Instance.Settings.RomMPlatforms;
+                mapping.AvailablePlatforms = _plugin.Settings.RomMPlatforms;
                 MappingOptions.DataContext = mapping;
                 MappingOptions.Visibility = Visibility.Visible;
                 mapping.IsSelected = true;
@@ -72,7 +71,7 @@ namespace Graviton.Settings
             
             if(response == Playnite.MessageBoxResult.Yes)
             {
-                GravitonSettingsHandler.Instance?.Settings.Mappings.Remove(mapping!);
+                _plugin.Settings.Mappings.Remove(mapping!);
                 MappingOptions.DataContext = null;
                 MappingOptions.Visibility = Visibility.Hidden;
             }

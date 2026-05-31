@@ -36,7 +36,7 @@ namespace Graviton.Models.RomM.Rom
             { "never_playing", "Abandoned" },
             { "retired", "Played" },
             { "incomplete", "On Hold" },
-            { "finished", "Beaten" },
+            { "finished", "Played" },
             { "completed_100", "Completed" },
             { "backlogged", "Plan to Play" },
             { "now_playing", "Playing" },

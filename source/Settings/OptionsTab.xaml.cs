@@ -8,6 +8,8 @@ namespace Graviton.Settings
     /// </summary>
     public partial class OptionsTab : UserControl
     {
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+
         Dictionary<string, string[]> PathTo7zFileType = new()
         {
             { "7Zip Executable", ["7z.exe"]}
@@ -24,7 +26,7 @@ namespace Graviton.Settings
 
             if (path?[0] == null) return;
 
-            GravitonSettingsHandler.Instance?.Settings.PathTo7z = path[0];
+            _plugin.Settings.PathTo7z = path[0];
             e.Handled = true;
         }
     }

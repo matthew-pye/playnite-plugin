@@ -6,13 +6,15 @@ using Graviton.Models.RomM.Platform;
 using Playnite;
 using System.Collections.ObjectModel;
 using Graviton.Settings;
+using System.IO;
 
 
 namespace Graviton.Models
 {
     public partial class EmulatorMapping : ObservableObject
     {
-        
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+
         [ObservableProperty] private Guid _mappingId;
         [ObservableProperty] [property: JsonIgnore] private string _mappingName = "Unknown Mapping";
         [ObservableProperty] private bool _enabled = true;
@@ -170,7 +172,9 @@ namespace Graviton.Models
         [JsonIgnore]
         public string? PlatformIcon
         {
-            get => RomMPlatformId != -1 ? $"{GravitonPlugin.Instance.PluginDataPath}/Platforms/{RomMPlatform?.Slug}.png" : "";
+            get => (RomMPlatformId != -1 && File.Exists($"{_plugin.PluginDataPath}/Platforms/{RomMPlatform?.Slug}.png")) ?          
+                    $"{_plugin.PluginDataPath}/Platforms/{RomMPlatform?.Slug}.png" : 
+                    $"{_plugin.PluginDataPath}/Platforms/general.png";
         }
 
         [JsonIgnore]

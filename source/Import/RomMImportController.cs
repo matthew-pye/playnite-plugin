@@ -6,6 +6,8 @@ using Graviton.Settings;
 
 using Playnite;
 
+using SharpCompress.Compressors.Xz;
+
 using Svg;
 
 using System.Drawing;
@@ -24,16 +26,16 @@ namespace Graviton.Import
     {
         //public List<NotificationMessage> Notifications = new List<NotificationMessage>> ();
 
-        private IPlayniteApi _playniteApi { get => GravitonPlugin.PlayniteApi ?? throw new Exception("Playnite API is null, cannot continue!"); }
+        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi ?? throw new Exception("Playnite API is null, cannot continue!"); }
         private ILogger _logger { get => GravitonPlugin.Logger ?? throw new Exception("Logger is null, cannot continue!"); }
-        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+        private GravitonPlugin _plugin {get => GravitonPlugin.Instance; }
 
         public async Task<List<Game>> Import(ImportGamesArgs args)
         {
             IEnumerable<EmulatorMapping> enabledMappings = _plugin.Settings.Mappings.Where(m => m.Enabled);
             if (enabledMappings == null || !enabledMappings.Any())
             {
-                _playniteApi.Notifications.Add(new NotificationMessage($"graviton.emulators.notconfigured", Loc.GetString("NoEmulatorsConfigured"), NotificationSeverity.Error));
+                _playniteAPI.Notifications.Add(new NotificationMessage($"graviton.emulators.notconfigured", Loc.GetString("NoEmulatorsConfigured"), NotificationSeverity.Error));
                 return new List<Game>();
             }
 
@@ -41,12 +43,12 @@ namespace Graviton.Import
             if (apiPlatforms == null)
                 return new List<Game>();
 
-            GravitonSettingsHandler.Instance?.Settings.RomMPlatforms = apiPlatforms.ToObservableCollection();
+            _plugin.Settings.RomMPlatforms = apiPlatforms.ToObservableCollection();
 
             string url = BuildGeneralROMUrl();
 
             // Pull ROM data for each enabled mapping and add the games to playnite
-            List<Task<List<Game>>> tasks = new List<Task<List<Game>>>();
+            List<Task<(List<Game> NewGames, List<string> ProcessedGames)>> tasks = new();
             foreach (var mapping in enabledMappings)
             {
                 if (args.CancelToken.IsCancellationRequested)
@@ -86,11 +88,16 @@ namespace Graviton.Import
             await Task.WhenAll(tasks);
 
             List<Game> games = new List<Game>();
+            List<string> proccessedgames = new List<string>();
             foreach (var task in tasks)
             {
-                games.AddRange(task.Result);
+                games.AddRange(task.Result.NewGames);
+                proccessedgames.AddRange(task.Result.ProcessedGames);
             }
-            
+
+            if (!_plugin.Settings.KeepDeletedGames)
+                RemoveMissingGames(proccessedgames);
+
             return games;
         }
 
@@ -102,47 +109,45 @@ namespace Graviton.Import
 
             var platforms = JsonSerializer.Deserialize<List<RomMPlatform>>(result) ?? throw new Exception("Failed to deseralize plaforms from server!");
 
-            if (!Directory.Exists($"{GravitonPlugin.Instance.PluginDataPath}/Platforms/"))
-                Directory.CreateDirectory($"{GravitonPlugin.Instance.PluginDataPath}/Platforms/");
+            if (!Directory.Exists($"{_plugin.PluginDataPath}/Platforms/"))
+                Directory.CreateDirectory($"{_plugin.PluginDataPath}/Platforms/");
+
+            Stream stream = await HttpClientSingleton.Instance?.GetStreamAsync($"{_plugin.Settings.Host}/assets/default-C7fJO_0F.ico")!;
+
+            Bitmap? png = null;
+            using (var iconStream = new MemoryStream())
+            {
+                var decoder = new IconBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.None);
+                using (var pngStream = new MemoryStream())
+                {
+                    var encoder = new PngBitmapEncoder();
+                    foreach (var frame in decoder.Frames)
+                    {
+                        encoder.Frames.Add(frame);
+                    }
+                    encoder.Save(pngStream);
+                    png = (Bitmap)Bitmap.FromStream(pngStream);
+                }
+            }
+            png.Save($"{_plugin.PluginDataPath}/Platforms/general.png", ImageFormat.Png);
 
             foreach (var platform in platforms)
             {
-                Stream stream;
                 try
                 {
-                    stream = await HttpClientSingleton.Instance?.GetStreamAsync($"{GravitonSettingsHandler.Instance?.Settings.Host}/assets/platforms/{platform.Slug}.svg")!;
+                    stream = await HttpClientSingleton.Instance?.GetStreamAsync($"{_plugin.Settings.Host}/assets/platforms/{platform.Slug}.svg")!;
                     var svg = SvgDocument.Open<SvgDocument>(stream);
                     var image = svg.Draw();
 
-                    image.Save($"{GravitonPlugin.Instance.PluginDataPath}/Platforms/{platform.Slug}.png", ImageFormat.Png);
+                    image.Save($"{_plugin.PluginDataPath}/Platforms/{platform.Slug}.png", ImageFormat.Png);
                 }
-                catch
-                {
-                    stream = await HttpClientSingleton.Instance?.GetStreamAsync($"{GravitonSettingsHandler.Instance?.Settings.Host}/assets/default-C7fJO_0F.ico")!;
-
-                    Bitmap? png = null;
-                    using (var iconStream = new MemoryStream())
-                    {
-                        var decoder = new IconBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.None);
-                        using (var pngStream = new MemoryStream())
-                        {
-                            var encoder = new PngBitmapEncoder();
-                            foreach (var frame in decoder.Frames)
-                            {
-                                encoder.Frames.Add(frame);
-                            }
-                            encoder.Save(pngStream);
-                            png = (Bitmap)Bitmap.FromStream(pngStream);
-                        }
-                    }
-                    png.Save($"{GravitonPlugin.Instance.PluginDataPath}/Platforms/{platform.Slug}.png", ImageFormat.Png);
-                }
-
+                catch {}
                 
             }
 
             return platforms;
         }
+
 
         private string BuildGeneralROMUrl()
         {
@@ -222,6 +227,41 @@ namespace Graviton.Import
             }
 
             return romData;
+        }
+
+        private void RemoveMissingGames(List<string> ImportedGames)
+        {
+
+            var gamesInDatabase = _playniteAPI.Library.Games.Where(g =>
+                        g.SourceId != null && g.SourceId == GravitonPlugin.Id
+                    );
+
+            _logger.Info($"[Importer] Starting to remove not found games.");
+
+            foreach (var game in gamesInDatabase)
+            {
+                if (!File.Exists($"{_plugin.PluginDataPath}/Games/{game.LibraryGameId?.Split(':')[1]}.json"))
+                    continue;
+
+                var gamejson = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{_plugin.PluginDataPath}/Games/{game.LibraryGameId?.Split(':')[1]}.json"));
+
+                if(_plugin.Settings.Mappings.Any(x => x.MappingId == gamejson?.MappingID))
+                {
+                    // Don't remove games from mappings that are disabled
+                    if (!_plugin.Settings.Mappings.First(x => x.MappingId == gamejson?.MappingID).Enabled)
+                        continue;
+
+                    if (ImportedGames.Contains(game.LibraryGameId!))
+                        continue;
+                }
+
+                _playniteAPI.Library.Games.RemoveAsync(game.Id);
+                File.Delete($"{_plugin.PluginDataPath}/Games/{game.LibraryGameId?.Split(':')[1]}.json");
+
+                _logger.Info($"[Importer] Removing {game.Name}");
+            }
+
+            _logger.Info($"[Importer] Finished removing not found games");
         }
     }
 

@@ -25,13 +25,13 @@ namespace Graviton.Settings
 
         private async void MappingTabItem_Selected(object sender, System.Windows.RoutedEventArgs e)
         {
-            //foreach (var mapping in GravitonSettingsHandler.Instance?.Settings.Mappings!)
+            //foreach (var mapping in _plugin.Settings.Mappings!)
             //{
-            //    mapping.AvailablePlatforms = GravitonSettingsHandler.Instance.Settings.RomMPlatforms;
+            //    mapping.AvailablePlatforms = _plugin.Settings.RomMPlatforms;
             //}
 
 
-                //var importcontroller = GravitonPlugin.Instance?.ImportController;
+                //var importcontroller = _plugin?.ImportController;
                 //
                 //if(importcontroller == null)
                 //{
@@ -54,8 +54,8 @@ namespace Graviton.Settings
                 //
                 //GravitonNotify.Add(new GravitonNotification("graviton.GET.platforms", $"Pulled {platforms.Count} platforms from server", GravitonSeverity.Success));
                 //
-                //GravitonSettingsHandler.Instance?.Settings.RomMPlatforms = platforms.ToObservableCollection();
-                //foreach (var mapping in GravitonSettingsHandler.Instance?.Settings.Mappings!)
+                //_plugin.Settings.RomMPlatforms = platforms.ToObservableCollection();
+                //foreach (var mapping in _plugin.Settings.Mappings!)
                 //{
                 //    mapping.AvailablePlatforms = platforms;
                 //}

@@ -34,7 +34,21 @@ namespace Graviton
         internal StatusController? StatusController { get; private set; }
         internal DownloadQueueController? DownloadQueueController { get; private set; }
 
-        internal GravitonPluginSettings Settings { get; set; } = new();
+        public GravitonPluginSettings Settings 
+        { 
+            get
+            {
+                if (SettingsHandler.InEditingMode)
+                    return SettingsHandler.Settings;
+
+                return _settings;
+            }
+            set
+            { _settings = value; } 
+        } 
+
+        private GravitonPluginSettings _settings = new();
+
         internal GravitonSettingsHandler SettingsHandler { get; set; } = new();
         internal RomMAccount Account { get; private set; } = new();
 

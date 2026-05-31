@@ -17,8 +17,7 @@ namespace Graviton.Settings
     /// </summary>
     public partial class GravitonSettingsView : UserControl
     {
-        
-
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
 
         public GravitonSettingsView()
         {
@@ -30,11 +29,11 @@ namespace Graviton.Settings
 
             try
             {
-                HttpResponseMessage response = await HttpClientSingleton.Instance.GetAsync($"{GravitonSettingsHandler.Instance?.Settings.Host}/api/platforms");
+                HttpResponseMessage response = await HttpClientSingleton.Instance.GetAsync($"{_plugin.Settings.Host}/api/platforms");
                 response.EnsureSuccessStatusCode();
 
                 string body = await response.Content.ReadAsStringAsync();
-                 GravitonSettingsHandler.Instance?.Settings.RomMPlatforms = JsonSerializer.Deserialize<ObservableCollection<RomMPlatform>>(body) ?? throw new Exception("Failed to deserialize RomM platforms!");
+                 _plugin.Settings.RomMPlatforms = JsonSerializer.Deserialize<ObservableCollection<RomMPlatform>>(body) ?? throw new Exception("Failed to deserialize RomM platforms!");
             }
             catch (Exception ex)
             {
@@ -44,7 +43,7 @@ namespace Graviton.Settings
 
         private void Click_AddMapping(object sender, RoutedEventArgs e)
         {
-            GravitonSettingsHandler.Instance?.Settings.Mappings.Add(new EmulatorMapping(GravitonSettingsHandler.Instance.Settings.RomMPlatforms));
+            _plugin.Settings.Mappings.Add(new EmulatorMapping(_plugin.Settings.RomMPlatforms));
         }
 
         private void Click_BrowseDestination(object sender, RoutedEventArgs e)
@@ -52,7 +51,7 @@ namespace Graviton.Settings
             var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
             string path;
             if ((path = GetSelectedFolderPath()) == null) return;
-            //var playnite =  GravitonSettingsHandler.Instance?.Settings.PlayniteAPI;
+            //var playnite =  _plugin.Settings.PlayniteAPI;
             //if (playnite.Paths.IsPortable)
             //{
             //    path = path.Replace(playnite.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory);

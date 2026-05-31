@@ -14,7 +14,7 @@ namespace Graviton.Settings
     internal class RomMAccount
     {
 
-        private GravitonPlugin _plugin { get => GravitonPlugin.Instance ?? throw new Exception("Plugin is null, cannot continue"); }
+        private GravitonPlugin _plugin {get => GravitonPlugin.Instance ?? throw new Exception("Plugin is null, cannot continue"); }
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi ?? throw new Exception("PlayniteAPI is null, cannot continue"); }
 
         public async Task<ServerInfo?> Heartbeat(GravitonPluginSettings settings)
@@ -85,14 +85,13 @@ namespace Graviton.Settings
                 
             settings.ServerVersion = heartbeat.Value.Version;
 
-            if (string.IsNullOrEmpty(settings.DeviceID))
+
+            if (!(await RegisterNewDevice(settings)))
             {
-                if (!(await RegisterNewDevice(settings)))
-                {
-                    SyncFailed(settings);
-                    return false;
-                }
+                SyncFailed(settings);
+                return false;
             }
+            
             else if(!(await UpdateDevice(settings)))
             {
                 SyncFailed(settings);
@@ -129,7 +128,7 @@ namespace Graviton.Settings
                 }
                 else
                 {
-                    settings.ProfilePath = Path.Combine(GravitonPlugin.Instance.PluginDLLPath, @"profile.png");
+                    settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
                 }
             }
             catch (Exception ex)
@@ -147,22 +146,25 @@ namespace Graviton.Settings
 
         async Task<bool> RegisterNewDevice(GravitonPluginSettings settings)
         {
+            // Check to see if current device id is valid
             if (!string.IsNullOrEmpty(settings.DeviceID))
             {
                 var result = await HttpClientSingleton.RomMGetAsync("/api/devices");
-                if (result == null)
-                    return false;
-                try
+                if (result != null)
                 {
-                    List<RomMDevice> devices = result.RootElement.Deserialize<List<RomMDevice>>() ?? throw new Exception("Unable to deserialize UserInfo!");
-                    if (devices.Any(x => x.ID == settings.DeviceID))
-                        return true;
+                    try
+                    {
+                        List<RomMDevice> devices = result.RootElement.Deserialize<List<RomMDevice>>() ?? throw new Exception("Unable to deserialize UserInfo!");
+                        if (devices.Any(x => x.ID == settings.DeviceID))
+                            return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        GravitonNotify.Add(new GravitonNotification("graviton.GET.device.failed", $"Failed to GET devices - {ex.Message}", GravitonSeverity.Warn));
+                        return false;
+                    }
                 }
-                catch (Exception ex)
-                {
-                    GravitonNotify.Add(new GravitonNotification("graviton.GET.device.failed", $"Failed to GET devices - {ex.Message}", GravitonSeverity.Error));
-                    return false;
-                }
+                
             }
 
             // Setup data for new device to be added to RomM

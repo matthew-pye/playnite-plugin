@@ -2,20 +2,15 @@
 
 using Graviton.Models;
 using Graviton.Models.RomM.Platform;
-using Graviton.Properties;
-using Graviton.Status;
 
 using Playnite;
 
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Drawing;
 using System.IO;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace Graviton.Settings
@@ -119,28 +114,12 @@ namespace Graviton.Settings
     {
         public static GravitonSettingsHandler? Instance { get; private set; }
 
-        private static GravitonPlugin _plugin { get => GravitonPlugin.Instance ?? throw new Exception("Plugin is null cannot continue!"); }
+        private static GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
         private static IPlayniteApi PlayniteApi { get => GravitonPlugin.PlayniteApi ?? throw new Exception("Playnite API is null cannot continue!"); }
         private static readonly ILogger Logger = LogManager.GetLogger();
 
-        private bool InEditingMode = false;
-        private GravitonPluginSettings _settings = new();
-
-        public GravitonPluginSettings Settings 
-        { 
-            get
-            {
-                if (InEditingMode)
-                    return _settings;
-
-                return _plugin.Settings;
-            }
-            private set
-            {
-                _settings = value;
-                OnPropertyChanged();
-            }
-        }
+        [ObservableProperty] private GravitonPluginSettings settings = new();
+        public bool InEditingMode { get; private set; }
 
         public GravitonSettingsHandler()
         {
