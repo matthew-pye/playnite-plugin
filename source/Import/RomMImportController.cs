@@ -229,7 +229,7 @@ namespace Graviton.Import
             return romData;
         }
 
-        private void RemoveMissingGames(List<string> ImportedGames)
+        private async Task RemoveMissingGames(List<string> ImportedGames)
         {
 
             var gamesInDatabase = _playniteAPI.Library.Games.Where(g =>
@@ -255,7 +255,24 @@ namespace Graviton.Import
                         continue;
                 }
 
-                _playniteAPI.Library.Games.RemoveAsync(game.Id);
+                if (_playniteAPI.Library.GameRelations.Any(x => x.PrimaryGame == game.Id))
+                {
+                    var gamerelation = _playniteAPI.Library.GameRelations.First(x => x.PrimaryGame == game.Id);
+                    await _playniteAPI.Library.GameRelations.RemoveAsync(gamerelation.Id);
+                }   
+                else if(_playniteAPI.Library.GameRelations.Any(x => x.LinkedGames.Any(y => y == game.Id)))
+                {
+                    var gamerelations = _playniteAPI.Library.GameRelations.Where(x => x.LinkedGames.Any(y => y == game.Id));
+                    foreach( var gamerelation in gamerelations)
+                    {
+                        gamerelation.LinkedGames.Remove(game.Id);
+                        await _playniteAPI.Library.GameRelations.UpdateAsync(gamerelation);
+                    }
+                }
+
+                await _playniteAPI.Library.Games.RemoveAsync(game.Id);
+                
+
                 File.Delete($"{_plugin.PluginDataPath}/Games/{game.LibraryGameId?.Split(':')[1]}.json");
 
                 _logger.Info($"[Importer] Removing {game.Name}");

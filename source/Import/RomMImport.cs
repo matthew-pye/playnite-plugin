@@ -66,7 +66,7 @@ namespace Graviton.Import
 
             if(_plugin.Settings.MergeRevisions)
             {
-                MergeSiblings();
+                await MergeSiblings();
             }
 
 
@@ -235,6 +235,7 @@ namespace Graviton.Import
                     }
                 }
 
+                ROM.Processed = true; // Skips the ROM being remerged if user has split the ROMs apart
                 return new(gameID, null);
             }
             else // Import game
@@ -358,48 +359,62 @@ namespace Graviton.Import
             }
         }
 
-        private void MergeSiblings()
+        private async Task MergeSiblings()
         {
             _logger.Info($"[Importer] Started merging new games for {Mapping.RomMPlatform?.Name}");
 
             foreach (var ROM in ROMs)
             {
+                if (ROM.Processed)
+                    continue;
+
+
                 if (ROM.Siblings?.Count > 0)
                 {
-                    if(ROM.Processed)
-                        continue;       
-
-                    // Check to see if ROM already has a game relation setup
                     var game = _playniteAPI.Library.Games.First(x => x.LibraryGameId == $"{ROM.Id}:{ROM.SHA1}");
-                    if (_playniteAPI.Library.GameRelations.Any(x => x.PrimaryGame == game.Id))
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        bool GameRelationAlreadySetup = false;
 
-                        foreach (var sibling in ROM.Siblings!)
+                    List<(RomMRom ROM, Game Game)> SiblingROMs = new List<(RomMRom ROM, Game Game)>();
+                    foreach (var sibling in ROM.Siblings)
+                    {
+                        if(ROMs.Any(x => x.Id == sibling.Id))
                         {
-                            var siblingROM = ROMs.Find(x => x.Id == sibling.Id);
-                            if (siblingROM == null)
-                                continue;
+                            var siblingROM = ROMs.First(x => x.Id == sibling.Id);
+                            SiblingROMs.Add((siblingROM, _playniteAPI.Library.Games.First(x => x.LibraryGameId == $"{siblingROM.Id}:{siblingROM.SHA1}")));
+                        }
+                    }
 
-                            game = _playniteAPI.Library.Games.First(x => x.LibraryGameId == $"{siblingROM.Id}:{siblingROM.SHA1}");
-                            if (_playniteAPI.Library.GameRelations.Any(x => x.PrimaryGame == game.Id))
+                    bool foundMergedSiblings = false;
+
+                    foreach (var relation in _playniteAPI.Library.GameRelations)
+                    {
+                        // Check to see if game is already the primary game in a game relation
+                        if(relation.PrimaryGame == game.Id)
+                        {
+                            foreach(var sibling in SiblingROMs)
                             {
-                                var gamerelation = _playniteAPI.Library.GameRelations.First(x => x.PrimaryGame == game.Id);
-                                gamerelation.LinkedGames.Add(_playniteAPI.Library.Games.First(x => x.LibraryGameId == $"{siblingROM.Id}:{siblingROM.SHA1}").Id);
-                                _playniteAPI.Library.GameRelations.UpdateAsync(gamerelation);
-                                GameRelationAlreadySetup = true;
-                                break;
+                                relation.LinkedGames.Add(sibling.Game.Id);
+                                sibling.ROM.Processed = true;
                             }
+
+                            await _playniteAPI.Library.GameRelations.UpdateAsync(relation);
+                            foundMergedSiblings = true;
+                            break;
                         }
 
-                        if (GameRelationAlreadySetup)
-                            continue;
+                        // Check to see if sibling is already the primary game in a game relation and add this game to the linked games
+                        if (SiblingROMs.Any(x => x.Game.Id == relation.PrimaryGame))
+                        {
+                            relation.LinkedGames.Add(game.Id);
+                            await _playniteAPI.Library.GameRelations.UpdateAsync(relation);
+                            foundMergedSiblings = true;
+                            break;
+                        }
                     }
 
+                    if (foundMergedSiblings)
+                        continue;
+
+      
                     //Check to see if ROM is the main sibling
                     MainSibling isMainSibling = MainSibling.None;
                     if (ROM.RomUser != null && ROM.RomUser.IsMainSibling)
@@ -409,35 +424,28 @@ namespace Graviton.Import
                     else if (ROM.Siblings != null && ROM.Siblings.Count > 0)
                     {
                         //Find if there is a main sibling
-                        foreach (var sibling in ROM.Siblings)
+                        foreach (var sibling in SiblingROMs)
                         {
-                            var siblingROM = ROMs.Find(x => x.Id == sibling.Id);
-
-                            if (siblingROM?.RomUser != null && siblingROM.RomUser.IsMainSibling)
+                            if (sibling.ROM.RomUser != null && sibling.ROM.RomUser.IsMainSibling)
                             {
                                 isMainSibling = MainSibling.Other;
                             }
                         }
                     }
 
-                    // Create new game relation
+                    // Create new game relation if either there is no main sibling or the current game is the main sibling
                     if(isMainSibling != MainSibling.Other) 
                     {
                         GameRelation newgamerelation = new GameRelation();
+                        newgamerelation.Id = game.Id;
                         newgamerelation.PrimaryGame = game.Id;
-                        ROM.Processed = true;
-                        foreach (var sibling in ROM.Siblings!)
+                        foreach (var sibling in SiblingROMs)
                         {
-                            var siblingROM = ROMs.Find(x => x.Id == sibling.Id);
-                            if (siblingROM == null)
-                                continue;
-
-                            game = _playniteAPI.Library.Games.First(x => x.LibraryGameId == $"{siblingROM.Id}:{siblingROM.SHA1}");
-                            newgamerelation.LinkedGames.Add(game.Id);
-                            ROMs.Find(x => x.Id == sibling.Id)?.Processed = true;
+                            newgamerelation.LinkedGames.Add(sibling.Game.Id);
+                            sibling.ROM.Processed = true;
                         }
 
-                        _playniteAPI.Library.GameRelations.AddAsync(newgamerelation);
+                        await _playniteAPI.Library.GameRelations.AddAsync(newgamerelation);
                     }
                 }
             }
