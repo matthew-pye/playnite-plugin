@@ -42,7 +42,7 @@ namespace Graviton
         {
             if (_plugin.Settings.LastAuthenticated == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", $"Request Failed - Please Reauthenticate!", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", Loc.GetString("Reauthenticate"), GravitonSeverity.Error));
                 return null;
             }
             HttpResponseMessage response = await httpClient.GetAsync($"{_plugin.Settings.Host}{APIPath}", new System.Threading.CancellationToken());
@@ -62,7 +62,7 @@ namespace Graviton
                 if (response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
-                GravitonNotify.Add(new GravitonNotification("graviton.GET.failed", $"Failed to GET data from {APIPath} - {ex.Message}", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.GET.failed", $"{Loc.GetString("GETFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error));
                 return null;
             }
         }
@@ -71,7 +71,7 @@ namespace Graviton
         {
             if (_plugin.Settings.LastAuthenticated == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", $"Request Failed - Please Reauthenticate!", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", Loc.GetString("Reauthenticate"), GravitonSeverity.Error));
                 return null;
             }
 
@@ -91,7 +91,7 @@ namespace Graviton
                 if (response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
-                GravitonNotify.Add(new GravitonNotification("graviton.POST.failed", $"Failed to POST data to {APIPath} - {ex.Message}", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.POST.failed", $"{Loc.GetString("POSTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error));
                 return null;
             }
         }
@@ -100,7 +100,7 @@ namespace Graviton
         {
             if (_plugin.Settings.LastAuthenticated == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", $"Request Failed - Please Reauthenticate!", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", Loc.GetString("Reauthenticate"), GravitonSeverity.Error));
                 return null;
             }
                 
@@ -120,7 +120,7 @@ namespace Graviton
                 if (response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
-                GravitonNotify.Add(new GravitonNotification("graviton.PUT.failed", $"Failed to PUT data to {APIPath} - {ex.Message}", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.PUT.failed", $"{Loc.GetString("PUTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error));
                 return null;
             }
         }

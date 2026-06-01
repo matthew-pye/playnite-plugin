@@ -48,27 +48,27 @@
         <TabControl Name="SettingsTabs">
 
             <!-- Authentication -->
-            <TabItem Header="&#xf0004; Authentication">
+            <TabItem Name="AuthItem" Header="&#xf0004; Authentication">
                 <s:AuthenticationTab FontSize="14" Margin="5,10,5,5"/>
             </TabItem>
 
             <!-- Options -->
-            <TabItem Header="&#xf013; Options">
+            <TabItem Name="OptionsItem" Header="&#xf013; Options">
                 <s:OptionsTab FontSize="14" Margin="5,10,5,5"/>
             </TabItem>
 
             <!-- Mappings -->
-            <TabItem Header="&#xf0eb6; Mappings" Selector.Selected="MappingTabItem_Selected">
+            <TabItem Name="MappingsItem" Header="&#xf0eb6; Mappings" Selector.Selected="MappingTabItem_Selected">
                 <s:MappingsTab FontSize="14" Margin="5,10,5,5"/>
             </TabItem>
 
             <!-- Saves -->
-            <TabItem Header="&#xf0193; Saves">
+            <TabItem Name="SavesItem" Header="&#xf0193; Saves">
 
             </TabItem>
 
             <!-- Save States -->
-            <TabItem Header="&#xeea8; Save States">
+            <TabItem Name="SaveStatesItem" Header="&#xeea8; Save States">
 
             </TabItem>
 

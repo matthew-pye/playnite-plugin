@@ -76,7 +76,7 @@
         <Label Name="RomMUser" Content="{Binding User, Mode=OneWay}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" FontSize="22" VerticalAlignment="Bottom" Margin="5,0,0,0"/>
         <Label Name="RomMProfileType" Content="{Binding UserType, Mode=OneWay}" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" VerticalAlignment="Top" Margin="5,0,0,0" Foreground="DimGray" FontSize="12" />
         <Button Name="TestServer" Click="Click_Authenticate" Grid.Row="1" Grid.Column="3" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Top">
-            <Label Content="Authenticate" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <TextBlock Name="AuthButtonText" Text="Authenticate" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Button>
 
         <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,10,0">
@@ -84,26 +84,26 @@
             <Label Name="RomMServerVersion" Content="{Binding ServerVersion, Mode=OneWay}" Foreground="DimGray" FontSize="12" HorizontalAlignment="Center" Margin="0"/>
         </StackPanel>
 
-        <TextBlock Text="RomM Server Address" Grid.Row="2" Grid.Column="0" Margin="5" VerticalAlignment="Center"/>
+        <TextBlock Name="ServerHostText" Text="RomM Server Address" Grid.Row="2" Grid.Column="0" Margin="5" VerticalAlignment="Center"/>
         <TextBox x:Name="RomMHost" Grid.Row="2" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding Host, Mode=TwoWay}" />
 
         <TextBlock Grid.Row="3" Grid.Column="0" Margin="5" VerticalAlignment="Center">
-               <Hyperlink RequestNavigate="Hyperlink_ClientToken" NavigateUri="{Binding Host}">
-                  Client Token
+               <Hyperlink Name="ClientTokenLink" RequestNavigate="Hyperlink_ClientToken" NavigateUri="{Binding Host}">
+                  <Run Name="TokenText" Text="Client Token"/>
                </Hyperlink>
         </TextBlock>
         <TextBox Grid.Row="3" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding ClientToken, Mode=TwoWay}" />
 
         <CheckBox IsChecked="{Binding UseBasicAuth, Mode=TwoWay}" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center">
-            <TextBlock Text="Use Basic Auth" TextWrapping="Wrap" FontSize="12"/>
+            <TextBlock Name="UseBasicAuthText" Text="Use Basic Auth" TextWrapping="Wrap" FontSize="12"/>
         </CheckBox>
 
-        <TextBlock Text="Warning! Username/Password will be stored in plain text in the config file (Not Recommended)" TextWrapping="Wrap" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" TextAlignment="Center" VerticalAlignment="Top" Margin="80,0,5,5" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}" Foreground="#ffb329" Grid.RowSpan="2"/>
+        <TextBlock Name="UserPassWarning" Text="Warning! Username/Password will be stored in plain text in the config file (Not Recommended)" TextWrapping="Wrap" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" TextAlignment="Center" VerticalAlignment="Top" Margin="80,0,5,5" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}" Foreground="#ffb329" Grid.RowSpan="2"/>
 
-        <Label Content="Username" Grid.Row="6" Grid.Column="0" Margin="40,0,5,5" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
+        <TextBlock Name="UsernameText" Text="Username" Grid.Row="6" Grid.Column="0" Margin="40,0,5,5" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
         <TextBox x:Name="RomMUsername" Grid.Row="6" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding Username, Mode=TwoWay}" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
 
-        <Label Content="Password" Grid.Row="7" Grid.Column="0" Margin="40,5,5,0"  Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
+        <TextBlock Name="PasswordText" Text="Password" Grid.Row="7" Grid.Column="0" Margin="40,5,5,0"  Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
         <TextBox x:Name="RomMPassword" Grid.Row="7" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding Password, Mode=TwoWay}" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
     </Grid>
 

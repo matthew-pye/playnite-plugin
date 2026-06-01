@@ -248,7 +248,7 @@ namespace Graviton.Import
                 }
                 else
                 {
-                    GravitonNotify.Add(new GravitonNotification($"graviton.import.game.{ROM.Id}.failed", $"Failed to import {ROM.Name} [ID:{ROM.Id}]", GravitonSeverity.Error));
+                    GravitonNotify.Add(new GravitonNotification($"graviton.import.game.{ROM.Id}.failed", $"{Loc.GetString("ROMImportFailed")} {ROM.Name} [ID:{ROM.Id}]", GravitonSeverity.Error));
                     return null;
                 }
             }

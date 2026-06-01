@@ -69,10 +69,7 @@ namespace Graviton.Import
                 _logger.Debug($"[Import Controller] Started parsing response for {apiPlatform.Name}.");
                 var rommROMs = DownloadROMData(args, url, apiPlatform);
                 if (rommROMs == null)
-                {
-                    _logger.Error($"[Import Controller] Failed to get ROMs for {apiPlatform.Name}.");
                     continue;
-                }
                 else
                     _logger.Debug($"[Import Controller] Finished parsing response for {apiPlatform.Name}.");
 
@@ -202,7 +199,7 @@ namespace Graviton.Import
                     var romURL = url + $"offset={offset}";
 
                     var request = HttpClientSingleton.RomMGetAsync(romURL).GetAwaiter().GetResult();
-                    var roms = request?.RootElement.GetProperty("items").Deserialize<List<RomMRom>>() ?? throw new Exception(Loc.GetString("FailedToDeserialize", ("Object", "ROM data")));
+                    var roms = request?.RootElement.GetProperty("items").Deserialize<List<RomMRom>>() ?? throw new Exception("Deserialize failed");
                     romData.AddRange(roms);
 
                     _logger.Info($"[Import Controller] Parsed {roms.Count} roms for batch {offset / pagesize + 1}.");         

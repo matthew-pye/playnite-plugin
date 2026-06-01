@@ -14,7 +14,6 @@ namespace Graviton.Settings
     {
 
         private GravitonPlugin _plugin {get => GravitonPlugin.Instance ?? throw new Exception("Plugin is null, cannot continue"); }
-        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi ?? throw new Exception("PlayniteAPI is null, cannot continue"); }
 
         public async Task<ServerInfo?> Heartbeat(GravitonPluginSettings settings)
         {
@@ -33,7 +32,7 @@ namespace Graviton.Settings
             catch (Exception ex)
             {
                 settings.LastAuthenticated = null;
-                GravitonNotify.Add(new GravitonNotification("graviton.heartbeat.failed", $"Failed to ping server - {ex.Message}", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.heartbeat.failed", $"{Loc.GetString("HeartbeatFailed")} - {ex.Message}", GravitonSeverity.Error));
                 SyncFailed(settings);
                 return null;
             }
@@ -44,7 +43,7 @@ namespace Graviton.Settings
             // Check Host and Client token/UsernamePassword are set!
             if (string.IsNullOrEmpty(settings.Host))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.login.host.notset", $"Cannot login - host is not set!", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.login.host.notset", Loc.GetString("HostNotSet"), GravitonSeverity.Warn));
                 SyncFailed(settings);
                 return false;
             }
@@ -53,8 +52,9 @@ namespace Graviton.Settings
             {
                 if (string.IsNullOrEmpty(settings.Username) || string.IsNullOrEmpty(settings.Password))
                 {
-                    _playniteAPI.Notifications.Add(new NotificationMessage("graviton.login.userorpass.notset", "Login failed - Username or Password not set!", NotificationSeverity.Error));
-                    GravitonPlugin.Logger?.Error("");
+                    GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("UserPassNotSet"), GravitonSeverity.Warn));
+                    SyncFailed(settings);
+                    return false;
                 }
                     
                 HttpClientSingleton.ConfigureBasicAuth(settings.Username, settings.Password);
@@ -63,8 +63,7 @@ namespace Graviton.Settings
             {
                 if (string.IsNullOrEmpty(settings.ClientToken))
                 {
-                    _playniteAPI.Notifications.Add(new NotificationMessage("graviton.login.token.notset", "Login failed - Client Token not set!", NotificationSeverity.Error));
-                    GravitonPlugin.Logger?.Error("");
+                    GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("TokenNotSet"), GravitonSeverity.Warn));
                     SyncFailed(settings);
                     return false;
                 }
@@ -103,7 +102,7 @@ namespace Graviton.Settings
                 return false;
             }
 
-            GravitonNotify.Add(new GravitonNotification("graviton.Account.loggedin", $"Login successful", GravitonSeverity.Success));
+            GravitonNotify.Add(new GravitonNotification("graviton.Account.loggedin", Loc.GetString("LoginSuccess"), GravitonSeverity.Success));
             return true;
         }
 
@@ -132,7 +131,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.GET.profileicon.failed", $"Failed to get profile icon from server - {ex.Message}", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.GET.profileicon.failed", $"{Loc.GetString("GETProfileIconFailed")} - {ex.Message}", GravitonSeverity.Error));
             }
             
 
@@ -159,7 +158,7 @@ namespace Graviton.Settings
                     }
                     catch (Exception ex)
                     {
-                        GravitonNotify.Add(new GravitonNotification("graviton.GET.device.failed", $"Failed to GET devices - {ex.Message}", GravitonSeverity.Warn));
+                        GravitonNotify.Add(new GravitonNotification("graviton.GET.device.failed", $"{Loc.GetString("GETDevicesFailed")} - {ex.Message}", GravitonSeverity.Warn));
                         return false;
                     }
                 }
@@ -189,7 +188,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.POST.device.failed", $"Failed to create new device - {ex.Message}", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.POST.device.failed", $"{Loc.GetString("CreateNewDeviceFailed")} - {ex.Message}", GravitonSeverity.Error));
                 return false;
             }
         }

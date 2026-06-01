@@ -16,7 +16,8 @@
     <DockPanel>
         <!-- Header -->
 		<TextBlock DockPanel.Dock="Top"
-                   Text="{p:LocalizedString {x:Static p:LocId.DownloadViewTitle}}"
+                   Name="DownloadsHeader"
+                   Text="Downloads"
                    FontWeight="Bold"
                    Margin="8,8,8,4"
                    Foreground="{DynamicResource TextBrush}" />

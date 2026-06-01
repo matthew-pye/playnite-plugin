@@ -1,5 +1,7 @@
 ﻿using Graviton.Models;
 
+using Playnite;
+
 using System.Windows;
 using System.Windows.Controls;
 
@@ -15,6 +17,17 @@ namespace Graviton.Settings
         public MappingsTab()
         {
             InitializeComponent();
+
+            AddMappingIcon.Text = $"\uea60 {Loc.GetString("NewMapping")}";
+            EmulatorText.Text = Loc.GetString("Emulator");
+            ProfileText.Text = Loc.GetString("Profile");
+            PlatformText.Text = Loc.GetString("Platform");
+            ROMLocText.Text = Loc.GetString("ROMLoc");
+            ROMLocButtonText.Text = Loc.GetString("Browse");
+            OptionText.Text = Loc.GetString("Options");
+            AutoExtractROMText.Text = Loc.GetString("AutoExtractROMs");
+            Preferm3uText.Text = Loc.GetString("PreferM3U");
+
             AddMappingIcon.FontFamily = Playnite.Fonts.NerdFont;
         }
 

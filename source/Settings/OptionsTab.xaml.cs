@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using Playnite;
+
+using System.Windows;
 using System.Windows.Controls;
 
 namespace Graviton.Settings
@@ -18,6 +20,18 @@ namespace Graviton.Settings
         public OptionsTab()
         {
             InitializeComponent();
+
+            LibraryScanningText.Text = Loc.GetString("LibraryScanning");
+            MergeROMText.Text = Loc.GetString("MergeROMs");
+            KeepDeleteText.Text = Loc.GetString("KeepDeleted");
+            SkipDeletedText.Text = Loc.GetString("SkipDeleted");
+            ExcludeGenresText.Text = Loc.GetString("ExcludeGenres");
+            InstallationText.Text = Loc.GetString("Installation");
+            Use7zText.Text = Loc.GetString("Use7z");
+            Browse7zText.Text = Loc.GetString("Browse");
+            StatusTitle.Text = Loc.GetString("StatusSync");
+            KeepStatusSyncedText.Text = Loc.GetString("KeepStatusSynced");
+
         }
 
         private async void Browse7zPath_Click(object sender, RoutedEventArgs e)

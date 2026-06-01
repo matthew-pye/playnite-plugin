@@ -158,40 +158,40 @@
             
 
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Emulator" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
+                <TextBlock Name="EmulatorText" Text="Emulator" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
                 <ComboBox Name="ComboEmulators"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailableEmulators}" DisplayMemberPath="Name" SelectedItem="{Binding Emulator, Mode=TwoWay}"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Profile" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
+                <TextBlock Name="ProfileText" Text="Profile" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
                 <ComboBox Name="ComboProfiles"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailableProfiles}" DisplayMemberPath="Name" SelectedItem="{Binding EmulatorProfile, Mode=TwoWay}"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Platform" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
+                <TextBlock Name="PlatformText" Text="Platform" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
                 <ComboBox Name="ComboPlatform"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="Name" SelectedItem="{Binding RomMPlatform, Mode=TwoWay}"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="ROM location" Margin="5" MinWidth="100" MaxWidth="150" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                <TextBlock Name="ROMLocText" Text="ROM location" Margin="5" MinWidth="100" MaxWidth="150" VerticalAlignment="Center" HorizontalAlignment="Left"/>
                 <TextBox x:Name="Path" Margin="5" MinWidth="300" Text="{Binding Path=DestinationPath, Mode=TwoWay}"/>
                 <Button Click="Click_BrowseDestination" Margin="5">
-                    <Label Content="Browse"/>
+                    <TextBox Name="ROMLocButtonText" Text="Browse"/>
                 </Button>
             </StackPanel>
             <Separator Margin="5,2,5,0"/>
 
-            <TextBlock Text="Options" Margin="5,15,5,5" FontSize="20" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+            <TextBlock Name="OptionText" Text="Options" Margin="5,15,5,5" FontSize="20" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left"/>
             <Separator Margin="5,0,10,0"/>
 
             <StackPanel Orientation="Horizontal">
                 <CheckBox Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding AutoExtract, Mode=TwoWay}" ToolTip="Will extract ROMs if they are stored in RAR, Zip, Tar, 7Zip, GZip, Arc, Arj, Ace or Lzw format!" />
-                <TextBlock Text="Auto extract ROMs in archive format" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                <TextBlock Name="AutoExtractROMText" Text="Auto extract ROMs in archive format" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal">
                 <CheckBox Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding UseM3U, Mode=TwoWay}" ToolTip="Will use .m3u file if multi-file ROM and emulator supports .m3u!"/>
-                <TextBlock Text="Prefer .m3u for launch action" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                <TextBlock Name="Preferm3uText" Text="Prefer .m3u for launch action" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
             </StackPanel>
 
         </StackPanel>

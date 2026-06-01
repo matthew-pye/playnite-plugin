@@ -29,6 +29,15 @@ namespace Graviton.Settings
         public AuthenticationTab()
         {
             InitializeComponent();
+
+            AuthButtonText.Text = Loc.GetString("AuthButton");
+            ServerHostText.Text = Loc.GetString("ServerText");
+            TokenText.Text = Loc.GetString("ClientToken");
+            UseBasicAuthText.Text = Loc.GetString("UseBasicAuth");
+            UserPassWarning.Text = Loc.GetString("UserPassWarning");
+            UsernameText.Text = Loc.GetString("Username");
+            PasswordText.Text = Loc.GetString("Username");
+
             ProfileEditButton.FontFamily = Playnite.Fonts.NerdFont;
         }
 
@@ -92,7 +101,7 @@ namespace Graviton.Settings
                 catch (Exception ex)
                 {
                     Path.Combine(_plugin.PluginDLLPath, @"profile.png");
-                    GravitonNotify.Add(new GravitonNotification("graviton.PUT.profileimage.failed", $"Failed to upload new profile image - {ex.Message}", GravitonSeverity.Error));
+                    GravitonNotify.Add(new GravitonNotification("graviton.PUT.profileimage.failed", $"{Loc.GetString("NewProfileIconFailed")} - {ex.Message}", GravitonSeverity.Error));
                 }
                 e.Handled = true;
             }
@@ -103,7 +112,7 @@ namespace Graviton.Settings
 
             if(string.IsNullOrEmpty(_plugin.Settings.Host))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.openuri.clienttoken.failed", "Cannot open client token address as host is not set!", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.openuri.clienttoken.failed", Loc.GetString("ClientTokenAddressFailed"), GravitonSeverity.Error));
                 e.Handled= true;
                 return;
             }
