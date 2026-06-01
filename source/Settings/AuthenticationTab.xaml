@@ -43,6 +43,18 @@
                 <Border.Background>
                     <ImageBrush ImageSource="{Binding ProfilePath, Mode=OneWay, Converter={StaticResource imageCacheConverter}}" Stretch="UniformToFill" AlignmentX="Center" AlignmentY="Center"/>
                 </Border.Background>
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=ProfileIconGrid}" Value="True">
+                                <Setter Property="Opacity" Value="0.7"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=ProfileEditButton}" Value="True">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
             </Border>
 
             <Button Name="ProfileEditButton" Content="&#xf03eb;" FontSize="24" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="10" Click="Click_UpdateProfileIcon">
