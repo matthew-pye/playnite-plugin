@@ -2,10 +2,6 @@ namespace Playnite;
 
 public static partial class Loc
 {
-
-    /// <summary>
-    /// "Fluent test string"
-    /// </summary>
     public static string DownloadViewName()
     {
         return GetString("DownloadViewName");

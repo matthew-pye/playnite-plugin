@@ -5,7 +5,6 @@ using Graviton.Models.RomM.Platform;
 
 using Playnite;
 using System.Collections.ObjectModel;
-using Graviton.Settings;
 using System.IO;
 
 

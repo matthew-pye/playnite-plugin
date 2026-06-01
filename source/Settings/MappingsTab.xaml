@@ -52,8 +52,7 @@
                         </Style>
                     </Button.Style>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Name="AddMappingIcon"  Text="&#xea60;" Margin="2,0,5,0"/>
-                        <TextBlock Text="New mapping"/>
+                        <TextBlock Name="AddMappingIcon"  Text="&#xea60; New Mapping" Margin="2,0,5,0"/>
                     </StackPanel>
                 </Button>
                 <Separator Margin="5,5,5,20"/>
@@ -62,7 +61,7 @@
                     <ItemsControl ItemsSource="{Binding Mappings, Mode=OneWay}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button Click="Mapping_Click" FontSize="14" Margin="5,10,5,0" HorizontalAlignment="Left" MaxWidth="300">
+                                <Button Click="Mapping_Click" FontSize="14" Margin="5" HorizontalAlignment="Left" MaxWidth="300">
                                     <Button.Style>
                                         <Style TargetType="Button">
                                             <Setter Property="Background" Value="Transparent"/>
@@ -99,13 +98,12 @@
                                     <Grid MaxWidth="300">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="40"/>
-                                            <ColumnDefinition Width="5"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
 
                                         <Image Grid.Column="0" Name="MappingIcon" Source="{Binding PlatformIcon, Mode=OneWay, Converter={StaticResource imageCacheConverter}}" Stretch="UniformToFill" Width="40" Height="40"/>
 
-                                        <TextBlock Grid.Column="2" Text="{Binding MappingName, Mode=OneWay}" VerticalAlignment="Center" TextWrapping="Wrap" TextTrimming="None"/>
+                                        <TextBlock Grid.Column="2" Margin="5,0,5,0" Text="{Binding MappingName, Mode=OneWay}" VerticalAlignment="Center" TextWrapping="Wrap" TextTrimming="None"/>
                                     </Grid>
                                 </Button>
                             </DataTemplate>
@@ -153,7 +151,7 @@
                         </Style>
                     </Button.Style>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Name="DeleteMappingIcon"  Text="&#xf05e8;" Margin="2,0,5,0"/>
+                        <TextBlock Name="DeleteMappingIcon"  Text="&#xf05e8;" Foreground="Red" Margin="2,0,5,0"/>
                     </StackPanel>
                 </Button>
             </Grid>
@@ -187,13 +185,13 @@
             <Separator Margin="5,0,10,0"/>
 
             <StackPanel Orientation="Horizontal">
-                <CheckBox Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding AutoExtract, Mode=TwoWay}" ToolTip="Will extract ROMs if they are stored on the server in Rar, Zip, Tar, 7z, GZip, or BZip2 format!" />
-                <TextBlock Text="Auto extract ROM archive files" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                <CheckBox Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding AutoExtract, Mode=TwoWay}" ToolTip="Will extract ROMs if they are stored in RAR, Zip, Tar, 7Zip, GZip, Arc, Arj, Ace or Lzw format!" />
+                <TextBlock Text="Auto extract ROMs in archive format" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal">
                 <CheckBox Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding UseM3U, Mode=TwoWay}" ToolTip="Will use .m3u file if multi-file ROM and emulator supports .m3u!"/>
-                <TextBlock Text="Prefer .m3u" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                <TextBlock Text="Prefer .m3u for launch action" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
             </StackPanel>
 
         </StackPanel>

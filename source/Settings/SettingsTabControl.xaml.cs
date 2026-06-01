@@ -1,8 +1,4 @@
-﻿using Graviton.Models.Notifications;
-
-using Playnite;
-
-using System.Windows.Controls;
+﻿using System.Windows.Controls;
 
 namespace Graviton.Settings
 {

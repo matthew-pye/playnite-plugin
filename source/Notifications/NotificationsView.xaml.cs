@@ -1,14 +1,6 @@
 ﻿using Graviton.Models.Notifications;
 
-using Playnite;
-
-using System.IO;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Media.Effects;
 using System.Windows.Threading;
 
 namespace Graviton.Settings

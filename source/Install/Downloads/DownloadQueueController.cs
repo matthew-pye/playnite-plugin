@@ -1,7 +1,6 @@
 ﻿using Playnite;
 
 using SharpCompress.Archives;
-using SharpCompress.Common.Options;
 
 using System.Diagnostics;
 using System.IO;

@@ -1,17 +1,12 @@
 ﻿using Playnite;
 
-using RomM.Properties;
-
 using Graviton;
 using Graviton.Models.RomM.Rom;
-using Graviton.Settings;
 
 using System.Net.Http;
 using System.Text.Json;
 
-using static Playnite.MetadataProvider;
-
-namespace RomM.Import
+namespace Graviton.Import
 {
     public class GravitonMetadataProviderGameSession : MetadataProviderGameSession
     {

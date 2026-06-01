@@ -2,11 +2,8 @@
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Platform;
 using Graviton.Models.RomM.Rom;
-using Graviton.Settings;
 
 using Playnite;
-
-using SharpCompress.Compressors.Xz;
 
 using Svg;
 

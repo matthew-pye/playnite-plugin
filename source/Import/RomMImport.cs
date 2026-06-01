@@ -5,7 +5,6 @@ using Graviton.Models.RomM.Rom;
 using Playnite;
 
 using System.IO;
-using System.Runtime.Intrinsics.Arm;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -19,15 +18,15 @@ namespace Graviton.Import
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
         private ILogger _logger { get => GravitonPlugin.Logger; }
 
-        CancellationToken CancelToken;
-        EmulatorMapping Mapping;
-        List<RomMRom> ROMs;
+        private CancellationToken _cancelToken;
+        private EmulatorMapping _mapping;
+        private List<RomMRom> _roms;
 
         public RomMImport(CancellationToken cancelToken, EmulatorMapping mapping, List<RomMRom> roms)
         {
-            CancelToken = cancelToken;
-            Mapping = mapping;
-            ROMs = roms;
+            _cancelToken = cancelToken;
+            _mapping = mapping;
+            _roms = roms;
         }      
 
         // Main library import functions
@@ -39,15 +38,15 @@ namespace Graviton.Import
             var games = new List<Game>();
             List<string> ImportedGamesIDs = new List<string>();
 
-            if (Mapping.RomMPlatform?.Name != null && !_playniteAPI.Library.Platforms.Any(x => x.Name == Mapping.RomMPlatform.Name))
+            if (_mapping.RomMPlatform?.Name != null && !_playniteAPI.Library.Platforms.Any(x => x.Name == _mapping.RomMPlatform.Name))
             {
-                await _playniteAPI.Library.Platforms.AddAsync(new Platform(Mapping.RomMPlatform.Name));
+                await _playniteAPI.Library.Platforms.AddAsync(new Platform(_mapping.RomMPlatform.Name));
             }
    
             // Process ROMs
-            foreach (var ROM in ROMs)
+            foreach (var ROM in _roms)
             {
-                if (CancelToken.IsCancellationRequested)
+                if (_cancelToken.IsCancellationRequested)
                     break;
 
                 var result = await ProcessROM(ROM);
@@ -62,7 +61,7 @@ namespace Graviton.Import
 
 
 
-            _logger?.Info($"[Importer] Finished adding new games for {Mapping.RomMPlatform?.Name}");
+            _logger?.Info($"[Importer] Finished adding new games for {_mapping.RomMPlatform?.Name}");
 
             if(_plugin.Settings.MergeRevisions)
             {
@@ -70,7 +69,7 @@ namespace Graviton.Import
             }
 
 
-            _logger?.Info($"[Importer] Finished import of ROMs for {Mapping.RomMPlatform?.Name}.");
+            _logger?.Info($"[Importer] Finished import of ROMs for {_mapping.RomMPlatform?.Name}.");
             return (games, ImportedGamesIDs);
         }
 
@@ -104,7 +103,7 @@ namespace Graviton.Import
             List<AgeRating> ageRatings = new();
             List<Region> regions = new();
 
-            foreach (var ROM in ROMs)
+            foreach (var ROM in _roms)
             {
                 // Some newer platforms don't get a hash value so we will compromise with this
                 if (string.IsNullOrEmpty(ROM.SHA1))
@@ -169,7 +168,7 @@ namespace Graviton.Import
                 _playniteAPI.Library.Regions.AddAsync(regions);
             }
 
-            _playniteAPI.Library.Platforms.AddAsync(new Platform(Mapping.RomMPlatform!.Name, Mapping.RomMPlatform.Name));
+            _playniteAPI.Library.Platforms.AddAsync(new Platform(_mapping.RomMPlatform!.Name, _mapping.RomMPlatform.Name));
 
         }
 
@@ -290,7 +289,7 @@ namespace Graviton.Import
                 game.TimeToBeatEstimated = new(ROM.HLTBMetadata.MainStory, ROM.HLTBMetadata.MainStoryExtra, ROM.HLTBMetadata.Completionist);
 
             game.GenreIds = ROM.Metadatum?.Genres?.ToHashSet();
-            game.PlatformIds = new HashSet<string>([Mapping.RomMPlatform!.Name]);
+            game.PlatformIds = new HashSet<string>([_mapping.RomMPlatform!.Name]);
             game.CategoryIds = ROM.Metadatum?.Collections?.ToHashSet();
             game.FeatureIds = ROM.Metadatum?.Gamemodes?.ToHashSet();
             game.SeriesIds = ROM.Metadatum?.Franchises?.ToHashSet();
@@ -329,16 +328,7 @@ namespace Graviton.Import
                 game.ExternalIdentifiers?.Add(new("HowLongToBeat", ROM.HLTBId.ToString()!));
             }
 
-            //var rootInstallDir = _playniteApi.ApplicationInfo.IsPortable
-            //            ? Mapping.DestinationPathResolved.Replace(Playnite.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory)
-            //            : Mapping.DestinationPathResolved;
-            //var gameInstallDir = Path.Combine(rootInstallDir, Path.GetFileNameWithoutExtension(ROM.Name));
-            //var pathToGame = Path.Combine(gameInstallDir, ROM.Name);
 
-            //if (ROM.HasManual)
-            //{
-            //    game.Manual = $"{_plugin.Settings.RomMHost}/assets/romm/resources/{ROM.ManualPath}";
-            //}
 
             return game;
         }
@@ -361,9 +351,9 @@ namespace Graviton.Import
 
         private async Task MergeSiblings()
         {
-            _logger.Info($"[Importer] Started merging new games for {Mapping.RomMPlatform?.Name}");
+            _logger.Info($"[Importer] Started merging new games for {_mapping.RomMPlatform?.Name}");
 
-            foreach (var ROM in ROMs)
+            foreach (var ROM in _roms)
             {
                 if (ROM.Processed)
                     continue;
@@ -376,9 +366,9 @@ namespace Graviton.Import
                     List<(RomMRom ROM, Game Game)> SiblingROMs = new List<(RomMRom ROM, Game Game)>();
                     foreach (var sibling in ROM.Siblings)
                     {
-                        if(ROMs.Any(x => x.Id == sibling.Id))
+                        if(_roms.Any(x => x.Id == sibling.Id))
                         {
-                            var siblingROM = ROMs.First(x => x.Id == sibling.Id);
+                            var siblingROM = _roms.First(x => x.Id == sibling.Id);
                             SiblingROMs.Add((siblingROM, _playniteAPI.Library.Games.First(x => x.LibraryGameId == $"{siblingROM.Id}:{siblingROM.SHA1}")));
                         }
                     }
@@ -450,7 +440,7 @@ namespace Graviton.Import
                 }
             }
 
-            _logger.Info($"[Importer] Finished merging new games for {Mapping.RomMPlatform?.Name}");
+            _logger.Info($"[Importer] Finished merging new games for {_mapping.RomMPlatform?.Name}");
         }
 
         private void SaveGameData(RomMRom ROM)
@@ -479,7 +469,7 @@ namespace Graviton.Import
                 toSave.FileName = ROM.FileName;
                 toSave.DownloadURL = $"{_plugin.Settings.Host}/api/roms/{ROM.Id}/content/{ROM.FileName}";
             } 
-            toSave.MappingID = Mapping.MappingId;
+            toSave.MappingID = _mapping.MappingId;
 
             // Write data to file
             string json = JsonSerializer.Serialize(toSave);
