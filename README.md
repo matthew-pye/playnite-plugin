@@ -2,24 +2,21 @@
 <!-- trunk-ignore(markdownlint/MD041) -->
 <div align="center">
 
-  <img src=".github/resources/isotipo.png" height="180px" width="auto" alt="romm-muos logo">
+  <img src="https://raw.githubusercontent.com/matthew-pye/playnite-plugin/refs/heads/Playnite-11/source/pluginicon.png" height="180px" width="auto" alt="romm-muos logo">
     <h3 style="font-size: 25px;">
-    A beautiful, powerful, RomM plugin for Playnite.
+    Graviton - RomM Library
   </h3>
 
 <br>
 
 [![license-badge-img]][license-badge]
-[![release-badge-img]][release-badge]
-[![discord-badge-img]][discord-badge]
-
-<!-- [![wiki-badge-img]][wiki] -->
+<!-- [![release-badge-img]][release-badge] -->
 
   </div>
 </div>
 
 > [!WARNING]
-> This branch **DOES NOT** work yet! Don't download and try using waiting for emulator support to be added back to P11-dev
+> This plugin **DOES NOT** properly work yet! Only library importing works currently, waiting for emulator support to be added to Playnite 11 with alpha 2
 
 # Overview
 
@@ -27,31 +24,22 @@ This plugin allows you to import your RomM library into Playnite. It queries the
 
 # Installation
 
-To install and configure the RomM Playnite plugin, check out the [Installation Guide][docs-installation-guide]
+~~To install and configure the RomM Playnite plugin, check out the [Installation Guide][docs-installation-guide]~~
 
-# Contributing
-
-To contribute to RomM Playnite plugin, please check [Contribution Guide](./CONTRIBUTING.md)
-
-# Community
-
-Join us on Discord, where you can ask questions, submit ideas, get help, showcase your collection, and discuss RomM with other users.
-
-[![discord-invite]][discord-invite-url]
 
 # Technical Support
 
-If you have any issues with the plugin, please [open an issue](https://github.com/rommapp/playnite-plugin/issues/new) in this repository. If the issue is with RomM itself, open an issue in the [RomM repository](https://github.com/rommapp/romm/issues/new/choose).
+~~If you have any issues with the plugin, please [open an issue](https://github.com/matthew-pye/playnite-plugin/issues/new) in this repository. If the issue is with RomM itself, open an issue in the [RomM repository](https://github.com/rommapp/romm/issues/new/choose).~~
 
 # Project Support
 
-Consider supporting the development of this project on Open Collective.
+Consider supporting the RomM developers on Open Collective.
 
 [![oc-donate-img]][oc-donate]
 
 # Acknowledgement
 
-This plugin is **very heavily** inspired by the excellent [Playnite EmuLibrary](https://github.com/psychonic/Playnite-EmuLibrary) by [@psychonic](https://github.com/psychonic).
+This plugin is a fork of the original playnite 10 plugin [Playnite Plugin](https://github.com/rommapp/playnite-plugin) by [@gantoine](https://github.com/gantoine).
 
 <!-- Badges -->
 
