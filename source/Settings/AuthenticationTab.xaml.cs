@@ -16,9 +16,9 @@ namespace Graviton.Settings
     /// </summary>
     public partial class AuthenticationTab : UserControl
     {
-        static GravitonPlugin _plugin {get => GravitonPlugin.Instance ?? throw new Exception("Plugin is null, cannot continue"); }
-        static IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi ?? throw new Exception("PlayniteAPI is null, cannot continue"); }
-        static GravitonSettingsHandler SettingsHandler { get => GravitonSettingsHandler.Instance ?? throw new Exception("Settings is null, cannot continue"); }
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
+        private ILogger _logger { get => GravitonPlugin.Logger; }
 
         Dictionary<string, string[]> ImageFileChoices = new Dictionary<string, string[]>()
         {
@@ -44,7 +44,7 @@ namespace Graviton.Settings
         private async void Click_Authenticate(object sender, System.Windows.RoutedEventArgs e)
         {
             TestServer.IsEnabled = false;
-            await _plugin.Account.Login(SettingsHandler.Settings);
+            await _plugin.Account.Login();
             TestServer.IsEnabled = true;
 
             e.Handled = true;
@@ -90,21 +90,20 @@ namespace Graviton.Settings
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(filetype);
 
                 content.Add(fileContent, "avatar", fileName);
+                var result = HttpClientSingleton.RomMPutContentAsync($"/api/users/{_plugin.Settings.UserID}", content);
 
-                try
+                if(result != null)
                 {
-                    HttpResponseMessage response = await HttpClientSingleton.Instance.PutAsync($"{SettingsHandler.Settings.Host}/api/users/{SettingsHandler.Settings.UserID}", content);
-                    response.EnsureSuccessStatusCode();
                     File.WriteAllBytes($"{_playniteAPI.UserDataDir}\\avatar.png", fileBytes);
-                    SettingsHandler.Settings.ProfilePath = $"{_playniteAPI.UserDataDir}\\avatar.png";
+                    _plugin.Settings.ProfilePath = $"{_playniteAPI.UserDataDir}\\avatar.png";
                 }
-                catch (Exception ex)
+                else
                 {
-                    Path.Combine(_plugin.PluginDLLPath, @"profile.png");
-                    GravitonNotify.Add(new GravitonNotification("graviton.PUT.profileimage.failed", $"{Loc.GetString("NewProfileIconFailed")} - {ex.Message}", GravitonSeverity.Error));
+                    _plugin.Settings.ProfilePath = $"{_plugin.PluginDLLPath}\\profile.png";
                 }
-                e.Handled = true;
             }
+
+            e.Handled = true;   
         }
 
         private void Hyperlink_ClientToken(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)

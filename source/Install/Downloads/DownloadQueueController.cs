@@ -12,20 +12,20 @@ namespace Graviton.Install.Downloads
 {
     public class DownloadQueueController
     {
-        private readonly GravitonPlugin Plugin;
-        private readonly DownloadQueueViewModel DownloadQueueVM;
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
+        private ILogger _logger { get => GravitonPlugin.Logger; }
 
+        private readonly DownloadQueueViewModel DownloadQueueVM;
         private readonly SemaphoreSlim concurrencyGate;
 
-        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, CancellationTokenSource> activeDownloads =
-            new System.Collections.Concurrent.ConcurrentDictionary<string, CancellationTokenSource>();
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, CancellationTokenSource> activeDownloads = new();
 
         public ILogger Logger => LogManager.GetLogger();
         public int MaxConcurrent { get; }
 
-        public DownloadQueueController(GravitonPlugin plugin, DownloadQueueViewModel downloadQueueVM, int maxConcurrent)
+        public DownloadQueueController(DownloadQueueViewModel downloadQueueVM, int maxConcurrent)
         {
-            Plugin = plugin;
             DownloadQueueVM = downloadQueueVM;
 
             MaxConcurrent = Math.Max(1, maxConcurrent);

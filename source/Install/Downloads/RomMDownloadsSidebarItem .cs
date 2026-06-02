@@ -4,14 +4,15 @@ namespace Graviton.Install.Downloads
 {
     public class RomMDownloadsAppViewItem : AppViewItem
     {
-        private readonly GravitonPlugin Plugin;
-    
-        public RomMDownloadsAppViewItem(GravitonPlugin plugin)
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
+        private ILogger _logger { get => GravitonPlugin.Logger; }
+
+        public RomMDownloadsAppViewItem()
         {
-            Plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
-            if(Plugin.DownloadQueueController == null)
+            if(_plugin.DownloadQueueController == null)
                 throw new ArgumentNullException("Download controller is null, cannot continue!");
-            View = new RomMDownloadQueueControl(Plugin.DownloadQueueController);
+            View = new RomMDownloadQueueControl(_plugin.DownloadQueueController);
         }
     
         public override async Task ActivateViewAsync(ActivateViewAsyncArgs args)

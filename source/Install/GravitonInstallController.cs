@@ -14,19 +14,18 @@ namespace Graviton.Install
         Cancelled = -1
     }
 
-    internal class RomMInstallController : InstallController
+    internal class GravitonInstallController : InstallController
     {
-        protected readonly GravitonPlugin Plugin;
-        private readonly IPlayniteApi PlayniteApi;
-        public ILogger Logger => LogManager.GetLogger();
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
+        private ILogger _logger { get => GravitonPlugin.Logger; }
+
         public GameInstallInfo GameData;
 
         private Game Game;
 
-        internal RomMInstallController(GravitonPlugin romM, Game game, GameInstallInfo gameData) : base(GravitonPlugin.Id, "Download", game.LibraryGameId ?? throw new Exception("Game doesn't have libraryID!"))
+        internal GravitonInstallController(Game game, GameInstallInfo gameData) : base(GravitonPlugin.Id, "Download", game.LibraryGameId ?? throw new Exception("Game doesn't have libraryID!"))
         {
-            Plugin = romM;
-            PlayniteApi = GravitonPlugin.PlayniteApi ?? throw new Exception("Playnite API is null, cannot continue!");
             GameData = gameData;
             Game = game;
         }
@@ -60,8 +59,8 @@ namespace Graviton.Install
                 DownloadUrl = GameData.DownloadURL,
                 InstallDir = installDir,
                 GamePath = downloadFilePath,
-                Use7z = Plugin.Settings.Use7z,
-                PathTo7Z = Plugin.Settings.PathTo7z,
+                Use7z = _plugin.Settings.Use7z,
+                PathTo7Z = _plugin.Settings.PathTo7z,
 
                 HasMultipleFiles = GameData.HasMultipleFiles,
                 AutoExtract = GameData.Mapping != null && GameData.Mapping.AutoExtract,
@@ -109,9 +108,9 @@ namespace Graviton.Install
                 // Callbacks into Playnite install pipeline
                 OnInstalled = installedArgs =>
                 {
-                    var game = PlayniteApi.Library.Games.Get(Game.Id) ?? throw new Exception("Could not get game to set as installed!");
+                    var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception("Could not get game to set as installed!");
                     game.InstallState = InstallState.Installed;
-                    PlayniteApi.Library.Games.UpdateAsync(game);
+                    _playniteAPI.Library.Games.UpdateAsync(game);
 
                     GameInstalledAsync(installedArgs);
                 },
@@ -128,7 +127,7 @@ namespace Graviton.Install
 
                 OnFailed = ex =>
                 {
-                    PlayniteApi.Notifications.Add(new NotificationMessage(
+                    _playniteAPI.Notifications.Add(new NotificationMessage(
                         Game.LibraryGameId ?? GravitonPlugin.Id,
                         $"{Loc.GetString("DownloadFailed")} {Game.Name}.\n\n{ex.Message}",
                         NotificationSeverity.Error)); 
@@ -138,7 +137,7 @@ namespace Graviton.Install
             };
 
             // Enqueue (non-blocking)
-            Plugin.DownloadQueueController?.Enqueue(req);
+            _plugin.DownloadQueueController?.Enqueue(req);
         }
 
         private void CancelInstall()

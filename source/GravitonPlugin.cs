@@ -16,20 +16,20 @@ namespace Graviton
         public static readonly string Id = "Matthew-Pye.Graviton";
         public static readonly string ExternalIdType = "graviton";
         public static readonly string ExternalIdName = "Graviton (RomM Library)";
-        public static readonly Version Version = new Version(0,0,1);
+        public static readonly Version Version = new Version(0,1,0);
 
-        public string PluginDLLPath { get; private set; } = "";
-        public string PluginDataPath { get; private set; } = "";
+        internal string PluginDLLPath { get; private set; } = "";
+        internal string PluginDataPath { get; private set; } = "";
 
-        public static GravitonPlugin Instance { get; private set; } = null!;
-        public static IPlayniteApi PlayniteApi { get; private set; } = null!;
-        public static ILogger Logger { get; private set; } = null!;
+        internal static GravitonPlugin Instance { get; private set; } = null!;
+        internal static IPlayniteApi PlayniteApi { get; private set; } = null!;
+        internal static ILogger Logger { get; private set; } = null!;
 
-        internal RomMImportController? ImportController { get; private set; }
+        internal GravitonImportController? ImportController { get; private set; }
         internal StatusController? StatusController { get; private set; }
         internal DownloadQueueController? DownloadQueueController { get; private set; }
 
-        public GravitonPluginSettings Settings 
+        internal GravitonPluginSettings Settings 
         { 
             get
             {
@@ -47,7 +47,7 @@ namespace Graviton
         internal GravitonSettingsHandler SettingsHandler { get; set; } = new();
         internal RomMAccount Account { get; private set; } = new();
 
-        private RomMDownloadsAppViewItem? DownloadsAppView { get; set; }
+        private RomMDownloadsAppViewItem? _downloadsAppView { get; set; }
         private DownloadQueueViewModel? _downloadsViewModel;
 
         public GravitonPlugin() : base()
@@ -102,30 +102,6 @@ namespace Graviton
 
             await PlayniteApi.Library.Sources.AddAsync(new Source(Id, "Graviton"));
 
-            PluginDataPath = PlayniteApi.UserDataDir;
-            PluginDLLPath = args.PluginInstallDir;
-
-            if (!Directory.Exists($"{PluginDataPath}/Platforms/"))
-                Directory.CreateDirectory($"{PluginDataPath}/Platforms/");
-
-            if(!Directory.Exists($"{PluginDataPath}/Games/"))
-                Directory.CreateDirectory($"{PluginDataPath}/Games/");
-
-            ImportController = new();
-            StatusController = new(this);
-            Account = new();
-
-            _downloadsViewModel = new();
-            DownloadQueueController = new(this, _downloadsViewModel, maxConcurrent: 10);
-            DownloadsAppView = new(this);
-
-        }
-
-        public override async Task OnApplicationStartupAsync(OnApplicationStartupArgs args)
-        {
-            Settings = GravitonSettingsHandler.LoadSettings(PluginDataPath);
-            Settings.ProfilePath = string.IsNullOrEmpty(Settings.ProfilePath) ? Path.Combine(PluginDLLPath, @"profile.png") : Settings.ProfilePath;
-
             await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("Screenscraper", "Screenscraper"));
             await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("Hasheous", "Hasheous"));
             await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("RetroAchievements", "RetroAchievements"));
@@ -136,6 +112,30 @@ namespace Graviton
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("Hasheous", "Hasheous"));
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("RetroAchievements", "RetroAchievements"));
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("HowLongToBeat", "HowLongToBeat"));
+
+            PluginDataPath = PlayniteApi.UserDataDir;
+            PluginDLLPath = args.PluginInstallDir;
+
+            if (!Directory.Exists($"{PluginDataPath}/Platforms/"))
+                Directory.CreateDirectory($"{PluginDataPath}/Platforms/");
+
+            if(!Directory.Exists($"{PluginDataPath}/Games/"))
+                Directory.CreateDirectory($"{PluginDataPath}/Games/");
+
+            ImportController = new();
+            StatusController = new();
+            Account = new();
+
+            _downloadsViewModel = new();
+            DownloadQueueController = new(_downloadsViewModel, maxConcurrent: 10);
+            _downloadsAppView = new();
+
+        }
+
+        public override async Task OnApplicationStartupAsync(OnApplicationStartupArgs args)
+        {
+            Settings = GravitonSettingsHandler.LoadSettings(PluginDataPath);
+            Settings.ProfilePath = string.IsNullOrEmpty(Settings.ProfilePath) ? Path.Combine(PluginDLLPath, @"profile.png") : Settings.ProfilePath;
 
             if (Settings.LastAuthenticated != null)
             {
@@ -148,15 +148,14 @@ namespace Graviton
                     HttpClientSingleton.ConfigureClientToken(Settings.ClientToken);
                 }
 
-                var result = await Account.Heartbeat(Settings);
+                var result = await Account.Heartbeat();
                 if(result != null)
                     Settings.ServerVersion = result.Value.Version;
-            }      
+            } 
         }
 
         public override async Task<PluginSettingsHandler?> GetSettingsHandlerAsync(GetSettingsHandlerArgs args)
         {
-            await Task.CompletedTask;
             return SettingsHandler;
         }
 
@@ -168,6 +167,11 @@ namespace Graviton
         public override Task<List<Game>> ImportGamesAsync(ImportGamesArgs args)
         {
             return ImportController?.Import(args) ?? throw new Exception("Import controller is null, cannot continue");
+        }
+
+        public override async Task OnGameStateChangedAsync(GameStateChangedArgs args)
+        {
+            await Task.CompletedTask;
         }
 
         public override Task OnGameStartingAsync(OnGameStartingEventArgs args)
@@ -198,7 +202,7 @@ namespace Graviton
         public override AppViewItem? GetAppViewItem(GetAppViewItemsArgs args)
         {
             if (args.ViewId == $"{ExternalIdType}.Downloads")
-                return DownloadsAppView;
+                return _downloadsAppView;
 
             return null;
         }

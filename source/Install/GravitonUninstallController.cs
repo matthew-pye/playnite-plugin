@@ -4,14 +4,16 @@ using System.IO;
 
 namespace Graviton.Install.Downloads
 {
-    internal class RomMUninstallController : UninstallController
+    internal class GravitonUninstallController : UninstallController
     {
-        private readonly GravitonPlugin Plugin;
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
+        private ILogger _logger { get => GravitonPlugin.Logger; }
+
         private Game Game;
 
-        internal RomMUninstallController(Game game, GravitonPlugin romM) : base("", "Uninstall", game.Id)
+        internal GravitonUninstallController(Game game) : base("", "Uninstall", game.Id)
         {
-            Plugin = romM;
             Game = game;
         }
 

@@ -113,13 +113,13 @@ namespace Graviton.Settings
     public partial class GravitonSettingsHandler : PluginSettingsHandler
     {
         public static GravitonSettingsHandler? Instance { get; private set; }
+        public bool InEditingMode { get; private set; }
 
-        private static GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
-        private static IPlayniteApi PlayniteApi { get => GravitonPlugin.PlayniteApi ?? throw new Exception("Playnite API is null cannot continue!"); }
-        private static readonly ILogger Logger = LogManager.GetLogger();
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
+        private static ILogger _logger { get => GravitonPlugin.Logger; }
 
         [ObservableProperty] private GravitonPluginSettings settings = new();
-        public bool InEditingMode { get; private set; }
 
         public GravitonSettingsHandler()
         {
@@ -147,7 +147,7 @@ namespace Graviton.Settings
         public override async Task EndEditAsync(EndEditArgs args)
         {
             _plugin.Settings = Settings;
-            SaveSettings(PlayniteApi.UserDataDir, Settings);
+            SaveSettings(_playniteAPI.UserDataDir, Settings);
             InEditingMode = false;
             await Task.CompletedTask;
         }
@@ -181,7 +181,7 @@ namespace Graviton.Settings
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, "Failed to load plugin settings.");
+                    _logger.Error(ex, "Failed to load plugin settings.");
                 }
             }
 

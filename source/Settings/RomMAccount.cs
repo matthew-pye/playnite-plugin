@@ -12,93 +12,94 @@ namespace Graviton.Settings
 {
     internal class RomMAccount
     {
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
+        private ILogger _logger { get => GravitonPlugin.Logger; }
 
-        private GravitonPlugin _plugin {get => GravitonPlugin.Instance ?? throw new Exception("Plugin is null, cannot continue"); }
-
-        public async Task<ServerInfo?> Heartbeat(GravitonPluginSettings settings)
+        public async Task<ServerInfo?> Heartbeat()
         {
+            var result = await HttpClientSingleton.RomMGetAsync("/api/heartbeat");
+            if(result == null)
+            {
+                _plugin.Settings.LastAuthenticated = null;
+                GravitonNotify.Add(new GravitonNotification("graviton.heartbeat.failed", Loc.GetString("HeartbeatFailed"), GravitonSeverity.Error));
+                SyncFailed();
+                return null;
+            }
+
             try
             {
-                HttpResponseMessage response = await HttpClientSingleton.Instance.GetAsync($"{settings.Host}/api/heartbeat", new System.Threading.CancellationToken());
-                response = response.EnsureSuccessStatusCode();
-
-                Stream body = await response.Content.ReadAsStreamAsync();
-                using (StreamReader reader = new StreamReader(body))
-                {
-                    settings.LastAuthenticated = DateTime.UtcNow;
-                    return JsonDocument.Parse(reader.ReadToEnd()).RootElement.GetProperty("SYSTEM").Deserialize<ServerInfo>();
-                }
+                _plugin.Settings.LastAuthenticated = DateTime.UtcNow;
+                return result.RootElement.GetProperty("SYSTEM").Deserialize<ServerInfo>();               
             }
             catch (Exception ex)
             {
-                settings.LastAuthenticated = null;
-                GravitonNotify.Add(new GravitonNotification("graviton.heartbeat.failed", $"{Loc.GetString("HeartbeatFailed")} - {ex.Message}", GravitonSeverity.Error));
-                SyncFailed(settings);
+                _logger.Error($"Heartbeat failed - {ex}");
                 return null;
             }
         }
 
-        public async Task<bool> Login(GravitonPluginSettings settings)
+        public async Task<bool> Login()
         {
             // Check Host and Client token/UsernamePassword are set!
-            if (string.IsNullOrEmpty(settings.Host))
+            if (string.IsNullOrEmpty(_plugin.Settings.Host))
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.login.host.notset", Loc.GetString("HostNotSet"), GravitonSeverity.Warn));
-                SyncFailed(settings);
+                SyncFailed();
                 return false;
             }
 
-            if (settings.UseBasicAuth)
+            if (_plugin.Settings.UseBasicAuth)
             {
-                if (string.IsNullOrEmpty(settings.Username) || string.IsNullOrEmpty(settings.Password))
+                if (string.IsNullOrEmpty(_plugin.Settings.Username) || string.IsNullOrEmpty(_plugin.Settings.Password))
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("UserPassNotSet"), GravitonSeverity.Warn));
-                    SyncFailed(settings);
+                    SyncFailed();
                     return false;
                 }
                     
-                HttpClientSingleton.ConfigureBasicAuth(settings.Username, settings.Password);
+                HttpClientSingleton.ConfigureBasicAuth(_plugin.Settings.Username, _plugin.Settings.Password);
             }
             else
             {
-                if (string.IsNullOrEmpty(settings.ClientToken))
+                if (string.IsNullOrEmpty(_plugin.Settings.ClientToken))
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("TokenNotSet"), GravitonSeverity.Warn));
-                    SyncFailed(settings);
+                    SyncFailed();
                     return false;
                 }
                     
 
-                HttpClientSingleton.ConfigureClientToken(settings.ClientToken);
+                HttpClientSingleton.ConfigureClientToken(_plugin.Settings.ClientToken);
             }
 
-            settings.LastAuthenticated = DateTime.UtcNow;
+            _plugin.Settings.LastAuthenticated = DateTime.UtcNow;
 
-            ServerInfo? heartbeat = await Heartbeat(settings);
+            ServerInfo? heartbeat = await Heartbeat();
             if (heartbeat == null)
             {
-                SyncFailed(settings); 
+                SyncFailed(); 
                 return false;
             }
                 
-            settings.ServerVersion = heartbeat.Value.Version;
+            _plugin.Settings.ServerVersion = heartbeat.Value.Version;
 
 
-            if (!(await RegisterNewDevice(settings)))
+            if (!(await RegisterNewDevice()))
             {
-                SyncFailed(settings);
+                SyncFailed();
                 return false;
             }
             
-            else if(!(await UpdateDevice(settings)))
+            else if(!(await UpdateDevice()))
             {
-                SyncFailed(settings);
+                SyncFailed();
                 return false;
             }
 
-            if (!(await SyncUserData(settings)))
+            if (!(await SyncUserData()))
             {
-                SyncFailed(settings);
+                SyncFailed();
                 return false;
             }
 
@@ -106,7 +107,7 @@ namespace Graviton.Settings
             return true;
         }
 
-        async Task<bool> SyncUserData(GravitonPluginSettings settings)
+        async Task<bool> SyncUserData()
         {
             var result = await HttpClientSingleton.RomMGetAsync("/api/users/me");
             if (result == null)
@@ -118,15 +119,15 @@ namespace Graviton.Settings
             {
                 if (!string.IsNullOrEmpty(userinfo.IconPath))
                 {
-                    var response = await HttpClientSingleton.Instance.GetAsync($"{settings.Host}/api/raw/assets/{userinfo.IconPath}", System.Net.Http.HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken());
+                    var response = await HttpClientSingleton.Instance.GetAsync($"{_plugin.Settings.Host}/api/raw/assets/{userinfo.IconPath}", System.Net.Http.HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken());
                     response.EnsureSuccessStatusCode();
                     var imagebytes = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
                     File.WriteAllBytes($"{GravitonPlugin.PlayniteApi?.UserDataDir}\\avatar.png", imagebytes);
-                    settings.ProfilePath = $"{GravitonPlugin.PlayniteApi?.UserDataDir}\\avatar.png";
+                    _plugin.Settings.ProfilePath = $"{GravitonPlugin.PlayniteApi?.UserDataDir}\\avatar.png";
                 }
                 else
                 {
-                    settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
+                    _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
                 }
             }
             catch (Exception ex)
@@ -134,18 +135,17 @@ namespace Graviton.Settings
                 GravitonNotify.Add(new GravitonNotification("graviton.GET.profileicon.failed", $"{Loc.GetString("GETProfileIconFailed")} - {ex.Message}", GravitonSeverity.Error));
             }
             
-
-            settings.UserType = userinfo.Role;
-            settings.User = userinfo.Username;
-            settings.UserID = userinfo.Id;
+            _plugin.Settings.UserType = userinfo.Role;
+            _plugin.Settings.User = userinfo.Username;
+            _plugin.Settings.UserID = userinfo.Id;
             return true;
 
         }
 
-        async Task<bool> RegisterNewDevice(GravitonPluginSettings settings)
+        async Task<bool> RegisterNewDevice()
         {
             // Check to see if current device id is valid
-            if (!string.IsNullOrEmpty(settings.DeviceID))
+            if (!string.IsNullOrEmpty(_plugin.Settings.DeviceID))
             {
                 var result = await HttpClientSingleton.RomMGetAsync("/api/devices");
                 if (result != null)
@@ -153,7 +153,7 @@ namespace Graviton.Settings
                     try
                     {
                         List<RomMDevice> devices = result.RootElement.Deserialize<List<RomMDevice>>() ?? throw new Exception("Unable to deserialize UserInfo!");
-                        if (devices.Any(x => x.ID == settings.DeviceID))
+                        if (devices.Any(x => x.ID == _plugin.Settings.DeviceID))
                             return true;
                     }
                     catch (Exception ex)
@@ -174,7 +174,7 @@ namespace Graviton.Settings
             newDevice.MACAddress = (from nic in NetworkInterface.GetAllNetworkInterfaces() where nic.OperationalStatus == OperationalStatus.Up select nic.GetPhysicalAddress().ToString()).FirstOrDefault();
             newDevice.HostName = Environment.MachineName;
 
-            var request = await HttpClientSingleton.RomMPostWithJsonAsync("/api/devices", newDevice);
+            var request = await HttpClientSingleton.RomMPostJsonAsync("/api/devices", newDevice);
             if (request == null)
                 return false;
 
@@ -183,7 +183,7 @@ namespace Graviton.Settings
                 RomMRegisterDeviceResponse newRomMDevice = request.RootElement.Deserialize<RomMRegisterDeviceResponse>() ?? throw new Exception("Unable to deserialize register device response!");
 
                 // Set ID that RomM responds with
-                settings.DeviceID = newRomMDevice.DeviceID ?? throw new Exception("Response Device ID is null!");
+                _plugin.Settings.DeviceID = newRomMDevice.DeviceID ?? throw new Exception("Response Device ID is null!");
                 return true;
             }
             catch (Exception ex)
@@ -193,7 +193,7 @@ namespace Graviton.Settings
             }
         }
 
-        async Task<bool> UpdateDevice(GravitonPluginSettings settings)
+        async Task<bool> UpdateDevice()
         {
             // Rebuild device data
             RomMRegisterDevice newDevice = new();
@@ -203,20 +203,20 @@ namespace Graviton.Settings
             newDevice.MACAddress = (from nic in NetworkInterface.GetAllNetworkInterfaces() where nic.OperationalStatus == OperationalStatus.Up select nic.GetPhysicalAddress().ToString()).FirstOrDefault();
             newDevice.HostName = Environment.MachineName;
 
-            var result = HttpClientSingleton.RomMPutWithJsonAsync($"/api/devices/{settings.DeviceID}", newDevice);
+            var result = HttpClientSingleton.RomMPutJsonAsync($"/api/devices/{_plugin.Settings.DeviceID}", newDevice);
             if (result == null)
                 return false;
 
             return true;
         }
 
-        void SyncFailed(GravitonPluginSettings settings)
+        void SyncFailed()
         {
-            settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
-            settings.User = "----";
-            settings.UserType = "----";
-            settings.ServerVersion = "---";
-            settings.LastAuthenticated = null;
+            _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
+            _plugin.Settings.User = "----";
+            _plugin.Settings.UserType = "----";
+            _plugin.Settings.ServerVersion = "---";
+            _plugin.Settings.LastAuthenticated = null;
         }
     }
 }

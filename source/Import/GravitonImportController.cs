@@ -19,13 +19,11 @@ using static Playnite.Plugin;
 
 namespace Graviton.Import
 {
-    public class RomMImportController
+    public class GravitonImportController
     {
-        //public List<NotificationMessage> Notifications = new List<NotificationMessage>> ();
-
-        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi ?? throw new Exception("Playnite API is null, cannot continue!"); }
-        private ILogger _logger { get => GravitonPlugin.Logger ?? throw new Exception("Logger is null, cannot continue!"); }
-        private GravitonPlugin _plugin {get => GravitonPlugin.Instance; }
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
+        private ILogger _logger { get => GravitonPlugin.Logger; }
 
         public async Task<List<Game>> Import(ImportGamesArgs args)
         {
@@ -75,7 +73,7 @@ namespace Graviton.Import
 
 
                 _logger.Debug($"[Import Controller] Creating new import task for {apiPlatform.Name}.");
-                tasks.Add(new RomMImport(args.CancelToken, mapping, rommROMs).ProcessData());
+                tasks.Add(new GravitonImport(args.CancelToken, mapping, rommROMs).ProcessData());
 
             }
 
@@ -90,7 +88,7 @@ namespace Graviton.Import
             }
 
             if (!_plugin.Settings.KeepDeletedGames)
-                RemoveMissingGames(proccessedgames);
+                await RemoveMissingGames(proccessedgames);
 
             return games;
         }

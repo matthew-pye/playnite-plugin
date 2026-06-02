@@ -1,62 +1,48 @@
-﻿using Playnite;
+﻿using Graviton.Models.RomM.Rom;
 
-using Graviton;
-using Graviton.Models.RomM.Rom;
+using Playnite;
 
 using System.Net.Http;
 using System.Text.Json;
+
+using static Playnite.Plugin;
 
 namespace Graviton.Import
 {
     public class GravitonMetadataProviderGameSession : MetadataProviderGameSession
     {
-        private GravitonPlugin Plugin { get => GravitonPlugin.Instance; }
-        private readonly ILogger Logger = LogManager.GetLogger();
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
+        private ILogger _logger { get => GravitonPlugin.Logger; }
+
         private RomMRom? ROM = null;
 
-        public GravitonMetadataProviderGameSession(Game game) : base(game)
+        public GravitonMetadataProviderGameSession(Game game) : base(game) { }
+
+        public async Task<bool> PullRomData()
         {
-            if (game.LibraryId == "Graviton")
+            if (Game.SourceId == GravitonPlugin.Id)
             {
                 try
                 {
                     int romMId;
-                    if (!int.TryParse(game.LibraryGameId?.Split(':')[0], out romMId))
-                        throw new Exception($"[Metadata] {game.Name} GameID is malformed!");
+                    if (!int.TryParse(Game.LibraryGameId?.Split(':')[0], out romMId))
+                        throw new Exception($"[Metadata] {Game.Name} GameID is malformed!");
 
-                    RomMRom romMGame = FetchRom(romMId.ToString());
+                    var result = await HttpClientSingleton.RomMGetAsync($"/api/roms/{romMId}");
+                    if (result == null)
+                        return false;
 
-                    if (romMGame == null)
-                        throw new Exception($"[Metadata] {game.Name} failed to get game!");
-
-                    ROM = romMGame;
-
+                    ROM = JsonSerializer.Deserialize<RomMRom>(result) ?? throw new Exception("Unable to deserialize ROM!");
+                    return true;
                 }
                 catch (Exception Ex)
                 {
-                    Logger.Error($"[Metadata] {game.Name} failed to get metadata\n{Ex}!");
+                    _logger.Error($"[Metadata] {Game.Name} failed to get metadata\n{Ex}!");
+                    return false;
                 }
             }
-
-            
-        }
-
-        public RomMRom FetchRom(string romId)
-        {
-            string romUrl = $"{Plugin.Settings.Host}/api/roms/{romId}";
-            try
-            {
-                HttpResponseMessage response = HttpClientSingleton.Instance.GetAsync(romUrl).GetAwaiter().GetResult();
-                response.EnsureSuccessStatusCode();
-
-                string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                return JsonSerializer.Deserialize<RomMRom>(body) ?? throw new Exception("Unable to deserialize ROM!");
-            }
-            catch (HttpRequestException e)
-            {
-                Logger.Error($"Request exception: {e.Message}");
-                return null!;
-            }
+            return false;
         }
 
         public override async Task<object?> GetDataAsync(GetDataArgs dataArgs)
@@ -68,44 +54,95 @@ namespace Graviton.Import
             {
                 case BuiltInGameDataId.Name:
                     return ROM.Name;
+
                 case BuiltInGameDataId.Description:
                     return ROM.Summary;
-                case BuiltInGameDataId.Note:
-                    return null;
+
+                //case BuiltInGameDataId.Note:
+                //    return null;
+
                 case BuiltInGameDataId.DesktopCover:
                     return ROM.HasCover ? ROM.PathCoverL : null;
+
                 case BuiltInGameDataId.Genres:
                     return ROM.Metadatum?.Genres?.Count > 0 ? ROM.Metadatum.Genres : null;
+
                 case BuiltInGameDataId.Tags:
                     return ROM.Tags?.Count > 0 ? ROM.Tags : null;
+
                 case BuiltInGameDataId.Features:
                     return ROM.Metadatum?.Gamemodes?.Count > 0 ? ROM.Metadatum.Gamemodes : null;
+
                 case BuiltInGameDataId.Platforms:
                     return ROM.PlatformName;
+
                 case BuiltInGameDataId.Categories:
                     return ROM.Metadatum?.Collections?.Count > 0 ? ROM.Metadatum.Collections : null;
+
                 case BuiltInGameDataId.Series:
                     return ROM.Metadatum?.Franchises?.Count > 0 ? ROM.Metadatum.Franchises : null;
+
                 case BuiltInGameDataId.AgeRating:
-                    return ROM.Metadatum?.Age_Ratings?.Count > 0 ? ROM.Metadatum.Age_Ratings : null;
+                    if(ROM.IgdbMetadata?.AgeRatings != null)
+                    {
+                        List<string> ageratings = new();
+                        foreach (var rating in ROM.IgdbMetadata.AgeRatings)
+                        {
+                            ageratings.Add($"{rating.RatingBoard} {rating.Rating}");
+                        }
+                        return ageratings;
+                    }
+                    return null;
+
                 case BuiltInGameDataId.Region:
                     return ROM.Regions?.Count > 0 ? ROM.Regions : null;
+
                 //case BuiltInGameDataId.CompletionStatus:
                 //    return null;
+
                 case BuiltInGameDataId.UserScore:
                     return ROM.RomUser?.Rating * 10;
+
                 case BuiltInGameDataId.CommunityScore:
                     return ROM.Metadatum?.Average_Rating;
+
                 case BuiltInGameDataId.ReleaseDate:
                     return ROM.Metadatum?.ReleaseDate;
+
                 case BuiltInGameDataId.ObtainedDate:
                     return ROM.CreatedAt;
+
                 case BuiltInGameDataId.LastPlayedDate:
                     return ROM.RomUser?.LastPlayed;
-                //case BuiltInGameDataId.Favorite:
-                //    return null;
-                //case BuiltInGameDataId.Links:
-                //    return null;
+
+                case BuiltInGameDataId.Favorite:
+                    return ROM.Collections?.Any(x => x.Name == "Favorites");
+
+                case BuiltInGameDataId.Links:
+                    List<WebLink> links = new();
+                    if (ROM.SSId != null)
+                    {
+                        links.Add(new WebLink("Screenscraper", $"https://www.screenscraper.fr/gameinfos.php?gameid={ROM.SSId}"));
+                    }
+                    if (ROM.HasheousId != null)
+                    {
+                        links.Add(new WebLink("Hasheous", $"https://hasheous.org/index.html?page=dataobjectdetail&type=game&id={ROM.HasheousId}"));
+                    }
+                    if (ROM.RAId != null)
+                    {
+                        links.Add(new WebLink("RetroAchievements", $"https://retroachievements.org/game/{ROM.RAId}"));
+                    }
+                    if (ROM.HLTBId != null)
+                    {
+
+                        links.Add(new WebLink("HowLongToBeat", $"https://howlongtobeat.com/game/{ROM.HLTBId}"));
+                    }
+
+                    if (links.Count > 0)
+                        return links;
+
+                    return null;
+
                 case BuiltInGameDataId.TTBMainEstimated:
                     return ROM.HLTBMetadata?.MainStory;
                 case BuiltInGameDataId.TTBMainSidesEstimated:
@@ -120,12 +157,14 @@ namespace Graviton.Import
 
     public class GravitonMetadataProvider : MetadataProvider
     {
-        private GravitonPlugin Plugin { get => GravitonPlugin.Instance; }
-
         public override async Task<MetadataProviderGameSession?> CreateGameSessionAsync(CreateGameMetadataSessionArgs args)
         {
-            // This gets called for each game and returned MetadataProviderGameSession is disposed when Playnite is done with it.
-            return new GravitonMetadataProviderGameSession(args.Game);
+            GravitonMetadataProviderGameSession metadata = new(args.Game);
+            var success = await metadata.PullRomData();
+            if (!success)
+                return null;
+
+            return metadata;
         }
     }
 }

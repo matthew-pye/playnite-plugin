@@ -12,7 +12,7 @@ using System.Xml.Linq;
 
 namespace Graviton.Import
 {
-    internal class RomMImport
+    internal class GravitonImport
     {
         private GravitonPlugin _plugin {get => GravitonPlugin.Instance; }
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
@@ -22,7 +22,7 @@ namespace Graviton.Import
         private EmulatorMapping _mapping;
         private List<RomMRom> _roms;
 
-        public RomMImport(CancellationToken cancelToken, EmulatorMapping mapping, List<RomMRom> roms)
+        public GravitonImport(CancellationToken cancelToken, EmulatorMapping mapping, List<RomMRom> roms)
         {
             _cancelToken = cancelToken;
             _mapping = mapping;
@@ -262,7 +262,15 @@ namespace Graviton.Import
             {
                 foreach (var note in ROM.Notes!)
                 {
-                    await _playniteAPI.Library.GameNotes.AddAsync(new GameNote(PlayniteID, note.Note, GameNoteFormat.Markdown));
+                    GameNote newNote = new GameNote()
+                    { 
+                        Id = PlayniteID,
+                        Name = note.Title,
+                        Text = note.Note,
+                        Format = GameNoteFormat.Markdown
+                    };
+
+                    await _playniteAPI.Library.GameNotes.AddAsync(newNote);
                 }
             }
         }

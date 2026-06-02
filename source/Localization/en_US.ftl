@@ -61,6 +61,7 @@ LoginSuccess = Login Successful!
 GETProfileIconFailed = Failed to get profile icon
 GETDevicesFailed = Failed to get RomM devices
 CreateNewDeviceFailed = Failed to create new device
+FavouritesUpdateFailed = Can't update favorites, collection is null
 
 # Downloads
 DownloadViewName = RomM Downloads

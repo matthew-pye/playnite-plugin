@@ -1,8 +1,9 @@
-﻿using Playnite;
-
+﻿using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Collection;
 using Graviton.Models.RomM.PlaySessions;
 using Graviton.Models.RomM.Rom;
+
+using Playnite;
 
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -13,94 +14,77 @@ namespace Graviton.Status
 {
     public class StatusController
     {
-        GravitonPlugin Plugin;
-        private static readonly ILogger Logger = LogManager.GetLogger();
-        private readonly IPlayniteApi PlayniteApi;
-
-        public StatusController(GravitonPlugin plugin) 
-        {
-            Plugin = plugin;
-            PlayniteApi = GravitonPlugin.PlayniteApi ?? throw new Exception("Playnite API is null, cannot continue!");
-        }
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
+        private ILogger _logger { get => GravitonPlugin.Logger; }
 
         // Syncing
 
-        public void PushPlaySession(List<RomMPlaySession> playSessions)
+        public async Task PushPlaySession(List<RomMPlaySession> playSessions)
         {
             object sessions = new { device_id = "", sessions = playSessions };
 
-            HttpResponseMessage response = HttpClientSingleton.Instance.PutAsJsonAsync($"{Plugin.Settings.Host}/api/play-sessions", sessions, new System.Threading.CancellationToken()).GetAwaiter().GetResult();
-            response.EnsureSuccessStatusCode();
+            var response = await HttpClientSingleton.RomMPutJsonAsync("/api/play-sessions", sessions);
+
 
         }
 
         // Favourites
-        private RomMCollection? CreateFavorites()
+        private async Task<RomMCollection?> CreateFavorites()
         {
-            string apiCollectionUrl = $"{Plugin.Settings.Host}/api/collections?is_favorite=true&is_public=false";
+            var formData = new MultipartFormDataContent();
+            formData.Add(new StringContent("Favorites"), "name");
+
+            var result = await HttpClientSingleton.RomMPostContentAsync("/api/collections?is_favorite=true&is_public=false", formData);
+            if (result == null)
+                return null;
+
             try
             {
-                var formData = new MultipartFormDataContent();
-                formData.Add(new StringContent("Favorites"), "name");
-
-                HttpResponseMessage postResponse = HttpClientSingleton.Instance.PostAsync(apiCollectionUrl, formData).GetAwaiter().GetResult();
-                postResponse.EnsureSuccessStatusCode();
-
-                string body = postResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                return JsonSerializer.Deserialize<RomMCollection>(body);
+                return JsonSerializer.Deserialize<RomMCollection>(result);
             }
-            catch (HttpRequestException e)
+            catch (HttpRequestException ex)
             {
-                Logger.Error($"Request exception: {e.Message}");
+                _logger.Error($"{Loc.GetString("CreateFavoritesFailed")} - {ex}");
                 return null;
             }
         }
 
-        public RomMCollection? PullFavourites()
+        public async Task<RomMCollection?> PullFavourites()
         {
-            string apiFavoriteUrl = $"{Plugin.Settings.Host}/api/collections";
+            var result = await HttpClientSingleton.RomMGetAsync("/api/collections");
+            if (result == null)
+                return null;
+
             try
             {
-                // Make the request and get the response
-                HttpResponseMessage response = HttpClientSingleton.Instance.GetAsync(apiFavoriteUrl).GetAwaiter().GetResult();
-                response.EnsureSuccessStatusCode();
-
-                // Assuming the response is in JSON format
-                string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                RomMCollection? favourites = JsonSerializer.Deserialize<List<RomMCollection>>(body)?.First(x => x.Name == "Favorites");
+                RomMCollection? favourites = result.Deserialize<List<RomMCollection>>()?.First(x => x.Name == "Favorites");
 
                 if (favourites == null)
-                    return CreateFavorites();
+                    return await CreateFavorites();
 
                 return favourites;
             }
             catch (HttpRequestException e)
             {
-                Logger.Error($"Request exception: {e.Message}");
+                _logger.Error($"Request exception: {e.Message}");
                 return null;
             }
         }
 
-        public void UpdateFavorites(RomMCollection favoriteCollection, List<int> romMRomIDs)
+        public async Task UpdateFavorites(RomMCollection favoriteCollection, List<int> romMRomIDs)
         {
             if (favoriteCollection == null)
             {
-                Logger.Error($"Can't update favorites, collection is null");
+                GravitonNotify.Add(new GravitonNotification("graviton.favourites.update.failed", Loc.GetString("FavouritesUpdateFailed"), GravitonSeverity.Error));
+                _logger.Error($"Can't update favorites, collection is null");
                 return;
             }
 
-            string apiCollectionUrl = $"{Plugin.Settings.Host}/api/collections";
-            try
-            {
-                var formData = new MultipartFormDataContent();
-                formData.Add(new StringContent(JsonSerializer.Serialize(romMRomIDs)), "rom_ids");
-                HttpResponseMessage putResponse = HttpClientSingleton.Instance.PutAsync($"{apiCollectionUrl}/{favoriteCollection.Id}", formData).GetAwaiter().GetResult();
-                putResponse.EnsureSuccessStatusCode();
-            }
-            catch (HttpRequestException e)
-            {
-                Logger.Error($"Request exception: {e.Message}");
-            }
+            var formData = new MultipartFormDataContent();
+            formData.Add(new StringContent(JsonSerializer.Serialize(romMRomIDs)), "rom_ids");
+            var result = await HttpClientSingleton.RomMPutContentAsync("/api/collections", formData);
+
         }
 
         // Play Status
@@ -109,7 +93,7 @@ namespace Graviton.Status
             if(ROM.RomUser?.Status != null)
             {
                 var status = RomMRomUser.CompletionStatusMap[ROM.RomUser.Status];
-                return PlayniteApi.Library.CompletionStatuses.First(x => x.Name == status);
+                return _playniteAPI.Library.CompletionStatuses.First(x => x.Name == status);
             }
 
             return null;
@@ -118,13 +102,13 @@ namespace Graviton.Status
         {
             if (game.CompletionStatusId != null)
             {
-                return PlayniteApi.Library.CompletionStatuses.First(x => x.Id == game.CompletionStatusId);
+                return _playniteAPI.Library.CompletionStatuses.First(x => x.Id == game.CompletionStatusId);
             }
 
             return null;
         }
 
-        public void UpdateStatus(Game game)
+        public async Task UpdateStatus(Game game)
         {
             try
             {
@@ -133,11 +117,11 @@ namespace Graviton.Status
                 int romMID;
                 if (int.TryParse(game.LibraryGameId?.Split(':')[0], out romMID))
                 {
-                    Logger.Error("Failed to parse GameID, Skipping status update!");
+                    _logger.Error("Failed to parse GameID, Skipping status update!");
                     return;
                 }
 
-                var status = PlayniteApi.Library.CompletionStatuses.Get(game.CompletionStatusId)?.Name;
+                var status = _playniteAPI.Library.CompletionStatuses.Get(game.CompletionStatusId)?.Name;
                 var updatePayload = new
                 {
                     data = new
@@ -147,13 +131,13 @@ namespace Graviton.Status
                         status = RomMRomUser.CompletionStatusMap.FirstOrDefault((kv) => kv.Value == status && kv.Value != "Playing" && kv.Value != "Plan to Play" && kv.Value != "Not Played").Key
                     }
                 };
-                string apiRomMRomUserProps = $"{Plugin.Settings.Host}api/roms/{romMID}/props";
-                HttpResponseMessage response = HttpClientSingleton.Instance.PutAsync(apiRomMRomUserProps, new StringContent(JsonSerializer.Serialize(updatePayload), Encoding.UTF8, "application/json")).GetAwaiter().GetResult();
-                response.EnsureSuccessStatusCode();
+                string apiRomMRomUserProps = $"{_plugin.Settings.Host}";
+
+                var result = await HttpClientSingleton.RomMPutContentAsync($"/api/roms/{romMID}/props", new StringContent(JsonSerializer.Serialize(updatePayload), Encoding.UTF8, "application/json"));
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, $"RomM Status Sync Failed for {game.Name}");
+                _logger.Error(ex, $"RomM Status Sync Failed for {game.Name}");
             }
         }
     }
