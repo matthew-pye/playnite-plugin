@@ -72,73 +72,74 @@ namespace Graviton.Status
             }
         }
 
-        public async Task UpdateFavorites(RomMCollection favoriteCollection, List<int> romMRomIDs)
+        public async Task UpdateFavorites(Game game)
         {
-            if (favoriteCollection == null)
+            var favouriteCollection = await PullFavourites();
+
+            if (favouriteCollection == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.favourites.update.failed", Loc.GetString("FavouritesUpdateFailed"), GravitonSeverity.Error));
-                _logger.Error($"Can't update favorites, collection is null");
                 return;
             }
 
+            int romMID;
+            if (!int.TryParse(game.LibraryGameId?.Split(':')[0], out romMID))
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed"), GravitonSeverity.Error));
+                return;
+            }
+
+            if(game.Favorite)
+            {
+                favouriteCollection.RomIDs?.Add(romMID);
+            }
+            else
+            {
+                favouriteCollection.RomIDs?.Remove(romMID);
+            }
+
             var formData = new MultipartFormDataContent();
-            formData.Add(new StringContent(JsonSerializer.Serialize(romMRomIDs)), "rom_ids");
-            var result = await HttpClientSingleton.RomMPutContentAsync("/api/collections", formData);
+            formData.Add(new StringContent(JsonSerializer.Serialize(favouriteCollection.RomIDs)), "rom_ids");
+            var result = await HttpClientSingleton.RomMPutContentAsync($"/api/collections/{favouriteCollection.Id}", formData);
 
         }
 
         // Play Status
-        public CompletionStatus? DetermineCompletionStatus(RomMRom ROM)
-        {
-            if(ROM.RomUser?.Status != null)
-            {
-                var status = RomMRomUser.CompletionStatusMap[ROM.RomUser.Status];
-                return _playniteAPI.Library.CompletionStatuses.First(x => x.Name == status);
-            }
-
-            return null;
-        }
-        public CompletionStatus? DetermineCompletionStatus(Game game)
-        {
-            if (game.CompletionStatusId != null)
-            {
-                return _playniteAPI.Library.CompletionStatuses.First(x => x.Id == game.CompletionStatusId);
-            }
-
-            return null;
-        }
-
         public async Task UpdateStatus(Game game)
         {
-            try
-            {
-                if (game.CompletionStatusId == null) return;
 
-                int romMID;
-                if (int.TryParse(game.LibraryGameId?.Split(':')[0], out romMID))
+            int romMID;
+            if (!int.TryParse(game.LibraryGameId?.Split(':')[0], out romMID))
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed"), GravitonSeverity.Error));
+                return;
+            }
+
+            var playniteStatus = _playniteAPI.Library.CompletionStatuses.FirstOrDefault(x => x.Id == game.CompletionStatusId)?.Name;
+            if(playniteStatus == null)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("CompletionStatusNameFailed"), GravitonSeverity.Error));
+                return;
+            }
+
+            var status = RomMRomUser.CompletionStatusMap.FirstOrDefault(x => x.Value == playniteStatus).Key;
+            if (status == null)
+            { 
+                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("ConvertStatusFailed", [("$PlayniteStatus", $"{playniteStatus}")]), GravitonSeverity.Error));
+                return;
+            }
+                
+            var props = new
+            {
+                data = new
                 {
-                    _logger.Error("Failed to parse GameID, Skipping status update!");
-                    return;
+                    backlogged = status == "Plan to Play",
+                    now_playing = status == "Playing",
+                    status = RomMRomUser.CompletionStatusMap.FirstOrDefault((kv) => kv.Value == status && kv.Value != "Playing" && kv.Value != "Plan to Play" && kv.Value != "Not Played").Key
                 }
+            };
 
-                var status = _playniteAPI.Library.CompletionStatuses.Get(game.CompletionStatusId)?.Name;
-                var updatePayload = new
-                {
-                    data = new
-                    {
-                        backlogged = status == "Plan to Play",
-                        now_playing = status == "Playing",
-                        status = RomMRomUser.CompletionStatusMap.FirstOrDefault((kv) => kv.Value == status && kv.Value != "Playing" && kv.Value != "Plan to Play" && kv.Value != "Not Played").Key
-                    }
-                };
-                string apiRomMRomUserProps = $"{_plugin.Settings.Host}";
-
-                var result = await HttpClientSingleton.RomMPutContentAsync($"/api/roms/{romMID}/props", new StringContent(JsonSerializer.Serialize(updatePayload), Encoding.UTF8, "application/json"));
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, $"RomM Status Sync Failed for {game.Name}");
-            }
+            await HttpClientSingleton.RomMPutContentAsync($"/api/roms/{romMID}/props", new StringContent(JsonSerializer.Serialize(props), Encoding.UTF8, "application/json"));
         }
     }
 }

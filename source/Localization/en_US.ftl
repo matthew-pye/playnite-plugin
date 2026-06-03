@@ -67,3 +67,8 @@ FavouritesUpdateFailed = Can't update favorites, collection is null
 DownloadViewName = RomM Downloads
 DownloadViewTitle = Downloads
 DownloadFailed = Failed to download
+
+# Status Controller
+LibraryIdConvertFailed = Failed to parse GameID, Skipping status update!
+CompletionStatusNameFailed = Failed to get name of completion status
+ConvertStatusFailed = {$PlayniteStatus} cannot be converted to a RomM status"

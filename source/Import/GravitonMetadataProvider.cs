@@ -97,8 +97,12 @@ namespace Graviton.Import
                 case BuiltInGameDataId.Region:
                     return ROM.Regions?.Count > 0 ? ROM.Regions : null;
 
-                //case BuiltInGameDataId.CompletionStatus:
-                //    return null;
+                case BuiltInGameDataId.CompletionStatus:
+                    if (ROM.RomUser?.Status != null)
+                    {
+                        return RomMRomUser.CompletionStatusMap[ROM.RomUser.Status];
+                    }
+                    return null;
 
                 case BuiltInGameDataId.UserScore:
                     return ROM.RomUser?.Rating * 10;

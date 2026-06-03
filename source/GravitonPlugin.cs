@@ -169,9 +169,29 @@ namespace Graviton
             return ImportController?.Import(args) ?? throw new Exception("Import controller is null, cannot continue");
         }
 
-        public override async Task OnGameStateChangedAsync(GameStateChangedArgs args)
+        public override async Task OnGameCollectionChange(DataCollectionChangeArgs<Game> args)
         {
-            await Task.CompletedTask;
+            if(args.UpdatedItems?.Count > 0 && args.UpdatedItems.Any(x => x.OldData.SourceId == Id))
+            {
+                foreach(var updatedGame in args.UpdatedItems.Where(x => x.OldData.SourceId == Id))
+                {
+                    foreach (var prop in updatedGame.ChangedProperties)
+                    {
+                        Logger.Info($"Game: {updatedGame.OldData.Name} | Prop: {prop}");
+                    }
+
+                    if(updatedGame.ChangedProperties.Contains("CompletionStatusId"))
+                    {
+                        await StatusController!.UpdateStatus(updatedGame.NewData);
+                    }
+
+                    if (updatedGame.ChangedProperties.Contains("Favorite"))
+                    {
+                        await StatusController!.UpdateFavorites(updatedGame.NewData);
+                    }
+
+                }
+            }
         }
 
         public override Task OnGameStartingAsync(OnGameStartingEventArgs args)
