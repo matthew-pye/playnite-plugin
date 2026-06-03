@@ -1,0 +1,29 @@
+﻿<UserControl x:Class="Graviton.Settings.GravitonSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:s="clr-namespace:Graviton.Settings"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=s:GravitonSettingsHandler}"
+             d:DesignHeight="1000" d:DesignWidth="800">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+        <s:ImageCacheConverter x:Key="imageCacheConverter" />
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="LightGray" />
+        </Style>
+        <Style TargetType="{x:Type Label}">
+            <Setter Property="Foreground" Value="LightGray" />
+        </Style>
+    </UserControl.Resources>
+
+    <Canvas Name="SettingsCanvas" DataContext="{Binding Settings}" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=UserControl}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=UserControl}}">
+
+        <s:NotificationsView Panel.ZIndex="9999" Canvas.Left="0" Canvas.Top="0" Width="{Binding ActualWidth, ElementName=SettingsCanvas}"/>
+        <s:SettingsTabControl Canvas.Left="0" Canvas.Top="0" Width="{Binding ActualWidth, ElementName=SettingsCanvas}" Height="{Binding ActualHeight, ElementName=SettingsCanvas}" />
+
+    </Canvas>
+</UserControl>

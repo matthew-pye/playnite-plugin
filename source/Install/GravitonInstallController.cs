@@ -1,0 +1,209 @@
+﻿using Playnite;
+
+using Graviton.Install.Downloads;
+using Graviton.Models.RomM.Rom;
+
+using SharpCompress.Archives;
+
+using System.IO;
+
+namespace Graviton.Install
+{
+    enum InstallStatus
+    {
+        Cancelled = -1
+    }
+
+    internal class GravitonInstallController : InstallController
+    {
+        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
+        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
+        private ILogger _logger { get => GravitonPlugin.Logger; }
+
+        public GameInstallInfo GameData;
+
+        private Game Game;
+
+        internal GravitonInstallController(Game game, GameInstallInfo gameData) : base(GravitonPlugin.Id, "Download", game.LibraryGameId ?? throw new Exception("Game doesn't have libraryID!"))
+        {
+            GameData = gameData;
+            Game = game;
+        }
+
+        public override async Task InstallAsync(InstallActionArgs args)
+        {
+            if (GameData.Id == (int)InstallStatus.Cancelled)
+            {
+                CancelInstall();
+                await Task.CompletedTask;
+                return; 
+            }   
+
+            var dstPath = GameData.Mapping?.DestinationPathResolved
+                ?? throw new Exception("Mapped emulator data cannot be found, try removing and re-adding.");
+
+            // Paths (same as before)
+            var installDir = Path.Combine(dstPath, Path.GetFileNameWithoutExtension(GameData.FileName));
+
+            // If RomM indicates multiple files, we download as an archive name (zip) into the install folder.
+            // Otherwise we download the single ROM file.
+            var downloadFilePath = GameData.HasMultipleFiles
+                ? Path.Combine(installDir, GameData.FileName + ".zip")
+                : Path.Combine(installDir, GameData.FileName);
+
+            var req = new DownloadRequest
+            {
+                GameId = Game.Id,
+                GameName = Game.Name,
+
+                DownloadUrl = GameData.DownloadURL,
+                InstallDir = installDir,
+                GamePath = downloadFilePath,
+                Use7z = _plugin.Settings.Use7z,
+                PathTo7Z = _plugin.Settings.PathTo7z,
+
+                HasMultipleFiles = GameData.HasMultipleFiles,
+                AutoExtract = GameData.Mapping != null && GameData.Mapping.AutoExtract,
+
+                // Called by queue AFTER download/extract is done
+                BuildRoms = () =>
+                {
+                    //var roms = new List<GameRom>();
+
+                    // If the downloaded file still exists and wasn't extracted -> single file ROM
+                    if (File.Exists(downloadFilePath))
+                    {
+                        //roms.Add(new GameRom(Game.Name, downloadFilePath));
+                        //return roms;
+                    }
+
+                    // Otherwise, we assume extracted files are in installDir
+                    //var supported = GetEmulatorSupportedFileTypes(_gameData);
+                    //var actualRomFiles = GetRomFiles(installDir, supported);
+
+                    // Prefer .m3u if requested
+                    //var useM3u = GameData.Mapping != null && GameData.Mapping.UseM3U && supported.Any(x => x.ToLower() == "m3u");
+                    //if (useM3u)
+                    //{
+                    //    var m3uFile = actualRomFiles.FirstOrDefault(m =>
+                    //        m.EndsWith(".m3u", StringComparison.OrdinalIgnoreCase));
+                    //
+                    //    if (!string.IsNullOrEmpty(m3uFile))
+                    //    {
+                    //        roms.Add(new GameRom(Game.Name, m3uFile));
+                    //        return roms;
+                    //    }
+                    //}
+                    //
+                    //// Otherwise add all rom files except m3u (we don’t want duplicates)
+                    //foreach (var f in actualRomFiles.Where(f => !f.EndsWith(".m3u", StringComparison.OrdinalIgnoreCase)))
+                    //{
+                    //    roms.Add(new GameRom(Game.Name, f));
+                    //}
+
+                    //return roms;
+                    return new List<Game>();
+                },
+
+                // Callbacks into Playnite install pipeline
+                OnInstalled = installedArgs =>
+                {
+                    var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception("Could not get game to set as installed!");
+                    game.InstallState = InstallState.Installed;
+                    _playniteAPI.Library.Games.UpdateAsync(game);
+
+                    GameInstalledAsync(installedArgs);
+                },
+
+                OnCancelled = () =>
+                {
+                    //var game = PlayniteApi.Library.Games[Game.Id];
+                    //game.IsInstalling = false;
+                    //game.IsInstalled = false;
+                    //PlayniteApi.Library.Games.UpdateAsync(game);
+
+                    GameInstallationCancelledAsync(new GameInstallationCancelledArgs());
+                },
+
+                OnFailed = ex =>
+                {
+                    _playniteAPI.Notifications.Add(new NotificationMessage(
+                        Game.LibraryGameId ?? GravitonPlugin.Id,
+                        $"{Loc.GetString("DownloadFailed")} {Game.Name}.\n\n{ex.Message}",
+                        NotificationSeverity.Error)); 
+
+                    //Game.IsInstalling = false;
+                }
+            };
+
+            // Enqueue (non-blocking)
+            _plugin.DownloadQueueController?.Enqueue(req);
+        }
+
+        private void CancelInstall()
+        {
+            //var game = PlayniteApi.Library.Games[Game.Id];
+            //game.IsInstalling = false;
+            //PlayniteApi.Library.Games.Update(game);
+
+            GameInstallationCancelledAsync(new GameInstallationCancelledArgs());
+        }
+
+        private static string[] GetRomFiles(string installDir, List<string> supportedFileTypes)
+        {
+            // NOTE: this traversal check is weak; containment checks should be done via GetFullPath
+            // against a trusted root. Keeping your existing checks as-is for now.
+            if (installDir == null || installDir.Contains("../") || installDir.Contains(@"..\"))
+            {
+                throw new ArgumentException("Invalid file path");
+            }
+
+            if (supportedFileTypes == null || supportedFileTypes.Count == 0)
+            {
+                return Directory.GetFiles(installDir, "*", SearchOption.AllDirectories)
+                    .ToArray();
+            }
+
+            return supportedFileTypes.SelectMany(fileType =>
+            {
+                if (fileType == null || fileType.Contains("../") || fileType.Contains(@"..\"))
+                {
+                    throw new ArgumentException("Invalid file path");
+                }
+
+                return Directory.GetFiles(installDir, "*." + fileType, SearchOption.AllDirectories);
+            }).ToArray();
+        }
+
+        //private static List<string> GetEmulatorSupportedFileTypes(GameInstallInfo info)
+        //{
+        //    if (info.Mapping.EmulatorProfile is CustomEmulatorProfile)
+        //    {
+        //        var customProfile = info.Mapping.EmulatorProfile as CustomEmulatorProfile;
+        //        return customProfile.ImageExtensions;
+        //    }
+        //    else if (info.Mapping.EmulatorProfile is BuiltInEmulatorProfile)
+        //    {
+        //        var builtInProfile = (info.Mapping.EmulatorProfile as BuiltInEmulatorProfile);
+        //        return API.Instance.Emulation.Emulators
+        //            .FirstOrDefault(e => e.Id == info.Mapping.Emulator.BuiltInConfigId)?
+        //            .Profiles
+        //            .FirstOrDefault(p => p.Name == builtInProfile.Name)?
+        //            .ImageExtensions;
+        //    }
+        //
+        //    return null;
+        //}
+
+        private static bool IsFileCompressed(string filePath)
+        {
+            // Exclude disk images which aren't handled by sharpcompress
+            if (Path.GetExtension(filePath).Equals(".iso", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return ArchiveFactory.IsArchive(filePath, out var type);
+        }
+    }
+}

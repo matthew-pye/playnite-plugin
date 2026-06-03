@@ -1,0 +1,201 @@
+﻿<UserControl x:Class="Graviton.Settings.MappingsTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:s="clr-namespace:Graviton.Settings"
+             mc:Ignorable="d"
+             d:DesignHeight="750" d:DesignWidth="900">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+        <s:ImageCacheConverter x:Key="imageCacheConverter" />
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="LightGray" />
+        </Style>
+        <Style TargetType="{x:Type Label}">
+            <Setter Property="Foreground" Value="LightGray" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="0,0,0,10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled" Width="300">
+            <StackPanel Margin="2,0,0,0">
+
+                <Button Click="AddMapping_Click" FontSize="20" Margin="5" HorizontalAlignment="Left">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="Gray"/>
+                            <Setter Property="Opacity" Value="0.6"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        </ContentPresenter>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Opacity" Value="1"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="AddMappingIcon"  Text="&#xea60; New Mapping" Margin="2,0,5,0"/>
+                    </StackPanel>
+                </Button>
+                <Separator Margin="5,5,5,20"/>
+
+                <StackPanel x:Name="MappingsStack">
+                    <ItemsControl ItemsSource="{Binding Mappings, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Click="Mapping_Click" FontSize="14" Margin="5" HorizontalAlignment="Left" MaxWidth="300">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="BorderBrush" Value="Transparent"/>
+                                            <Setter Property="Foreground" Value="Gray"/>
+                                            <Setter Property="Opacity" Value="0.7"/>
+                                            <Setter Property="Cursor" Value="Hand"/>
+
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" CornerRadius="6" Padding="4">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Opacity" Value="1"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter Property="Opacity" Value="1"/>
+                                                    <Setter Property="Foreground" Value="#55cdff"/>
+                                                </DataTrigger>
+
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+
+                                    <Grid MaxWidth="300">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <Image Grid.Column="0" Name="MappingIcon" Source="{Binding PlatformIcon, Mode=OneWay, Converter={StaticResource imageCacheConverter}}" Stretch="UniformToFill" Width="40" Height="40"/>
+
+                                        <TextBlock Grid.Column="2" Margin="5,0,5,0" Text="{Binding MappingName, Mode=OneWay}" VerticalAlignment="Center" TextWrapping="Wrap" TextTrimming="None"/>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Name="MappingOptions" Grid.Column="1" Visibility="Hidden" Margin="5">
+
+            <StackPanel Orientation="Horizontal">
+                <Image Name="MappingIcon" Source="{Binding PlatformIcon, Mode=OneWay, Converter={StaticResource imageCacheConverter}}"  Margin="5,0,5,0" Stretch="UniformToFill" Width="50" Height="50"/>
+                <TextBlock Text="{Binding MappingName, Mode=OneWay}" VerticalAlignment="Center" FontSize="20"/>
+            </StackPanel>
+            <Separator Margin="5,2,5,10"/>
+
+            <Grid>
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" IsChecked="{Binding Enabled, Mode=TwoWay}"/>
+                    <TextBlock Text="Enabled" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
+                </StackPanel>
+
+                <Button Click="DeleteMapping_Click" FontSize="24" Margin="5" HorizontalAlignment="Right">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="Red"/>
+                            <Setter Property="Opacity" Value="0.6"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        </ContentPresenter>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Opacity" Value="1"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="DeleteMappingIcon"  Text="&#xf05e8;" Foreground="Red" Margin="2,0,5,0"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+            
+
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Name="EmulatorText" Text="Emulator" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
+                <ComboBox Name="ComboEmulators"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailableEmulators}" DisplayMemberPath="Name" SelectedItem="{Binding Emulator, Mode=TwoWay}"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Name="ProfileText" Text="Profile" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
+                <ComboBox Name="ComboProfiles"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailableProfiles}" DisplayMemberPath="Name" SelectedItem="{Binding EmulatorProfile, Mode=TwoWay}"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Name="PlatformText" Text="Platform" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
+                <ComboBox Name="ComboPlatform"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="Name" SelectedItem="{Binding RomMPlatform, Mode=TwoWay}"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Name="ROMLocText" Text="ROM location" Margin="5" MinWidth="100" MaxWidth="150" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                <TextBox x:Name="Path" Margin="5" MinWidth="300" Text="{Binding Path=DestinationPath, Mode=TwoWay}"/>
+                <Button Click="Click_BrowseDestination" Margin="5">
+                    <TextBox Name="ROMLocButtonText" Text="Browse"/>
+                </Button>
+            </StackPanel>
+            <Separator Margin="5,2,5,0"/>
+
+            <TextBlock Name="OptionText" Text="Options" Margin="5,15,5,5" FontSize="20" Width="100" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+            <Separator Margin="5,0,10,0"/>
+
+            <StackPanel Orientation="Horizontal">
+                <CheckBox Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding AutoExtract, Mode=TwoWay}" ToolTip="Will extract ROMs if they are stored in RAR, Zip, Tar, 7Zip, GZip, Arc, Arj, Ace or Lzw format!" />
+                <TextBlock Name="AutoExtractROMText" Text="Auto extract ROMs in archive format" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal">
+                <CheckBox Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding UseM3U, Mode=TwoWay}" ToolTip="Will use .m3u file if multi-file ROM and emulator supports .m3u!"/>
+                <TextBlock Name="Preferm3uText" Text="Prefer .m3u for launch action" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+            </StackPanel>
+
+        </StackPanel>
+    </Grid>
+        
+
+</UserControl>

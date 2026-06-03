@@ -1,0 +1,5 @@
+﻿id = "Matthew-Pye.Graviton"
+name = "Graviton (RomM Library)"
+author = "Matthew Pye"
+version = "0.1.0"
+module = "Graviton.dll"

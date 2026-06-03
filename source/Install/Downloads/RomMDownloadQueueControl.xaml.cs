@@ -1,0 +1,32 @@
+﻿using Playnite;
+
+using System.Windows;
+using System.Windows.Controls;
+
+namespace Graviton.Install.Downloads
+{
+    public partial class RomMDownloadQueueControl : UserControl
+    {
+        private readonly DownloadQueueController controller;
+
+        public RomMDownloadQueueControl(DownloadQueueController controller)
+        {
+            InitializeComponent();
+
+            DownloadsHeader.Text = Loc.GetString("DownloadViewTitle");
+
+            this.controller = controller ?? throw new ArgumentNullException(nameof(controller));
+            DataContext = controller.ViewModel;
+        }
+
+        private void CancelClicked(object sender, RoutedEventArgs e)
+        {
+            var btn = (Button)sender;
+            var item = btn.Tag as DownloadQueueItem;
+            if (item != null)
+            {
+                controller.Cancel(item.GameId);
+            }
+        }
+    }
+}

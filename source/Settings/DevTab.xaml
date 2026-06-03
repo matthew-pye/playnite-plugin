@@ -1,0 +1,52 @@
+﻿<UserControl x:Class="Graviton.Settings.DevTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:s="clr-namespace:Graviton.Settings"
+             mc:Ignorable="d"
+             d:DesignHeight="900" d:DesignWidth="750">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+        <s:ImageCacheConverter x:Key="imageCacheConverter" />
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="LightGray" />
+        </Style>
+        <Style TargetType="{x:Type Label}">
+            <Setter Property="Foreground" Value="LightGray" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="0,0,0,10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="150"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Button Click="Success_Click" Grid.Row="0"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock Text="Success notification"/>
+        </Button>
+        <Button Click="Info_Click" Grid.Row="1"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock Text="Info notification"/>
+        </Button>
+        <Button Click="Warn_Click" Grid.Row="2"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock Text="Warn notification"/>
+        </Button>
+        <Button Click="Error_Click" Grid.Row="3"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock Text="Error notification"/>
+        </Button>
+
+    </Grid>
+
+</UserControl>
