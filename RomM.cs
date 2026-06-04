@@ -689,20 +689,25 @@ namespace RomM
                         var game = Playnite.Database.Games.FirstOrDefault(g => g.GameId == gameId);
                         if (game != null)
                         {
+                            var expectedVersion = $"RomM:{item.Id}";
+                            var needsVersionBackfill = game.Version != expectedVersion;
+
                             // If it is already installed, we sync over metadata like favorite and status
                             if (Settings.KeepRomMSynced == true)
                             {
                                 game.Favorite = favorites.Exists(f => f == item.Id);
-                                
+
                                 if (statusId != Guid.Empty)
                                 {
                                     game.CompletionStatusId = statusId;
                                 }
-
+                            }
+                            
+                            if (Settings.KeepRomMSynced == true || needsVersionBackfill)
+                            {
                                 // Using the Version-Field for storing the ID instead of "RomMGameInfo"
                                 // Could be useful in the future: https://github.com/JosefNemec/Playnite/issues/801
-                                game.Version = $"RomM:{item.Id}";
-
+                                game.Version = expectedVersion;
                                 ignoredGameIds.TryAdd(game.Id, 0);
                                 Playnite.Database.Games.Update(game);
                             }
