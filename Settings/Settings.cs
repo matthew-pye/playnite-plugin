@@ -339,6 +339,8 @@ namespace RomM.Settings
         {
             Notify = false;
 
+            var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(10));
+
             try
             {
                 if(string.IsNullOrEmpty(RomMHost))
@@ -368,14 +370,14 @@ namespace RomM.Settings
 
                     if(!ApiTokenPattern.IsMatch(RomMClientToken))
                     {
-                        throw new ArgumentException("Client token format invaild!");
+                        throw new ArgumentException("Client token format invalid!");
                     }
 
                     HttpClientSingleton.ConfigureAPIAuth(RomMClientToken);
                 }
 
                 // Check server is present
-                HttpResponseMessage response = HttpClientSingleton.Instance.GetAsync($"{RomMHost}/api/heartbeat", HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken()).GetAwaiter().GetResult();
+                HttpResponseMessage response = HttpClientSingleton.Instance.GetAsync($"{RomMHost}/api/heartbeat", HttpCompletionOption.ResponseContentRead, cts.Token).GetAwaiter().GetResult();
                 response.EnsureSuccessStatusCode();
 
                 Stream body = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
@@ -389,7 +391,7 @@ namespace RomM.Settings
                 }
 
                 // Get user info
-                response = HttpClientSingleton.Instance.GetAsync($"{RomMHost}/api/users/me", System.Net.Http.HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken()).GetAwaiter().GetResult();
+                response = HttpClientSingleton.Instance.GetAsync($"{RomMHost}/api/users/me", System.Net.Http.HttpCompletionOption.ResponseContentRead, cts.Token).GetAwaiter().GetResult();
                 response.EnsureSuccessStatusCode();
 
                 body = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
@@ -403,7 +405,7 @@ namespace RomM.Settings
 
                 if (!string.IsNullOrEmpty(userinfo.IconPath))
                 {
-                    response = HttpClientSingleton.Instance.GetAsync($"{RomMHost}/api/raw/assets/{userinfo.IconPath}", System.Net.Http.HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken()).GetAwaiter().GetResult();
+                    response = HttpClientSingleton.Instance.GetAsync($"{RomMHost}/api/raw/assets/{userinfo.IconPath}", System.Net.Http.HttpCompletionOption.ResponseContentRead, cts.Token).GetAwaiter().GetResult();
                     response.EnsureSuccessStatusCode();
                     var imagebytes = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
                     File.WriteAllBytes($"{PlayniteAPI.Paths.ExtensionsDataPath}\\{RomM.Id.ToString()}\\avatar.png", imagebytes);

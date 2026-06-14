@@ -34,7 +34,7 @@ namespace RomM.Games
 
         private RomMFile DetermineFile(RomMRom ROM)
         {
-            if(ROM.Files.Count == 0)
+            if(ROM.Files == null || ROM.Files.Count == 0)
                 return null;
 
             if(ROM.Files.Count > 1)
@@ -193,8 +193,10 @@ namespace RomM.Games
             var rootInstallDir = _plugin.Playnite.Paths.IsPortable
                         ? _mapping.DestinationPathResolved.Replace(_plugin.Playnite.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory)
                         : _mapping.DestinationPathResolved;
-            var gameInstallDir = Path.Combine(rootInstallDir, Path.GetFileNameWithoutExtension(ROM.Name));
-            var pathToGame = Path.Combine(gameInstallDir, ROM.Name);
+
+            var baseFileName = Path.GetFileName(ROM.FileName);
+            var gameInstallDir = Path.Combine(rootInstallDir, Path.GetFileNameWithoutExtension(baseFileName));
+            var pathToGame = Path.Combine(gameInstallDir, baseFileName);
 
             var gameNameWithTags = ROM.FileNameNoExt;
 
@@ -387,14 +389,18 @@ namespace RomM.Games
             if(!ROM.HasMultipleFiles)
             {
                 var romfile = DetermineFile(ROM);
-                if (romfile == null)
+                if (romfile == null && !romfile.Id.HasValue)
                 {
-                    _plugin.Logger.Error("[Importer] Unable to save ROM data as there is no rom file!");
-                    return;
+                    _plugin.Logger.Error($"[Importer] {ROM.Name} - Unable to find romfile, using fallback download URL!");
+                    baseROM.FileName = ROM.FileName;
+                    baseROM.DownloadURL = _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/roms/{ROM.Id}/content/{ROM.FileName}");
+                }
+                else
+                {
+                    baseROM.FileName = romfile.FileName;
+                    baseROM.DownloadURL = _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/roms/{romfile.Id}/files/content/{romfile.FileName}");
                 }
 
-                baseROM.FileName = romfile.FileName;
-                baseROM.DownloadURL = _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/roms/{romfile.Id}/files/content/{romfile.FileName}");
             }
             else
             {
@@ -479,7 +485,11 @@ namespace RomM.Games
             }
             else
             {
-                completionStatus = RomMRomUser.CompletionStatusMap[ROM.RomUser.Status ?? "not_played"];
+                var romMStatus = ROM.RomUser.Status ?? "not_played";
+                if (!RomMRomUser.CompletionStatusMap.TryGetValue(romMStatus, out completionStatus))
+                {
+                    completionStatus = RomMRomUser.CompletionStatusMap["not_played"];
+                }
             }
 
             _completionStatusMap.TryGetValue(completionStatus, out var statusId);

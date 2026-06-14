@@ -10,7 +10,7 @@ public class RomMPlatform : IEquatable<RomMPlatform>
         {
             if (Object.ReferenceEquals(other, null)) return false;
             if (Object.ReferenceEquals(other, this)) return true;
-            return this.Name == other.Name;
+            return this.Id == other.Id;
         }
 
         public sealed override bool Equals(object obj)
