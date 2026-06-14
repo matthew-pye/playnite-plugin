@@ -163,7 +163,7 @@ namespace Graviton.Models.RomM.Rom
         [JsonPropertyName("files")]
         public List<RomMFile> Files { get; set; } = new List<RomMFile>();
 
-        [JsonPropertyName("siblings")]
+        [JsonPropertyName("sibling_roms")]
         public List<RomMSibling>? Siblings { get; set; }
 
         [JsonPropertyName("crc_hash")]

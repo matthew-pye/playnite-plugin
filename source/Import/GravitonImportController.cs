@@ -136,6 +136,8 @@ namespace Graviton.Import
 
             options += $"genres_logic=none&";
             options += $"order_by=name&";
+            options += $"with_siblings=true&";
+            options += $"with_files=true&";
             options += $"order_dir=asc&";
 
             if (_plugin.Settings.SkipMissingFiles)
