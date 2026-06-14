@@ -104,19 +104,19 @@
                   <Run Name="TokenText" Text="Client Token"/>
                </Hyperlink>
         </TextBlock>
-        <TextBox Grid.Row="3" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding ClientToken, Mode=TwoWay}" />
+        <TextBox Grid.Row="3" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding ClientTokenNP, Mode=TwoWay}" />
 
         <CheckBox IsChecked="{Binding UseBasicAuth, Mode=TwoWay}" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center">
             <TextBlock Name="UseBasicAuthText" Text="Use Basic Auth" TextWrapping="Wrap" FontSize="12"/>
         </CheckBox>
 
-        <TextBlock Name="UserPassWarning" Text="Warning! Username/Password will be stored in plain text in the config file (Not Recommended)" TextWrapping="Wrap" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" TextAlignment="Center" VerticalAlignment="Top" Margin="80,0,5,5" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}" Foreground="#ffb329" Grid.RowSpan="2"/>
+        <TextBlock Name="UserPassWarning" Text="Warning! Using this is NOT recommended!" TextWrapping="Wrap" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" TextAlignment="Center" VerticalAlignment="Top" Margin="5,15,5,5" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}" Foreground="#ffb329" Grid.RowSpan="2"/>
 
         <TextBlock Name="UsernameText" Text="Username" Grid.Row="6" Grid.Column="0" Margin="40,0,5,5" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
-        <TextBox x:Name="RomMUsername" Grid.Row="6" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding Username, Mode=TwoWay}" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
+        <TextBox x:Name="RomMUsername" Grid.Row="6" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding UsernameNP, Mode=TwoWay}" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
 
         <TextBlock Name="PasswordText" Text="Password" Grid.Row="7" Grid.Column="0" Margin="40,5,5,0"  Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
-        <TextBox x:Name="RomMPassword" Grid.Row="7" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding Password, Mode=TwoWay}" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
+        <TextBox x:Name="RomMPassword" Grid.Row="7" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding PasswordNP, Mode=TwoWay}" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
     </Grid>
 
 </UserControl>

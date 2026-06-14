@@ -1,14 +1,20 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 using Graviton.Models;
+using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Platform;
 
 using Playnite;
 
+using SharpCompress.Common;
+
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
@@ -23,6 +29,7 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _useBasicAuth = false;
         [ObservableProperty] private string _username = "";
         [ObservableProperty] private string _password = "";
+
         private string _profilePath = "";
         [ObservableProperty] private string _user = "----";
         [ObservableProperty] private string _userType = "----";
@@ -52,7 +59,17 @@ namespace Graviton.Settings
             get => _host;
             set
             {
-                _host = value.TrimEnd('/');
+
+                if(value.StartsWith("http:") || value.StartsWith("https:"))
+                {
+                    _host = value.TrimEnd('/');
+                }
+                else
+                {
+                    GravitonNotify.Add(new GravitonNotification("graviton.host.invalid.scheme", Loc.GetString("InvaildScheme"), GravitonSeverity.Error));
+                    _host = string.Empty;
+                }
+                              
                 OnPropertyChanged();
             }
         }
@@ -69,16 +86,46 @@ namespace Graviton.Settings
                 OnPropertyChanged(nameof(ProfilePath));
             }
         }
+        [JsonIgnore]
+        public string UsernameNP
+        {
+            get => string.IsNullOrEmpty(Username) ? string.Empty : UnProtect(Username);
+            set
+            {
+                Username = string.IsNullOrEmpty(value) ? string.Empty : Protect(value);
+                OnPropertyChanged();
+            }
+        }
+        [JsonIgnore]
+        public string PasswordNP
+        {
+            get => string.IsNullOrEmpty(Password) ? string.Empty : UnProtect(Password);
+            set
+            {
+                Password = string.IsNullOrEmpty(value) ? string.Empty : Protect(value);
+                OnPropertyChanged();
+            }
+        }
+        [JsonIgnore]
+        public string ClientTokenNP
+        {
+            get => string.IsNullOrEmpty(ClientToken) ? string.Empty : UnProtect(ClientToken);
+            set
+            {
+                ClientToken = string.IsNullOrEmpty(value) ? string.Empty : Protect(value);
+                OnPropertyChanged();
+            }
+        }
 
         public GravitonPluginSettings Clone()
         {
             return new GravitonPluginSettings()
             { 
                 Host = this.Host,
-                ClientToken = this.ClientToken,
+                ClientTokenNP = this.ClientTokenNP,
                 UseBasicAuth = this.UseBasicAuth,
-                Username = this.Username,
-                Password = this.Password,
+                UsernameNP = this.UsernameNP,
+                PasswordNP = this.PasswordNP,
 
                 ProfilePath = this.ProfilePath,
                 User = this.User,
@@ -107,6 +154,19 @@ namespace Graviton.Settings
             };
         }
 
+        private string Protect(string PlainText)
+        {
+            if (string.IsNullOrEmpty(PlainText)) return string.Empty;
+            byte[] encrypted = ProtectedData.Protect(Encoding.UTF8.GetBytes(PlainText), Encoding.UTF8.GetBytes(GravitonPlugin.ExternalIdType), DataProtectionScope.CurrentUser);
+            return Convert.ToBase64String(encrypted);
+        }
+
+        private string UnProtect(string ProtectedText)
+        {
+            if (string.IsNullOrEmpty(ProtectedText)) return string.Empty;
+            byte[] decrypted = ProtectedData.Unprotect(Convert.FromBase64String(ProtectedText), Encoding.UTF8.GetBytes(GravitonPlugin.ExternalIdType), DataProtectionScope.CurrentUser);
+            return Encoding.UTF8.GetString(decrypted);
+        }
     }
 
     [INotifyPropertyChanged]

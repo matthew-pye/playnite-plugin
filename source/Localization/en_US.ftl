@@ -15,6 +15,7 @@ UseBasicAuth = Use Basic Auth
 UserPassWarning = Warning! Username/Password will be stored in plain text in the config file (Not Recommended)
 Username = Username
 Password = Password
+InvaildScheme = Host address must start with http or https
 
 # Mappings page
 NewMapping = New Mapping

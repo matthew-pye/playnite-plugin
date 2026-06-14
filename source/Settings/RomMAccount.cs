@@ -4,9 +4,9 @@ using Graviton.Models.RomM;
 using Playnite;
 
 using System.IO;
-using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Graviton.Settings
 {
@@ -15,6 +15,8 @@ namespace Graviton.Settings
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
         private ILogger _logger { get => GravitonPlugin.Logger; }
+
+        private Regex _iconPathRegex = new Regex(@"^users/[^/]+/profile/avatar\.png$");
 
         public async Task<ServerInfo?> Heartbeat()
         {
@@ -51,18 +53,18 @@ namespace Graviton.Settings
 
             if (_plugin.Settings.UseBasicAuth)
             {
-                if (string.IsNullOrEmpty(_plugin.Settings.Username) || string.IsNullOrEmpty(_plugin.Settings.Password))
+                if (string.IsNullOrEmpty(_plugin.Settings.UsernameNP) || string.IsNullOrEmpty(_plugin.Settings.PasswordNP))
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("UserPassNotSet"), GravitonSeverity.Warn));
                     SyncFailed();
                     return false;
                 }
                     
-                HttpClientSingleton.ConfigureBasicAuth(_plugin.Settings.Username, _plugin.Settings.Password);
+                HttpClientSingleton.ConfigureBasicAuth(_plugin.Settings.UsernameNP, _plugin.Settings.PasswordNP);
             }
             else
             {
-                if (string.IsNullOrEmpty(_plugin.Settings.ClientToken))
+                if (string.IsNullOrEmpty(_plugin.Settings.ClientTokenNP))
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("TokenNotSet"), GravitonSeverity.Warn));
                     SyncFailed();
@@ -70,7 +72,7 @@ namespace Graviton.Settings
                 }
                     
 
-                HttpClientSingleton.ConfigureClientToken(_plugin.Settings.ClientToken);
+                HttpClientSingleton.ConfigureClientToken(_plugin.Settings.ClientTokenNP);
             }
 
             _plugin.Settings.LastAuthenticated = DateTime.UtcNow;
@@ -117,11 +119,15 @@ namespace Graviton.Settings
 
             try
             {
-                if (!string.IsNullOrEmpty(userinfo.IconPath))
+                if (!string.IsNullOrEmpty(userinfo.IconPath) && _iconPathRegex.IsMatch(userinfo.IconPath))
                 {
                     var response = await HttpClientSingleton.Instance.GetAsync($"{_plugin.Settings.Host}/api/raw/assets/{userinfo.IconPath}", System.Net.Http.HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken());
                     response.EnsureSuccessStatusCode();
                     var imagebytes = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+
+                    if (imagebytes.Length > 20 * 1024 * 1024) // 20MB cap
+                        throw new Exception("Avatar image exceeds maximum allowed size.");
+
                     File.WriteAllBytes($"{GravitonPlugin.PlayniteApi?.UserDataDir}\\avatar.png", imagebytes);
                     _plugin.Settings.ProfilePath = $"{GravitonPlugin.PlayniteApi?.UserDataDir}\\avatar.png";
                 }

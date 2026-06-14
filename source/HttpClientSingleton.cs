@@ -30,7 +30,7 @@ namespace Graviton
 
         public static void ConfigureBasicAuth(string username, string password)
         {
-            var base64Credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{username}:{password}"));
+            var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
             Instance.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
         }
         public static void ConfigureClientToken(string clientToken)

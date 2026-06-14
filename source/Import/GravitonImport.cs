@@ -8,6 +8,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace Graviton.Import
@@ -21,6 +22,8 @@ namespace Graviton.Import
         private CancellationToken _cancelToken;
         private EmulatorMapping _mapping;
         private List<RomMRom> _roms;
+
+        private static Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
 
         public GravitonImport(CancellationToken cancelToken, EmulatorMapping mapping, List<RomMRom> roms)
         {
@@ -189,10 +192,10 @@ namespace Graviton.Import
             //}
 
             // Some newer platforms don't get a hash value so we will compromise with this
-            if (string.IsNullOrEmpty(ROM.SHA1))
+            if (string.IsNullOrEmpty(ROM.SHA1) || !_SHA1Regex.IsMatch(ROM.SHA1!))
             {
                 var tohash = Encoding.UTF8.GetBytes($"{ROM.Id}{ROM.FileNameNoExt}");
-                ROM.SHA1 = Encoding.UTF8.GetString(SHA1.HashData(tohash));
+                ROM.SHA1 = Convert.ToHexString(SHA1.HashData(tohash));
             }
 
             string gameID = $"{ROM.Id}:{ROM.SHA1}";

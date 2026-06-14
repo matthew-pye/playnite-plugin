@@ -141,11 +141,11 @@ namespace Graviton
             {
                 if (Settings.UseBasicAuth)
                 {
-                    HttpClientSingleton.ConfigureBasicAuth(Settings.Username, Settings.Password);
+                    HttpClientSingleton.ConfigureBasicAuth(Settings.UsernameNP, Settings.PasswordNP);
                 }
                 else
                 {
-                    HttpClientSingleton.ConfigureClientToken(Settings.ClientToken);
+                    HttpClientSingleton.ConfigureClientToken(Settings.ClientTokenNP);
                 }
 
                 var result = await Account.Heartbeat();

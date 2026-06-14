@@ -173,7 +173,7 @@ namespace Graviton.Models
         {
             get => (RomMPlatformId != -1 && File.Exists($"{_plugin.PluginDataPath}/Platforms/{RomMPlatform?.Slug}.png")) ?          
                     $"{_plugin.PluginDataPath}/Platforms/{RomMPlatform?.Slug}.png" : 
-                    $"{_plugin.PluginDataPath}/Platforms/general.png";
+                    $"{_plugin.PluginDLLPath}/platform.png";
         }
 
         [JsonIgnore]

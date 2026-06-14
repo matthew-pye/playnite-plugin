@@ -7,13 +7,12 @@ using Playnite;
 
 using Svg;
 
-using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Web;
-using System.Windows.Media.Imaging;
 
 using static Playnite.Plugin;
 
@@ -24,6 +23,8 @@ namespace Graviton.Import
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
         private ILogger _logger { get => GravitonPlugin.Logger; }
+
+        private static Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
 
         public async Task<List<Game>> Import(ImportGamesArgs args)
         {
@@ -104,36 +105,23 @@ namespace Graviton.Import
             if (!Directory.Exists($"{_plugin.PluginDataPath}/Platforms/"))
                 Directory.CreateDirectory($"{_plugin.PluginDataPath}/Platforms/");
 
-            Stream stream = await HttpClientSingleton.Instance?.GetStreamAsync($"{_plugin.Settings.Host}/assets/default-C7fJO_0F.ico")!;
-
-            Bitmap? png = null;
-            using (var iconStream = new MemoryStream())
-            {
-                var decoder = new IconBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.None);
-                using (var pngStream = new MemoryStream())
-                {
-                    var encoder = new PngBitmapEncoder();
-                    foreach (var frame in decoder.Frames)
-                    {
-                        encoder.Frames.Add(frame);
-                    }
-                    encoder.Save(pngStream);
-                    png = (Bitmap)Bitmap.FromStream(pngStream);
-                }
-            }
-            png.Save($"{_plugin.PluginDataPath}/Platforms/general.png", ImageFormat.Png);
+            Regex platformSlugRegex = new Regex("^[a-zA-Z0-9_\\-]+$");
 
             foreach (var platform in platforms)
             {
                 try
                 {
-                    stream = await HttpClientSingleton.Instance?.GetStreamAsync($"{_plugin.Settings.Host}/assets/platforms/{platform.Slug}.svg")!;
-                    var svg = SvgDocument.Open<SvgDocument>(stream);
-                    var image = svg.Draw();
+                    if(platformSlugRegex.IsMatch(platform.Slug!))
+                    {
+                        Stream stream = await HttpClientSingleton.Instance?.GetStreamAsync($"{_plugin.Settings.Host}/assets/platforms/{platform.Slug}.svg")!;
+                        var svg = SvgDocument.Open<SvgDocument>(stream);
+                        var image = svg.Draw();
 
-                    image.Save($"{_plugin.PluginDataPath}/Platforms/{platform.Slug}.png", ImageFormat.Png);
+                        image.Save($"{_plugin.PluginDataPath}/Platforms/{platform.Slug}.png", ImageFormat.Png);
+                    }
                 }
-                catch {}
+                catch
+                { }
                 
             }
 
@@ -232,7 +220,11 @@ namespace Graviton.Import
 
             foreach (var game in gamesInDatabase)
             {
-                if (!File.Exists($"{_plugin.PluginDataPath}/Games/{game.LibraryGameId?.Split(':')[1]}.json"))
+                string gameSHA1 = game.LibraryGameId?.Split(':')[1]!;
+                if(!_SHA1Regex.IsMatch(gameSHA1))
+                    continue;
+
+                if (!File.Exists($"{_plugin.PluginDataPath}/Games/{gameSHA1}.json"))
                     continue;
 
                 var gamejson = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{_plugin.PluginDataPath}/Games/{game.LibraryGameId?.Split(':')[1]}.json"));
