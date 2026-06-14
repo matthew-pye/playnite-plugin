@@ -45,14 +45,14 @@ namespace Graviton
         private GravitonPluginSettings _settings = new();
 
         internal GravitonSettingsHandler SettingsHandler { get; set; } = new();
-        internal RomMAccount Account { get; private set; } = new();
+        internal RomMAccount? Account { get; private set; }
 
         private RomMDownloadsAppViewItem? _downloadsAppView { get; set; }
         private DownloadQueueViewModel? _downloadsViewModel;
 
         public GravitonPlugin() : base()
         {
-            Instance = this ?? throw new Exception("Failed to set plugin instance!");
+            Instance = this;
 
             XamlId = "Graviton.RomM";
             LibrarySettings = new()
@@ -148,7 +148,7 @@ namespace Graviton
                     HttpClientSingleton.ConfigureClientToken(Settings.ClientTokenNP);
                 }
 
-                var result = await Account.Heartbeat();
+                var result = await Account!.Heartbeat();
                 if(result != null)
                     Settings.ServerVersion = result.Value.Version;
             } 
@@ -156,11 +156,13 @@ namespace Graviton
 
         public override async Task<PluginSettingsHandler?> GetSettingsHandlerAsync(GetSettingsHandlerArgs args)
         {
+            await Task.CompletedTask;
             return SettingsHandler;
         }
 
         public override async Task<MetadataProvider?> GetMetadataProviderAsync(GetMetadataProviderArgs args)
         {
+            await Task.CompletedTask;
             return new GravitonMetadataProvider();
         }
       
@@ -180,12 +182,12 @@ namespace Graviton
                         Logger.Info($"Game: {updatedGame.OldData.Name} | Prop: {prop}");
                     }
 
-                    if(updatedGame.ChangedProperties.Contains("CompletionStatusId"))
+                    if(Settings.KeepStatusSynced && updatedGame.ChangedProperties.Contains("CompletionStatusId"))
                     {
                         await StatusController!.UpdateStatus(updatedGame.NewData);
                     }
 
-                    if (updatedGame.ChangedProperties.Contains("Favorite"))
+                    if (Settings.KeepFavouritesSynced && updatedGame.ChangedProperties.Contains("Favorite"))
                     {
                         await StatusController!.UpdateFavorites(updatedGame.NewData);
                     }
@@ -214,9 +216,9 @@ namespace Graviton
                 $"{ExternalIdType}.Downloads",
                 Loc.GetString("DownloadViewName"),
                 // Icon used for sidebar item:
-                (iconArgs) => UIIcon.FromBitmapFile(Path.Combine(PluginDLLPath, "pluginiconBW.png")),
+                (iconArgs) => UIIcon.FromBitmapFile($"{PluginDLLPath}/pluginiconBW.png"),
                 // Icon used for when the view is activated:
-                (iconArgs) => UIIcon.FromBitmapFile(Path.Combine(PluginDLLPath, "pluginicon.png")))
+                (iconArgs) => UIIcon.FromBitmapFile($"{PluginDLLPath}/pluginicon.png"))
             ];
         }
         public override AppViewItem? GetAppViewItem(GetAppViewItemsArgs args)
@@ -264,13 +266,13 @@ namespace Graviton
             return null;
         }
 
-        public override ICollection<MenuItemDescriptor> GetGameMenuItemDescriptors(GetGameMenuItemDescriptorsArgs args)
-        {
-            return
-            [
-                new MenuItemDescriptor("graviton.open.manual", "Open RomM manual")
-            ];
-        }
+        //public override ICollection<MenuItemDescriptor> GetGameMenuItemDescriptors(GetGameMenuItemDescriptorsArgs args)
+        //{
+        //    //return
+        //    //[
+        //    //    new MenuItemDescriptor("graviton.open.manual", "Open RomM manual")
+        //    //];
+        //}
 
         public override ICollection<MenuItemImpl>? GetGameMenuItems(GetGameMenuItemsArgs args)
         {

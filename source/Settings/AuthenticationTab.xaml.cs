@@ -44,7 +44,7 @@ namespace Graviton.Settings
         private async void Click_Authenticate(object sender, System.Windows.RoutedEventArgs e)
         {
             TestServer.IsEnabled = false;
-            await _plugin.Account.Login();
+            await _plugin.Account!.Login();
             TestServer.IsEnabled = true;
 
             e.Handled = true;

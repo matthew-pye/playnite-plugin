@@ -24,12 +24,13 @@ namespace Graviton.Import
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
         private ILogger _logger { get => GravitonPlugin.Logger; }
 
-        private static Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
+        private static readonly Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
+        private static readonly Regex _platformSlugRegex = new Regex("^[a-zA-Z0-9_\\-]+$");
 
         public async Task<List<Game>> Import(ImportGamesArgs args)
         {
-            IEnumerable<EmulatorMapping> enabledMappings = _plugin.Settings.Mappings.Where(m => m.Enabled);
-            if (enabledMappings == null || !enabledMappings.Any())
+            var enabledMappings = _plugin.Settings.Mappings.Where(m => m.Enabled).ToList();
+            if (!enabledMappings.Any())
             {
                 _playniteAPI.Notifications.Add(new NotificationMessage($"graviton.emulators.notconfigured", Loc.GetString("NoEmulatorsConfigured"), NotificationSeverity.Error));
                 return new List<Game>();
@@ -66,7 +67,7 @@ namespace Graviton.Import
 
                 // Pull data from server
                 _logger.Debug($"[Import Controller] Started parsing response for {apiPlatform.Name}.");
-                var rommROMs = DownloadROMData(args, url, apiPlatform);
+                var rommROMs = await DownloadROMData(args, url, apiPlatform);
                 if (rommROMs == null)
                     continue;
                 else
@@ -105,24 +106,22 @@ namespace Graviton.Import
             if (!Directory.Exists($"{_plugin.PluginDataPath}/Platforms/"))
                 Directory.CreateDirectory($"{_plugin.PluginDataPath}/Platforms/");
 
-            Regex platformSlugRegex = new Regex("^[a-zA-Z0-9_\\-]+$");
-
             foreach (var platform in platforms)
             {
                 try
                 {
-                    if(platformSlugRegex.IsMatch(platform.Slug!))
+                    if(_platformSlugRegex.IsMatch(platform.Slug!))
                     {
-                        Stream stream = await HttpClientSingleton.Instance?.GetStreamAsync($"{_plugin.Settings.Host}/assets/platforms/{platform.Slug}.svg")!;
+                        using Stream stream = await HttpClientSingleton.Instance!.GetStreamAsync($"{_plugin.Settings.Host}/assets/platforms/{platform.Slug}.svg");
                         var svg = SvgDocument.Open<SvgDocument>(stream);
                         var image = svg.Draw();
-
                         image.Save($"{_plugin.PluginDataPath}/Platforms/{platform.Slug}.png", ImageFormat.Png);
                     }
                 }
-                catch
-                { }
-                
+                catch (Exception ex)
+                {
+                    _logger.Warn($"[Import Controller] Failed to download/convert platform icon for {platform.Slug}: {ex.Message}");
+                }
             }
 
             return platforms;
@@ -148,7 +147,7 @@ namespace Graviton.Import
             // Exclude genres from import
             if(!string.IsNullOrEmpty(_plugin.Settings.ExcludeGenres))
             {
-                List<string> excludeGenres = _plugin.Settings.ExcludeGenres.TrimEnd(' ').TrimEnd(';').Split(';').ToList() ?? new List<string>();
+                List<string> excludeGenres = _plugin.Settings.ExcludeGenres.TrimEnd(' ').TrimEnd(';').Split(';').ToList();
                 if (excludeGenres.Count > 0)
                 {
                     foreach (var genre in excludeGenres)
@@ -158,12 +157,10 @@ namespace Graviton.Import
                 }
             }
 
-            options.TrimEnd('&');
-
-            return (url + options);
+            return url + options.TrimEnd('&');
         }
          
-        private List<RomMRom> DownloadROMData(ImportGamesArgs args, string url, RomMPlatform platform)
+        private async Task<List<RomMRom>> DownloadROMData(ImportGamesArgs args, string url, RomMPlatform platform)
         {
             _logger.Info($"[Import Controller] Starting to fetch games for {platform.Name}.");
 
@@ -186,7 +183,7 @@ namespace Graviton.Import
                 {
                     var romURL = url + $"offset={offset}";
 
-                    var request = HttpClientSingleton.RomMGetAsync(romURL).GetAwaiter().GetResult();
+                    var request = await HttpClientSingleton.RomMGetAsync(romURL);
                     var roms = request?.RootElement.GetProperty("items").Deserialize<List<RomMRom>>() ?? throw new Exception("Deserialize failed");
                     romData.AddRange(roms);
 
@@ -201,7 +198,7 @@ namespace Graviton.Import
 
                     offset += pagesize;
                 }
-                catch (HttpRequestException ex)
+                catch (Exception ex)
                 {
                     GravitonNotify.Add(new GravitonNotification($"graviton.GET.roms.{platform.Id}.failed", Loc.GetString("DownloadROMDataFailed", ("PlatformName", platform.Name), ("Error", ex.Message)), GravitonSeverity.Error));
                     hasMoreData = false;
@@ -222,34 +219,38 @@ namespace Graviton.Import
 
             foreach (var game in gamesInDatabase)
             {
-                string gameSHA1 = game.LibraryGameId?.Split(':')[1]!;
+                var splitID = game.LibraryGameId?.Split(':');
+                if (splitID == null || splitID.Length != 2)
+                    continue;
+
+                string gameSHA1 = splitID[1]!;
                 if(!_SHA1Regex.IsMatch(gameSHA1))
                     continue;
 
                 if (!File.Exists($"{_plugin.PluginDataPath}/Games/{gameSHA1}.json"))
                     continue;
 
-                var gamejson = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{_plugin.PluginDataPath}/Games/{game.LibraryGameId?.Split(':')[1]}.json"));
+                var gamejson = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{_plugin.PluginDataPath}/Games/{splitID[1]}.json"));
 
-                if(_plugin.Settings.Mappings.Any(x => x.MappingId == gamejson?.MappingID))
+                var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == gamejson?.MappingID);
+                if (mapping != null)
                 {
                     // Don't remove games from mappings that are disabled
-                    if (!_plugin.Settings.Mappings.First(x => x.MappingId == gamejson?.MappingID).Enabled)
+                    if (!mapping.Enabled)
                         continue;
-
                     if (ImportedGames.Contains(game.LibraryGameId!))
                         continue;
                 }
 
-                if (_playniteAPI.Library.GameRelations.Any(x => x.PrimaryGame == game.Id))
+                var rootgamerelation = _playniteAPI.Library.GameRelations.FirstOrDefault(x => x.PrimaryGame == game.Id);
+                if (rootgamerelation != null)
                 {
-                    var gamerelation = _playniteAPI.Library.GameRelations.First(x => x.PrimaryGame == game.Id);
-                    await _playniteAPI.Library.GameRelations.RemoveAsync(gamerelation.Id);
-                }   
-                else if(_playniteAPI.Library.GameRelations.Any(x => x.LinkedGames.Any(y => y == game.Id)))
+                    await _playniteAPI.Library.GameRelations.RemoveAsync(rootgamerelation.Id);
+                }
+                else
                 {
-                    var gamerelations = _playniteAPI.Library.GameRelations.Where(x => x.LinkedGames.Any(y => y == game.Id));
-                    foreach( var gamerelation in gamerelations)
+                    var linkedRelations = _playniteAPI.Library.GameRelations.Where(x => x.LinkedGames.Any(y => y == game.Id)).ToList();
+                    foreach (var gamerelation in linkedRelations)
                     {
                         gamerelation.LinkedGames.Remove(game.Id);
                         await _playniteAPI.Library.GameRelations.UpdateAsync(gamerelation);
@@ -259,7 +260,7 @@ namespace Graviton.Import
                 await _playniteAPI.Library.Games.RemoveAsync(game.Id);
                 
 
-                File.Delete($"{_plugin.PluginDataPath}/Games/{game.LibraryGameId?.Split(':')[1]}.json");
+                File.Delete($"{_plugin.PluginDataPath}/Games/{splitID[1]}.json");
 
                 _logger.Info($"[Importer] Removing {game.Name}");
             }
