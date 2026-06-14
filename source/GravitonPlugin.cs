@@ -1,5 +1,6 @@
 ﻿using Graviton.Import;
 using Graviton.Install.Downloads;
+using Graviton.Models.Notifications;
 using Graviton.Settings;
 using Graviton.Status;
 
@@ -102,16 +103,16 @@ namespace Graviton
 
             await PlayniteApi.Library.Sources.AddAsync(new Source(Id, "Graviton"));
 
-            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("Screenscraper", "Screenscraper"));
-            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("Hasheous", "Hasheous"));
-            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("RetroAchievements", "RetroAchievements"));
-            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("HowLongToBeat", "HowLongToBeat"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("screenscraper", "Screenscraper"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("hasheous", "Hasheous"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("retroachievements", "RetroAchievements"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("howlongtobeat", "HowLongToBeat"));
 
-            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("RomM", "RomM"));
-            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("Screenscraper", "Screenscraper"));
-            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("Hasheous", "Hasheous"));
-            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("RetroAchievements", "RetroAchievements"));
-            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("HowLongToBeat", "HowLongToBeat"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("romm", "RomM"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("screenscraper", "Screenscraper"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("hasheous", "Hasheous"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("retroachievements", "RetroAchievements"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("howlongtobeat", "HowLongToBeat"));
 
             PluginDataPath = PlayniteApi.UserDataDir;
             PluginDLLPath = args.PluginInstallDir;
@@ -149,7 +150,7 @@ namespace Graviton
                 }
 
                 var result = await Account!.Heartbeat();
-                if(result != null)
+                if (result != null)
                     Settings.ServerVersion = result.Value.Version;
             } 
         }
@@ -173,9 +174,9 @@ namespace Graviton
 
         public override async Task OnGameCollectionChange(DataCollectionChangeArgs<Game> args)
         {
-            if(args.UpdatedItems?.Count > 0 && args.UpdatedItems.Any(x => x.OldData.SourceId == Id))
+            if(args.UpdatedItems?.Count > 0 && args.UpdatedItems.Any(x => x.OldData.LibraryId == Id))
             {
-                foreach(var updatedGame in args.UpdatedItems.Where(x => x.OldData.SourceId == Id))
+                foreach(var updatedGame in args.UpdatedItems.Where(x => x.OldData.LibraryId == Id))
                 {
                     foreach (var prop in updatedGame.ChangedProperties)
                     {

@@ -2,10 +2,8 @@
 
 using Playnite;
 
-using System.Net.Http;
 using System.Text.Json;
 
-using static Playnite.Plugin;
 
 namespace Graviton.Import
 {
@@ -21,7 +19,7 @@ namespace Graviton.Import
 
         public async Task<bool> PullRomData()
         {
-            if (Game.SourceId == GravitonPlugin.Id)
+            if (Game.LibraryId == GravitonPlugin.Id)
             {
                 try
                 {
