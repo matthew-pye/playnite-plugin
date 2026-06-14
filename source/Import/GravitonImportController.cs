@@ -157,7 +157,7 @@ namespace Graviton.Import
                 }
             }
 
-            return url + options.TrimEnd('&');
+            return url + options;
         }
          
         private async Task<List<RomMRom>> DownloadROMData(ImportGamesArgs args, string url, RomMPlatform platform)

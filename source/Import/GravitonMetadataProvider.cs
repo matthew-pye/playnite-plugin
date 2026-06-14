@@ -124,20 +124,20 @@ namespace Graviton.Import
                     List<WebLink> links = new();
                     if (ROM.SSId != null)
                     {
-                        links.Add(new WebLink("Screenscraper", $"https://www.screenscraper.fr/gameinfos.php?gameid={ROM.SSId}"));
+                        links.Add(new WebLink("screenscraper", $"https://www.screenscraper.fr/gameinfos.php?gameid={ROM.SSId}"));
                     }
                     if (ROM.HasheousId != null)
                     {
-                        links.Add(new WebLink("Hasheous", $"https://hasheous.org/index.html?page=dataobjectdetail&type=game&id={ROM.HasheousId}"));
+                        links.Add(new WebLink("hasheous", $"https://hasheous.org/index.html?page=dataobjectdetail&type=game&id={ROM.HasheousId}"));
                     }
                     if (ROM.RAId != null)
                     {
-                        links.Add(new WebLink("RetroAchievements", $"https://retroachievements.org/game/{ROM.RAId}"));
+                        links.Add(new WebLink("retroachievements", $"https://retroachievements.org/game/{ROM.RAId}"));
                     }
                     if (ROM.HLTBId != null)
                     {
 
-                        links.Add(new WebLink("HowLongToBeat", $"https://howlongtobeat.com/game/{ROM.HLTBId}"));
+                        links.Add(new WebLink("howlongtobeat", $"https://howlongtobeat.com/game/{ROM.HLTBId}"));
                     }
 
                     if (links.Count > 0)

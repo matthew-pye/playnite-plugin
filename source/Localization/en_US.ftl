@@ -45,6 +45,7 @@ PUTFailed = PUT Request Failed For
 # Import
 NoFileNameWithID = The filename for ROM ID {$ROMID} does not exist. Does the ROM exist on the server's file system?
 ROMImportFailed = Failed to import 
+ROMDataSaveFailed = Failed to save ROM data to disk
 
 # Import controller
 NoEmulatorsConfigured = No emulators are configured or enabled in RomM settings. No games will be imported.

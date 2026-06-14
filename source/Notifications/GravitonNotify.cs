@@ -12,8 +12,12 @@ namespace Graviton
         public static void Add(GravitonNotification Notification)
         {
             NotificationSeverity severity = Notification.severity == GravitonSeverity.Error ? NotificationSeverity.Error : NotificationSeverity.Info;
-            GravitonPlugin.PlayniteApi?.Notifications.Add(new NotificationMessage(Notification.id, Notification.message, severity));
-            
+
+            System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                GravitonPlugin.PlayniteApi?.Notifications.Add(new NotificationMessage(Notification.id, Notification.message, severity));
+            });
+
             switch (Notification.severity)
             {
                 case GravitonSeverity.Info:
