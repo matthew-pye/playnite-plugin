@@ -301,10 +301,16 @@ namespace RomM.Games
         }
         private bool UpdatedOldGameID(RomMRom ROM)
         {
+            if (ROM.Files.Count >= 0)
+            {
+                _plugin.Logger.Warn($"[Importer] Rom {ROM.Id} has no files, skipping check for updating game id.");
+                return false;
+            }
+
             var filename = ROM.HasMultipleFiles ? Path.GetFileName(ROM.FileName) : Path.GetFileName(ROM.Files.Where(f => f.FullPath.Count(c => c == '/') <= 3).FirstOrDefault().FileName);
             if (string.IsNullOrWhiteSpace(filename))
             {
-                _plugin.Logger.Warn($"[Importer] Rom {ROM.Id} returned empty/invalid filename, skipping updating game id.");
+                _plugin.Logger.Warn($"[Importer] Rom {ROM.Id} returned empty/invalid filename, skipping check for updating game id.");
                 return false;
             }
             var info = new RomMGameInfo
