@@ -567,12 +567,19 @@ namespace RomM
                         if (args.CancelToken.IsCancellationRequested)
                             break;
 
+                        var siblings = item.Siblings ?? new List<RomMSibling>();
+                        var files = item.Files ?? new List<RomMFile>();
+                        var metadatum = item.Metadatum ?? new metadatum();
+                        var romUser = item.RomUser ?? new RomMRomUser();
+                        var regions = item.Regions ?? new List<string>();
+                        var tags = item.Tags ?? new List<string>();
+
                         // Check for siblings and if one has already been imported skip
-                        if (Settings.MergeRevisions && item.Siblings.Count > 0)
+                        if (Settings.MergeRevisions && siblings.Count > 0)
                         {
                             bool foundSibling = false;
 
-                            foreach (var sibling in item.Siblings)
+                            foreach (var sibling in siblings)
                             {
                                 if (ImportedROMsWithSiblings.Contains(sibling.Id))
                                 {
@@ -591,7 +598,8 @@ namespace RomM
                             item.HasMultipleFiles = true;
 
                         // Defensive: never allow path segments from server-provided filename & make sure single ROM files have an extention
-                        var fileName = item.HasMultipleFiles ? Path.GetFileName(item.FileName) : Path.GetFileName(item.Files.Where(f => f.FullPath.Count(c => c == '/') <= 3).FirstOrDefault().FileName);
+                        var singleRomFile = files.Where(f => (f.FullPath ?? string.Empty).Count(c => c == '/') <= 3).FirstOrDefault();
+                        var fileName = item.HasMultipleFiles ? Path.GetFileName(item.FileName) : Path.GetFileName(singleRomFile?.FileName);
                         if (string.IsNullOrWhiteSpace(fileName))
                         {
                             Logger.Warn($"Rom {item.Id} returned empty/invalid filename, skipping.");
@@ -614,7 +622,7 @@ namespace RomM
                         responseGameIDs.Add(gameId);
 
                         // Save sibling data so user can select the version they want installed
-                        if (Settings.MergeRevisions && item.Siblings.Count > 0)
+                        if (Settings.MergeRevisions && siblings.Count > 0)
                         {
                             List<RomMSibling> gameInfos = new List<RomMSibling>();
 
@@ -631,7 +639,7 @@ namespace RomM
                             };
                             gameInfos.Add(baseSibling);
 
-                            foreach (var sibling in item.Siblings)
+                            foreach (var sibling in siblings)
                             {
                                 var siblingItem = allRoms.Find(x => x.Id == sibling.Id);
 
@@ -644,7 +652,9 @@ namespace RomM
                                 var siblingfileName = "";
                                 try
                                 {
-                                    siblingfileName = siblingItem.HasMultipleFiles ? Path.GetFileName(siblingItem.FileName) : Path.GetFileName(siblingItem.Files.Where(f => f.FullPath.Count(c => c == '/') <= 3).FirstOrDefault().FileName);
+                                    var siblingFiles = siblingItem.Files ?? new List<RomMFile>();
+                                    var siblingSingleRomFile = siblingFiles.Where(f => (f.FullPath ?? string.Empty).Count(c => c == '/') <= 3).FirstOrDefault();
+                                    siblingfileName = siblingItem.HasMultipleFiles ? Path.GetFileName(siblingItem.FileName) : Path.GetFileName(siblingSingleRomFile?.FileName);
                                 }
                                 catch (Exception ex)
                                 {
@@ -671,13 +681,17 @@ namespace RomM
 
                         string completionStatus;
                         // Determine status in Playnite. Backlogged and "now playing" take precedent over the status options
-                        if (item.RomUser.Backlogged || item.RomUser.NowPlaying)
+                        if (romUser.Backlogged || romUser.NowPlaying)
                         {
-                            completionStatus = item.RomUser.NowPlaying ? RomMRomUser.CompletionStatusMap["now_playing"] : RomMRomUser.CompletionStatusMap["backlogged"];
+                            completionStatus = romUser.NowPlaying ? RomMRomUser.CompletionStatusMap["now_playing"] : RomMRomUser.CompletionStatusMap["backlogged"];
                         }
                         else
                         {
-                            completionStatus = RomMRomUser.CompletionStatusMap[item.RomUser.Status ?? "not_played"];
+                            var romMStatus = romUser.Status ?? "not_played";
+                            if (!RomMRomUser.CompletionStatusMap.TryGetValue(romMStatus, out completionStatus))
+                            {
+                                completionStatus = RomMRomUser.CompletionStatusMap["not_played"];
+                            }
                         }
 
                         completionStatusMap.TryGetValue(completionStatus, out var statusId);
@@ -716,9 +730,9 @@ namespace RomM
 
                         var gameNameWithTags =
                             $"{gameName}" +
-                            $"{(item.Regions.Count > 0 ? $" ({string.Join(", ", item.Regions)})" : "")}" +
+                            $"{(regions.Count > 0 ? $" ({string.Join(", ", regions)})" : "")}" +
                             $"{(!string.IsNullOrEmpty(item.Revision) ? $" (Rev {item.Revision})" : "")}" +
-                            $"{(item.Tags.Count > 0 ? $" ({string.Join(", ", item.Tags)})" : "")}";
+                            $"{(tags.Count > 0 ? $" ({string.Join(", ", tags)})" : "")}";
 
                         // Add newly found game
                         games.Add(new GameMetadata
@@ -730,19 +744,19 @@ namespace RomM
                             IsInstalled = File.Exists(pathToGame),
                             GameId = gameId,
                             Platforms = new HashSet<MetadataProperty> { new MetadataNameProperty(mapping.Platform.Name ?? "") },
-                            Regions = new HashSet<MetadataProperty>(item.Regions.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
-                            Genres = new HashSet<MetadataProperty>(item.Metadatum.Genres.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
-                            ReleaseDate = item.Metadatum.Release_Date.HasValue ? new ReleaseDate(new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(item.Metadatum.Release_Date.Value).ToLocalTime()) : new ReleaseDate(),
-                            Series = new HashSet<MetadataProperty>(item.Metadatum.Franchises.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
-                            CommunityScore = (int?)item.Metadatum.Average_Rating,
-                            Features = new HashSet<MetadataProperty>(item.Metadatum.Gamemodes.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),              
-                            Categories = new HashSet<MetadataProperty>(item.Metadatum.Collections.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+                            Regions = new HashSet<MetadataProperty>(regions.Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+                            Genres = new HashSet<MetadataProperty>((metadatum.Genres ?? new List<string>()).Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+                            ReleaseDate = metadatum.Release_Date.HasValue ? new ReleaseDate(new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(metadatum.Release_Date.Value).ToLocalTime()) : new ReleaseDate(),
+                            Series = new HashSet<MetadataProperty>((metadatum.Franchises ?? new List<string>()).Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
+                            CommunityScore = (int?)metadatum.Average_Rating,
+                            Features = new HashSet<MetadataProperty>((metadatum.Gamemodes ?? new List<string>()).Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),              
+                            Categories = new HashSet<MetadataProperty>((metadatum.Collections ?? new List<string>()).Where(r => !string.IsNullOrEmpty(r)).Select(r => new MetadataNameProperty(r.ToString()))),
                             InstallSize = item.FileSizeBytes,
                             Description = item.Summary,
                             CoverImage = !string.IsNullOrEmpty(urlCover) ? new MetadataFile(urlCover) : null,
                             Favorite = favorites.Exists(f => f == item.Id),
-                            LastActivity = item.RomUser.LastPlayed,
-                            UserScore = item.RomUser.Rating * 10, //RomM-Rating is 1-10, Playnite 1-100, so it can unfortunately only by synced one direction without loosing decimals
+                            LastActivity = romUser.LastPlayed,
+                            UserScore = romUser.Rating * 10, //RomM-Rating is 1-10, Playnite 1-100, so it can unfortunately only by synced one direction without loosing decimals
                             CompletionStatus = completionStatusProperty,
                             GameActions = new List<GameAction>
                             {
