@@ -31,6 +31,13 @@ namespace RomM.Games
 
         public List<Game> Import(LibraryImportGamesArgs args)
         {
+            Version versionParsed = new Version(_plugin.Settings.ServerVersion);
+            if(versionParsed.CompareTo(new Version(4, 9)) < 0)
+            {
+                _plugin.Playnite.Notifications.Add(_plugin.Id.ToString(), "RomM Server 4.9 or later required to import ROMs!", NotificationType.Error);
+                return new List<Game>();
+            }
+
             IList<RomMPlatform> apiPlatforms = FetchPlatforms();
             List<Task<List<Game>>> tasks = new List<Task<List<Game>>>();
             List<Game> games = new List<Game>();
@@ -186,6 +193,8 @@ namespace RomM.Games
                         { "genres_logic", "none" },
                         { "order_by", "name" },
                         { "order_dir", "asc" },
+                        { "with_files", "true" },
+                        { "with_siblings", "true" },
                         { "limit", pageSize.ToString() },
                         { "offset", offset.ToString() },
                     };

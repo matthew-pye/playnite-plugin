@@ -190,7 +190,7 @@ namespace RomM.Models.RomM.Rom
         [JsonProperty("files")]
         public List<RomMFile> Files { get; set; }
 
-        [JsonProperty("siblings")]
+        [JsonProperty("sibling_roms")]
         public List<RomMSibling> Siblings { get; set; }
 
         [JsonProperty("sha1_hash")]

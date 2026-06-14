@@ -372,7 +372,6 @@ namespace RomM.Games
         }
         private void SaveGameData(RomMRom ROM)
         {
-            Version versionParsed  = new Version(_plugin.Settings.ServerVersion);
 
             RomMRomLocal toSave = new RomMRomLocal();        
             toSave.Name = ROM.Name;
@@ -395,9 +394,7 @@ namespace RomM.Games
                 }
 
                 baseROM.FileName = romfile.FileName;
-                baseROM.DownloadURL = versionParsed.CompareTo(new Version(4,8)) < 0 ?
-                                           _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/romsfiles/{romfile.Id}/content/{romfile.FileName}") :
-                                           _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/roms/{romfile.Id}/files/content/{romfile.FileName}");
+                baseROM.DownloadURL = _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/roms/{romfile.Id}/files/content/{romfile.FileName}");
             }
             else
             {
@@ -430,9 +427,7 @@ namespace RomM.Games
                             }
 
                             saveSibling.FileName = romfile.FileName;
-                            saveSibling.DownloadURL = versionParsed.CompareTo(new Version(4, 8)) < 0 ?
-                                           _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/romsfiles/{romfile.Id}/content/{romfile.FileName}") :
-                                           _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/roms/{romfile.Id}/files/content/{romfile.FileName}");
+                            saveSibling.DownloadURL = _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/roms/{romfile.Id}/files/content/{romfile.FileName}");
                         }
                         else
                         {
