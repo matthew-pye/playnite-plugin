@@ -37,7 +37,7 @@
   <!-- Source under test, linked rather than ProjectReference'd: the plugin project is WPF/XAML and
        only builds under full msbuild, so we compile just the pure-logic files we exercise. -->
   <ItemGroup>
-    <Compile Include="..\Models\**\*.cs" Exclude="..\Models\**\RomMRomLocal.cs">
+    <Compile Include="..\Models\**\*.cs" Exclude="..\Models\**\GameInstallInfo.cs">
       <Link>Linked\Models\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Compile>
     <Compile Include="..\Games\RomMGameId.cs" Link="Linked\Games\RomMGameId.cs" />

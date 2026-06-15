@@ -1,5 +1,4 @@
-﻿using RomM.Settings;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace RomM.Models.RomM.Rom
@@ -9,15 +8,6 @@ namespace RomM.Models.RomM.Rom
         None = -1,
         Current = 0,
         Other = 1
-    }
-
-    public struct GameInstallInfo
-    {
-        public int Id { get; set; }
-        public string FileName { get; set; }
-        public bool HasMultipleFiles { get; set; }
-        public string DownloadURL { get; set; }
-        public EmulatorMapping Mapping { get; set; }
     }
 
     public class RomMRevision
