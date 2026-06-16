@@ -1,4 +1,6 @@
-﻿using Playnite;
+﻿using Graviton.Models.Notifications;
+
+using Playnite;
 
 using System.IO;
 
@@ -19,14 +21,22 @@ namespace Graviton.Install.Downloads
 
         public override async Task UninstallAsync(UninstallActionArgs args)
         {
-            if (Game.InstallDirectory != null && new DirectoryInfo(Game.InstallDirectory).Exists)
+            try
             {
-                Directory.Delete(Game.InstallDirectory, true);
+                if (Game.InstallDirectory != null && new DirectoryInfo(Game.InstallDirectory).Exists)
+                {
+                    Directory.Delete(Game.InstallDirectory, true);
+                }
+                else
+                {
+                    GravitonPlugin.PlayniteApi?.Dialogs.ShowErrorMessageAsync($"\"{Game.Name}\" folder could not be found. Marking as uninstalled.", "Game not found");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                GravitonPlugin.PlayniteApi?.Dialogs.ShowErrorMessageAsync($"\"{Game.Name}\" folder could not be found. Marking as uninstalled.", "Game not found");
+                GravitonNotify.Add(new GravitonNotification("graviton.uninstall.failed", $"Failed to delete ROM from filesystem, Marking as uninstalled - {ex.Message}", GravitonSeverity.Error));
             }
+            
 
             //Game.Roms.Clear();
 

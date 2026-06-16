@@ -60,7 +60,7 @@ namespace Graviton.Settings
             set
             {
 
-                if(value.StartsWith("http:") || value.StartsWith("https:"))
+                if(Uri.TryCreate(value, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
                 {
                     _host = value.TrimEnd('/');
                 }
@@ -148,31 +148,43 @@ namespace Graviton.Settings
                 KeepPrivateNotesSynced = this.KeepPrivateNotesSynced,
                 KeepPublicNotesSynced = this.KeepPublicNotesSynced,
 
-                RomMPlatforms = this.RomMPlatforms,
-                Mappings = this.Mappings
+                RomMPlatforms = new(this.RomMPlatforms),
+                Mappings = new(this.Mappings)
 
             };
         }
 
         private string Protect(string PlainText)
         {
-            if (string.IsNullOrEmpty(PlainText)) return string.Empty;
+            if (string.IsNullOrEmpty(PlainText)) 
+                return string.Empty;
+
             byte[] encrypted = ProtectedData.Protect(Encoding.UTF8.GetBytes(PlainText), Encoding.UTF8.GetBytes(GravitonPlugin.ExternalIdType), DataProtectionScope.CurrentUser);
             return Convert.ToBase64String(encrypted);
         }
 
         private string UnProtect(string ProtectedText)
         {
-            if (string.IsNullOrEmpty(ProtectedText)) return string.Empty;
-            byte[] decrypted = ProtectedData.Unprotect(Convert.FromBase64String(ProtectedText), Encoding.UTF8.GetBytes(GravitonPlugin.ExternalIdType), DataProtectionScope.CurrentUser);
-            return Encoding.UTF8.GetString(decrypted);
+            if (string.IsNullOrEmpty(ProtectedText)) 
+                return string.Empty;
+
+            try
+            {
+                byte[] decrypted = ProtectedData.Unprotect(Convert.FromBase64String(ProtectedText),
+                    Encoding.UTF8.GetBytes(GravitonPlugin.ExternalIdType), DataProtectionScope.CurrentUser);
+                return Encoding.UTF8.GetString(decrypted);
+            }
+            catch (System.Security.Cryptography.CryptographicException ex)
+            {
+                GravitonPlugin.Logger?.Error($"Failed to decrypt credential: {ex.Message}");
+                return string.Empty;
+            }
         }
     }
 
     [INotifyPropertyChanged]
     public partial class GravitonSettingsHandler : PluginSettingsHandler
     {
-        public static GravitonSettingsHandler? Instance { get; private set; }
         public bool InEditingMode { get; private set; }
 
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
@@ -181,10 +193,7 @@ namespace Graviton.Settings
 
         [ObservableProperty] private GravitonPluginSettings settings = new();
 
-        public GravitonSettingsHandler()
-        {
-            Instance = this;
-        }
+        public GravitonSettingsHandler() {}
 
         public override UserControl GetEditView(GetSettingsViewArgs args)
         {
@@ -221,7 +230,14 @@ namespace Graviton.Settings
         public static void SaveSettings(string dataDir, GravitonPluginSettings settings)
         {
             var setFile = Path.Combine(dataDir, "settings.json");
-            File.WriteAllText(setFile, JsonSerializer.Serialize<GravitonPluginSettings>(settings));
+            try
+            {
+                File.WriteAllText(setFile, JsonSerializer.Serialize<GravitonPluginSettings>(settings));
+            }
+            catch (Exception ex)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.settings.save.failed", $"{Loc.GetString("SettingSaveFailed")} - {ex.Message}", GravitonSeverity.Error));
+            }
         }
 
         public static GravitonPluginSettings LoadSettings(string dataDir)
@@ -234,9 +250,12 @@ namespace Graviton.Settings
                 {
                     var file = File.ReadAllText(setFile);
                     settings = JsonSerializer.Deserialize<GravitonPluginSettings>(file);
-                    foreach (var mapping in settings!.Mappings)
+                    if (settings != null)
                     {
-                        mapping.AvailablePlatforms = settings.RomMPlatforms;  
+                        foreach (var mapping in settings.Mappings)
+                        {
+                            mapping.AvailablePlatforms = settings.RomMPlatforms;
+                        }
                     }
                 }
                 catch (Exception ex)

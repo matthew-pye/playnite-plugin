@@ -24,7 +24,7 @@ namespace Graviton
 
         internal static GravitonPlugin Instance { get; private set; } = null!;
         internal static IPlayniteApi PlayniteApi { get; private set; } = null!;
-        internal static ILogger Logger { get; private set; } = null!;
+        internal static readonly ILogger Logger = LogManager.GetLogger();
 
         internal GravitonImportController? ImportController { get; private set; }
         internal StatusController? StatusController { get; private set; }
@@ -53,6 +53,9 @@ namespace Graviton
 
         public GravitonPlugin() : base()
         {
+            if (Instance != null)
+                throw new InvalidOperationException("GravitonPlugin instance already initialized.");
+
             Instance = this;
 
             XamlId = "Graviton.RomM";
@@ -99,7 +102,6 @@ namespace Graviton
         {
             PlayniteApi = args.Api ?? throw new Exception("Failed to set playnite instance!");
             Loc.Api = args.Api ?? throw new Exception("Failed to set localization api instance!");
-            Logger = LogManager.GetLogger() ?? throw new Exception("Failed to set logger instance!");
 
             await PlayniteApi.Library.Sources.AddAsync(new Source(Id, "Graviton"));
 
@@ -149,22 +151,23 @@ namespace Graviton
                     HttpClientSingleton.ConfigureClientToken(Settings.ClientTokenNP);
                 }
 
-                var result = await Account!.Heartbeat();
+                if (Account == null)
+                    throw new Exception("Account hasn't been initailized, cannot continue!");
+                
+                var result = await Account.Heartbeat();
                 if (result != null)
                     Settings.ServerVersion = result.Value.Version;
             } 
         }
 
-        public override async Task<PluginSettingsHandler?> GetSettingsHandlerAsync(GetSettingsHandlerArgs args)
+        public override Task<PluginSettingsHandler?> GetSettingsHandlerAsync(GetSettingsHandlerArgs args)
         {
-            await Task.CompletedTask;
-            return SettingsHandler;
+            return Task.FromResult<PluginSettingsHandler?>(SettingsHandler);
         }
 
-        public override async Task<MetadataProvider?> GetMetadataProviderAsync(GetMetadataProviderArgs args)
+        public override Task<MetadataProvider?> GetMetadataProviderAsync(GetMetadataProviderArgs args)
         {
-            await Task.CompletedTask;
-            return new GravitonMetadataProvider();
+            return Task.FromResult<MetadataProvider?>(new GravitonMetadataProvider());
         }
       
         public override Task<List<Game>> ImportGamesAsync(ImportGamesArgs args)
@@ -183,12 +186,12 @@ namespace Graviton
                         Logger.Info($"Game: {updatedGame.OldData.Name} | Prop: {prop}");
                     }
 
-                    if(Settings.KeepStatusSynced && updatedGame.ChangedProperties.Contains("CompletionStatusId"))
+                    if(Settings.KeepStatusSynced && updatedGame.ChangedProperties.Contains(nameof(Game.CompletionStatusId)))
                     {
                         await StatusController!.UpdateStatus(updatedGame.NewData);
                     }
 
-                    if (Settings.KeepFavouritesSynced && updatedGame.ChangedProperties.Contains("Favorite"))
+                    if (Settings.KeepFavouritesSynced && updatedGame.ChangedProperties.Contains(nameof(Game.Favorite)))
                     {
                         await StatusController!.UpdateFavorites(updatedGame.NewData);
                     }
@@ -240,29 +243,36 @@ namespace Graviton
         }
         public override ICollection<MenuItemImpl>? GetAppMenuItems(GetAppMenuItemsArgs args)
         {
-
-            if (args.ItemId == "graviton.open.web")
+            if (args.ItemId == "graviton.open.web" || args.ItemId == "graviton.open.account")
             {
-                return [new MenuItemImpl("Open RomM library", (_) =>
+                if (string.IsNullOrEmpty(Settings.Host))
                 {
-                    if(!string.IsNullOrEmpty(Settings.Host) && Uri.IsWellFormedUriString(Settings.Host, UriKind.Absolute))
-                        Process.Start(new ProcessStartInfo(Settings.Host) { UseShellExecute = true })?.Dispose();
-                    else
-                        PlayniteApi?.Notifications.Add(new NotificationMessage("graviton.appmenu.openlibrary", "RomM host is null or incorrectly formatted!", NotificationSeverity.Error));
-                })];
-            }
+                    GravitonNotify.Add(new GravitonNotification("graviton.open.library", Loc.GetString("HostNotSet"), GravitonSeverity.Error));
+                    return null;
+                }
 
-            if (args.ItemId == "graviton.open.account")
-            {
-                return [new MenuItemImpl("Open RomM profile", (_) =>
+                if (!Uri.IsWellFormedUriString(Settings.Host, UriKind.Absolute))
                 {
-                    if(!string.IsNullOrEmpty(Settings.Host) && Uri.IsWellFormedUriString(Settings.Host, UriKind.Absolute) && Settings.UserID >= 0)
-                        Process.Start(new ProcessStartInfo($"{Settings.Host}/user/{Settings.UserID}") { UseShellExecute = true })?.Dispose();
-                    else
-                        PlayniteApi?.Notifications.Add(new NotificationMessage("graviton.appmenu.openprofile", "User is not authenticated!", NotificationSeverity.Error));
-                })];
-            }
+                    GravitonNotify.Add(new GravitonNotification("graviton.open.library", Loc.GetString("HostInvaild"), GravitonSeverity.Error));
+                    return null;
+                }
 
+                if (args.ItemId == "graviton.open.web")
+                {
+                    return [new MenuItemImpl("Open RomM library", (_) => { Process.Start(new ProcessStartInfo(Settings.Host) { UseShellExecute = true })?.Dispose(); })];
+                }
+
+                if (Settings.UserID < 0)
+                {
+                    GravitonNotify.Add(new GravitonNotification("graviton.open.library", Loc.GetString("NotAuthenticated"), GravitonSeverity.Error));
+                    return null;
+                }
+
+                if (args.ItemId == "graviton.open.account")
+                {
+                    return [new MenuItemImpl("Open RomM profile", (_) => { Process.Start(new ProcessStartInfo($"{Settings.Host}/user/{Settings.UserID}") { UseShellExecute = true })?.Dispose(); })];
+                }
+            }    
 
             return null;
         }

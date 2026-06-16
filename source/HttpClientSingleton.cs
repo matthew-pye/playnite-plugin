@@ -1,10 +1,7 @@
 ﻿using Graviton.Models.Notifications;
-using Graviton.Settings;
 
 using Playnite;
-using Playnite.WebViews;
 
-using System.CodeDom;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -26,15 +23,19 @@ namespace Graviton
         {
             httpClient.DefaultRequestHeaders.Accept.Clear();
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            httpClient.Timeout = TimeSpan.FromSeconds(30); // Make user editable
         }
 
         public static void ConfigureBasicAuth(string username, string password)
         {
+            Instance.DefaultRequestHeaders.Authorization = null;
             var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
             Instance.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
         }
         public static void ConfigureClientToken(string clientToken)
         {
+            Instance.DefaultRequestHeaders.Authorization = null;
             Instance.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", clientToken);
         }
 
@@ -47,20 +48,18 @@ namespace Graviton
                 return null;
             }
 
-            HttpResponseMessage response = await httpClient.GetAsync($"{_plugin.Settings.Host}{APIPath}", new System.Threading.CancellationToken());
+            HttpResponseMessage? response = null;
             try
             {
-                response = response.EnsureSuccessStatusCode();
+                response = await httpClient.GetAsync($"{_plugin.Settings.Host}{APIPath}");
+                response.EnsureSuccessStatusCode();
 
-                Stream body = await response.Content.ReadAsStreamAsync();
-                using (StreamReader reader = new StreamReader(body))
-                {
-                    return JsonDocument.Parse(reader.ReadToEnd());
-                }
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonDocument.ParseAsync(stream);
             }
             catch (Exception ex)
             {
-                if (response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
+                if (response == null || response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.GET.failed", $"{Loc.GetString("GETFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error));
@@ -77,20 +76,18 @@ namespace Graviton
                 return null;
             }
 
-            HttpResponseMessage response = await httpClient.PostAsJsonAsync($"{_plugin.Settings.Host}{APIPath}", JSON, new System.Threading.CancellationToken());
+            HttpResponseMessage? response = null;
             try
             {
-                response = response.EnsureSuccessStatusCode();
+                response = await httpClient.PostAsJsonAsync($"{_plugin.Settings.Host}{APIPath}", JSON);
+                response.EnsureSuccessStatusCode();
 
-                Stream body = await response.Content.ReadAsStreamAsync();
-                using (StreamReader reader = new StreamReader(body))
-                {
-                    return JsonDocument.Parse(reader.ReadToEnd());
-                }
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonDocument.ParseAsync(stream);
             }
             catch (Exception ex)
             {
-                if (response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
+                if (response == null || response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.POST.failed", $"{Loc.GetString("POSTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error));
@@ -105,21 +102,19 @@ namespace Graviton
                 GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", Loc.GetString("Reauthenticate"), GravitonSeverity.Error));
                 return null;
             }
-                
-            HttpResponseMessage response = await httpClient.PutAsJsonAsync($"{_plugin.Settings.Host}{APIPath}", JSON, new System.Threading.CancellationToken());
+
+            HttpResponseMessage? response = null;
             try
             {
-                response = response.EnsureSuccessStatusCode();
+                response = await httpClient.PutAsJsonAsync($"{_plugin.Settings.Host}{APIPath}", JSON);
+                response.EnsureSuccessStatusCode();
 
-                Stream body = await response.Content.ReadAsStreamAsync();
-                using (StreamReader reader = new StreamReader(body))
-                {
-                    return JsonDocument.Parse(reader.ReadToEnd());
-                }
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonDocument.ParseAsync(stream);
             }
             catch (Exception ex)
             {
-                if (response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
+                if (response == null || response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.PUT.failed", $"{Loc.GetString("PUTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error));
@@ -135,20 +130,18 @@ namespace Graviton
                 return null;
             }
 
-            HttpResponseMessage response = await httpClient.PostAsync($"{_plugin.Settings.Host}{APIPath}", Content, new System.Threading.CancellationToken());
+            HttpResponseMessage? response = null;
             try
             {
-                response = response.EnsureSuccessStatusCode();
+                response = await httpClient.PostAsync($"{_plugin.Settings.Host}{APIPath}", Content);
+                response.EnsureSuccessStatusCode();
 
-                Stream body = await response.Content.ReadAsStreamAsync();
-                using (StreamReader reader = new StreamReader(body))
-                {
-                    return JsonDocument.Parse(reader.ReadToEnd());
-                }
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonDocument.ParseAsync(stream);
             }
             catch (Exception ex)
             {
-                if (response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
+                if (response == null || response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.POST.failed", $"{Loc.GetString("POSTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error));
@@ -164,20 +157,18 @@ namespace Graviton
                 return null;
             }
 
-            HttpResponseMessage response = await httpClient.PutAsync($"{_plugin.Settings.Host}{APIPath}", Content, new System.Threading.CancellationToken());
+            HttpResponseMessage? response = null;
             try
             {
-                response = response.EnsureSuccessStatusCode();
+                response = await httpClient.PutAsync($"{_plugin.Settings.Host}{APIPath}", Content);
+                response.EnsureSuccessStatusCode();
 
-                Stream body = await response.Content.ReadAsStreamAsync();
-                using (StreamReader reader = new StreamReader(body))
-                {
-                    return JsonDocument.Parse(reader.ReadToEnd());
-                }
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonDocument.ParseAsync(stream);
             }
             catch (Exception ex)
             {
-                if (response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
+                if (response == null || response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.PUT.failed", $"{Loc.GetString("PUTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error));

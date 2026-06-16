@@ -163,7 +163,7 @@ namespace Graviton.Models
 
                 if (_availablePlatforms != null && RomMPlatformId != -1)
                 {
-                    RomMPlatform = AvailablePlatforms?.FirstOrDefault(x => x.Id == RomMPlatformId) ?? null;
+                    RomMPlatform = AvailablePlatforms?.FirstOrDefault(x => x.Id == RomMPlatformId);
                 }
             }
         }
@@ -181,7 +181,7 @@ namespace Graviton.Models
         {
             get
             {
-                IPlayniteApi playnite = GravitonPlugin.PlayniteApi ?? throw new Exception("");
+                IPlayniteApi playnite = GravitonPlugin.PlayniteApi ?? throw new Exception("PlayniteApi is not initialised");
                 return playnite.AppInfo.ApplicationDirectory;
                 //return playnite.Paths.IsPortable ? DestinationPath?.Replace(playnite.ExpandableVariables.PlayniteDirectory, playnite.AppInfo.ApplicationDirectory) : DestinationPath;
             }

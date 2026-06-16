@@ -2,18 +2,23 @@
 
 using Playnite;
 
+using System.Collections.Concurrent;
+
 namespace Graviton
 {
     public static class GravitonNotify
     {
-        public static List<GravitonNotification> Notifications = new();
+        private static readonly ILogger _logger = LogManager.GetLogger();
+
+        public static readonly object NotificationsLock = new();
+        public static readonly List<GravitonNotification> Notifications = new();
         public static event Action<GravitonNotification>? OnNotificationAdded;
 
         public static void Add(GravitonNotification Notification)
         {
             NotificationSeverity severity = Notification.severity == GravitonSeverity.Error ? NotificationSeverity.Error : NotificationSeverity.Info;
 
-            System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            System.Windows.Application.Current?.Dispatcher.InvokeAsync(() =>
             {
                 GravitonPlugin.PlayniteApi?.Notifications.Add(new NotificationMessage(Notification.id, Notification.message, severity));
             });
@@ -21,24 +26,24 @@ namespace Graviton
             switch (Notification.severity)
             {
                 case GravitonSeverity.Info:
-                    LogManager.GetLogger().Info($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
+                    _logger.Info($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
                     break;
 
                 case GravitonSeverity.Success:
-                    LogManager.GetLogger().Info($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
+                    _logger.Info($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
                     break;
 
                 case GravitonSeverity.Warn:
-                    LogManager.GetLogger().Warn($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
+                    _logger.Warn($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
                     break;
 
                 case GravitonSeverity.Error:
-                    LogManager.GetLogger().Error($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
+                    _logger.Error($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
                     break;
 
             }
 
-            Notifications.Add(Notification);
+            lock (NotificationsLock) { Notifications.Add(Notification); }
             OnNotificationAdded?.Invoke(Notification);
         }
     }

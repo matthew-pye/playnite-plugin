@@ -28,7 +28,7 @@ namespace Graviton.Settings
                 toast.DismissCompleted += (_, _) =>
                 {
                     ToastStack.Children.Remove(toast);
-                    GravitonNotify.Notifications.Remove(notification);
+                    lock (GravitonNotify.NotificationsLock) { GravitonNotify.Notifications.Remove(notification); }
                 };
 
                 // Insert at index 0 so newest toast appears at the top

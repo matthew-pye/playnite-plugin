@@ -56,14 +56,19 @@ DownloadROMDataFailed = Failed to download ROMs for {$PlatformName}: {$Error}
 NewProfileIconFailed = Failed to upload new profile image
 ClientTokenAddressFailed = Cannot open the client token page because the RomM server address is not set.
 HeartbeatFailed = Server heartbeat request failed.
-HostNotSet = Cannot log in because the RomM server address is not set.
+HostNotSet = RomM host is not configured. Set it in the settings
+HostInvaild = RomM host is invalid. Please check the URL in the settings.
 UserPassNotSet = Cannot log in because the username or password is not set.
 TokenNotSet = Cannot log in because the client token is not set.
 LoginSuccess = Login Successful!
+NotAuthenticated = User is not authenticated. Please Log in.
 GETProfileIconFailed = Failed to get profile icon
 GETDevicesFailed = Failed to get RomM devices
 CreateNewDeviceFailed = Failed to create new device
 FavouritesUpdateFailed = Can't update favorites, collection is null
+
+# Settings
+SettingSaveFailed = Failed to save settings
 
 # Downloads
 DownloadViewName = RomM Downloads

@@ -16,7 +16,7 @@ namespace Graviton.Settings
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
         private ILogger _logger { get => GravitonPlugin.Logger; }
 
-        private Regex _iconPathRegex = new Regex(@"^users/[^/]+/profile/avatar\.png$");
+        private static readonly Regex _iconPathRegex = new Regex(@"^users/[^/]+/profile/avatar\.(png|jpg|jpeg|webp)$");
 
         public async Task<ServerInfo?> Heartbeat()
         {
@@ -59,7 +59,7 @@ namespace Graviton.Settings
                     SyncFailed();
                     return false;
                 }
-                    
+                 
                 HttpClientSingleton.ConfigureBasicAuth(_plugin.Settings.UsernameNP, _plugin.Settings.PasswordNP);
             }
             else
@@ -123,13 +123,16 @@ namespace Graviton.Settings
                 {
                     var response = await HttpClientSingleton.Instance.GetAsync($"{_plugin.Settings.Host}/api/raw/assets/{userinfo.IconPath}", System.Net.Http.HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken());
                     response.EnsureSuccessStatusCode();
-                    var imagebytes = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+                    var imagebytes = await response.Content.ReadAsByteArrayAsync();
 
                     if (imagebytes.Length > 20 * 1024 * 1024) // 20MB cap
                         throw new Exception("Avatar image exceeds maximum allowed size.");
 
-                    File.WriteAllBytes($"{GravitonPlugin.PlayniteApi?.UserDataDir}\\avatar.png", imagebytes);
-                    _plugin.Settings.ProfilePath = $"{GravitonPlugin.PlayniteApi?.UserDataDir}\\avatar.png";
+                    if(string.IsNullOrEmpty(_plugin.PluginDataPath))
+                        throw new Exception("Cannot save profile image, PluginData path is unknown!");
+
+                    File.WriteAllBytes($"{_plugin.PluginDataPath}\\avatar.png", imagebytes);
+                    _plugin.Settings.ProfilePath = $"{_plugin.PluginDataPath}\\avatar.png";
                 }
                 else
                 {
@@ -177,7 +180,6 @@ namespace Graviton.Settings
             newDevice.Platform = "Windows";
             newDevice.Client = "Graviton (Playnite Plugin)";
             newDevice.ClientVersion = GravitonPlugin.Version.ToString();
-            newDevice.MACAddress = (from nic in NetworkInterface.GetAllNetworkInterfaces() where nic.OperationalStatus == OperationalStatus.Up select nic.GetPhysicalAddress().ToString()).FirstOrDefault();
             newDevice.HostName = Environment.MachineName;
 
             var request = await HttpClientSingleton.RomMPostJsonAsync("/api/devices", newDevice);
@@ -201,6 +203,9 @@ namespace Graviton.Settings
 
         async Task<bool> UpdateDevice()
         {
+            if (string.IsNullOrEmpty(_plugin.Settings.DeviceID))
+                return false;
+
             // Rebuild device data
             RomMRegisterDevice newDevice = new();
             newDevice.Platform = "Windows";
@@ -209,7 +214,7 @@ namespace Graviton.Settings
             newDevice.MACAddress = (from nic in NetworkInterface.GetAllNetworkInterfaces() where nic.OperationalStatus == OperationalStatus.Up select nic.GetPhysicalAddress().ToString()).FirstOrDefault();
             newDevice.HostName = Environment.MachineName;
 
-            var result = HttpClientSingleton.RomMPutJsonAsync($"/api/devices/{_plugin.Settings.DeviceID}", newDevice);
+            var result = await HttpClientSingleton.RomMPutJsonAsync($"/api/devices/{_plugin.Settings.DeviceID}", newDevice);
             if (result == null)
                 return false;
 

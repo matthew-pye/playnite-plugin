@@ -1,7 +1,8 @@
-﻿using Playnite;
-
-using Graviton.Install.Downloads;
+﻿using Graviton.Install.Downloads;
+using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Rom;
+
+using Playnite;
 
 using SharpCompress.Archives;
 
@@ -106,13 +107,13 @@ namespace Graviton.Install
                 },
 
                 // Callbacks into Playnite install pipeline
-                OnInstalled = installedArgs =>
+                OnInstalled = async installedArgs =>
                 {
                     var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception("Could not get game to set as installed!");
                     game.InstallState = InstallState.Installed;
-                    _playniteAPI.Library.Games.UpdateAsync(game);
+                    await _playniteAPI.Library.Games.UpdateAsync(game);
 
-                    GameInstalledAsync(installedArgs);
+                    await GameInstalledAsync(installedArgs);
                 },
 
                 OnCancelled = () =>
@@ -127,10 +128,7 @@ namespace Graviton.Install
 
                 OnFailed = ex =>
                 {
-                    _playniteAPI.Notifications.Add(new NotificationMessage(
-                        Game.LibraryGameId ?? GravitonPlugin.Id,
-                        $"{Loc.GetString("DownloadFailed")} {Game.Name}.\n\n{ex.Message}",
-                        NotificationSeverity.Error)); 
+                    GravitonNotify.Add(new GravitonNotification("graviton.install.failed",$"{Loc.GetString("DownloadFailed")} {Game.Name}.\n\n{ex.Message}", GravitonSeverity.Error)); 
 
                     //Game.IsInstalling = false;
                 }
@@ -195,15 +193,5 @@ namespace Graviton.Install
         //    return null;
         //}
 
-        private static bool IsFileCompressed(string filePath)
-        {
-            // Exclude disk images which aren't handled by sharpcompress
-            if (Path.GetExtension(filePath).Equals(".iso", StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            return ArchiveFactory.IsArchive(filePath, out var type);
-        }
     }
 }

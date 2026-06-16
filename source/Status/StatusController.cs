@@ -6,7 +6,6 @@ using Graviton.Models.RomM.Rom;
 using Playnite;
 
 using System.Net.Http;
-using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
@@ -22,7 +21,7 @@ namespace Graviton.Status
 
         public async Task PushPlaySession(List<RomMPlaySession> playSessions)
         {
-            object sessions = new { device_id = "", sessions = playSessions };
+            object sessions = new { device_id = _plugin.Settings.DeviceID, sessions = playSessions };
 
             var response = await HttpClientSingleton.RomMPutJsonAsync("/api/play-sessions", sessions);
 
@@ -43,7 +42,7 @@ namespace Graviton.Status
             {
                 return JsonSerializer.Deserialize<RomMCollection>(result);
             }
-            catch (HttpRequestException ex)
+            catch (Exception ex)
             {
                 _logger.Error($"{Loc.GetString("CreateFavoritesFailed")} - {ex}");
                 return null;
@@ -58,7 +57,7 @@ namespace Graviton.Status
 
             try
             {
-                RomMCollection? favourites = result.Deserialize<List<RomMCollection>>()?.First(x => x.Name == "Favorites");
+                RomMCollection? favourites = result.Deserialize<List<RomMCollection>>()?.FirstOrDefault(x => x.Name == "Favorites");
 
                 if (favourites == null)
                     return await CreateFavorites();
@@ -89,7 +88,10 @@ namespace Graviton.Status
                 return;
             }
 
-            if(game.Favorite)
+            if (favouriteCollection.RomIDs == null)
+                favouriteCollection.RomIDs = new();
+
+            if (game.Favorite && !favouriteCollection.RomIDs.Contains(romMID))
             {
                 favouriteCollection.RomIDs?.Add(romMID);
             }
@@ -128,14 +130,14 @@ namespace Graviton.Status
                 GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("ConvertStatusFailed", [("$PlayniteStatus", $"{playniteStatus}")]), GravitonSeverity.Error));
                 return;
             }
-                
+
             var props = new
             {
                 data = new
                 {
-                    backlogged = status == "Plan to Play",
-                    now_playing = status == "Playing",
-                    status = RomMRomUser.CompletionStatusMap.FirstOrDefault((kv) => kv.Value == status && kv.Value != "Playing" && kv.Value != "Plan to Play" && kv.Value != "Not Played").Key
+                    backlogged = status == "backlogged",
+                    now_playing = status == "now_playing",
+                    status = (status != "backlogged" && status != "now_playing" && status != "not_played") ? status : null
                 }
             };
 

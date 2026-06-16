@@ -102,8 +102,7 @@
                                         </Grid.ColumnDefinitions>
 
                                         <Image Grid.Column="0" Name="MappingIcon" Source="{Binding PlatformIcon, Mode=OneWay, Converter={StaticResource imageCacheConverter}}" Stretch="UniformToFill" Width="40" Height="40"/>
-
-                                        <TextBlock Grid.Column="2" Margin="5,0,5,0" Text="{Binding MappingName, Mode=OneWay}" VerticalAlignment="Center" TextWrapping="Wrap" TextTrimming="None"/>
+                                        <TextBlock Grid.Column="1" Margin="5,0,5,0" Text="{Binding MappingName, Mode=OneWay}" VerticalAlignment="Center" TextWrapping="Wrap" TextTrimming="None"/>
                                     </Grid>
                                 </Button>
                             </DataTemplate>
@@ -176,7 +175,7 @@
                 <TextBlock Name="ROMLocText" Text="ROM location" Margin="5" MinWidth="100" MaxWidth="150" VerticalAlignment="Center" HorizontalAlignment="Left"/>
                 <TextBox x:Name="Path" Margin="5" MinWidth="300" Text="{Binding Path=DestinationPath, Mode=TwoWay}"/>
                 <Button Click="Click_BrowseDestination" Margin="5">
-                    <TextBox Name="ROMLocButtonText" Text="Browse"/>
+                    <TextBlock Name="ROMLocButtonText" Text="Browse"/>
                 </Button>
             </StackPanel>
             <Separator Margin="5,2,5,0"/>
