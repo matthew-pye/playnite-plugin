@@ -108,10 +108,7 @@ namespace RomM
 
 
     #region Helper functions
-        public string CombineUrl(string baseUrl, string relativePath)
-        {
-            return $"{baseUrl?.TrimEnd('/')}/{relativePath?.TrimStart('/') ?? ""}";
-        }
+        public string CombineUrl(string baseUrl, string relativePath) => RomMUrl.Combine(baseUrl, relativePath);
 
         public RomMRom FetchRom(string romId)
         {

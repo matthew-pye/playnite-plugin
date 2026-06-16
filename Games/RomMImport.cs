@@ -8,8 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace RomM.Games
 {
@@ -65,53 +63,9 @@ namespace RomM.Games
             _favourites = favourites;
         }
 
-        private RomMFile DetermineFile(RomMRom ROM)
-        {
-            if(ROM.Files.Count == 0)
-                return null;
-
-            if(ROM.Files.Count > 1)
-            {
-                // Return the file that sits highest in the folder tree (fewest path separators).
-                return ROM.Files.OrderBy(f => (f.FullPath ?? string.Empty).Count(c => c == '/')).FirstOrDefault();
-            }
-
-            return ROM.Files.FirstOrDefault();
-        }
-
-        // Builds the install descriptor for a single ROM (base or sibling). Returns null when a
-        // single-file ROM has no resolvable file. Single files use the 4.9 /files/content endpoint,
-        // multi-file ROMs download the whole rom as an archive.
+        // Builds the per-ROM download descriptor via the shared factory (see RomMRevisionFactory).
         private RomMRevision BuildRevision(RomMRom rom)
-        {
-            var revision = new RomMRevision
-            {
-                Id = rom.Id,
-                HasMultipleFiles = rom.HasMultipleFiles,
-                IsSelected = false
-            };
-
-            if (!rom.HasMultipleFiles)
-            {
-                var romfile = DetermineFile(rom);
-                if (romfile == null)
-                    return null;
-
-                revision.FileName = romfile.FileName;
-                // The 4.9 single-file endpoint needs the file id; fall back to the rom-level endpoint
-                // when the payload doesn't include one so we never emit "api/roms//files/content/...".
-                revision.DownloadURL = romfile.Id.HasValue
-                    ? _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/roms/{romfile.Id}/files/content/{romfile.FileName}")
-                    : _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/roms/{rom.Id}/content/{romfile.FileName}");
-            }
-            else
-            {
-                revision.FileName = rom.FileName;
-                revision.DownloadURL = _plugin.CombineUrl(_plugin.Settings.RomMHost, $"api/roms/{rom.Id}/content/{rom.FileName}");
-            }
-
-            return revision;
-        }
+            => RomMRevisionFactory.Build(rom, _plugin.Settings.RomMHost);
 
         // Main library import functions
         public List<Game> ProcessData()
@@ -133,23 +87,10 @@ namespace RomM.Games
                     // never has to null-check (mirrors the hardening done in #107).
                     ROM.Normalize();
 
-                    // Some newer platforms don't get a hash value so we will compromise with this
+                    // Some newer platforms don't get a hash value so we synthesise a stable one.
                     if (string.IsNullOrEmpty(ROM.SHA1))
                     {
-                        var tohash = $"{ROM.Id}{ROM.FileNameNoExt}";
-
-                        using (SHA1Managed sha1 = new SHA1Managed())
-                        {
-                            var hash = sha1.ComputeHash(Encoding.UTF8.GetBytes(tohash));
-                            var sb = new StringBuilder(hash.Length * 2);
-
-                            foreach (byte b in hash)
-                            {
-                                sb.Append(b.ToString("x2"));
-                            }
-
-                            ROM.SHA1 = sb.ToString();
-                        }
+                        ROM.SHA1 = RomMHash.FallbackSha1Hex(ROM.Id, ROM.FileNameNoExt);
                     }
 
                     // Skip game import if the ROM is part of the exclusion list
@@ -250,8 +191,8 @@ namespace RomM.Games
             // don't match the installed file, breaking IsInstalled detection and the play path.
             var baseRevision = BuildRevision(ROM);
             var fileName = !string.IsNullOrEmpty(baseRevision?.FileName) ? baseRevision.FileName : ROM.Name;
-            var gameInstallDir = Path.Combine(rootInstallDir, Path.GetFileNameWithoutExtension(fileName));
-            var pathToGame = Path.Combine(gameInstallDir, fileName);
+            var gameInstallDir = RomMInstallPaths.InstallDir(rootInstallDir, fileName);
+            var pathToGame = RomMInstallPaths.GamePath(rootInstallDir, fileName);
 
             var status = _plugin.Playnite.Database.CompletionStatuses.Get(StatusID);
             var completionStatusProperty = status != null ? new MetadataNameProperty(status.Name) : null;
@@ -404,23 +345,7 @@ namespace RomM.Games
         }
 
         private MainSibling CheckForMainSibling(RomMRom ROM)
-        {
-            //Check to see if ROM is the main sibling
-            if (ROM.RomUser.IsMainSibling)
-                return MainSibling.Current;
-
-            //Find if there is a main sibling
-            foreach (var sibling in ROM.Siblings)
-            {
-                // The sibling may live on a different page and not be present in this batch.
-                if (_romById.TryGetValue(sibling.Id, out var siblingROM) && siblingROM.RomUser != null && siblingROM.RomUser.IsMainSibling)
-                {
-                    return MainSibling.Other;
-                }
-            }
-
-            return MainSibling.None;
-        }
+            => RomMSiblings.ClassifyMain(ROM, _romById);
 
         private void SaveGameData(RomMRom ROM)
         {
@@ -490,22 +415,7 @@ namespace RomM.Games
 
         private Guid DetermineCompletionStatus(RomMRom ROM)
         {
-            string completionStatus;
-            // Determine status in Playnite. Backlogged and "now playing" take precedent over the status options
-            if (ROM.RomUser.Backlogged || ROM.RomUser.NowPlaying)
-            {
-                completionStatus = ROM.RomUser.NowPlaying ? RomMRomUser.CompletionStatusMap["now_playing"] : RomMRomUser.CompletionStatusMap["backlogged"];
-            }
-            else
-            {
-                // RomM may report a status value we don't map; fall back instead of throwing KeyNotFoundException.
-                var romMStatus = ROM.RomUser.Status ?? "not_played";
-                if (!RomMRomUser.CompletionStatusMap.TryGetValue(romMStatus, out completionStatus))
-                {
-                    completionStatus = RomMRomUser.CompletionStatusMap["not_played"];
-                }
-            }
-
+            string completionStatus = RomMCompletionStatus.ResolvePlayniteStatusName(ROM.RomUser);
             _completionStatusMap.TryGetValue(completionStatus, out var statusId);
             return statusId;
         }

@@ -12,6 +12,12 @@
     <Deterministic>true</Deterministic>
     <ProjectGuid>{2351B5C1-6E28-4B79-A1D9-90FDA53B5417}</ProjectGuid>
   </PropertyGroup>
+  <!-- The test project lives under RomM.Tests/ and links source files directly; keep its files
+       out of the plugin's default **/*.cs globbing so the plugin build ignores them. -->
+  <ItemGroup>
+    <Compile Remove="RomM.Tests\**\*.cs" />
+    <None Remove="RomM.Tests\**\*" />
+  </ItemGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>

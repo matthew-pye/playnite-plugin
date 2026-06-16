@@ -30,21 +30,12 @@ namespace RomM.Games
 
         public List<Game> Import(LibraryImportGamesArgs args)
         {
-            // Only block servers we can positively identify as older than 4.9. Dev builds report a
-            // non-numeric version (e.g. "development"), which we assume is recent enough to import.
-            // Pre-release suffixes (e.g. "4.9.0-beta") are stripped before parsing.
-            string rawVersion = (_plugin.Settings.ServerVersion ?? string.Empty).Split('-', '+')[0];
-            if (Version.TryParse(rawVersion, out Version versionParsed))
+            // Only block servers we can positively identify as older than 4.9. Dev/non-numeric
+            // versions and pre-release suffixes are treated as compatible (see RomMServerVersion).
+            if (!RomMServerVersion.SupportsImport(_plugin.Settings.ServerVersion))
             {
-                if (versionParsed.CompareTo(new Version(4, 9)) < 0)
-                {
-                    _plugin.Playnite.Notifications.Add(_plugin.Id.ToString(), "RomM Server 4.9 or later required to import ROMs!", NotificationType.Error);
-                    return new List<Game>();
-                }
-            }
-            else
-            {
-                Logger.Warn($"[Import Controller] Could not parse RomM server version \"{_plugin.Settings.ServerVersion}\"; assuming it's compatible (>= 4.9).");
+                _plugin.Playnite.Notifications.Add(_plugin.Id.ToString(), "RomM Server 4.9 or later required to import ROMs!", NotificationType.Error);
+                return new List<Game>();
             }
 
             IList<RomMPlatform> apiPlatforms = FetchPlatforms();
@@ -119,31 +110,8 @@ namespace RomM.Games
 
         private string BuildROMUrl()
         {
-            string url = _plugin.CombineUrl(_plugin.Settings.RomMHost, "api/roms");
-
-            if (_plugin.Settings.SkipMissingFiles)
-            {
-                url += "?missing=false&";
-            }
-
-            // Exclude genres from import
-            string excludeGenresString = (_plugin.Settings.ExcludeGenres ?? string.Empty).Trim(' ');
-            excludeGenresString = excludeGenresString.Trim(';');
-            List<string> excludeGenres = excludeGenresString.Split(';').ToList();
-            if (!string.IsNullOrEmpty(excludeGenresString))
-            {
-                // Add ? if it hasn't been added already
-                if (!_plugin.Settings.SkipMissingFiles)
-                {
-                    url += "?";
-                }
-
-                foreach (var genre in excludeGenres)
-                {
-                    url += $"genres={HttpUtility.UrlEncode(genre)}&";
-                }
-            }
-            return url.TrimEnd('&');
+            string baseUrl = _plugin.CombineUrl(_plugin.Settings.RomMHost, "api/roms");
+            return RomMRomQuery.Build(baseUrl, _plugin.Settings.SkipMissingFiles, _plugin.Settings.ExcludeGenres);
         }
         private IList<RomMPlatform> FetchPlatforms()
         {
