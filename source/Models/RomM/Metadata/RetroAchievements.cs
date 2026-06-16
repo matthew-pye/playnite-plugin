@@ -38,7 +38,7 @@ namespace Graviton.Models.RomM.Metadata
         public List<RetroAchievement>? EarnedAchievements { get; set; }
     }
 
-    public class RetroAchievmentProgression
+    public class RetroAchievementProgression
     {
         [JsonPropertyName("total")]
         public int? RAGamesCount { get; set; }

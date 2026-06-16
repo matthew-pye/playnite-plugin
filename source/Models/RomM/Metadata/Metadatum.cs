@@ -23,13 +23,13 @@ namespace Graviton.Models.RomM.Metadata
         public List<string>? Gamemodes { get; set; }
 
         [JsonPropertyName("age_ratings")]
-        public List<string>? Age_Ratings { get; set; }
+        public List<string>? AgeRatings { get; set; }
 
         [JsonPropertyName("first_release_date")]
         public long? ReleaseDate { get; set; }
 
         [JsonPropertyName("average_rating")]
-        public float? Average_Rating { get; set; }
+        public float? AverageRating { get; set; }
 
     }
 }

@@ -26,6 +26,6 @@ namespace Graviton.Models.RomM
         public string RAUsername { get; set; } = string.Empty;
 
         [JsonPropertyName("ra_progression")]
-        public RetroAchievmentProgression? RAProgression;
+        public RetroAchievementProgression? RAProgression { get; set; }
     }
 }

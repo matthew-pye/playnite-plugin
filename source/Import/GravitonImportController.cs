@@ -68,6 +68,10 @@ namespace Graviton.Import
                 // Pull data from server
                 _logger.Debug($"[Import Controller] Started parsing response for {apiPlatform.Name}.");
                 var rommROMs = await DownloadROMData(args, url, apiPlatform);
+
+                if (args.CancelToken.IsCancellationRequested)
+                    break;
+
                 if (rommROMs == null)
                     continue;
                 else
@@ -101,7 +105,7 @@ namespace Graviton.Import
             if (result == null)
                 return null;
 
-            var platforms = JsonSerializer.Deserialize<List<RomMPlatform>>(result) ?? throw new Exception("Failed to deseralize plaforms from server!");
+            var platforms = result.RootElement.Deserialize<List<RomMPlatform>>() ?? throw new Exception("Failed to deseralize plaforms from server!");
 
             if (!Directory.Exists($"{_plugin.PluginDataPath}/Platforms/"))
                 Directory.CreateDirectory($"{_plugin.PluginDataPath}/Platforms/");
@@ -126,7 +130,6 @@ namespace Graviton.Import
 
             return platforms;
         }
-
 
         private string BuildGeneralROMUrl()
         {

@@ -99,10 +99,10 @@ namespace Graviton.Import
             foreach (var ROM in _roms)
             {
                 // Some newer platforms don't get a hash value so we will compromise with this
-                if (string.IsNullOrEmpty(ROM.SHA1))
+                if (string.IsNullOrEmpty(ROM.SHA1) || !_SHA1Regex.IsMatch(ROM.SHA1!))
                 {
-                    var tohash = Encoding.UTF8.GetBytes($"{ROM.Name}{ROM.FileSizeBytes}");
-                    ROM.SHA1 = Encoding.UTF8.GetString(SHA1.HashData(tohash));
+                    var tohash = Encoding.UTF8.GetBytes($"{ROM.Id}{ROM.FileNameNoExt}");
+                    ROM.SHA1 = Convert.ToHexString(SHA1.HashData(tohash));
                 }
 
                 // Fail-safe incase none of these are set to true
@@ -181,13 +181,6 @@ namespace Graviton.Import
             //    continue;
             //}
 
-            // Some newer platforms don't get a hash value so we will compromise with this
-            if (string.IsNullOrEmpty(ROM.SHA1) || !_SHA1Regex.IsMatch(ROM.SHA1!))
-            {
-                var tohash = Encoding.UTF8.GetBytes($"{ROM.Id}{ROM.FileNameNoExt}");
-                ROM.SHA1 = Convert.ToHexString(SHA1.HashData(tohash));
-            }
-
             string gameID = $"{ROM.Id}:{ROM.SHA1}";
 
             // Save Game ROM data to file
@@ -259,7 +252,7 @@ namespace Graviton.Import
             if (ROM.Metadatum?.ReleaseDate != null && ROM.Metadatum?.ReleaseDate > 0)
                 game.ReleaseDate = new PartialDate(new DateTime(((ROM.Metadatum?.ReleaseDate ?? 0) + 62135607600000) * 10000));
 
-            game.CommunityScore = (ROM.Metadatum?.Average_Rating != null && ROM.Metadatum?.Average_Rating > 0) ? (int)ROM.Metadatum!.Average_Rating : -1;
+            game.CommunityScore = (ROM.Metadatum?.AverageRating != null && ROM.Metadatum?.AverageRating > 0) ? (int)ROM.Metadatum!.AverageRating : -1;
 
             game.ObtainedDate = ROM.CreatedAt;
             game.AddedDate = DateTime.UtcNow;

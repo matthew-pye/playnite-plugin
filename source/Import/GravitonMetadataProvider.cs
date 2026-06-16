@@ -106,7 +106,7 @@ namespace Graviton.Import
                     return ROM.RomUser?.Rating * 10;
 
                 case BuiltInGameDataId.CommunityScore:
-                    return ROM.Metadatum?.Average_Rating;
+                    return ROM.Metadatum?.AverageRating;
 
                 case BuiltInGameDataId.ReleaseDate:
                     return ROM.Metadatum?.ReleaseDate;

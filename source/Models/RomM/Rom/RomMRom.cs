@@ -195,6 +195,6 @@ namespace Graviton.Models.RomM.Rom
         public List<RomMUserNotes>? Notes { get; set; }
 
         // This is used for linking games together
-        public bool Processed = false;
+        public bool Processed { get; set; } = false;
     }
 }
