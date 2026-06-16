@@ -208,6 +208,7 @@ namespace RomM.Settings
                 OnPropertyChanged();
             }
         }
+        [JsonIgnore]
         public string ProfilePath 
         { 
             get => _profilepath; 
@@ -299,7 +300,6 @@ namespace RomM.Settings
 
                 RomMUser = savedSettings.RomMUser;
                 RomMProfileType = savedSettings.RomMProfileType;
-                ProfilePath = savedSettings.ProfilePath;
                 ServerVersion = savedSettings.ServerVersion;
 
                 // ----- These need to stay in this order -----
@@ -329,10 +329,20 @@ namespace RomM.Settings
                 forceSave = true;
             }
 
+            ProfilePath = ResolveProfilePath();
+
             if (forceSave)
             {
                 SavePluginSettings(this);
             }
+        }
+
+        // Returns the avatar path if the file exists in the current extension data directory,
+        // otherwise falls back to the bundled default profile image.
+        private string ResolveProfilePath()
+        {
+            var avatarPath = Path.Combine(PlayniteAPI.Paths.ExtensionsDataPath, RomM.Id.ToString(), "avatar.png");
+            return File.Exists(avatarPath) ? avatarPath : _defaultprofilepath;
         }
 
         public bool TestConnection(bool UpdateNotificationBar = false, bool fetchProfile = true)
@@ -547,16 +557,21 @@ namespace RomM.Settings
         public object Convert(object value, Type targetType,
             object parameter, System.Globalization.CultureInfo culture)
         {
-
             var path = (string)value;
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.UriSource = new Uri(path);
-            image.EndInit();
-
-            return image;
-
+            try
+            {
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.UriSource = new Uri(path);
+                image.EndInit();
+                return image;
+            }
+            catch (Exception ex)
+            {
+                LogManager.GetLogger().Warn($"[Settings] Failed to load profile image from '{path}': {ex.Message}");
+                return null;
+            }
         }
 
         public object ConvertBack(object value, Type targetType,
