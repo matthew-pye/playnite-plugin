@@ -283,6 +283,16 @@ namespace Graviton.Import
             game.Links = new();
             game.ExternalIdentifiers = new();
             game.ExternalIdentifiers?.Add(new("romm", ROM.Id.ToString()!));
+            if (ROM.IgdbId != null)
+            {
+                game.ExternalIdentifiers?.Add(new("igdb", ROM.IgdbId.ToString()!));
+
+                if (ROM.Slug != null)
+                {
+                    game.Links.Add(new WebLink("igdb", $"https://www.igdb.com/games/{ROM.Slug}"));
+                }
+            }
+            
             if (ROM.SSId != null)
             {
                 game.Links.Add(new WebLink("screenscraper", $"https://www.screenscraper.fr/gameinfos.php?gameid={ROM.SSId}"));
