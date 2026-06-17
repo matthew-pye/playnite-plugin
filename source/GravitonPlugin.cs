@@ -24,7 +24,7 @@ namespace Graviton
 
         internal static GravitonPlugin Instance { get; private set; } = null!;
         internal static IPlayniteApi PlayniteApi { get; private set; } = null!;
-        internal static readonly ILogger Logger = LogManager.GetLogger();
+        internal static ILogger Logger { get; private set; } = null!;
 
         internal GravitonImportController? ImportController { get; private set; }
         internal StatusController? StatusController { get; private set; }
@@ -102,6 +102,7 @@ namespace Graviton
         {
             PlayniteApi = args.Api ?? throw new Exception("Failed to set playnite instance!");
             Loc.Api = args.Api ?? throw new Exception("Failed to set localization api instance!");
+            Logger = LogManager.GetLogger();
 
             await PlayniteApi.Library.Sources.AddAsync(new Source(Id, "Graviton"));
 
@@ -158,9 +159,12 @@ namespace Graviton
                 
                 var result = await Account.Heartbeat();
                 if (result != null)
+                {
                     Settings.ServerVersion = result.Value.Version;
-
-                await Account.SyncPlatforms();
+                    if (await Account.SyncPlatforms())
+                        Logger.Info(Loc.GetString("PlatformsSynced", [("PlaformCount", Settings.RomMPlatforms.Count)]));
+                }
+                   
             } 
         }
 

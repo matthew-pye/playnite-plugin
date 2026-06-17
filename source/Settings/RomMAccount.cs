@@ -250,8 +250,6 @@ namespace Graviton.Settings
                 return false;
             }
 
-            GravitonNotify.Add(new GravitonNotification("graviton.GET.platforms", $"Pulled {platforms.Count} platforms from server", GravitonSeverity.Success));
-
             _plugin?.Settings.RomMPlatforms = platforms.ToObservableCollection();
             foreach (var mapping in _plugin?.Settings.Mappings!)
             {

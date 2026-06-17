@@ -9,7 +9,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Xml.Linq;
 
 namespace Graviton.Import
 {
@@ -106,31 +105,31 @@ namespace Graviton.Import
                 }
 
                 // Fail-safe incase none of these are set to true
-                if (!ROM.HasSimpleSingleFile & !ROM.HasNestedSingleFile & !ROM.HasMultipleFiles)
+                if (!ROM.HasSimpleSingleFile && !ROM.HasNestedSingleFile && !ROM.HasMultipleFiles)
                     ROM.HasMultipleFiles = true;
 
-                var ROMGenres = ROM.Metadatum?.Genres?.Select(x => new Genre(x, x)).ToList();
+                var ROMGenres = ROM.Metadatum?.Genres?.Select(x => new Genre(x.ToLower(), x)).ToList();
                 if(ROMGenres != null)
                     genres.AddRange(ROMGenres);
 
-                var ROMCollections= ROM.Metadatum?.Collections?.Select(x => new Category(x, x)).ToList();
+                var ROMCollections= ROM.Metadatum?.Collections?.Select(x => new Category(x.ToLower(), x)).ToList();
                 ROMCollections?.RemoveAll(x => x.Name == "Favorites");
                 if (ROMCollections != null)
                     categories.AddRange(ROMCollections);
 
-                var ROMSeries = ROM.Metadatum?.Franchises?.Select(x => new Series(x, x)).ToList();
+                var ROMSeries = ROM.Metadatum?.Franchises?.Select(x => new Series(x.ToLower(), x)).ToList();
                 if (ROMSeries != null)
                     series.AddRange(ROMSeries);
 
-                var ROMfeatures = ROM.Metadatum?.Gamemodes?.Select(x => new Feature(x, x)).ToList();
+                var ROMfeatures = ROM.Metadatum?.Gamemodes?.Select(x => new Feature(x.ToLower(), x)).ToList();
                 if (ROMfeatures != null)
                     features.AddRange(ROMfeatures);
 
-                var ROMRegions = ROM.Regions?.Select(x => new Region(x, x)).ToList();
+                var ROMRegions = ROM.Regions?.Select(x => new Region(x.ToLower(), x)).ToList();
                 if (ROMRegions != null)
                     regions.AddRange(ROMRegions);
 
-                var ROMAgeRatings = ROM.IgdbMetadata?.AgeRatings?.Select(x => new AgeRating($"{x.RatingBoard} {x.Rating}", $"{x.RatingBoard} {x.Rating}")).ToList();
+                var ROMAgeRatings = ROM.IgdbMetadata?.AgeRatings?.Select(x => new AgeRating($"{x.RatingBoard.ToLower()} {x.Rating}", $"{x.RatingBoard} {x.Rating}")).ToList();
                 if (ROMAgeRatings != null)
                     ageRatings.AddRange(ROMAgeRatings);
             }
@@ -252,7 +251,7 @@ namespace Graviton.Import
             if (ROM.Metadatum?.ReleaseDate != null && ROM.Metadatum?.ReleaseDate > 0)
                 game.ReleaseDate = new PartialDate(new DateTime(((ROM.Metadatum?.ReleaseDate ?? 0) + 62135607600000) * 10000));
 
-            game.CommunityScore = (ROM.Metadatum?.AverageRating != null && ROM.Metadatum?.AverageRating > 0) ? (int)ROM.Metadatum!.AverageRating : -1;
+            game.CommunityScore = (ROM.Metadatum?.AverageRating != null && ROM.Metadatum?.AverageRating > 0) ? (int)ROM.Metadatum.AverageRating : -1;
 
             game.ObtainedDate = ROM.CreatedAt;
             game.AddedDate = DateTime.UtcNow;
@@ -260,13 +259,13 @@ namespace Graviton.Import
             if (ROM.HLTBMetadata != null)
                 game.TimeToBeatEstimated = new(ROM.HLTBMetadata.MainStory, ROM.HLTBMetadata.MainStoryExtra, ROM.HLTBMetadata.Completionist);
 
-            game.GenreIds = ROM.Metadatum?.Genres?.ToHashSet();
+            game.GenreIds = ROM.Metadatum?.Genres != null ? ROM.Metadatum.Genres.Select(x => x.ToLower()).ToHashSet() : null;
             game.PlatformIds = new HashSet<string>([_mapping.RomMPlatform!.Name]);
-            game.CategoryIds = ROM.Metadatum?.Collections?.ToHashSet();
-            game.FeatureIds = ROM.Metadatum?.Gamemodes?.ToHashSet();
-            game.SeriesIds = ROM.Metadatum?.Franchises?.ToHashSet();
-            game.RegionIds = ROM.Regions?.ToHashSet();
-            game.AgeRatingIds = ROM.IgdbMetadata?.AgeRatings?.Select(x => $"{x.RatingBoard}-{x.Rating}").ToHashSet();
+            game.CategoryIds = ROM.Metadatum?.Collections != null ? ROM.Metadatum.Collections.Select(x => x.ToLower()).ToHashSet() : null;
+            game.FeatureIds = ROM.Metadatum?.Gamemodes != null ? ROM.Metadatum.Gamemodes.Select(x => x.ToLower()).ToHashSet() : null;
+            game.SeriesIds = ROM.Metadatum?.Franchises != null ? ROM.Metadatum.Franchises.Select(x => x.ToLower()).ToHashSet() : null;
+            game.RegionIds = ROM.Regions != null ? ROM.Regions.Select(x => x.ToLower()).ToHashSet() : null;
+            game.AgeRatingIds = ROM.IgdbMetadata?.AgeRatings != null ? ROM.IgdbMetadata.AgeRatings.Select(x => $"{x.RatingBoard.ToLower()} {x.Rating}").ToHashSet() : null;
 
             game.UserScore = (ROM.RomUser?.Rating != null && ROM.RomUser?.Rating > 0) ? ROM.RomUser!.Rating * 10 : -1;
             game.Favorite = ROM.Collections?.Any(x => x.Name == "Favorites") ?? false;

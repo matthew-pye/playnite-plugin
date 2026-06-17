@@ -19,6 +19,7 @@ InvaildScheme = Host address must start with http or https
 
 # Mappings page
 SyncPlatforms = Sync Platforms
+PlatformsSynced = Synced {$PlaformCount} platforms
 NewMapping = New Mapping
 Emulator = Emulator
 Profile = Profile

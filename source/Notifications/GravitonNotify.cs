@@ -2,13 +2,11 @@
 
 using Playnite;
 
-using System.Collections.Concurrent;
-
 namespace Graviton
 {
     public static class GravitonNotify
     {
-        private static readonly ILogger _logger = LogManager.GetLogger();
+        private static readonly ILogger _logger = GravitonPlugin.Logger;
 
         public static readonly object NotificationsLock = new();
         public static readonly List<GravitonNotification> Notifications = new();

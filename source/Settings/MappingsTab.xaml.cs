@@ -98,7 +98,9 @@ namespace Graviton.Settings
 
         private async void SyncPlatforms_Click(object sender, RoutedEventArgs e)
         {
-            await _plugin.Account!.SyncPlatforms();
+            if(await _plugin.Account!.SyncPlatforms())
+                GravitonNotify.Add(new GravitonNotification("graviton.GET.platforms", Loc.GetString("PlatformsSynced", [("PlaformCount", _plugin.Settings.RomMPlatforms.Count)]), GravitonSeverity.Success));
+            
             e.Handled = true;
         }
     }
