@@ -106,6 +106,13 @@ namespace Graviton.Settings
             }
 
             GravitonNotify.Add(new GravitonNotification("graviton.Account.loggedin", Loc.GetString("LoginSuccess"), GravitonSeverity.Success));
+
+            if (!(await SyncPlatforms()))
+            {
+                SyncFailed();
+                return false;
+            }
+
             return true;
         }
 
@@ -220,7 +227,39 @@ namespace Graviton.Settings
 
             return true;
         }
+        public async Task<bool> SyncPlatforms()
+        {
+            foreach (var mapping in _plugin.Settings.Mappings!)
+            {
+                mapping.AvailablePlatforms = _plugin.Settings.RomMPlatforms;
+            }
 
+            var importcontroller = _plugin?.ImportController;
+
+            if (importcontroller == null)
+            {
+                return false;
+            }
+
+            var platforms = await importcontroller.FetchPlatforms();
+            if (platforms == null)
+                return false;
+            else if (platforms.Count <= 0)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.GET.no.platforms", $"No platforms pulled from server!", GravitonSeverity.Warn));
+                return false;
+            }
+
+            GravitonNotify.Add(new GravitonNotification("graviton.GET.platforms", $"Pulled {platforms.Count} platforms from server", GravitonSeverity.Success));
+
+            _plugin?.Settings.RomMPlatforms = platforms.ToObservableCollection();
+            foreach (var mapping in _plugin?.Settings.Mappings!)
+            {
+                mapping.AvailablePlatforms = platforms.ToObservableCollection();
+            }
+
+            return true;
+        }
         void SyncFailed()
         {
             _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");

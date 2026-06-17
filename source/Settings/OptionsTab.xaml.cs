@@ -31,6 +31,9 @@ namespace Graviton.Settings
             Browse7zText.Text = Loc.GetString("Browse");
             StatusTitle.Text = Loc.GetString("StatusSync");
             KeepStatusSyncedText.Text = Loc.GetString("KeepStatusSynced");
+            KeepFavouritesSyncedText.Text = Loc.GetString("KeepFavouritesSynced");
+            KeepPrivateNotesSyncedText.Text = Loc.GetString("KeepPrivateNotesSynced");
+            KeepPublicNotesSyncedText.Text = Loc.GetString("KeepPublicNotesSynced");
 
         }
 
@@ -38,7 +41,8 @@ namespace Graviton.Settings
         {
             var path = await GravitonPlugin.PlayniteApi.Dialogs.SelectFileAsync(PathTo7zFileType, false);
 
-            if (path?[0] == null) return;
+            if (path == null || path.Count == 0) 
+                return;
 
             _plugin.Settings.PathTo7z = path[0];
             e.Handled = true;

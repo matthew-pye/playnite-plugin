@@ -1,4 +1,5 @@
 ﻿using Graviton.Models;
+using Graviton.Models.Notifications;
 
 using Playnite;
 
@@ -18,6 +19,7 @@ namespace Graviton.Settings
         {
             InitializeComponent();
 
+            SyncPlatformsIcon.Text = $"\uf46a {Loc.GetString("SyncPlatforms")}";
             AddMappingIcon.Text = $"\uea60 {Loc.GetString("NewMapping")}";
             EmulatorText.Text = Loc.GetString("Emulator");
             ProfileText.Text = Loc.GetString("Profile");
@@ -79,16 +81,24 @@ namespace Graviton.Settings
         private async void DeleteMapping_Click(object sender, RoutedEventArgs e)
         {
             var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
-
-            var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{mapping!.GetDescriptionLines()}", "Are you sure you want to delete this mapping?", Playnite.MessageBoxButtons.YesNoCancel);
-            
-            if(response == Playnite.MessageBoxResult.Yes)
+            if(mapping != null)
             {
-                _plugin.Settings.Mappings.Remove(mapping!);
-                MappingOptions.DataContext = null;
-                MappingOptions.Visibility = Visibility.Hidden;
+                var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{mapping.GetDescriptionLines()}", "Are you sure you want to delete this mapping?", Playnite.MessageBoxButtons.YesNoCancel);
+
+                if (response == Playnite.MessageBoxResult.Yes)
+                {
+                    _plugin.Settings.Mappings.Remove(mapping!);
+                    MappingOptions.DataContext = null;
+                    MappingOptions.Visibility = Visibility.Hidden;
+                }
             }
             
+            e.Handled = true;
+        }
+
+        private async void SyncPlatforms_Click(object sender, RoutedEventArgs e)
+        {
+            await _plugin.Account!.SyncPlatforms();
             e.Handled = true;
         }
     }

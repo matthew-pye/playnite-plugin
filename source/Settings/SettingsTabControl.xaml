@@ -58,7 +58,7 @@
             </TabItem>
 
             <!-- Mappings -->
-            <TabItem Name="MappingsItem" Header="&#xf0eb6; Mappings" Selector.Selected="MappingTabItem_Selected">
+            <TabItem Name="MappingsItem" Header="&#xf0eb6; Mappings">
                 <s:MappingsTab FontSize="14" Margin="5,10,5,5"/>
             </TabItem>
 

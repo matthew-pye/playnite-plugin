@@ -157,6 +157,8 @@ namespace Graviton
                 var result = await Account.Heartbeat();
                 if (result != null)
                     Settings.ServerVersion = result.Value.Version;
+
+                await Account.SyncPlatforms();
             } 
         }
 
