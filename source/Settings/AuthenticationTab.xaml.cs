@@ -25,7 +25,6 @@ namespace Graviton.Settings
             {"Image File", ["*.png","*.jpg", "*.jpeg","*.webp"]}
         };
 
-
         public AuthenticationTab()
         {
             InitializeComponent();
@@ -36,9 +35,20 @@ namespace Graviton.Settings
             UseBasicAuthText.Text = Loc.GetString("UseBasicAuth");
             UserPassWarning.Text = Loc.GetString("UserPassWarning");
             UsernameText.Text = Loc.GetString("Username");
-            PasswordText.Text = Loc.GetString("Username");
+            PasswordText.Text = Loc.GetString("Password");
 
             ProfileEditButton.FontFamily = Playnite.Fonts.NerdFont;
+            ShowPassword.FontFamily = Playnite.Fonts.NerdFont;
+
+            RomMPassword.Password = _plugin.Settings.PasswordNP;
+            RomMPassword.PasswordChanged += (_, _) =>
+            {
+                _plugin.Settings.PasswordNP = RomMPassword.Password;
+            };
+
+            RomMPassword.Background = RomMUsername.Background;
+            RomMPassword.BorderBrush = RomMUsername.BorderBrush;
+
         }
 
         private async void Click_Authenticate(object sender, System.Windows.RoutedEventArgs e)
@@ -90,7 +100,7 @@ namespace Graviton.Settings
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(filetype);
 
                 content.Add(fileContent, "avatar", fileName);
-                var result = HttpClientSingleton.RomMPutContentAsync($"/api/users/{_plugin.Settings.UserID}", content);
+                var result = await HttpClientSingleton.RomMPutContentAsync($"/api/users/{_plugin.Settings.UserID}", content);
 
                 if(result != null)
                 {
@@ -120,5 +130,40 @@ namespace Graviton.Settings
             Process.Start(new ProcessStartInfo(clienttokenaddress) { UseShellExecute = true })?.Dispose();
             e.Handled = true;
         }
+
+        private void Unchecked_UseBasicAuth(object sender, RoutedEventArgs e)
+        {
+            RomMPasswordUnmasked.Visibility = Visibility.Collapsed;
+            RomMPassword.Visibility = Visibility.Collapsed;
+            e.Handled = true;
+        }
+
+        private void Checked_UseBasicAuth(object sender, RoutedEventArgs e)
+        {
+            RomMPassword.Visibility = Visibility.Visible;
+            RomMPasswordUnmasked.Visibility = Visibility.Collapsed;
+            ShowPassword.Content = "\uea70";
+            e.Handled = true;
+        }
+
+        private void Click_ShowPassword(object sender, RoutedEventArgs e)
+        {
+            if(RomMPassword.Visibility == Visibility.Visible)
+            {
+                RomMPassword.Visibility = Visibility.Collapsed;
+                RomMPasswordUnmasked.Visibility = Visibility.Visible;
+                ShowPassword.Content = "\ueae7";
+            }
+            else
+            {
+                RomMPassword.Visibility = Visibility.Visible;
+                RomMPasswordUnmasked.Visibility = Visibility.Collapsed;
+                ShowPassword.Content = "\uea70";
+                RomMPassword.Password = _plugin.Settings.PasswordNP;
+            }
+
+            e.Handled = true;
+        }
+
     }
 }

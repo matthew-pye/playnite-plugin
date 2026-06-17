@@ -18,6 +18,7 @@ Password = Password
 InvaildScheme = Host address must start with http or https
 
 # Mappings page
+SyncPlatforms = Sync Platforms
 NewMapping = New Mapping
 Emulator = Emulator
 Profile = Profile
@@ -34,7 +35,10 @@ SkipDeleted = Skip Importing ROMs Missing from the RomM Server's File System
 ExcludeGenres = Exclude Genres
 Use7z = Use 7z for archive extraction
 StatusSync = Status Sync
-KeepStatusSynced = Keep completion status and favourites in sync with RomM
+KeepStatusSynced = Keep completion status in sync with RomM
+KeepFavouritesSynced = Keep favorites in sync with RomM
+KeepPrivateNotesSynced = Keep private notes in sync with RomM
+KeepPublicNotesSynced = Keep public notes in sync with RomM
 
 # Http Client
 Reauthenticate = Reauthentication required!
