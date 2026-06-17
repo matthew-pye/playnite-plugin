@@ -59,7 +59,7 @@ namespace Graviton
             }
             catch (Exception ex)
             {
-                if (response == null || response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
+                if (response != null && (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden))
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.GET.failed", $"{Loc.GetString("GETFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error));
@@ -87,7 +87,7 @@ namespace Graviton
             }
             catch (Exception ex)
             {
-                if (response == null || response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
+                if (response != null && (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden))
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.POST.failed", $"{Loc.GetString("POSTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error));
@@ -114,7 +114,7 @@ namespace Graviton
             }
             catch (Exception ex)
             {
-                if (response == null || response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
+                if (response != null && (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden))
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.PUT.failed", $"{Loc.GetString("PUTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error));
@@ -141,7 +141,7 @@ namespace Graviton
             }
             catch (Exception ex)
             {
-                if (response == null || response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
+                if (response != null && (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden))
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.POST.failed", $"{Loc.GetString("POSTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error));
@@ -168,7 +168,7 @@ namespace Graviton
             }
             catch (Exception ex)
             {
-                if (response == null || response.StatusCode == HttpStatusCode.Forbidden || response.StatusCode == HttpStatusCode.Unauthorized)
+                if (response != null && (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden))
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.PUT.failed", $"{Loc.GetString("PUTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error));
