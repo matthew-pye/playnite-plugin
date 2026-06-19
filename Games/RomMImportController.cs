@@ -68,7 +68,7 @@ namespace RomM.Games
                 RomMPlatform apiPlatform = apiPlatforms.FirstOrDefault(p => p.Id == mapping.RomMPlatformId);
                 if (apiPlatform == null)
                 {
-                    _plugin.Playnite.Notifications.Add(_plugin.Id.ToString(), $"Platform {mapping.RomMPlatform.Name} with ID {mapping.RomMPlatformId} not found in RomM, skipping.", NotificationType.Error);
+                    _plugin.Playnite.Notifications.Add(_plugin.Id.ToString(), $"Platform {mapping.RomMPlatform.PlayniteName} with ID {mapping.RomMPlatformId} not found in RomM, skipping.", NotificationType.Error);
                     continue;
                 }
 

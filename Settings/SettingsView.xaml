@@ -178,7 +178,7 @@
                                         <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,6" ItemsSource="{Binding AvailableProfiles}" DisplayMemberPath="Name" SelectedItem="{Binding EmulatorProfile, Mode=TwoWay}" />
 
                                         <Label Grid.Row="2" Grid.Column="0" Content="Platform" Style="{StaticResource FieldLabel}" />
-                                        <ComboBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,6" IsTextSearchEnabled="True" ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="Name" SelectedItem="{Binding RomMPlatform, Mode=TwoWay}" />
+                                        <ComboBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,6" IsTextSearchEnabled="True" ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="PlayniteName" SelectedItem="{Binding RomMPlatform, Mode=TwoWay}" />
 
                                         <Label Grid.Row="3" Grid.Column="0" Content="Path" Style="{StaticResource FieldLabel}" />
                                         <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,8,6" VerticalAlignment="Center" Text="{Binding DestinationPath, Mode=TwoWay}" />
