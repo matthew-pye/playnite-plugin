@@ -8,7 +8,7 @@ namespace Graviton.Models.RomM.Rom
         public string FileName { get; set; }
         public bool HasMultipleFiles { get; set; }
         public string DownloadURL { get; set; }
-        public EmulatorMapping Mapping { get; set; }
+        public EmulatorMapping? Mapping { get; set; }
     }
 
     public class RomMRomLocal

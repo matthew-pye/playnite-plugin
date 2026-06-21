@@ -271,7 +271,7 @@ namespace Graviton.Install.Downloads
         {
             if (item == null) return;
 
-            DownloadQueueVM.Items.Remove(item);
+            UIDispatcher.Invoke(() => DownloadQueueVM.Items.Remove(item));
         }
 
         private void TryCleanupPartialInstall(DownloadRequest req)

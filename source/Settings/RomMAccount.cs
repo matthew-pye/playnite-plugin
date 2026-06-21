@@ -148,7 +148,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.GET.profileicon.failed", $"{Loc.GetString("GETProfileIconFailed")} - {ex.Message}", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.GET.profileicon.failed", $"{Loc.GetString("GETProfileIconFailed")} - {ex.Message}", GravitonSeverity.Error, ex));
             }
             
             _plugin.Settings.UserType = userinfo.Role;
@@ -174,7 +174,7 @@ namespace Graviton.Settings
                     }
                     catch (Exception ex)
                     {
-                        GravitonNotify.Add(new GravitonNotification("graviton.GET.device.failed", $"{Loc.GetString("GETDevicesFailed")} - {ex.Message}", GravitonSeverity.Warn));
+                        GravitonNotify.Add(new GravitonNotification("graviton.GET.device.failed", $"{Loc.GetString("GETDevicesFailed")} - {ex.Message}", GravitonSeverity.Warn, ex));
                         return false;
                     }
                 }
@@ -203,7 +203,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.POST.device.failed", $"{Loc.GetString("CreateNewDeviceFailed")} - {ex.Message}", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.POST.device.failed", $"{Loc.GetString("CreateNewDeviceFailed")} - {ex.Message}", GravitonSeverity.Error, ex));
                 return false;
             }
         }

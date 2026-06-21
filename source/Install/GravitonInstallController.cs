@@ -128,7 +128,7 @@ namespace Graviton.Install
 
                 OnFailed = ex =>
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.install.failed",$"{Loc.GetString("DownloadFailed")} {Game.Name}.\n\n{ex.Message}", GravitonSeverity.Error)); 
+                    GravitonNotify.Add(new GravitonNotification("graviton.install.failed",$"{Loc.GetString("DownloadFailed")} {Game.Name}.\n\n{ex.Message}", GravitonSeverity.Error, ex)); 
 
                     //Game.IsInstalling = false;
                 }

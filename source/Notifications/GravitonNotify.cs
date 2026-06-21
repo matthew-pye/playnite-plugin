@@ -21,22 +21,28 @@ namespace Graviton
                 GravitonPlugin.PlayniteApi?.Notifications.Add(new NotificationMessage(Notification.id, Notification.message, severity));
             });
 
+            string loggerMessage = $"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}";
+            if(Notification.exeption != null)
+            {
+                loggerMessage += $"\n{Notification.exeption}";
+            }
+
             switch (Notification.severity)
             {
                 case GravitonSeverity.Info:
-                    _logger.Info($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
+                    _logger.Info(loggerMessage);
                     break;
 
                 case GravitonSeverity.Success:
-                    _logger.Info($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
+                    _logger.Info(loggerMessage);
                     break;
 
                 case GravitonSeverity.Warn:
-                    _logger.Warn($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
+                    _logger.Warn(loggerMessage);
                     break;
 
                 case GravitonSeverity.Error:
-                    _logger.Error($"[{Notification.file} @ line {Notification.lineNumber}] {Notification.message}");
+                    _logger.Error(loggerMessage);
                     break;
 
             }

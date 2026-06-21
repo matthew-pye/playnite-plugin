@@ -5,11 +5,12 @@ namespace Graviton.Models.Notifications
 {
     public struct GravitonNotification
     {
-        public GravitonNotification(string ID, string Message, GravitonSeverity Severity, [CallerLineNumber] int LineNumber = 0, [CallerFilePath] string File = "")
+        public GravitonNotification(string ID, string Message, GravitonSeverity Severity, Exception? ex = null, [CallerLineNumber] int LineNumber = 0, [CallerFilePath] string File = "")
         {
             id = ID;
             message = Message;
             severity = Severity;
+            exeption = ex;
             lineNumber = LineNumber;
             file = Path.GetFileName(File);
         }
@@ -18,6 +19,7 @@ namespace Graviton.Models.Notifications
         public string message;
         public GravitonSeverity severity;
 
+        public Exception? exeption;
         public int lineNumber;
         public string file;
     }

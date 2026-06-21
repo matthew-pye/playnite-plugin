@@ -1,13 +1,19 @@
 ﻿using Graviton.Import;
+using Graviton.Install;
 using Graviton.Install.Downloads;
 using Graviton.Models.Notifications;
+using Graviton.Models.RomM.Rom;
 using Graviton.Settings;
 using Graviton.Status;
 
 using Playnite;
 
+using System.CodeDom;
 using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 
 namespace Graviton
@@ -50,6 +56,8 @@ namespace Graviton
 
         private RomMDownloadsAppViewItem? _downloadsAppView { get; set; }
         private DownloadQueueViewModel? _downloadsViewModel;
+
+        internal static Regex SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
 
         public GravitonPlugin() : base()
         {
@@ -177,24 +185,19 @@ namespace Graviton
         {
             return Task.FromResult<MetadataProvider?>(new GravitonMetadataProvider());
         }
-      
-        public override Task<List<Game>> ImportGamesAsync(ImportGamesArgs args)
-        {
-            return ImportController?.Import(args) ?? throw new Exception("Import controller is null, cannot continue");
-        }
 
         public override async Task OnGameCollectionChange(DataCollectionChangeArgs<Game> args)
         {
-            if(args.UpdatedItems?.Count > 0 && args.UpdatedItems.Any(x => x.OldData.LibraryId == Id))
+            if (args.UpdatedItems?.Count > 0 && args.UpdatedItems.Any(x => x.OldData.LibraryId == Id))
             {
-                foreach(var updatedGame in args.UpdatedItems.Where(x => x.OldData.LibraryId == Id))
+                foreach (var updatedGame in args.UpdatedItems.Where(x => x.OldData.LibraryId == Id))
                 {
                     foreach (var prop in updatedGame.ChangedProperties)
                     {
                         Logger.Info($"Game: {updatedGame.OldData.Name} | Prop: {prop}");
                     }
 
-                    if(Settings.KeepStatusSynced && updatedGame.ChangedProperties.Contains(nameof(Game.CompletionStatusId)))
+                    if (Settings.KeepStatusSynced && updatedGame.ChangedProperties.Contains(nameof(Game.CompletionStatusId)))
                     {
                         await StatusController!.UpdateStatus(updatedGame.NewData);
                     }
@@ -208,6 +211,50 @@ namespace Graviton
             }
         }
 
+        public override Task<List<Game>> ImportGamesAsync(ImportGamesArgs args)
+        {
+            return ImportController?.Import(args) ?? throw new Exception("Import controller is null, cannot continue");
+        }
+
+        public override async Task<List<InstallController>> GetInstallActionsAsync(GetInstallActionsArgs args)
+        {
+            var idParts = args.Game.LibraryGameId?.Split(':');
+
+            try
+            {
+                if (idParts == null || idParts.Length != 2 || !SHA1Regex.IsMatch(idParts[1]))
+                    throw new Exception("GameID is malformed!");
+
+                if (!File.Exists($"{PluginDataPath}/Games/{idParts[1]}.json"))
+                    throw new Exception("Game info file doesn't exist!");
+
+
+                var gameinfo = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{PluginDataPath}/Games/{idParts[1]}.json"));
+
+                if (gameinfo == null || gameinfo.FileName == null || gameinfo.DownloadURL == null)
+                    throw new Exception("Game info is corrupted!");
+
+                GameInstallInfo installInfo = new()
+                {
+                    Id = gameinfo.Id,
+                    FileName = gameinfo.FileName,
+                    HasMultipleFiles = gameinfo.HasMultipleFiles,
+                    DownloadURL = gameinfo.DownloadURL,
+                    Mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId == gameinfo.MappingID)
+                };
+
+                if (installInfo.Mapping == null)
+                    throw new Exception("Couldn't find mapping!");
+                
+                return [new GravitonInstallController(args.Game, installInfo)];      
+            }
+            catch (Exception ex)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.install.idmalformed", $"Failed to install - {ex.Message}", GravitonSeverity.Error, ex));
+                return [];
+            }
+        }
+        
         public override Task OnGameStartingAsync(OnGameStartingEventArgs args)
         {
             return base.OnGameStartingAsync(args);
@@ -225,7 +272,7 @@ namespace Graviton
             return
             [
                 new AppViewItemDescriptor(
-                $"{ExternalIdType}.Downloads",
+                $"graviton.downloads",
                 Loc.GetString("DownloadViewName"),
                 // Icon used for sidebar item:
                 (iconArgs) => UIIcon.FromBitmapFile($"{PluginDLLPath}/pluginiconBW.png"),
@@ -235,7 +282,7 @@ namespace Graviton
         }
         public override AppViewItem? GetAppViewItem(GetAppViewItemsArgs args)
         {
-            if (args.ViewId == $"{ExternalIdType}.Downloads")
+            if (args.ViewId == $"graviton.downloads")
                 return _downloadsAppView;
 
             return null;

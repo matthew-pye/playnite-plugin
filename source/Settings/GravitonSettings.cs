@@ -236,7 +236,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.settings.save.failed", $"{Loc.GetString("SettingSaveFailed")} - {ex.Message}", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.settings.save.failed", $"{Loc.GetString("SettingSaveFailed")} - {ex.Message}", GravitonSeverity.Error, ex));
             }
         }
 

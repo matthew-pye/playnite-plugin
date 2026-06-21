@@ -34,7 +34,7 @@ namespace Graviton.Install.Downloads
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.uninstall.failed", $"Failed to delete ROM from filesystem, Marking as uninstalled - {ex.Message}", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.uninstall.failed", $"Failed to delete ROM from filesystem, Marking as uninstalled - {ex.Message}", GravitonSeverity.Error, ex));
             }
             
 
