@@ -63,6 +63,8 @@ namespace Graviton
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.GET.failed", $"{Loc.GetString("GETFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error, ex));
+                if (response != null && response.StatusCode == HttpStatusCode.UnprocessableContent)
+                    GravitonPlugin.Logger.Error(await response!.Content.ReadAsStringAsync());
                 return null;
             }
 
@@ -91,6 +93,9 @@ namespace Graviton
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.POST.failed", $"{Loc.GetString("POSTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error, ex));
+                if (response != null && response.StatusCode == HttpStatusCode.UnprocessableContent)
+                    GravitonPlugin.Logger.Error(await response!.Content.ReadAsStringAsync());
+
                 return null;
             }
         }
@@ -118,6 +123,8 @@ namespace Graviton
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.PUT.failed", $"{Loc.GetString("PUTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error, ex));
+                if (response != null && response.StatusCode == HttpStatusCode.UnprocessableContent)
+                    GravitonPlugin.Logger.Error(await response!.Content.ReadAsStringAsync());
                 return null;
             }
         }
@@ -145,6 +152,8 @@ namespace Graviton
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.POST.failed", $"{Loc.GetString("POSTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error, ex));
+                if (response != null && response.StatusCode == HttpStatusCode.UnprocessableContent)
+                    GravitonPlugin.Logger.Error(await response!.Content.ReadAsStringAsync());
                 return null;
             }
         }
@@ -172,6 +181,8 @@ namespace Graviton
                     GravitonPlugin.Instance.Settings.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification("graviton.PUT.failed", $"{Loc.GetString("PUTFailed")} {APIPath} - {ex.Message}", GravitonSeverity.Error, ex));
+                if (response != null && response.StatusCode == HttpStatusCode.UnprocessableContent)
+                    GravitonPlugin.Logger.Error(await response!.Content.ReadAsStringAsync());
                 return null;
             }
         }

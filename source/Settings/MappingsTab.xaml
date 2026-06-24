@@ -197,7 +197,7 @@
 
             <StackPanel Orientation="Horizontal">
                 <TextBlock Name="PlatformText" Text="Platform" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
-                <ComboBox Name="ComboPlatform"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="Name" SelectedItem="{Binding RomMPlatform, Mode=TwoWay}"/>
+                <ComboBox Name="ComboPlatform"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="DisplayName" SelectedItem="{Binding RomMPlatform, Mode=TwoWay}"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal">

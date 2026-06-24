@@ -255,10 +255,16 @@ namespace Graviton
         
         public override Task OnGameStartingAsync(OnGameStartingEventArgs args)
         {
+            if(!string.IsNullOrEmpty(args.Game.LibraryGameId))
+            {
+                _ = Task.Run(async () => StatusController?.StartActivityHeartbeat(args.Game.LibraryGameId));
+            }
+                
             return base.OnGameStartingAsync(args);
         }
         public override Task OnGameStoppedAsync(OnGameStoppedEventArgs args)
         {
+            StatusController?.StopActivityHeartbeat();
             return base.OnGameStoppedAsync(args);
         }
 

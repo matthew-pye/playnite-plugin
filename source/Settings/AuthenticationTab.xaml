@@ -102,6 +102,10 @@
         <TextBlock Name="ServerHostText" Text="RomM Server Address" Grid.Row="2" Grid.Column="0" Margin="5" VerticalAlignment="Center"/>
         <TextBox x:Name="RomMHost" Grid.Row="2" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding Host, Mode=TwoWay}" />
 
+        <Button Name="QRAuth" Click="Click_LoginViaQR" Grid.Row="2" Grid.Column="2" Margin="0,5,5,5" HorizontalAlignment="Left" VerticalAlignment="Center">
+            <TextBlock Name="QRAuthText" Text="Login via QR Code" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Button>
+
         <TextBlock Grid.Row="3" Grid.Column="0" Margin="5" VerticalAlignment="Center">
                <Hyperlink Name="ClientTokenLink" RequestNavigate="Hyperlink_ClientToken" NavigateUri="{Binding Host}">
                   <Run Name="TokenText" Text="Client Token"/>
@@ -139,6 +143,9 @@
                 </Style>
             </Button.Style>
         </Button>
+
+        <Image Name="LoginQR" Margin="10" Grid.Row="3" Grid.Column="2" Grid.RowSpan="4" Grid.ColumnSpan="2" Stretch="Uniform"/>
+        <TextBlock Name="LoginQRTimer" Grid.Row="7" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Center"/>
     </Grid>
 
 </UserControl>
