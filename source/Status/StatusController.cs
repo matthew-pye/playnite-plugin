@@ -17,6 +17,9 @@ namespace Graviton.Status
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
         private ILogger _logger { get => GravitonPlugin.Logger; }
 
+        private bool _gameRunning = false;
+        private int _runningGameID;
+
         // Syncing
 
         public async Task PushPlaySession(List<RomMPlaySession> playSessions)
@@ -24,8 +27,6 @@ namespace Graviton.Status
             object sessions = new { device_id = _plugin.Settings.DeviceID, sessions = playSessions };
 
             var response = await HttpClientSingleton.RomMPutJsonAsync("/api/play-sessions", sessions);
-
-
         }
 
         // Favourites
@@ -143,5 +144,34 @@ namespace Graviton.Status
 
             await HttpClientSingleton.RomMPutContentAsync($"/api/roms/{romMID}/props", new StringContent(JsonSerializer.Serialize(props), Encoding.UTF8, "application/json"));
         }
+
+        public async void StartActivityHeartbeat(string GameID)
+        {
+            int romMID;
+            if (!int.TryParse(GameID?.Split(':')[0], out romMID))
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed"), GravitonSeverity.Error));
+                return;
+            }
+
+            _gameRunning = true;
+
+            while (_gameRunning)
+            {
+                var heartbeat = new { rom_id=GameID, device_id=_plugin.Settings.DeviceID };
+
+                await HttpClientSingleton.RomMPostJsonAsync("/api/activity/heartbeat", heartbeat);
+                await Task.Delay(5000); // 5 secs
+            }
+
+            await HttpClientSingleton.Instance.DeleteAsync($"{_plugin.Settings.Host}/api/activity/heartbeat?device_id={_plugin.Settings.DeviceID}");
+
+        }
+
+        public void StopActivityHeartbeat()
+        {
+            _gameRunning = false;
+        }
+
     }
 }
