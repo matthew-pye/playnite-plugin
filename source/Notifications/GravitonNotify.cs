@@ -6,7 +6,7 @@ namespace Graviton
 {
     public static class GravitonNotify
     {
-        private static readonly ILogger _logger = GravitonPlugin.Logger;
+        private static ILogger _logger = GravitonPlugin.Logger;
 
         public static readonly object NotificationsLock = new();
         public static readonly List<GravitonNotification> Notifications = new();

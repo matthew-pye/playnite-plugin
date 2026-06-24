@@ -1,0 +1,79 @@
+using Graviton.Settings;
+using Graviton.Tests.Fakes;
+using Moq;
+using Playnite;
+using System.Reflection;
+using System.IO;
+using System.Runtime.CompilerServices;
+using Xunit;
+
+namespace Graviton.Tests
+{
+    public static class GravitonCollection
+    {
+        public const string Name = "GravitonPlugin";
+    }
+
+    [CollectionDefinition(GravitonCollection.Name)]
+    public class GravitonCollectionDefinition : ICollectionFixture<GravitonTestFixture> { }
+
+    public sealed class GravitonTestFixture : IDisposable
+    {
+        public string TempDir  { get; }
+        public FakePlayniteSetup Playnite { get; }
+        public Mock<ILogger> Logger { get; }
+
+        public GravitonTestFixture()
+        {
+            TempDir = Path.Combine(Path.GetTempPath(), $"GravitonTests_{Guid.NewGuid():N}");
+            Directory.CreateDirectory(Path.Combine(TempDir, "Games"));
+            Directory.CreateDirectory(Path.Combine(TempDir, "Platforms"));
+
+            Playnite = new FakePlayniteSetup(TempDir);
+
+            Logger = new Mock<ILogger>(MockBehavior.Loose);
+            
+            Loc.Api = Playnite.Api;
+            var plugin = (GravitonPlugin)RuntimeHelpers.GetUninitializedObject(typeof(GravitonPlugin));
+
+            SetStatic("<Instance>k__BackingField",    plugin);
+            SetStatic("<PlayniteApi>k__BackingField", Playnite.Api);
+            SetStatic("<Logger>k__BackingField", Logger.Object);
+
+            SetInstance(plugin, "_settings",                        new GravitonPluginSettings());
+            SetInstance(plugin, "<SettingsHandler>k__BackingField", new GravitonSettingsHandler());
+            SetInstance(plugin, "<PluginDataPath>k__BackingField",  TempDir);
+            SetInstance(plugin, "<PluginDLLPath>k__BackingField",   TempDir);
+        }
+
+        public void ApplySettings(Action<GravitonPluginSettings> configure)
+        {
+            var s = new GravitonPluginSettings();
+            configure(s);
+            SetInstance(GravitonPlugin.Instance, "_settings", s);
+        }
+
+        public void ResetGames() => Playnite.Games.Clear();
+
+        private static void SetStatic(string field, object? value)
+        {
+            var fi = typeof(GravitonPlugin).GetField(field, BindingFlags.NonPublic | BindingFlags.Static) ?? throw new MissingFieldException(typeof(GravitonPlugin).Name, field);
+            fi.SetValue(null, value);
+        }
+
+        private static void SetInstance(object target, string field, object? value)
+        {
+            var fi = target.GetType().GetField(field, BindingFlags.NonPublic | BindingFlags.Instance) ?? throw new MissingFieldException(target.GetType().Name, field);
+            fi.SetValue(target, value);
+        }
+
+        public void Dispose()
+        {
+            try 
+            { 
+                Directory.Delete(TempDir, recursive: true); 
+            }
+            catch { }
+        }
+    }
+}
