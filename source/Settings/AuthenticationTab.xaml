@@ -38,6 +38,7 @@
             <RowDefinition Height="50"/>
             <RowDefinition Height="45"/>
             <RowDefinition Height="45"/>
+            <RowDefinition Height="*"/>
             <RowDefinition Height="45"/>
         </Grid.RowDefinitions>
 
@@ -144,8 +145,8 @@
             </Button.Style>
         </Button>
 
-        <Image Name="LoginQR" Margin="10" Grid.Row="3" Grid.Column="2" Grid.RowSpan="4" Grid.ColumnSpan="2" Stretch="Uniform"/>
-        <TextBlock Name="LoginQRTimer" Grid.Row="7" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Center"/>
+        <Image Name="LoginQR" Margin="10" Grid.Row="3" Grid.Column="2" Grid.RowSpan="6" Grid.ColumnSpan="2" Stretch="Uniform"/>
+        <TextBlock Name="LoginQRTimer" Grid.Row="9" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Center"/>
     </Grid>
 
 </UserControl>

@@ -223,6 +223,7 @@ namespace Graviton.Settings
                 }
 
                 _ = Task.Run(async () => UpdateQR(result));
+                QRAuth.IsEnabled = false;
             }
             catch (Exception ex)
             {
@@ -277,6 +278,7 @@ namespace Graviton.Settings
                         _plugin.Settings.DeviceID = result.DeviceID!;
                         _plugin.Settings.ClientTokenNP = result.AccessToken!;
                         await _plugin.Account?.Login()!;
+                        
                         break;
 
                     }
@@ -288,23 +290,17 @@ namespace Graviton.Settings
                             if(result.Contains("expired_token"))
                             {
                                 GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Expired", GravitonSeverity.Error));
-                                UIDispatcher.Invoke(() => LoginQR.Source = null);
-                                UIDispatcher.Invoke(() => LoginQRTimer.Text = "");
                                 break;
                             }
                             if (result.Contains("access_denied"))
                             {
                                 GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Request was denied", GravitonSeverity.Error));
-                                UIDispatcher.Invoke(() => LoginQR.Source = null);
-                                UIDispatcher.Invoke(() => LoginQRTimer.Text = "");
                                 break;
                             }
 
                             if(response.StatusCode != HttpStatusCode.BadRequest)
                             {
                                 GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - {ex.Message}", GravitonSeverity.Error, ex));
-                                UIDispatcher.Invoke(() => LoginQR.Source = null);
-                                UIDispatcher.Invoke(() => LoginQRTimer.Text = "");
                                 break;
                             }
                         }
@@ -321,6 +317,7 @@ namespace Graviton.Settings
 
             UIDispatcher.Invoke(() => LoginQR.Source = null);
             UIDispatcher.Invoke(() => LoginQRTimer.Text = "");
+            UIDispatcher.Invoke(() => QRAuth.IsEnabled = true);
         }
     }
 }
