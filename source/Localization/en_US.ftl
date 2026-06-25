@@ -43,9 +43,10 @@ KeepPublicNotesSynced = Keep public notes in sync with RomM
 
 # Http Client
 Reauthenticate = Reauthentication required!
-GETFailed = GET Request Failed For
-POSTFailed = POST Request Failed For
-PUTFailed = PUT Request Failed For
+GETFailed = GET Request Failed For {$APIPath}
+POSTFailed = POST Request Failed For {$APIPath}
+PUTFailed = PUT Request Failed For {$APIPath}
+DELETEFailed = DELETE Request Failed For {$APIPath}
 
 # Import
 NoFileNameWithID = The filename for ROM ID {$ROMID} does not exist. Does the ROM exist on the server's file system?

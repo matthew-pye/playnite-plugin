@@ -145,7 +145,7 @@ namespace Graviton.Status
             await HttpClientSingleton.RomMPutContentAsync($"/api/roms/{romMID}/props", new StringContent(JsonSerializer.Serialize(props), Encoding.UTF8, "application/json"));
         }
 
-        public async void StartActivityHeartbeat(string GameID)
+        public async Task StartActivityHeartbeat(string GameID)
         {
             _heartbeatCts?.Cancel();
             _heartbeatCts = new CancellationTokenSource();
@@ -154,29 +154,28 @@ namespace Graviton.Status
             int romMID;
             if (!int.TryParse(GameID?.Split(':')[0], out romMID))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed"), GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.start.game.failed", Loc.GetString("LibraryIdConvertFailed"), GravitonSeverity.Error));
                 return;
             }
 
-            _gameRunning = true;
-
-            while (_gameRunning && !_heartbeatCts.IsCancellationRequested)
+            try
             {
-                var heartbeat = new { rom_id=romMID, device_id=_plugin.Settings.DeviceID };
-
-                await HttpClientSingleton.RomMPostJsonAsync("/api/activity/heartbeat", heartbeat);
-                await Task.Delay(5000, token); // 5 secs
+                while (!token.IsCancellationRequested)
+                {
+                    var heartbeat = new { rom_id = romMID, device_id = _plugin.Settings.DeviceID };
+                    await HttpClientSingleton.RomMPostJsonAsync("/api/activity/heartbeat", heartbeat);
+                    await Task.Delay(5000, token);
+                }
+            }
+            catch (OperationCanceledException) { }
+            finally
+            {
+                await HttpClientSingleton.RomMDeleteAsync($"/api/activity/heartbeat?device_id={_plugin.Settings.DeviceID}");
             }
 
-            await HttpClientSingleton.Instance.DeleteAsync($"{_plugin.Settings.Host}/api/activity/heartbeat?device_id={_plugin.Settings.DeviceID}");
-
         }
 
-        public void StopActivityHeartbeat()
-        {
-            _heartbeatCts?.Cancel();
-            _gameRunning = false;
-        }
+        public void StopActivityHeartbeat() => _heartbeatCts?.Cancel();
 
     }
 }
