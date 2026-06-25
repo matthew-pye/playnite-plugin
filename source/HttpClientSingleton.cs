@@ -32,11 +32,21 @@ namespace Graviton
             Instance.DefaultRequestHeaders.Authorization = null;
             var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
             Instance.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
+            foreach (var header in _plugin.Settings.CustomHeaders.Where(x => x.Enabled))
+            {
+                Instance.DefaultRequestHeaders.Remove(header.Name);
+                Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
+            }
         }
         public static void ConfigureClientToken(string clientToken)
         {
             Instance.DefaultRequestHeaders.Authorization = null;
             Instance.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", clientToken);
+            foreach (var header in _plugin.Settings.CustomHeaders.Where(x => x.Enabled))
+            {
+                Instance.DefaultRequestHeaders.Remove(header.Name);
+                Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
+            }
         }
 
 

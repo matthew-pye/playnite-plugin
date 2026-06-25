@@ -6,8 +6,6 @@ using Graviton.Models.RomM.Platform;
 
 using Playnite;
 
-using SharpCompress.Common;
-
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
@@ -29,6 +27,7 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _useBasicAuth = false;
         [ObservableProperty] private string _username = "";
         [ObservableProperty] private string _password = "";
+        [ObservableProperty] private ObservableCollection<CustomHTTPHeader> _customHeaders = new ObservableCollection<CustomHTTPHeader>();
 
         private string _profilePath = "";
         [ObservableProperty] private string _user = "----";
@@ -132,6 +131,7 @@ namespace Graviton.Settings
                 UserType = this.UserType,
                 UserID = this.UserID,
                 DeviceID = this.DeviceID,
+                CustomHeaders = this.CustomHeaders,
 
                 LastAuthenticated = this.LastAuthenticated,
                 
@@ -210,6 +210,24 @@ namespace Graviton.Settings
         public override async Task CancelEditAsync(CancelEditArgs args)
         {
             InEditingMode = false;
+            // Remove editing copy headers
+            foreach (var header in Settings.CustomHeaders)
+            {
+                if (string.IsNullOrEmpty(header.Name))
+                    continue;
+
+                HttpClientSingleton.Instance.DefaultRequestHeaders.Remove(header.Name);
+            }
+
+            // Add old headers back
+            foreach (var header in _plugin.Settings.CustomHeaders)
+            {
+                if (string.IsNullOrEmpty(header.Name) || string.IsNullOrEmpty(header.Value))
+                    continue;
+
+                HttpClientSingleton.Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
+            }
+
             await Task.CompletedTask;
         }
 
@@ -217,7 +235,23 @@ namespace Graviton.Settings
         {
             _plugin.Settings = Settings;
             SaveSettings(_playniteAPI.UserDataDir, Settings);
+            foreach (var header in Settings.CustomHeaders.Where(x => x.Enabled))
+            {
+                HttpClientSingleton.Instance.DefaultRequestHeaders.Remove(header.Name);
+                HttpClientSingleton.Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
+            }
             InEditingMode = false;
+
+            foreach (var header in HttpClientSingleton.Instance.DefaultRequestHeaders)
+            {
+                var headerValue = "";
+                foreach (var value in header.Value)
+                {
+                    headerValue += value + " | ";
+                }
+                _logger.Info($"Name: {header.Key} | {headerValue}");
+            }
+
             await Task.CompletedTask;
         }
 

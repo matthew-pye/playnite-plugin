@@ -11,16 +11,16 @@ namespace Graviton.Models.RomM
         public string? UserCode { get; set; }
 
         [JsonPropertyName("verification_path")]
-        public string? VeificationPath { get; set; }
+        public string? VerificationPath { get; set; }
 
         [JsonPropertyName("verification_path_complete")]
-        public string? VeificationPathComplete { get; set; }
+        public string? VerificationPathComplete { get; set; }
 
         [JsonPropertyName("expires_in")]
-        public int ExpiresIn { get; set; }
+        public int ExpiresIn { get; set; } = 600;
 
         [JsonPropertyName("interval")]
-        public int? Interval { get; set; }
+        public int Interval { get; set; } = 5;
     }
 
     public class RomMPairDeviceResponse

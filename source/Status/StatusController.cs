@@ -18,7 +18,7 @@ namespace Graviton.Status
         private ILogger _logger { get => GravitonPlugin.Logger; }
 
         private bool _gameRunning = false;
-        private int _runningGameID;
+        private CancellationTokenSource? _heartbeatCts;
 
         // Syncing
 
@@ -147,6 +147,10 @@ namespace Graviton.Status
 
         public async void StartActivityHeartbeat(string GameID)
         {
+            _heartbeatCts?.Cancel();
+            _heartbeatCts = new CancellationTokenSource();
+            var token = _heartbeatCts.Token;
+
             int romMID;
             if (!int.TryParse(GameID?.Split(':')[0], out romMID))
             {
@@ -156,12 +160,12 @@ namespace Graviton.Status
 
             _gameRunning = true;
 
-            while (_gameRunning)
+            while (_gameRunning && !_heartbeatCts.IsCancellationRequested)
             {
-                var heartbeat = new { rom_id=GameID, device_id=_plugin.Settings.DeviceID };
+                var heartbeat = new { rom_id=romMID, device_id=_plugin.Settings.DeviceID };
 
                 await HttpClientSingleton.RomMPostJsonAsync("/api/activity/heartbeat", heartbeat);
-                await Task.Delay(5000); // 5 secs
+                await Task.Delay(5000, token); // 5 secs
             }
 
             await HttpClientSingleton.Instance.DeleteAsync($"{_plugin.Settings.Host}/api/activity/heartbeat?device_id={_plugin.Settings.DeviceID}");
@@ -170,6 +174,7 @@ namespace Graviton.Status
 
         public void StopActivityHeartbeat()
         {
+            _heartbeatCts?.Cancel();
             _gameRunning = false;
         }
 

@@ -1,26 +1,24 @@
-﻿using Graviton.Models.Notifications;
+﻿using Graviton.Models;
+using Graviton.Models.Notifications;
 using Graviton.Models.RomM;
-using Graviton.Models.RomM.Collection;
 
 using Playnite;
-using Playnite.WebViews;
 
 using QRCoder;
 using QRCoder.Xaml;
 
-using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Media;
-using System.Xml.Linq;
 
 namespace Graviton.Settings
 {
@@ -52,6 +50,7 @@ namespace Graviton.Settings
 
             ProfileEditButton.FontFamily = Playnite.Fonts.NerdFont;
             ShowPassword.FontFamily = Playnite.Fonts.NerdFont;
+            AddHeaderText.FontFamily = Playnite.Fonts.NerdFont;
 
             RomMPassword.Password = _plugin.Settings.PasswordNP;
             RomMPassword.PasswordChanged += (_, _) =>
@@ -148,6 +147,9 @@ namespace Graviton.Settings
         {
             RomMPasswordUnmasked.Visibility = Visibility.Collapsed;
             RomMPassword.Visibility = Visibility.Collapsed;
+            BasicAuthRow1.Height = new GridLength(0);
+            BasicAuthRow2.Height = new GridLength(0);
+            BasicAuthRow3.Height = new GridLength(0);
             e.Handled = true;
         }
 
@@ -156,6 +158,9 @@ namespace Graviton.Settings
             RomMPassword.Visibility = Visibility.Visible;
             RomMPasswordUnmasked.Visibility = Visibility.Collapsed;
             ShowPassword.Content = "\uea70";
+            BasicAuthRow1.Height = new GridLength(50);
+            BasicAuthRow2.Height = new GridLength(45);
+            BasicAuthRow3.Height = new GridLength(45);
             e.Handled = true;
         }
 
@@ -173,6 +178,54 @@ namespace Graviton.Settings
                 RomMPasswordUnmasked.Visibility = Visibility.Collapsed;
                 ShowPassword.Content = "\uea70";
                 RomMPassword.Password = _plugin.Settings.PasswordNP;
+            }
+
+            e.Handled = true;
+        }
+
+        private void Click_RemoveHeader(object sender, RoutedEventArgs e)
+        {
+            var header = ((FrameworkElement)sender).DataContext as CustomHTTPHeader;
+            if (header != null)
+            {
+                if(!string.IsNullOrEmpty(header.Name))
+                    HttpClientSingleton.Instance.DefaultRequestHeaders.Remove(header.Name);
+
+                _plugin.Settings.CustomHeaders.Remove(header);
+            }
+            
+            e.Handled = true;
+        }
+
+        private void Click_AddHeader(object sender, RoutedEventArgs e)
+        {
+            _plugin.Settings.CustomHeaders.Add(new CustomHTTPHeader());
+            e.Handled = true;
+        }
+
+        private void Header_Checked(object sender, RoutedEventArgs e)
+        {
+            var header = ((FrameworkElement)sender).DataContext as CustomHTTPHeader;
+            if (header != null && !string.IsNullOrEmpty(header.Name) && !string.IsNullOrEmpty(header.Value))
+            {
+                if (!HttpClientSingleton.Instance.DefaultRequestHeaders.Contains(header.Name))
+                    HttpClientSingleton.Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
+            }
+            else if(header != null)
+            {
+                header.Enabled = false;
+                GravitonNotify.Add(new GravitonNotification("graviton.header.ismalformed", "Custom header doesn't contain both a Name and Value!", GravitonSeverity.Error));
+            }
+                
+            e.Handled = true;
+        }
+
+        private void Header_Unchecked(object sender, RoutedEventArgs e)
+        {
+            var header = ((FrameworkElement)sender).DataContext as CustomHTTPHeader;
+            if (header != null && !string.IsNullOrEmpty(header.Name))
+            {
+                HttpClientSingleton.Instance.DefaultRequestHeaders.Remove(header.Name);
             }
 
             e.Handled = true;
@@ -222,7 +275,7 @@ namespace Graviton.Settings
                     return;
                 }
 
-                _ = Task.Run(async () => UpdateQR(result));
+                _ = Task.Run(async () => await UpdateQR(result));
                 QRAuth.IsEnabled = false;
             }
             catch (Exception ex)
@@ -235,11 +288,10 @@ namespace Graviton.Settings
             e.Handled = true;
         }
 
-
-        private async void UpdateQR(RomMPairDevice pairDevice)
+        private async Task UpdateQR(RomMPairDevice pairDevice)
         {
             using (var qrGenerator = new QRCodeGenerator())
-            using (var qrCodeData = qrGenerator.CreateQrCode($"{_plugin.Settings.Host}{pairDevice.VeificationPathComplete}", QRCodeGenerator.ECCLevel.Q))
+            using (var qrCodeData = qrGenerator.CreateQrCode($"{_plugin.Settings.Host}{pairDevice.VerificationPathComplete}", QRCodeGenerator.ECCLevel.Q))
             using (var qrCode = new XamlQRCode(qrCodeData))
             {
                 DrawingImage qrImage = qrCode.GetGraphic(20);
@@ -277,8 +329,7 @@ namespace Graviton.Settings
                            
                         _plugin.Settings.DeviceID = result.DeviceID!;
                         _plugin.Settings.ClientTokenNP = result.AccessToken!;
-                        await _plugin.Account?.Login()!;
-                        
+                        await _plugin.Account?.Login()!;                     
                         break;
 
                     }
@@ -289,12 +340,12 @@ namespace Graviton.Settings
                             var result = await response.Content.ReadAsStringAsync();
                             if(result.Contains("expired_token"))
                             {
-                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Expired", GravitonSeverity.Error));
+                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Expired", GravitonSeverity.Info));
                                 break;
                             }
                             if (result.Contains("access_denied"))
                             {
-                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Request was denied", GravitonSeverity.Error));
+                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Request was denied", GravitonSeverity.Warn));
                                 break;
                             }
 
@@ -320,4 +371,22 @@ namespace Graviton.Settings
             UIDispatcher.Invoke(() => QRAuth.IsEnabled = true);
         }
     }
+
+    public class InvertBoolConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool)
+                return !(bool)value;
+            return false;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool)
+                return !(bool)value;
+            return false;
+        }
+    }
+
 }
