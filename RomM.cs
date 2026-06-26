@@ -108,10 +108,7 @@ namespace RomM
 
 
     #region Helper functions
-        public string CombineUrl(string baseUrl, string relativePath)
-        {
-            return $"{baseUrl?.TrimEnd('/')}/{relativePath?.TrimStart('/') ?? ""}";
-        }
+        public string CombineUrl(string baseUrl, string relativePath) => RomMUrl.Combine(baseUrl, relativePath);
 
         public RomMRom FetchRom(string romId)
         {
@@ -155,7 +152,7 @@ namespace RomM
                     var gameName = rom.Name;
 
                     var game = Playnite.Database.Games.FirstOrDefault(g => g.Source.Name == SourceName.ToString() &&
-                                                                           g.Platforms.Any(p => p.Name == mapping.RomMPlatform.Name) &&
+                                                                           g.Platforms.Any(p => p.Name == mapping.RomMPlatform.PlayniteName) &&
                                                                            g.Name == gameName);
 
                     if (game == null)

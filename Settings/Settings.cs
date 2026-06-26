@@ -208,6 +208,7 @@ namespace RomM.Settings
                 OnPropertyChanged();
             }
         }
+        [JsonIgnore]
         public string ProfilePath 
         { 
             get => _profilepath; 
@@ -299,7 +300,6 @@ namespace RomM.Settings
 
                 RomMUser = savedSettings.RomMUser;
                 RomMProfileType = savedSettings.RomMProfileType;
-                ProfilePath = savedSettings.ProfilePath;
                 ServerVersion = savedSettings.ServerVersion;
 
                 // ----- These need to stay in this order -----
@@ -329,10 +329,20 @@ namespace RomM.Settings
                 forceSave = true;
             }
 
+            ProfilePath = ResolveProfilePath();
+
             if (forceSave)
             {
                 SavePluginSettings(this);
             }
+        }
+
+        // Returns the avatar path if the file exists in the current extension data directory,
+        // otherwise falls back to the bundled default profile image.
+        private string ResolveProfilePath()
+        {
+            var avatarPath = Path.Combine(PlayniteAPI.Paths.ExtensionsDataPath, RomM.Id.ToString(), "avatar.png");
+            return File.Exists(avatarPath) ? avatarPath : _defaultprofilepath;
         }
 
         public bool TestConnection(bool UpdateNotificationBar = false, bool fetchProfile = true)
@@ -387,6 +397,11 @@ namespace RomM.Settings
 
                     ServerVersion = info.Version;
                 }
+
+                // Sync the RomM platform list so the mapping dropdowns populate and import can resolve
+                // each mapping's platform — no manual "Sync RomM platforms" click required. Runs for both
+                // the settings "Authenticate" action and the pre-import connection check.
+                SyncPlatforms();
 
                 // Profile (name/role/avatar) is only needed for the settings UI, not for import.
                 if (fetchProfile)
@@ -443,6 +458,31 @@ namespace RomM.Settings
             }
 
             return true;
+        }
+
+        // Fetches the RomM platform list and assigns it to RomMPlatforms, which propagates to every
+        // mapping's AvailablePlatforms (populating the dropdowns and resolving the selected platform).
+        // Failures are logged but never block authentication or import.
+        private void SyncPlatforms()
+        {
+            try
+            {
+                using (var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(30)))
+                using (HttpResponseMessage response = HttpClientSingleton.Instance.GetAsync(
+                    $"{RomMHost}/api/platforms",
+                    HttpCompletionOption.ResponseContentRead,
+                    cts.Token).GetAwaiter().GetResult())
+                {
+                    response.EnsureSuccessStatusCode();
+
+                    string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    RomMPlatforms = JsonConvert.DeserializeObject<List<RomMPlatform>>(body) ?? new List<RomMPlatform>();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogManager.GetLogger().Error($"[Settings] Failed to sync RomM platforms: {ex}");
+            }
         }
 
         public void BeginEdit()
@@ -517,16 +557,21 @@ namespace RomM.Settings
         public object Convert(object value, Type targetType,
             object parameter, System.Globalization.CultureInfo culture)
         {
-
             var path = (string)value;
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.UriSource = new Uri(path);
-            image.EndInit();
-
-            return image;
-
+            try
+            {
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.UriSource = new Uri(path);
+                image.EndInit();
+                return image;
+            }
+            catch (Exception ex)
+            {
+                LogManager.GetLogger().Warn($"[Settings] Failed to load profile image from '{path}': {ex.Message}");
+                return null;
+            }
         }
 
         public object ConvertBack(object value, Type targetType,
