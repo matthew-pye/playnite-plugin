@@ -4,6 +4,7 @@ using Graviton.Import;
 using Graviton.Install;
 using Graviton.Install.Downloads;
 using Graviton.Models.Notifications;
+using Graviton.Models.RomM.Collection;
 using Graviton.Models.RomM.Rom;
 using Graviton.Settings;
 using Graviton.Status;
@@ -197,10 +198,14 @@ namespace Graviton
 
             if (args.UpdatedItems?.Count > 0 && args.UpdatedItems.Any(x => x.OldData.LibraryId == Id))
             {
-                var favouriteCollection = await StatusController!.PullFavourites();
-                if (favouriteCollection == null)
-                    return;
-
+                RomMCollection? favouriteCollection = null;
+                if (Settings.KeepFavouritesSynced)
+                {
+                    favouriteCollection = await StatusController!.PullFavourites();
+                    if (favouriteCollection == null)
+                        return;
+                }
+                
                 foreach (var updatedGame in args.UpdatedItems.Where(x => x.OldData.LibraryId == Id))
                 {
                     foreach (var prop in updatedGame.ChangedProperties)
@@ -213,23 +218,27 @@ namespace Graviton
                         await StatusController!.UpdateStatus(updatedGame.NewData);
                     }
 
-                    if (Settings.KeepFavouritesSynced && updatedGame.ChangedProperties.Contains(nameof(Game.Favorite)))
+                    if (Settings.KeepFavouritesSynced && favouriteCollection != null && updatedGame.ChangedProperties.Contains(nameof(Game.Favorite)))
                     {
                         int romMID;
                         if (!int.TryParse(updatedGame.OldData.LibraryGameId?.Split(':')[0], out romMID))
                         {
-                            GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed"), GravitonSeverity.Error));
-                            return;
+                            GravitonNotify.Add(new GravitonNotification($"graviton.{updatedGame.OldData.LibraryGameId}.update.status.failed", $"{updatedGame.OldData.LibraryGameId}: {Loc.GetString("LibraryIdConvertFailed")}", GravitonSeverity.Error));
+                            continue;
                         }
 
                         if (updatedGame.NewData.Favorite)
                             favouriteCollection.RomIDs.Add(romMID);
                         else
                             favouriteCollection.RomIDs.Remove(romMID);
+
+                        favouriteCollection.HasBeenUpdated = true;
                     }
                 }
-
-                await StatusController!.UpdateFavorites(favouriteCollection);
+                if (Settings.KeepFavouritesSynced && favouriteCollection != null && favouriteCollection.HasBeenUpdated)
+                {
+                    await StatusController!.UpdateFavorites(favouriteCollection);
+                }
             }
         }
 
@@ -281,7 +290,7 @@ namespace Graviton
         {
             if(!string.IsNullOrEmpty(args.Game.LibraryGameId))
             {
-                _ = Task.Run(async () => await StatusController!.StartActivityHeartbeat(args.Game.LibraryGameId));
+                _ = Task.Run(async () => await StatusController?.StartActivityHeartbeat(args.Game.LibraryGameId)!);
             }
                 
             return base.OnGameStartingAsync(args);

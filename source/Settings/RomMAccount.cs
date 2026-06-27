@@ -4,9 +4,13 @@ using Graviton.Models.RomM;
 using Playnite;
 
 using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Windows.Controls;
 
 namespace Graviton.Settings
 {
@@ -262,6 +266,130 @@ namespace Graviton.Settings
                 return false;
 
             return true;
+        }
+
+        public async Task<RomMPairDevice?> InitDevicePair()
+        {
+            if (string.IsNullOrEmpty(_plugin.Settings.Host))
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.login.host.notset", Loc.GetString("HostNotSet"), GravitonSeverity.Warn));
+                return null;
+            }
+
+            var deviceInit = new
+            {
+                client_device_identifier = $"Graviton-{Environment.MachineName}",
+                name = $"Graviton-{Environment.MachineName}",
+                client = "Graviton (Playnite Plugin)",
+                platform = "Windows",
+                client_version = GravitonPlugin.Version,
+                requested_scopes = new List<string>
+                {
+                    "me.read", "me.write",
+                    "assets.read", "assets.write",
+                    "devices.read", "devices.write",
+                    "roms.user.read","roms.user.write",
+                    "roms.read",
+                    "platforms.read",
+                    "firmware.read",
+                    "collections.read", "collections.write"
+                }
+            };
+
+            try
+            {
+                var response = await HttpClientSingleton.RomMPostJsonAsync("/api/auth/device/init", deviceInit);
+                if (response == null)
+                {
+                    return null;
+                }
+                var result = JsonSerializer.Deserialize<RomMPairDevice>(response);
+                if (result == null)
+                {
+                    return null;
+                }
+
+                return result;
+
+            }
+            catch (Exception ex)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.login.QR.failed", $"Failed to setup QR code - {ex.Message}", GravitonSeverity.Error, ex));
+                return null;
+            }
+        }
+
+        public async Task<bool> StartDevicePair(RomMPairDevice pairDevice, TextBlock LoginQRTimer)
+        {
+            var intervalMillisecs = pairDevice.Interval * 1000;
+            var deviceCode = new { device_code = pairDevice.DeviceCode };
+            HttpStatusCode status = HttpStatusCode.OK;
+
+            var startTime = DateTime.UtcNow;
+            var expiresin = TimeSpan.FromSeconds(pairDevice.ExpiresIn - 1);
+            while ((DateTime.UtcNow - startTime) < expiresin)
+            {
+                if (intervalMillisecs <= 0)
+                {
+                    HttpResponseMessage? response = null;
+
+                    try
+                    {
+                        response = await HttpClientSingleton.Instance.PostAsJsonAsync($"{_plugin.Settings.Host}/api/auth/device/token", deviceCode);
+                        status = response.StatusCode;
+                        response.EnsureSuccessStatusCode();
+
+                        var stream = await response.Content.ReadAsStreamAsync();
+                        var json = await JsonDocument.ParseAsync(stream);
+                        var result = JsonSerializer.Deserialize<RomMPairDeviceResponse>(json);
+
+                        if (result == null)
+                        {
+                            GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Response was null", GravitonSeverity.Error));
+                            return false;
+                        }
+
+                        _plugin.Settings.DeviceID = result.DeviceID!;
+                        _plugin.Settings.ClientTokenNP = result.AccessToken!;
+                        await _plugin.Account?.Login()!;
+                        return true;
+
+                    }
+                    catch (Exception ex)
+                    {
+                        if (response != null)
+                        {
+                            var result = await response.Content.ReadAsStringAsync();
+                            if (result.Contains("expired_token"))
+                            {
+                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Expired", GravitonSeverity.Info));
+                                return false;
+                            }
+                            if (result.Contains("access_denied"))
+                            {
+                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Request was denied", GravitonSeverity.Warn));
+                                return false;
+                            }
+
+                            if (response.StatusCode != HttpStatusCode.BadRequest)
+                            {
+                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - {ex.Message}", GravitonSeverity.Error, ex));
+                                return false;
+                            }
+                        }
+                    }
+
+                    intervalMillisecs = pairDevice.Interval * 1000;
+                }
+
+                UIDispatcher.Invoke(() => LoginQRTimer.Text = $"Expires in: {(((expiresin - (DateTime.UtcNow - startTime)).TotalMilliseconds) / 1000).ToString("F1")}s");
+
+                await Task.Delay(100);
+                intervalMillisecs -= 100;
+            }
+
+            GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Expired", GravitonSeverity.Info));
+            return false;
         }
 
         void SyncFailed()

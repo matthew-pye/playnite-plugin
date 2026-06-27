@@ -15,5 +15,8 @@ namespace Graviton.Models.RomM.Collection
 
         [JsonPropertyName("is_favorite")]
         public bool IsFavorite { get; set; }
+
+        [JsonIgnore]
+        public bool HasBeenUpdated { get; set; } = false;
     }
 }
