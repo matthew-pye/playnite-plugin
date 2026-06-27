@@ -1,4 +1,6 @@
-﻿using Graviton.Import;
+﻿using ExCSS;
+
+using Graviton.Import;
 using Graviton.Install;
 using Graviton.Install.Downloads;
 using Graviton.Models.Notifications;
@@ -189,8 +191,13 @@ namespace Graviton
 
         public override async Task OnGameCollectionChange(DataCollectionChangeArgs<Game> args)
         {
+
             if (args.UpdatedItems?.Count > 0 && args.UpdatedItems.Any(x => x.OldData.LibraryId == Id))
             {
+                var favouriteCollection = await StatusController!.PullFavourites();
+                if (favouriteCollection == null)
+                    return;
+
                 foreach (var updatedGame in args.UpdatedItems.Where(x => x.OldData.LibraryId == Id))
                 {
                     foreach (var prop in updatedGame.ChangedProperties)
@@ -205,10 +212,21 @@ namespace Graviton
 
                     if (Settings.KeepFavouritesSynced && updatedGame.ChangedProperties.Contains(nameof(Game.Favorite)))
                     {
-                        await StatusController!.UpdateFavorites(updatedGame.NewData);
-                    }
+                        int romMID;
+                        if (!int.TryParse(updatedGame.OldData.LibraryGameId?.Split(':')[0], out romMID))
+                        {
+                            GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed"), GravitonSeverity.Error));
+                            return;
+                        }
 
+                        if (updatedGame.NewData.Favorite)
+                            favouriteCollection.RomIDs.Add(romMID);
+                        else
+                            favouriteCollection.RomIDs.Remove(romMID);
+                    }
                 }
+
+                await StatusController!.UpdateFavorites(favouriteCollection);
             }
         }
 
@@ -260,7 +278,7 @@ namespace Graviton
         {
             if(!string.IsNullOrEmpty(args.Game.LibraryGameId))
             {
-                _ = Task.Run(async () => StatusController?.StartActivityHeartbeat(args.Game.LibraryGameId));
+                _ = Task.Run(async () => await StatusController!.StartActivityHeartbeat(args.Game.LibraryGameId));
             }
                 
             return base.OnGameStartingAsync(args);

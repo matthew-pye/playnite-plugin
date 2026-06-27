@@ -11,7 +11,7 @@ namespace Graviton.Models.RomM.Collection
         public string? Name { get; set; }
 
         [JsonPropertyName("rom_ids")]
-        public List<int>? RomIDs { get; set; }
+        public List<int> RomIDs { get; set; } = new List<int>();
 
         [JsonPropertyName("is_favorite")]
         public bool IsFavorite { get; set; }

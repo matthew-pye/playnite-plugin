@@ -84,4 +84,5 @@ DownloadFailed = Failed to download
 # Status Controller
 LibraryIdConvertFailed = Failed to parse GameID, Skipping status update!
 CompletionStatusNameFailed = Failed to get name of completion status
-ConvertStatusFailed = {$PlayniteStatus} cannot be converted to a RomM status"
+ConvertStatusFailed = {$PlayniteStatus} cannot be converted to a RomM status
+GameHeartbeatFailed = Failed to send activity heartbeat 

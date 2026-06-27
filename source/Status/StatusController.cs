@@ -72,33 +72,12 @@ namespace Graviton.Status
             }
         }
 
-        public async Task UpdateFavorites(Game game)
+        public async Task UpdateFavorites(RomMCollection favouriteCollection)
         {
-            var favouriteCollection = await PullFavourites();
-
             if (favouriteCollection == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.favourites.update.failed", Loc.GetString("FavouritesUpdateFailed"), GravitonSeverity.Error));
                 return;
-            }
-
-            int romMID;
-            if (!int.TryParse(game.LibraryGameId?.Split(':')[0], out romMID))
-            {
-                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed"), GravitonSeverity.Error));
-                return;
-            }
-
-            if (favouriteCollection.RomIDs == null)
-                favouriteCollection.RomIDs = new();
-
-            if (game.Favorite && !favouriteCollection.RomIDs.Contains(romMID))
-            {
-                favouriteCollection.RomIDs?.Add(romMID);
-            }
-            else
-            {
-                favouriteCollection.RomIDs?.Remove(romMID);
             }
 
             var formData = new MultipartFormDataContent();
@@ -134,15 +113,12 @@ namespace Graviton.Status
 
             var props = new
             {
-                data = new
-                {
-                    backlogged = status == "backlogged",
-                    now_playing = status == "now_playing",
-                    status = (status != "backlogged" && status != "now_playing" && status != "not_played") ? status : null
-                }
+              backlogged = status == "backlogged",
+              now_playing = status == "now_playing",
+              status = (status != "backlogged" && status != "now_playing" && status != "not_played") ? status : null            
             };
 
-            await HttpClientSingleton.RomMPutContentAsync($"/api/roms/{romMID}/props", new StringContent(JsonSerializer.Serialize(props), Encoding.UTF8, "application/json"));
+            await HttpClientSingleton.RomMPutJsonAsync($"/api/roms/{romMID}/props", props);
         }
 
         public async Task StartActivityHeartbeat(string GameID)
@@ -167,7 +143,7 @@ namespace Graviton.Status
                     await Task.Delay(5000, token);
                 }
             }
-            catch (OperationCanceledException) { }
+            catch (Exception ex) { GravitonNotify.Add(new GravitonNotification("graviton.game.heartbeat.failed", $"{Loc.GetString("GameHeartbeatFailed")} - {ex.Message}", GravitonSeverity.Error, ex)); }
             finally
             {
                 await HttpClientSingleton.RomMDeleteAsync($"/api/activity/heartbeat?device_id={_plugin.Settings.DeviceID}");
