@@ -33,8 +33,8 @@ namespace Graviton.Models.RomM.Rom
 
         public static readonly Dictionary<string, string> CompletionStatusMap = new Dictionary<string, string>
         {
-            { "never_playing", "Abandoned" },
-            { "retired", "Played" },
+            { "never_playing", "Never Playing" },
+            { "retired", "Abandoned" },
             { "incomplete", "On Hold" },
             { "finished", "Played" },
             { "completed_100", "Completed" },

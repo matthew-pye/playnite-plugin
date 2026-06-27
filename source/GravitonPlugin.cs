@@ -128,6 +128,8 @@ namespace Graviton
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("retroachievements", "RetroAchievements"));
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("howlongtobeat", "HowLongToBeat"));
 
+            await PlayniteApi.Library.CompletionStatuses.AddAsync(new CompletionStatus("never_playing", "Never Playing"));
+
             PluginDataPath = PlayniteApi.UserDataDir;
             PluginDLLPath = args.PluginInstallDir;
 
