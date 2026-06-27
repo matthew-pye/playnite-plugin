@@ -26,6 +26,8 @@ namespace RomM.Settings
 {
     public partial class SettingsView : UserControl
     {
+        private string QRVerificationPath = "";
+
         public SettingsView()
         {
             InitializeComponent();
@@ -212,9 +214,13 @@ namespace RomM.Settings
 
             var intervalMillisecs = pairDevice.Interval * 1000;
             var deviceCode = new { device_code = pairDevice.DeviceCode };
-            
+
             var startTime = DateTime.UtcNow;
             var expiresin = TimeSpan.FromSeconds(pairDevice.ExpiresIn - 1);
+
+            QRVerificationPath = pairDevice.VerificationPathComplete;
+            QRDetails.Visibility = Visibility.Visible;
+
             while ((DateTime.UtcNow - startTime) < expiresin)
             {
                 if (intervalMillisecs <= 0)
@@ -237,6 +243,7 @@ namespace RomM.Settings
                     }
                     catch (Exception ex)
                     {
+                        SettingsViewModel.Instance.Notify = false;
                         if (response == null)
                         {
                             SettingsViewModel.Instance.UpdateNotificationBar($"Failed to login via QR! - No Response", true);
@@ -275,8 +282,28 @@ namespace RomM.Settings
             }
 
             LoginQR.Source = null;
-            LoginQRTimer.Text = "";
             QRAuth.IsEnabled = true;
+            QRDetails.Visibility = Visibility.Hidden;
+            QRVerificationPath = "";
+        }
+
+        private void Click_OpenInBrowser(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = $"{SettingsViewModel.Instance.RomMHost}{QRVerificationPath}",
+                    UseShellExecute = true
+                });           
+            }
+            catch (Exception ex)
+            {
+                SettingsViewModel.Instance.Notify = false;
+                SettingsViewModel.Instance.UpdateNotificationBar($"Failed to open URL - {ex.Message}", true);
+                LogManager.GetLogger().Error($"Failed to open URL! - {ex}");
+            }
+            e.Handled = true;
         }
     }
 }
