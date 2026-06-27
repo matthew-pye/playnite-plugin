@@ -26,7 +26,7 @@ namespace Graviton.Tests.Import
             };
         }
 
-        private GravitonImport Importer(EmulatorMapping mapping, params RomMRom[] roms) => new GravitonImport(CancellationToken.None, mapping, roms.ToList());
+        private GravitonImport Importer(EmulatorMapping mapping, params RomMRom[] roms) => new GravitonImport(GravitonPlugin.Instance, fixture.Playnite.Api, fixture.Logger.Object, CancellationToken.None, mapping, roms.ToList());
 
         private void Ready(string host = "http://romm.local")
         {

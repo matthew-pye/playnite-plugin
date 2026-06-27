@@ -1,23 +1,28 @@
 ﻿using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Collection;
-using Graviton.Models.RomM.PlaySessions;
 using Graviton.Models.RomM.Rom;
 
 using Playnite;
 
 using System.Net.Http;
-using System.Text;
 using System.Text.Json;
 
 namespace Graviton.Status
 {
     public class StatusController
     {
-        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
-        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
-        private ILogger _logger { get => GravitonPlugin.Logger; }
+        private GravitonPlugin _plugin;
+        private IPlayniteApi _playniteAPI;
+        private ILogger _logger;
 
         private CancellationTokenSource? _heartbeatCts;
+
+        public StatusController(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
+        {
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+        }
 
         // Syncing
 

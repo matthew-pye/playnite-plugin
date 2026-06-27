@@ -14,9 +14,9 @@ namespace Graviton.Import
 {
     internal class GravitonImport
     {
-        private GravitonPlugin _plugin {get => GravitonPlugin.Instance; }
-        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
-        private ILogger _logger { get => GravitonPlugin.Logger; }
+        private GravitonPlugin _plugin;
+        private IPlayniteApi _playniteAPI;
+        private ILogger _logger;
 
         private CancellationToken _cancelToken;
         private EmulatorMapping _mapping;
@@ -24,8 +24,12 @@ namespace Graviton.Import
 
         private static Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
 
-        public GravitonImport(CancellationToken cancelToken, EmulatorMapping mapping, List<RomMRom> roms)
+        public GravitonImport(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, CancellationToken cancelToken, EmulatorMapping mapping, List<RomMRom> roms)
         {
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+
             _cancelToken = cancelToken;
             _mapping = mapping;
             _roms = roms;

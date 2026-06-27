@@ -2,6 +2,7 @@
 
 using Playnite;
 
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -16,12 +17,12 @@ namespace Graviton
     {
         public static HttpClient Instance => httpClient;
 
-        private static GravitonPlugin _plugin { get => GravitonPlugin.Instance; } 
-
         private static readonly HttpClient httpClient = new HttpClient();
 
-        private static string Host => _plugin.Settings.Host;
+        private static GravitonPlugin? _plugin;
+        private static bool IsInitialized = false;
 
+        private static string Host => _plugin!.Settings.Host;
 
         static HttpClientSingleton()
         {
@@ -31,12 +32,24 @@ namespace Graviton
             httpClient.Timeout = TimeSpan.FromSeconds(30); // Make user editable
         }
 
+        public static void Initialize(GravitonPlugin plugin)
+        {
+            _plugin = plugin;
+            IsInitialized = true;
+        }
+
         public static void ConfigureBasicAuth(string username, string password)
         {
+            if (!IsInitialized)
+            {
+                Debug.WriteLine("HttpClientSingleton hasn't been initialized cannot perform HTTP requests!!");
+                return;
+            }
+
             Instance.DefaultRequestHeaders.Authorization = null;
             var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
             Instance.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
-            foreach (var header in _plugin.Settings.CustomHeaders.Where(x => x.Enabled))
+            foreach (var header in _plugin!.Settings.CustomHeaders.Where(x => x.Enabled))
             {
                 Instance.DefaultRequestHeaders.Remove(header.Name);
                 Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
@@ -44,9 +57,15 @@ namespace Graviton
         }
         public static void ConfigureClientToken(string clientToken)
         {
+            if (!IsInitialized)
+            {
+                Debug.WriteLine("HttpClientSingleton hasn't been initialized cannot perform HTTP requests!!");
+                return;
+            }
+
             Instance.DefaultRequestHeaders.Authorization = null;
             Instance.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", clientToken);
-            foreach (var header in _plugin.Settings.CustomHeaders.Where(x => x.Enabled))
+            foreach (var header in _plugin!.Settings.CustomHeaders.Where(x => x.Enabled))
             {
                 Instance.DefaultRequestHeaders.Remove(header.Name);
                 Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
@@ -55,7 +74,13 @@ namespace Graviton
 
         private static async Task<JsonDocument?> ExecuteAsync(string apiPath, Func<Task<HttpResponseMessage>> send, string nofiyType, string locFailedMessage)
         {
-            if (_plugin.Settings.AccountState.LastAuthenticated == null)
+            if (!IsInitialized)
+            {
+                Debug.WriteLine("HttpClientSingleton hasn't been initialized cannot perform HTTP requests!!");
+                return null;
+            }
+
+            if (_plugin!.Settings.AccountState.LastAuthenticated == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", Loc.GetString("Reauthenticate"), GravitonSeverity.Error));
                 return null;

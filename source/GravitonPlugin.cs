@@ -41,7 +41,7 @@ namespace Graviton
         { 
             get
             {
-                if (SettingsHandler.InEditingMode)
+                if (SettingsHandler != null && SettingsHandler.InEditingMode)
                     return SettingsHandler.Settings;
 
                 return _settings;
@@ -52,7 +52,7 @@ namespace Graviton
 
         private GravitonPluginSettings _settings = new();
 
-        internal GravitonSettingsHandler SettingsHandler { get; set; } = new();
+        internal GravitonSettingsHandler? SettingsHandler { get; set; }
         internal RomMAccount? Account { get; private set; }
 
         private RomMDownloadsAppViewItem? _downloadsAppView { get; set; }
@@ -140,9 +140,13 @@ namespace Graviton
             if(!Directory.Exists($"{PluginDataPath}/Games/"))
                 Directory.CreateDirectory($"{PluginDataPath}/Games/");
 
-            ImportController = new();
-            StatusController = new();
-            Account = new();
+            GravitonNotify.Initialize(Instance, PlayniteApi, Logger);
+            HttpClientSingleton.Initialize(Instance);
+
+            SettingsHandler = new(Instance, PlayniteApi, Logger);
+            ImportController = new(Instance, PlayniteApi, Logger);
+            StatusController = new(Instance, PlayniteApi, Logger);
+            Account = new(Instance, PlayniteApi, Logger);
 
             _downloadsViewModel = new();
             DownloadQueueController = new(_downloadsViewModel, maxConcurrent: 10);

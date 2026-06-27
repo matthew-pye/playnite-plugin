@@ -118,7 +118,7 @@ namespace Graviton.Tests.Settings
             var loaded = GravitonSettingsHandler.LoadSettings(emptyDir);
 
             Assert.Equal(string.Empty, loaded.Host);
-            Assert.Null(loaded.LastAuthenticated);
+            Assert.Null(loaded.AccountState.LastAuthenticated);
             Assert.False(loaded.MergeRevisions);
             Assert.False(loaded.KeepDeletedGames);
         }

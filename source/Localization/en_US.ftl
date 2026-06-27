@@ -75,6 +75,7 @@ FavouritesUpdateFailed = Can't update favorites, collection is null
 
 # Settings
 SettingSaveFailed = Failed to save settings
+SettingLoadFailed = Failed to load settings
 
 # Downloads
 DownloadViewName = RomM Downloads

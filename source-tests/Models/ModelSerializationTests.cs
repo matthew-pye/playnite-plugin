@@ -162,8 +162,8 @@ namespace Graviton.Tests.Models
         }
 
         [Theory]
-        [InlineData("never_playing", "Abandoned")]
-        [InlineData("retired",       "Played")]
+        [InlineData("never_playing", "Never Playing")]
+        [InlineData("retired",       "Abandoned")]
         [InlineData("incomplete",    "On Hold")]
         [InlineData("finished",      "Played")]
         [InlineData("completed_100", "Completed")]

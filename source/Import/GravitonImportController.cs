@@ -1,5 +1,4 @@
-﻿using Graviton.Models;
-using Graviton.Models.Notifications;
+﻿using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Platform;
 using Graviton.Models.RomM.Rom;
 
@@ -9,7 +8,6 @@ using Svg;
 
 using System.Drawing.Imaging;
 using System.IO;
-using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -20,12 +18,19 @@ namespace Graviton.Import
 {
     public class GravitonImportController
     {
-        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
-        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
-        private ILogger _logger { get => GravitonPlugin.Logger; }
+        private GravitonPlugin _plugin;
+        private IPlayniteApi _playniteAPI;
+        private ILogger _logger;
 
         private static readonly Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
         private static readonly Regex _platformSlugRegex = new Regex("^[a-zA-Z0-9_\\-]+$");
+
+        public GravitonImportController(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
+        {
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+        }
 
         public async Task<List<Game>> Import(ImportGamesArgs args)
         {
@@ -79,7 +84,7 @@ namespace Graviton.Import
 
 
                 _logger.Debug($"[Import Controller] Creating new import task for {apiPlatform.Name}.");
-                tasks.Add(new GravitonImport(args.CancelToken, mapping, rommROMs).ProcessData());
+                tasks.Add(new GravitonImport(_plugin, _playniteAPI, _logger, args.CancelToken, mapping, rommROMs).ProcessData());
 
             }
 

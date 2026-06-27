@@ -1,10 +1,15 @@
 using Graviton.Settings;
 using Graviton.Tests.Fakes;
+using Graviton.Tests.Http;
+
 using Moq;
+
 using Playnite;
-using System.Reflection;
+
 using System.IO;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+
 using Xunit;
 
 namespace Graviton.Tests
@@ -41,9 +46,11 @@ namespace Graviton.Tests
             SetStatic("<Logger>k__BackingField", Logger.Object);
 
             SetInstance(plugin, "_settings",                        new GravitonPluginSettings());
-            SetInstance(plugin, "<SettingsHandler>k__BackingField", new GravitonSettingsHandler());
+            SetInstance(plugin, "<SettingsHandler>k__BackingField", new GravitonSettingsHandler(GravitonPlugin.Instance, Playnite.Api, Logger.Object));
             SetInstance(plugin, "<PluginDataPath>k__BackingField",  TempDir);
             SetInstance(plugin, "<PluginDLLPath>k__BackingField",   TempDir);
+
+            HttpClientSingleton.Initialize(plugin);
         }
 
         public void ApplySettings(Action<GravitonPluginSettings> configure)

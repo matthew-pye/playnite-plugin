@@ -188,13 +188,18 @@ namespace Graviton.Settings
     {
         public bool InEditingMode { get; private set; }
 
-        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
-        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
-        private static ILogger _logger { get => GravitonPlugin.Logger; }
+        private GravitonPlugin _plugin;
+        private IPlayniteApi _playniteAPI;
+        private ILogger _logger;
 
         [ObservableProperty] private GravitonPluginSettings settings = new();
 
-        public GravitonSettingsHandler() {}
+        public GravitonSettingsHandler(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger) 
+        {
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;   
+        }
 
         public override UserControl GetEditView(GetSettingsViewArgs args)
         {
@@ -295,7 +300,7 @@ namespace Graviton.Settings
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "Failed to load plugin settings.");
+                    GravitonNotify.Add(new GravitonNotification("graviton.settings.load.failed", $"{Loc.GetString("SettingLoadFailed")} - {ex.Message}", GravitonSeverity.Error, ex));
                 }
             }
 
