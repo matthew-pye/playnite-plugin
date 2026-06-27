@@ -282,6 +282,7 @@ namespace Graviton.Import
             game.Links = new();
             game.ExternalIdentifiers = new();
             game.ExternalIdentifiers?.Add(new("romm", ROM.Id.ToString()!));
+            game.ExternalIdentifiers?.Add(new("mappingid", _mapping.MappingId.ToString()));
             if (ROM.IgdbId != null)
             {
                 game.ExternalIdentifiers?.Add(new("igdb", ROM.IgdbId.ToString()!));

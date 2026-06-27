@@ -230,12 +230,8 @@ namespace Graviton.Import
                 if(!_SHA1Regex.IsMatch(gameSHA1))
                     continue;
 
-                if (!File.Exists($"{_plugin.PluginDataPath}/Games/{gameSHA1}.json"))
-                    continue;
-
-                var gamejson = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{_plugin.PluginDataPath}/Games/{splitID[1]}.json"));
-
-                var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == gamejson?.MappingID);
+                var mappingID = game.ExternalIdentifiers?.FirstOrDefault(x => x.TypeId == "mappingid");
+                var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId.ToString() == mappingID?.IdValue);
                 if (mapping != null)
                 {
                     // Don't remove games from mappings that are disabled

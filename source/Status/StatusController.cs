@@ -22,12 +22,12 @@ namespace Graviton.Status
 
         // Syncing
 
-        public async Task PushPlaySession(List<RomMPlaySession> playSessions)
-        {
-            object sessions = new { device_id = _plugin.Settings.DeviceID, sessions = playSessions };
-
-            var response = await HttpClientSingleton.RomMPutJsonAsync("/api/play-sessions", sessions);
-        }
+        //public async Task PushPlaySession(List<RomMPlaySession> playSessions)
+        //{
+        //    object sessions = new { device_id = _plugin.Settings.DeviceID, sessions = playSessions };
+        //
+        //    var response = await HttpClientSingleton.RomMPutJsonAsync("/api/play-sessions", sessions);
+        //}
 
         // Favourites
         private async Task<RomMCollection?> CreateFavorites()
