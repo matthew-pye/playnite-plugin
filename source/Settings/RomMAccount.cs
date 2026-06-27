@@ -23,15 +23,12 @@ namespace Graviton.Settings
             var result = await HttpClientSingleton.RomMGetAsync("/api/heartbeat");
             if(result == null)
             {
-                _plugin.Settings.LastAuthenticated = null;
                 GravitonNotify.Add(new GravitonNotification("graviton.heartbeat.failed", Loc.GetString("HeartbeatFailed"), GravitonSeverity.Error));
-                SyncFailed();
                 return null;
             }
 
             try
-            {
-                _plugin.Settings.LastAuthenticated = DateTime.UtcNow;
+            {         
                 return result.RootElement.GetProperty("SYSTEM").Deserialize<ServerInfo>();               
             }
             catch (Exception ex)
@@ -116,16 +113,53 @@ namespace Graviton.Settings
             return true;
         }
 
-        async Task<bool> SyncUserData()
+        public async Task<bool> SyncPlatforms()
+        {
+            foreach (var mapping in _plugin.Settings.Mappings!)
+            {
+                mapping.AvailablePlatforms = _plugin.Settings.RomMPlatforms;
+            }
+
+            var importcontroller = _plugin?.ImportController;
+
+            if (importcontroller == null)
+            {
+                return false;
+            }
+
+            var platforms = await importcontroller.FetchPlatforms();
+            if (platforms == null)
+                return false;
+            else if (platforms.Count <= 0)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.GET.no.platforms", $"No platforms pulled from server!", GravitonSeverity.Warn));
+                return false;
+            }
+
+            _plugin?.Settings.RomMPlatforms = platforms.ToObservableCollection();
+            foreach (var mapping in _plugin?.Settings.Mappings!)
+            {
+                mapping.AvailablePlatforms = platforms.ToObservableCollection();
+            }
+
+            return true;
+        }
+
+        public async Task<bool> SyncUserData()
         {
             var result = await HttpClientSingleton.RomMGetAsync("/api/users/me");
             if (result == null)
+            {
+                SyncFailed();
                 return false;
-
-            var userinfo = result.RootElement.Deserialize<RomMUser>() ?? throw new Exception("Failed to deserialize UserInfo!");
-
+            }
+                  
             try
             {
+                var userinfo = result.RootElement.Deserialize<RomMUser>() ?? throw new Exception("Failed to deserialize UserInfo!");
+
+                _plugin.Settings.LastAuthenticated = DateTime.UtcNow;
+
                 if (!string.IsNullOrEmpty(userinfo.IconPath) && _iconPathRegex.IsMatch(userinfo.IconPath))
                 {
                     var response = await HttpClientSingleton.Instance.GetAsync($"{_plugin.Settings.Host}/api/raw/assets/{userinfo.IconPath}", System.Net.Http.HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken());
@@ -145,17 +179,19 @@ namespace Graviton.Settings
                 {
                     _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
                 }
+
+                _plugin.Settings.UserType = userinfo.Role;
+                _plugin.Settings.User = userinfo.Username;
+                _plugin.Settings.UserID = userinfo.Id;
+                return true;
+
             }
             catch (Exception ex)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.GET.profileicon.failed", $"{Loc.GetString("GETProfileIconFailed")} - {ex.Message}", GravitonSeverity.Error, ex));
             }
-            
-            _plugin.Settings.UserType = userinfo.Role;
-            _plugin.Settings.User = userinfo.Username;
-            _plugin.Settings.UserID = userinfo.Id;
-            return true;
 
+            return false;
         }
 
         async Task<bool> RegisterNewDevice()
@@ -227,37 +263,7 @@ namespace Graviton.Settings
 
             return true;
         }
-        public async Task<bool> SyncPlatforms()
-        {
-            foreach (var mapping in _plugin.Settings.Mappings!)
-            {
-                mapping.AvailablePlatforms = _plugin.Settings.RomMPlatforms;
-            }
 
-            var importcontroller = _plugin?.ImportController;
-
-            if (importcontroller == null)
-            {
-                return false;
-            }
-
-            var platforms = await importcontroller.FetchPlatforms();
-            if (platforms == null)
-                return false;
-            else if (platforms.Count <= 0)
-            {
-                GravitonNotify.Add(new GravitonNotification("graviton.GET.no.platforms", $"No platforms pulled from server!", GravitonSeverity.Warn));
-                return false;
-            }
-
-            _plugin?.Settings.RomMPlatforms = platforms.ToObservableCollection();
-            foreach (var mapping in _plugin?.Settings.Mappings!)
-            {
-                mapping.AvailablePlatforms = platforms.ToObservableCollection();
-            }
-
-            return true;
-        }
         void SyncFailed()
         {
             _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");

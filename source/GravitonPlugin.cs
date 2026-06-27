@@ -163,14 +163,17 @@ namespace Graviton
                 if (Account == null)
                     throw new Exception("Account hasn't been initailized, cannot continue!");
                 
+                // Check server exists
                 var result = await Account.Heartbeat();
                 if (result != null)
                 {
                     Settings.ServerVersion = result.Value.Version;
+
                     if (await Account.SyncPlatforms())
                         Logger.Info(Loc.GetString("PlatformsSynced", [("PlaformCount", Settings.RomMPlatforms.Count)]));
-                }
-                   
+             
+                    await Account.SyncUserData();
+                }      
             } 
         }
 

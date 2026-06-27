@@ -5,13 +5,14 @@ namespace Graviton.Models.RomM.Metadata
     public class RetroAchievement
     {
         [JsonPropertyName("id")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public int? ID { get; set; }
 
         [JsonPropertyName("date")]
-        public DateTime? Date { get; set; }
+        public string? Date { get; set; }
 
         [JsonPropertyName("date_hardcore")]
-        public DateTime? HardcoreDate { get; set; }
+        public string? HardcoreDate { get; set; }
     }
 
     public class RetroAchievementGame
