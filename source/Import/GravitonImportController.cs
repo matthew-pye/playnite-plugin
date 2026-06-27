@@ -40,7 +40,7 @@ namespace Graviton.Import
             if (apiPlatforms == null)
                 return new List<Game>();
 
-            _plugin.Settings.RomMPlatforms = apiPlatforms.ToObservableCollection();
+            _plugin.Settings.AccountState.RomMPlatforms = apiPlatforms.ToObservableCollection();
 
             string url = BuildGeneralROMUrl();
 

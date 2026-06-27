@@ -76,7 +76,7 @@ namespace Graviton.Settings
                 HttpClientSingleton.ConfigureClientToken(_plugin.Settings.ClientTokenNP);
             }
 
-            _plugin.Settings.LastAuthenticated = DateTime.UtcNow;
+            _plugin.Settings.AccountState.LastAuthenticated = DateTime.UtcNow;
 
             ServerInfo? heartbeat = await Heartbeat();
             if (heartbeat == null)
@@ -85,7 +85,7 @@ namespace Graviton.Settings
                 return false;
             }
                 
-            _plugin.Settings.ServerVersion = heartbeat.Value.Version;
+            _plugin.Settings.AccountState.ServerVersion = heartbeat.Value.Version;
 
 
             if (!(await RegisterNewDevice()))
@@ -121,7 +121,7 @@ namespace Graviton.Settings
         {
             foreach (var mapping in _plugin.Settings.Mappings!)
             {
-                mapping.AvailablePlatforms = _plugin.Settings.RomMPlatforms;
+                mapping.AvailablePlatforms = _plugin.Settings.AccountState.RomMPlatforms;
             }
 
             var importcontroller = _plugin?.ImportController;
@@ -140,7 +140,7 @@ namespace Graviton.Settings
                 return false;
             }
 
-            _plugin?.Settings.RomMPlatforms = platforms.ToObservableCollection();
+            _plugin?.Settings.AccountState.RomMPlatforms = platforms.ToObservableCollection();
             foreach (var mapping in _plugin?.Settings.Mappings!)
             {
                 mapping.AvailablePlatforms = platforms.ToObservableCollection();
@@ -162,7 +162,7 @@ namespace Graviton.Settings
             {
                 var userinfo = result.RootElement.Deserialize<RomMUser>() ?? throw new Exception("Failed to deserialize UserInfo!");
 
-                _plugin.Settings.LastAuthenticated = DateTime.UtcNow;
+                _plugin.Settings.AccountState.LastAuthenticated = DateTime.UtcNow;
 
                 if (!string.IsNullOrEmpty(userinfo.IconPath) && _iconPathRegex.IsMatch(userinfo.IconPath))
                 {
@@ -184,9 +184,9 @@ namespace Graviton.Settings
                     _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
                 }
 
-                _plugin.Settings.UserType = userinfo.Role;
-                _plugin.Settings.User = userinfo.Username;
-                _plugin.Settings.UserID = userinfo.Id;
+                _plugin.Settings.AccountState.UserType = userinfo.Role;
+                _plugin.Settings.AccountState.User = userinfo.Username;
+                _plugin.Settings.AccountState.UserID = userinfo.Id;
                 return true;
 
             }
@@ -201,7 +201,7 @@ namespace Graviton.Settings
         async Task<bool> RegisterNewDevice()
         {
             // Check to see if current device id is valid
-            if (!string.IsNullOrEmpty(_plugin.Settings.DeviceID))
+            if (!string.IsNullOrEmpty(_plugin.Settings.AccountState.DeviceID))
             {
                 var result = await HttpClientSingleton.RomMGetAsync("/api/devices");
                 if (result != null)
@@ -209,7 +209,7 @@ namespace Graviton.Settings
                     try
                     {
                         List<RomMDevice> devices = result.RootElement.Deserialize<List<RomMDevice>>() ?? throw new Exception("Unable to deserialize UserInfo!");
-                        if (devices.Any(x => x.ID == _plugin.Settings.DeviceID))
+                        if (devices.Any(x => x.ID == _plugin.Settings.AccountState.DeviceID))
                             return true;
                     }
                     catch (Exception ex)
@@ -238,7 +238,7 @@ namespace Graviton.Settings
                 RomMRegisterDeviceResponse newRomMDevice = request.RootElement.Deserialize<RomMRegisterDeviceResponse>() ?? throw new Exception("Unable to deserialize register device response!");
 
                 // Set ID that RomM responds with
-                _plugin.Settings.DeviceID = newRomMDevice.DeviceID ?? throw new Exception("Response Device ID is null!");
+                _plugin.Settings.AccountState.DeviceID = newRomMDevice.DeviceID ?? throw new Exception("Response Device ID is null!");
                 return true;
             }
             catch (Exception ex)
@@ -250,7 +250,7 @@ namespace Graviton.Settings
 
         async Task<bool> UpdateDevice()
         {
-            if (string.IsNullOrEmpty(_plugin.Settings.DeviceID))
+            if (string.IsNullOrEmpty(_plugin.Settings.AccountState.DeviceID))
                 return false;
 
             // Rebuild device data
@@ -261,7 +261,7 @@ namespace Graviton.Settings
             newDevice.MACAddress = (from nic in NetworkInterface.GetAllNetworkInterfaces() where nic.OperationalStatus == OperationalStatus.Up select nic.GetPhysicalAddress().ToString()).FirstOrDefault();
             newDevice.HostName = Environment.MachineName;
 
-            var result = await HttpClientSingleton.RomMPutJsonAsync($"/api/devices/{_plugin.Settings.DeviceID}", newDevice);
+            var result = await HttpClientSingleton.RomMPutJsonAsync($"/api/devices/{_plugin.Settings.AccountState.DeviceID}", newDevice);
             if (result == null)
                 return false;
 
@@ -349,7 +349,7 @@ namespace Graviton.Settings
                             return false;
                         }
 
-                        _plugin.Settings.DeviceID = result.DeviceID!;
+                        _plugin.Settings.AccountState.DeviceID = result.DeviceID!;
                         _plugin.Settings.ClientTokenNP = result.AccessToken!;
                         await _plugin.Account?.Login()!;
                         return true;
@@ -395,10 +395,10 @@ namespace Graviton.Settings
         void SyncFailed()
         {
             _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
-            _plugin.Settings.User = "----";
-            _plugin.Settings.UserType = "----";
-            _plugin.Settings.ServerVersion = "---";
-            _plugin.Settings.LastAuthenticated = null;
+            _plugin.Settings.AccountState.User = "----";
+            _plugin.Settings.AccountState.UserType = "----";
+            _plugin.Settings.AccountState.ServerVersion = "---";
+            _plugin.Settings.AccountState.LastAuthenticated = null;
         }
     }
 }

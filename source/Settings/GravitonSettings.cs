@@ -19,17 +19,9 @@ using System.Windows.Media.Imaging;
 
 namespace Graviton.Settings
 {
-    public partial class GravitonPluginSettings : ObservableObject
+    public partial class GravitonAccountState : ObservableObject
     {
-        private string _host = "";
         [ObservableProperty] private string _serverVersion = "---";
-        [ObservableProperty] private string _clientToken = "";
-        [ObservableProperty] private bool _useBasicAuth = false;
-        [ObservableProperty] private string _username = "";
-        [ObservableProperty] private string _password = "";
-        [ObservableProperty] private ObservableCollection<CustomHTTPHeader> _customHeaders = new ObservableCollection<CustomHTTPHeader>();
-
-        private string _profilePath = "";
         [ObservableProperty] private string _user = "----";
         [ObservableProperty] private string _userType = "----";
         [ObservableProperty] private int _userID = -1;
@@ -37,6 +29,21 @@ namespace Graviton.Settings
 
         [ObservableProperty] private DateTime? _lastAuthenticated;
 
+        [ObservableProperty] private ObservableCollection<RomMPlatform> _romMPlatforms = new ObservableCollection<RomMPlatform>();
+    }
+
+    public partial class GravitonPluginSettings : ObservableObject
+    {
+        private string _host = "";
+       
+        [ObservableProperty] private string _clientToken = "";
+        [ObservableProperty] private bool _useBasicAuth = false;
+        [ObservableProperty] private string _username = "";
+        [ObservableProperty] private string _password = "";
+        [ObservableProperty] private ObservableCollection<CustomHTTPHeader> _customHeaders = new ObservableCollection<CustomHTTPHeader>();
+
+        private string _profilePath = ""; 
+ 
         [ObservableProperty] private string _excludeGenres = "";
         [ObservableProperty] private bool _mergeRevisions = false;
         [ObservableProperty] private bool _skipMissingFiles = false;
@@ -50,8 +57,9 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _keepPrivateNotesSynced = false;      
         [ObservableProperty] private bool _keepPublicNotesSynced = false;      
 
-        [ObservableProperty] private ObservableCollection<RomMPlatform> _romMPlatforms = new ObservableCollection<RomMPlatform>();
         [ObservableProperty] private ObservableCollection<EmulatorMapping> _mappings = new ObservableCollection<EmulatorMapping>();
+
+        public GravitonAccountState AccountState { get; init; } = new();
 
         public string Host
         {
@@ -127,13 +135,6 @@ namespace Graviton.Settings
                 PasswordNP = this.PasswordNP,
 
                 ProfilePath = this.ProfilePath,
-                User = this.User,
-                UserType = this.UserType,
-                UserID = this.UserID,
-                DeviceID = this.DeviceID,
-                CustomHeaders = this.CustomHeaders,
-
-                LastAuthenticated = this.LastAuthenticated,
                 
                 ExcludeGenres = this.ExcludeGenres,
                 MergeRevisions = this.MergeRevisions,
@@ -148,9 +149,9 @@ namespace Graviton.Settings
                 KeepPrivateNotesSynced = this.KeepPrivateNotesSynced,
                 KeepPublicNotesSynced = this.KeepPublicNotesSynced,
 
-                RomMPlatforms = new(this.RomMPlatforms),
-                Mappings = new(this.Mappings)
+                Mappings = new(this.Mappings),
 
+                AccountState = this.AccountState
             };
         }
 
@@ -288,7 +289,7 @@ namespace Graviton.Settings
                     {
                         foreach (var mapping in settings.Mappings)
                         {
-                            mapping.AvailablePlatforms = settings.RomMPlatforms;
+                            mapping.AvailablePlatforms = settings.AccountState.RomMPlatforms;
                         }
                     }
                 }

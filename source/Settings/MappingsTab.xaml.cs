@@ -35,7 +35,7 @@ namespace Graviton.Settings
 
         private void AddMapping_Click(object sender, RoutedEventArgs e)
         {
-            _plugin.Settings.Mappings.Add(new EmulatorMapping(_plugin.Settings.RomMPlatforms));
+            _plugin.Settings.Mappings.Add(new EmulatorMapping(_plugin.Settings.AccountState.RomMPlatforms));
         }
 
         private void Mapping_Click(object sender, RoutedEventArgs e)
@@ -51,9 +51,9 @@ namespace Graviton.Settings
 
             var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
 
-            if (mapping != null && _plugin.Settings.RomMPlatforms != null)
+            if (mapping != null && _plugin.Settings.AccountState.RomMPlatforms != null)
             {
-                mapping.AvailablePlatforms = _plugin.Settings.RomMPlatforms;
+                mapping.AvailablePlatforms = _plugin.Settings.AccountState.RomMPlatforms;
                 MappingOptions.DataContext = mapping;
                 MappingOptions.Visibility = Visibility.Visible;
                 mapping.IsSelected = true;
@@ -99,7 +99,7 @@ namespace Graviton.Settings
         private async void SyncPlatforms_Click(object sender, RoutedEventArgs e)
         {
             if(await _plugin.Account!.SyncPlatforms())
-                GravitonNotify.Add(new GravitonNotification("graviton.GET.platforms", Loc.GetString("PlatformsSynced", [("PlaformCount", _plugin.Settings.RomMPlatforms.Count)]), GravitonSeverity.Success));
+                GravitonNotify.Add(new GravitonNotification("graviton.GET.platforms", Loc.GetString("PlatformsSynced", [("PlaformCount", _plugin.Settings.AccountState.RomMPlatforms.Count)]), GravitonSeverity.Success));
             
             e.Handled = true;
         }

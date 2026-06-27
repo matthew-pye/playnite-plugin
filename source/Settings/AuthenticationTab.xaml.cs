@@ -112,7 +112,7 @@ namespace Graviton.Settings
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(filetype);
 
                 content.Add(fileContent, "avatar", fileName);
-                var result = await HttpClientSingleton.RomMPutContentAsync($"/api/users/{_plugin.Settings.UserID}", content);
+                var result = await HttpClientSingleton.RomMPutContentAsync($"/api/users/{_plugin.Settings.AccountState.UserID}", content);
 
                 if(result != null)
                 {

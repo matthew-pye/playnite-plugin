@@ -55,7 +55,7 @@ namespace Graviton
 
         private static async Task<JsonDocument?> ExecuteAsync(string apiPath, Func<Task<HttpResponseMessage>> send, string nofiyType, string locFailedMessage)
         {
-            if (_plugin.Settings.LastAuthenticated == null)
+            if (_plugin.Settings.AccountState.LastAuthenticated == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", Loc.GetString("Reauthenticate"), GravitonSeverity.Error));
                 return null;
@@ -72,7 +72,7 @@ namespace Graviton
             catch (Exception ex)
             {
                 if (response?.StatusCode == HttpStatusCode.Unauthorized || response?.StatusCode == HttpStatusCode.Forbidden)
-                    _plugin.Settings.LastAuthenticated = null;
+                    _plugin.Settings.AccountState.LastAuthenticated = null;
 
                 GravitonNotify.Add(new GravitonNotification(nofiyType, $"{Loc.GetString(locFailedMessage, [("APIPath", apiPath)])} - {ex.Message}", GravitonSeverity.Error, ex));
 

@@ -155,7 +155,7 @@ namespace Graviton
             Settings = GravitonSettingsHandler.LoadSettings(PluginDataPath);
             Settings.ProfilePath = string.IsNullOrEmpty(Settings.ProfilePath) ? Path.Combine(PluginDLLPath, @"profile.png") : Settings.ProfilePath;
 
-            if (Settings.LastAuthenticated != null)
+            if (Settings.AccountState.LastAuthenticated != null)
             {
                 if (Settings.UseBasicAuth)
                 {
@@ -173,10 +173,10 @@ namespace Graviton
                 var result = await Account.Heartbeat();
                 if (result != null)
                 {
-                    Settings.ServerVersion = result.Value.Version;
+                    Settings.AccountState.ServerVersion = result.Value.Version;
 
                     if (await Account.SyncPlatforms())
-                        Logger.Info(Loc.GetString("PlatformsSynced", [("PlaformCount", Settings.RomMPlatforms.Count)]));
+                        Logger.Info(Loc.GetString("PlatformsSynced", [("PlaformCount", Settings.AccountState.RomMPlatforms.Count)]));
              
                     await Account.SyncUserData();
                 }      
@@ -354,7 +354,7 @@ namespace Graviton
                     return [new MenuItemImpl("Open RomM library", (_) => { Process.Start(new ProcessStartInfo(Settings.Host) { UseShellExecute = true })?.Dispose(); })];
                 }
 
-                if (Settings.UserID < 0)
+                if (Settings.AccountState.UserID < 0)
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.open.library", Loc.GetString("NotAuthenticated"), GravitonSeverity.Error));
                     return null;
@@ -362,7 +362,7 @@ namespace Graviton
 
                 if (args.ItemId == "graviton.open.account")
                 {
-                    return [new MenuItemImpl("Open RomM profile", (_) => { Process.Start(new ProcessStartInfo($"{Settings.Host}/user/{Settings.UserID}") { UseShellExecute = true })?.Dispose(); })];
+                    return [new MenuItemImpl("Open RomM profile", (_) => { Process.Start(new ProcessStartInfo($"{Settings.Host}/user/{Settings.AccountState.UserID}") { UseShellExecute = true })?.Dispose(); })];
                 }
             }    
 

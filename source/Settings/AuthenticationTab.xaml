@@ -92,15 +92,15 @@
             </Button>
         </Grid>
 
-        <Label Name="RomMUser" Content="{Binding User, Mode=OneWay}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" FontSize="22" VerticalAlignment="Bottom" Margin="5,0,0,0"/>
-        <Label Name="RomMProfileType" Content="{Binding UserType, Mode=OneWay}" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" VerticalAlignment="Top" Margin="5,0,0,0" Foreground="DimGray" FontSize="12" />
+        <Label Name="RomMUser" Content="{Binding AccountState.User, Mode=OneWay}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" FontSize="22" VerticalAlignment="Bottom" Margin="5,0,0,0"/>
+        <Label Name="RomMProfileType" Content="{Binding AccountState.UserType, Mode=OneWay}" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" VerticalAlignment="Top" Margin="5,0,0,0" Foreground="DimGray" FontSize="12" />
         <Button Name="TestServer" Click="Click_Authenticate" Grid.Row="1" Grid.Column="3" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Top">
             <TextBlock Name="AuthButtonText" Text="Authenticate" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Button>
 
         <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,10,0">
             <Label Name="RomMServerVersionText" Content="Server Ver." Foreground="DimGray" FontSize="12" VerticalAlignment="Top" HorizontalAlignment="Center"/>
-            <Label Name="RomMServerVersion" Content="{Binding ServerVersion, Mode=OneWay}" Foreground="DimGray" FontSize="12" HorizontalAlignment="Center" Margin="0"/>
+            <Label Name="RomMServerVersion" Content="{Binding AccountState.ServerVersion, Mode=OneWay}" Foreground="DimGray" FontSize="12" HorizontalAlignment="Center" Margin="0"/>
         </StackPanel>
 
         <TextBlock Name="ServerHostText" Text="RomM Server Address" Grid.Row="2" Grid.Column="0" Margin="5" VerticalAlignment="Center"/>

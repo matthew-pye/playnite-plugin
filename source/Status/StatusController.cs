@@ -17,7 +17,6 @@ namespace Graviton.Status
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
         private ILogger _logger { get => GravitonPlugin.Logger; }
 
-        private bool _gameRunning = false;
         private CancellationTokenSource? _heartbeatCts;
 
         // Syncing
@@ -138,7 +137,7 @@ namespace Graviton.Status
             {
                 while (!token.IsCancellationRequested)
                 {
-                    var heartbeat = new { rom_id = romMID, device_id = _plugin.Settings.DeviceID };
+                    var heartbeat = new { rom_id = romMID, device_id = _plugin.Settings.AccountState.DeviceID };
                     await HttpClientSingleton.RomMPostJsonAsync("/api/activity/heartbeat", heartbeat);
                     await Task.Delay(5000, token);
                 }
@@ -146,7 +145,7 @@ namespace Graviton.Status
             catch (Exception ex) { GravitonNotify.Add(new GravitonNotification("graviton.game.heartbeat.failed", $"{Loc.GetString("GameHeartbeatFailed")} - {ex.Message}", GravitonSeverity.Error, ex)); }
             finally
             {
-                await HttpClientSingleton.RomMDeleteAsync($"/api/activity/heartbeat?device_id={_plugin.Settings.DeviceID}");
+                await HttpClientSingleton.RomMDeleteAsync($"/api/activity/heartbeat?device_id={_plugin.Settings.AccountState.DeviceID}");
             }
 
         }
