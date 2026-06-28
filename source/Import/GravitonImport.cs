@@ -65,8 +65,6 @@ namespace Graviton.Import
                 }
             }
 
-
-
             _logger?.Info($"[Importer] Finished adding new games for {_mapping.RomMPlatform?.Name}");
 
             if(_plugin.Settings.MergeRevisions)
@@ -198,7 +196,7 @@ namespace Graviton.Import
                 }
             }
 
-            var game = _playniteAPI.Library.Games.FirstOrDefault(g => g.LibraryGameId == gameID);
+            var game = _plugin.ImportedGames!.GetValueOrDefault(gameID);
             if (game != null) // Skip full import if ROM has already been imported 
             {
                 if(ROM.Collections != null)
@@ -232,6 +230,7 @@ namespace Graviton.Import
                 if (importedGame != null)
                 {
                     await _playniteAPI.Library.Games.AddAsync(importedGame);
+                    _plugin.ImportedGames!.TryAdd(gameID ,importedGame);
                     return new(gameID, importedGame);
                 }
                 else
@@ -343,16 +342,20 @@ namespace Graviton.Import
         private async Task<bool> UpdatedDeletedGame(RomMRom ROM)
         {
             // Check to see if a game already exists with an old romMId
-            var oldgame = _playniteAPI.Library.Games.FirstOrDefault(g =>
+            var oldgame = _plugin.ImportedGames!.FirstOrDefault(g =>
             {
-                var splitID = g.LibraryGameId?.Split(':');
-                return g.LibraryId == GravitonPlugin.Id && splitID?.Length == 2 && splitID[1] == ROM.SHA1;
+                var splitID = g.Key?.Split(':');
+                return splitID?.Length == 2 && splitID[1] == ROM.SHA1;
             });
 
-            if (oldgame != null)
+            if (oldgame.Value != null)
             {
-                oldgame.LibraryGameId = $"{ROM.Id}:{ROM.SHA1}";
-                await _playniteAPI.Library.Games.UpdateAsync(oldgame);
+                oldgame.Value.LibraryGameId = $"{ROM.Id}:{ROM.SHA1}";
+                await _playniteAPI.Library.Games.UpdateAsync(oldgame.Value);
+                
+                _plugin.ImportedGames!.TryRemove(oldgame.Key, out _);
+                _plugin.ImportedGames!.TryAdd($"{ROM.Id}:{ROM.SHA1}", oldgame.Value);
+
                 return true;
             }
             else
@@ -373,7 +376,7 @@ namespace Graviton.Import
 
                 if (ROM.Siblings?.Count > 0)
                 {
-                    var game = _playniteAPI.Library.Games.FirstOrDefault(x => x.LibraryGameId == $"{ROM.Id}:{ROM.SHA1}");
+                    var game = _plugin.ImportedGames!.GetValueOrDefault($"{ROM.Id}:{ROM.SHA1}");
                     if (game == null) 
                         continue;
 
@@ -388,7 +391,7 @@ namespace Graviton.Import
                                 continue;
 
                             // Check to see if sibling has been imported
-                            var siblingGame = _playniteAPI.Library.Games.FirstOrDefault(x => x.LibraryGameId == $"{siblingROM.Id}:{siblingROM.SHA1}");
+                            var siblingGame = _plugin.ImportedGames!.GetValueOrDefault($"{siblingROM.Id}:{siblingROM.SHA1}");
                             if (siblingGame == null) 
                                 continue;
 

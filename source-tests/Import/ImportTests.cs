@@ -21,7 +21,7 @@ namespace Graviton.Tests.Import
         {
             return new EmulatorMapping
             {
-                MappingId    = Guid.NewGuid(),
+                MappingId = Guid.NewGuid(),
                 RomMPlatform = new RomMPlatform { Id = 1, Slug = "gba", Name = platformName }
             };
         }
@@ -38,6 +38,7 @@ namespace Graviton.Tests.Import
             fixture.Playnite.Regions.Clear();
             fixture.Playnite.AgeRatings.Clear();
             fixture.Playnite.CompletionStatuses.Clear();
+            fixture.Playnite.GameRelations.Clear();
             fixture.ApplySettings(s => s.Host = host);
         }
 
@@ -225,7 +226,7 @@ namespace Graviton.Tests.Import
             await Importer(MakeMapping(), rom).ProcessData();
 
             Assert.DoesNotContain(fixture.Playnite.Categories, c => c.Name == "Favorites");
-            Assert.Contains(fixture.Playnite.Categories,       c => c.Name == "RPG Classics");
+            Assert.Contains(fixture.Playnite.Categories, c => c.Name == "RPG Classics");
         }
 
         [Fact]
@@ -266,7 +267,7 @@ namespace Graviton.Tests.Import
         public async Task ProcessData_RomAlreadyImported_NotAddedAgain()
         {
             Ready();
-            fixture.Playnite.AddExistingGame(new Playnite.Game { LibraryGameId = "101:AAB0DD9D12B79B2A67B64A4C5F98F37DCEE60AA1" });
+            fixture.SeedImportedGame(new Playnite.Game { LibraryGameId = "101:AAB0DD9D12B79B2A67B64A4C5F98F37DCEE60AA1" });
 
             var (newGames, ids) = await Importer(MakeMapping(), JsonSerializer.Deserialize<RomMRom>(FakeApiResponses.RomMRom)!).ProcessData();
 
@@ -282,9 +283,9 @@ namespace Graviton.Tests.Import
             var existing = new Playnite.Game
             {
                 LibraryGameId = "303:BA4F07C8F01B1219E4BF2E7E83E5D64E55B43E97",
-                Favorite      = false
+                Favorite = false
             };
-            fixture.Playnite.AddExistingGame(existing);
+            fixture.SeedImportedGame(existing);
 
             await Importer(MakeMapping(), JsonSerializer.Deserialize<RomMRom>(FakeApiResponses.RomMRomInFavourites)!).ProcessData();
 
@@ -308,7 +309,7 @@ namespace Graviton.Tests.Import
         public async Task ProcessData_RomWithNoSha1_GeneratesHashAndImports()
         {
             Ready();
-            var rom  = JsonSerializer.Deserialize<RomMRom>(FakeApiResponses.RomMRomMinimal)!;
+            var rom = JsonSerializer.Deserialize<RomMRom>(FakeApiResponses.RomMRomMinimal)!;
             rom.SHA1 = null;
 
             await Importer(MakeMapping(), rom).ProcessData();
@@ -338,7 +339,7 @@ namespace Graviton.Tests.Import
             var json = File.ReadAllText(Path.Combine(fixture.TempDir, "Games", "AAB0DD9D12B79B2A67B64A4C5F98F37DCEE60AA1.json"));
 
             Assert.Contains("http://romm.local", json);
-            Assert.Contains("/api/roms/201/",    json);
+            Assert.Contains("/api/roms/201/", json);
         }
 
         [Fact]
@@ -354,7 +355,7 @@ namespace Graviton.Tests.Import
             var json = File.ReadAllText(Path.Combine(fixture.TempDir, "Games", $"{sha1}.json"));
 
             Assert.Contains("http://romm.local", json);
-            Assert.Contains("/api/roms/404/",    json);
+            Assert.Contains("/api/roms/404/", json);
         }
 
         [Fact]

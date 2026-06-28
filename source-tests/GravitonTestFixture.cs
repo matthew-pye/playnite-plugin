@@ -1,11 +1,11 @@
 using Graviton.Settings;
 using Graviton.Tests.Fakes;
-using Graviton.Tests.Http;
 
 using Moq;
 
 using Playnite;
 
+using System.Collections.Concurrent;
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -28,6 +28,18 @@ namespace Graviton.Tests
         public FakePlayniteSetup Playnite { get; }
         public Mock<ILogger> Logger { get; }
 
+        private static void SetStatic(string field, object? value)
+        {
+            var fi = typeof(GravitonPlugin).GetField(field, BindingFlags.NonPublic | BindingFlags.Static) ?? throw new MissingFieldException(typeof(GravitonPlugin).Name, field);
+            fi.SetValue(null, value);
+        }
+
+        private static void SetInstance(object target, string field, object? value)
+        {
+            var fi = target.GetType().GetField(field, BindingFlags.NonPublic | BindingFlags.Instance) ?? throw new MissingFieldException(target.GetType().Name, field);
+            fi.SetValue(target, value);
+        }
+
         public GravitonTestFixture()
         {
             TempDir = Path.Combine(Path.GetTempPath(), $"GravitonTests_{Guid.NewGuid():N}");
@@ -41,37 +53,36 @@ namespace Graviton.Tests
             Loc.Api = Playnite.Api;
             var plugin = (GravitonPlugin)RuntimeHelpers.GetUninitializedObject(typeof(GravitonPlugin));
 
-            SetStatic("<Instance>k__BackingField",    plugin);
+            SetStatic("<Instance>k__BackingField", plugin);
             SetStatic("<PlayniteApi>k__BackingField", Playnite.Api);
             SetStatic("<Logger>k__BackingField", Logger.Object);
 
-            SetInstance(plugin, "_settings",                        new GravitonPluginSettings());
+            SetInstance(plugin, "_settings", new GravitonPluginSettings());
             SetInstance(plugin, "<SettingsHandler>k__BackingField", new GravitonSettingsHandler(GravitonPlugin.Instance, Playnite.Api, Logger.Object));
-            SetInstance(plugin, "<PluginDataPath>k__BackingField",  TempDir);
-            SetInstance(plugin, "<PluginDLLPath>k__BackingField",   TempDir);
+            SetInstance(plugin, "<PluginDataPath>k__BackingField", TempDir);
+            SetInstance(plugin, "<PluginDLLPath>k__BackingField", TempDir);
+            SetInstance(plugin, "<ImportedGames>k__BackingField", new ConcurrentDictionary<string, Game>());
 
             HttpClientSingleton.Initialize(plugin);
         }
 
         public void ApplySettings(Action<GravitonPluginSettings> configure)
         {
-            var s = new GravitonPluginSettings();
-            configure(s);
-            SetInstance(GravitonPlugin.Instance, "_settings", s);
+            var settings = new GravitonPluginSettings();
+            configure(settings);
+            SetInstance(GravitonPlugin.Instance, "_settings", settings);
         }
 
-        public void ResetGames() => Playnite.Games.Clear();
-
-        private static void SetStatic(string field, object? value)
+        public void ResetGames()
         {
-            var fi = typeof(GravitonPlugin).GetField(field, BindingFlags.NonPublic | BindingFlags.Static) ?? throw new MissingFieldException(typeof(GravitonPlugin).Name, field);
-            fi.SetValue(null, value);
+            Playnite.Games.Clear();
+            GravitonPlugin.Instance.ImportedGames?.Clear();
         }
 
-        private static void SetInstance(object target, string field, object? value)
+        public void SeedImportedGame(Game game)
         {
-            var fi = target.GetType().GetField(field, BindingFlags.NonPublic | BindingFlags.Instance) ?? throw new MissingFieldException(target.GetType().Name, field);
-            fi.SetValue(target, value);
+            Playnite.AddExistingGame(game);
+            GravitonPlugin.Instance.ImportedGames![game.LibraryGameId!] = game;
         }
 
         public void Dispose()

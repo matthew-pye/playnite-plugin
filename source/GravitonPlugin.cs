@@ -1,6 +1,4 @@
-﻿using ExCSS;
-
-using Graviton.Import;
+﻿using Graviton.Import;
 using Graviton.Install;
 using Graviton.Install.Downloads;
 using Graviton.Models.Notifications;
@@ -11,6 +9,7 @@ using Graviton.Status;
 
 using Playnite;
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
@@ -24,7 +23,7 @@ namespace Graviton
         public static readonly string Id = "Matthew-Pye.Graviton";
         public static readonly string ExternalIdType = "graviton";
         public static readonly string ExternalIdName = "Graviton (RomM Library)";
-        public static readonly Version Version = new Version(0,1,0);
+        public static readonly Version Version = new Version(0,2,0);
 
         internal string PluginDLLPath { get; private set; } = "";
         internal string PluginDataPath { get; private set; } = "";
@@ -36,6 +35,8 @@ namespace Graviton
         internal GravitonImportController? ImportController { get; private set; }
         internal StatusController? StatusController { get; private set; }
         internal DownloadQueueController? DownloadQueueController { get; private set; }
+
+        internal ConcurrentDictionary<string, Game>? ImportedGames { get; private set; }
 
         internal GravitonPluginSettings Settings 
         { 
@@ -148,6 +149,12 @@ namespace Graviton
             StatusController = new(Instance, PlayniteApi, Logger);
             Account = new(Instance, PlayniteApi, Logger);
 
+            ImportedGames = new ConcurrentDictionary<string, Game>();
+            foreach (var game in PlayniteApi.Library.Games.Where(x => x.LibraryId == Id))
+            {
+                ImportedGames.TryAdd(game.LibraryGameId!, game);
+            }
+
             _downloadsViewModel = new();
             DownloadQueueController = new(_downloadsViewModel, maxConcurrent: 10);
             _downloadsAppView = new();
@@ -220,6 +227,7 @@ namespace Graviton
                     if (Settings.KeepStatusSynced && updatedGame.ChangedProperties.Contains(nameof(Game.CompletionStatusId)))
                     {
                         await StatusController!.UpdateStatus(updatedGame.NewData);
+                        ImportedGames![updatedGame.OldData.LibraryGameId!].CompletionStatusId = updatedGame.NewData.CompletionStatusId;
                     }
 
                     if (Settings.KeepFavouritesSynced && favouriteCollection != null && updatedGame.ChangedProperties.Contains(nameof(Game.Favorite)))
@@ -237,6 +245,7 @@ namespace Graviton
                             favouriteCollection.RomIDs.Remove(romMID);
 
                         favouriteCollection.HasBeenUpdated = true;
+                        ImportedGames![updatedGame.OldData.LibraryGameId].Favorite = updatedGame.NewData.Favorite;
                     }
                 }
                 if (Settings.KeepFavouritesSynced && favouriteCollection != null && favouriteCollection.HasBeenUpdated)
