@@ -2,7 +2,7 @@
 <!-- trunk-ignore(markdownlint/MD041) -->
 <div align="center">
 
-  <img src="https://raw.githubusercontent.com/matthew-pye/playnite-plugin/refs/heads/Playnite-11/source/pluginicon.png" height="180px" width="auto" alt="romm-muos logo">
+  <img src="https://github.com/matthew-pye/playnite-plugin/blob/main/source/pluginicon.png" height="180px" width="auto" alt="romm-muos logo">
     <h3 style="font-size: 25px;">
     Graviton - RomM Library
   </h3>
