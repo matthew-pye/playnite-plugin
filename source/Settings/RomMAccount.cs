@@ -31,7 +31,7 @@ namespace Graviton.Settings
 
         public async Task<ServerInfo?> Heartbeat()
         {
-            var result = await HttpClientSingleton.RomMGetAsync("/api/heartbeat");
+            var result = await HttpClientSingleton.RomMGetAsync("/api/heartbeat", true);
             if(result == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.heartbeat.failed", Loc.GetString("HeartbeatFailed"), GravitonSeverity.Error));

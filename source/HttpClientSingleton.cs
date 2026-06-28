@@ -72,7 +72,7 @@ namespace Graviton
             }
         }
 
-        private static async Task<JsonDocument?> ExecuteAsync(string apiPath, Func<Task<HttpResponseMessage>> send, string nofiyType, string locFailedMessage)
+        private static async Task<JsonDocument?> ExecuteAsync(string apiPath, bool PublicEndpoint, Func < Task<HttpResponseMessage>> send, string nofiyType, string locFailedMessage)
         {
             if (!IsInitialized)
             {
@@ -80,19 +80,21 @@ namespace Graviton
                 return null;
             }
 
-            if (_plugin!.Settings.AccountState.LastAuthenticated == null)
+            if (_plugin!.Settings.AccountState.LastAuthenticated == null && !PublicEndpoint)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", Loc.GetString("Reauthenticate"), GravitonSeverity.Error));
                 return null;
             }
 
             HttpResponseMessage? response = null;
+            Stream? content = null;
             try
             {
                 response = await send();
+                content = await response.Content.ReadAsStreamAsync();
                 response.EnsureSuccessStatusCode();
-                using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonDocument.ParseAsync(stream);
+
+                return await JsonDocument.ParseAsync(content);
             }
             catch (Exception ex)
             {
@@ -102,19 +104,19 @@ namespace Graviton
                 GravitonNotify.Add(new GravitonNotification(nofiyType, $"{Loc.GetString(locFailedMessage, [("APIPath", apiPath)])} - {ex.Message}", GravitonSeverity.Error, ex));
 
                 if (response?.StatusCode == HttpStatusCode.UnprocessableContent)
-                    GravitonPlugin.Logger.Error(await response.Content.ReadAsStringAsync());
+                    GravitonPlugin.Logger.Error(new StreamReader(content!, Encoding.UTF8).ReadToEnd());
 
                 return null;
             }
         }
 
-        public static Task<JsonDocument?> RomMGetAsync(string APIPath) => ExecuteAsync(APIPath, () => httpClient.GetAsync($"{Host}{APIPath}"), "graviton.GET.failed", "GETFailed");
-        public static Task<JsonDocument?> RomMDeleteAsync(string APIPath) => ExecuteAsync(APIPath, () => httpClient.DeleteAsync($"{Host}{APIPath}"), "graviton.DELETE.failed", "DELETEFailed");
+        public static Task<JsonDocument?> RomMGetAsync(string APIPath, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.GetAsync($"{Host}{APIPath}"), "graviton.GET.failed", "GETFailed");
+        public static Task<JsonDocument?> RomMDeleteAsync(string APIPath, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.DeleteAsync($"{Host}{APIPath}"), "graviton.DELETE.failed", "DELETEFailed");
 
-        public static Task<JsonDocument?> RomMPostJsonAsync(string APIPath, object json) => ExecuteAsync(APIPath, () => httpClient.PostAsJsonAsync($"{Host}{APIPath}", json), "graviton.POST.failed", "POSTFailed");
-        public static Task<JsonDocument?> RomMPutJsonAsync(string APIPath, object json) => ExecuteAsync(APIPath, () => httpClient.PutAsJsonAsync($"{Host}{APIPath}", json), "graviton.PUT.failed", "PUTFailed");
+        public static Task<JsonDocument?> RomMPostJsonAsync(string APIPath, object json, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PostAsJsonAsync($"{Host}{APIPath}", json), "graviton.POST.failed", "POSTFailed");
+        public static Task<JsonDocument?> RomMPutJsonAsync(string APIPath, object json, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PutAsJsonAsync($"{Host}{APIPath}", json), "graviton.PUT.failed", "PUTFailed");
 
-        public static Task<JsonDocument?> RomMPostContentAsync(string APIPath, HttpContent content) => ExecuteAsync(APIPath, () => httpClient.PostAsync($"{Host}{APIPath}", content), "graviton.POST.failed", "POSTFailed");
-        public static Task<JsonDocument?> RomMPutContentAsync(string APIPath, HttpContent content) => ExecuteAsync(APIPath, () => httpClient.PutAsync($"{Host}{APIPath}", content), "graviton.PUT.failed", "PUTFailed");
+        public static Task<JsonDocument?> RomMPostContentAsync(string APIPath, HttpContent content, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PostAsync($"{Host}{APIPath}", content), "graviton.POST.failed", "POSTFailed");
+        public static Task<JsonDocument?> RomMPutContentAsync(string APIPath, HttpContent content, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PutAsync($"{Host}{APIPath}", content), "graviton.PUT.failed", "PUTFailed");
     }
 }
