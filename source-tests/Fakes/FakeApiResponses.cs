@@ -87,6 +87,11 @@ namespace Graviton.Tests.Fakes
                   }
                 ]
               },
+              "ss_metadata": {
+                "ss_score": "87",
+                "genres": ["Role Playing Game"],
+                "franchises": ["Pokemon"]
+              },
               "hltb_metadata": {
                 "main_story": 25,
                 "main_plus_extra": 40,
