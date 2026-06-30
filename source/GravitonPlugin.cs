@@ -36,7 +36,7 @@ namespace Graviton
         internal StatusController? StatusController { get; private set; }
         internal DownloadQueueController? DownloadQueueController { get; private set; }
 
-        internal ConcurrentDictionary<string, Game>? ImportedGames { get; private set; }
+        internal ConcurrentDictionary<string, Game>? ImportedGames { get; private set; } // If too much memory gets used up by this switch it to a custom <string, MinimalGame>
 
         internal GravitonPluginSettings Settings 
         { 
@@ -179,7 +179,12 @@ namespace Graviton
 
                 if (Account == null)
                     throw new Exception("Account hasn't been initailized, cannot continue!");
-                
+
+                foreach (var gamesession in PlayniteApi.Library.GameSessions)
+                {
+                    Logger.Debug($"LibraryID: {gamesession.LibraryId} | GameID: {gamesession.GameId} | SessionID: {gamesession.SessionId} | Name: {gamesession.Name} | Length: {gamesession.Length} | ");
+                }
+
                 // Check server exists
                 var result = await Account.Heartbeat();
                 if (result != null)
@@ -301,16 +306,23 @@ namespace Graviton
         
         public override Task OnGameStartingAsync(OnGameStartingEventArgs args)
         {
-            if(!string.IsNullOrEmpty(args.Game.LibraryGameId))
+            if (args.Game.LibraryId == Id && args.Game.LibraryGameId != null)
             {
                 _ = Task.Run(async () => await StatusController?.StartActivityHeartbeat(args.Game.LibraryGameId)!);
             }
-                
+
             return base.OnGameStartingAsync(args);
         }
         public override Task OnGameStoppedAsync(OnGameStoppedEventArgs args)
         {
-            StatusController?.StopActivityHeartbeat();
+            var stoppedTime = DateTime.UtcNow;
+
+            if(args.StartingArgs.Game.LibraryId == Id)
+            {
+                StatusController?.StopActivityHeartbeat();
+                StatusController?.PushPlaySession(args.StartingArgs.Game.LibraryGameId!, stoppedTime, args.StoppedArgs.SessionLength*1000);
+            }
+
             return base.OnGameStoppedAsync(args);
         }
 

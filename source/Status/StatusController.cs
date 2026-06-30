@@ -1,11 +1,13 @@
 ﻿using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Collection;
+using Graviton.Models.RomM.PlaySessions;
 using Graviton.Models.RomM.Rom;
 
 using Playnite;
 
 using System.Net.Http;
 using System.Text.Json;
+using System.Windows.Markup;
 
 namespace Graviton.Status
 {
@@ -26,12 +28,29 @@ namespace Graviton.Status
 
         // Syncing
 
-        //public async Task PushPlaySession(List<RomMPlaySession> playSessions)
-        //{
-        //    object sessions = new { device_id = _plugin.Settings.DeviceID, sessions = playSessions };
-        //
-        //    var response = await HttpClientSingleton.RomMPutJsonAsync("/api/play-sessions", sessions);
-        //}
+        public async Task PushPlaySession(string GameID, DateTime StopTime, uint SessionLength)
+        {
+            int romMID;
+            if (!int.TryParse(GameID.Split(':')[0], out romMID))
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed"), GravitonSeverity.Error));
+                return;
+            }
+
+            var session = new List<RomMPlaySession>
+            {
+                new RomMPlaySession
+                {
+                   ROMId = romMID,
+                   StopTime = StopTime.ToString("O"),
+                   StartTime = StopTime.AddMilliseconds(-SessionLength).ToString("O"),
+                   Duration = (int)SessionLength
+                }
+            };
+            var playsessions = new { device_id = _plugin.Settings.AccountState.DeviceID, sessions = session };    
+            var response = await HttpClientSingleton.RomMPostJsonAsync("/api/play-sessions", playsessions);
+
+        }
 
         // Favourites
         private async Task<RomMCollection?> CreateFavorites()
@@ -93,7 +112,6 @@ namespace Graviton.Status
         // Play Status
         public async Task UpdateStatus(Game game)
         {
-
             int romMID;
             if (!int.TryParse(game.LibraryGameId?.Split(':')[0], out romMID))
             {
@@ -125,6 +143,18 @@ namespace Graviton.Status
             await HttpClientSingleton.RomMPutJsonAsync($"/api/roms/{romMID}/props", props);
         }
 
+        public async Task RefreshRA()
+        {
+            var refresh = new { incremental = true };
+
+            var result = await HttpClientSingleton.RomMPostJsonAsync($"/api/users/{_plugin.Settings.AccountState.UserID}/ra/refresh", refresh);
+            if(result != null)
+            {
+
+            }
+
+        }
+
         public async Task StartActivityHeartbeat(string GameID)
         {
             _heartbeatCts?.Cancel();
@@ -147,7 +177,11 @@ namespace Graviton.Status
                     await Task.Delay(5000, token);
                 }
             }
-            catch (Exception ex) { GravitonNotify.Add(new GravitonNotification("graviton.game.heartbeat.failed", $"{Loc.GetString("GameHeartbeatFailed")} - {ex.Message}", GravitonSeverity.Error, ex)); }
+            catch (Exception ex) 
+            { 
+                if(!token.IsCancellationRequested)
+                    GravitonNotify.Add(new GravitonNotification("graviton.game.heartbeat.failed", $"{Loc.GetString("GameHeartbeatFailed")} - {ex.Message}", GravitonSeverity.Error, ex)); 
+            }
             finally
             {
                 await HttpClientSingleton.RomMDeleteAsync($"/api/activity/heartbeat?device_id={_plugin.Settings.AccountState.DeviceID}");

@@ -94,6 +94,9 @@ namespace Graviton
                 content = await response.Content.ReadAsStreamAsync();
                 response.EnsureSuccessStatusCode();
 
+                if (content.Length <= 0)
+                    return null;
+
                 return await JsonDocument.ParseAsync(content);
             }
             catch (Exception ex)
@@ -103,7 +106,7 @@ namespace Graviton
 
                 GravitonNotify.Add(new GravitonNotification(nofiyType, $"{Loc.GetString(locFailedMessage, [("APIPath", apiPath)])} - {ex.Message}", GravitonSeverity.Error, ex));
 
-                if (response?.StatusCode == HttpStatusCode.UnprocessableContent)
+                if (response?.StatusCode == HttpStatusCode.UnprocessableContent && content?.Length <= 0)
                     GravitonPlugin.Logger.Error(new StreamReader(content!, Encoding.UTF8).ReadToEnd());
 
                 return null;
