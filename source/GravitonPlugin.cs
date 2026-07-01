@@ -36,7 +36,7 @@ namespace Graviton
         internal StatusController? StatusController { get; private set; }
         internal DownloadQueueController? DownloadQueueController { get; private set; }
 
-        internal ConcurrentDictionary<string, Game>? ImportedGames { get; private set; } // If too much memory gets used up by this switch it to a custom <string, MinimalGame>
+        internal ConcurrentDictionary<string, string>? ImportedGames { get; private set; }
 
         internal GravitonPluginSettings Settings 
         { 
@@ -149,10 +149,10 @@ namespace Graviton
             StatusController = new(Instance, PlayniteApi, Logger);
             Account = new(Instance, PlayniteApi, Logger);
 
-            ImportedGames = new ConcurrentDictionary<string, Game>();
+            ImportedGames = new ConcurrentDictionary<string, string>();
             foreach (var game in PlayniteApi.Library.Games.Where(x => x.LibraryId == Id))
             {
-                ImportedGames.TryAdd(game.LibraryGameId!, game);
+                ImportedGames.TryAdd(game.LibraryGameId!, game.Id);
             }
 
             _downloadsViewModel = new();
@@ -232,7 +232,6 @@ namespace Graviton
                     if (Settings.KeepStatusSynced && updatedGame.ChangedProperties.Contains(nameof(Game.CompletionStatusId)))
                     {
                         await StatusController!.UpdateStatus(updatedGame.NewData);
-                        ImportedGames![updatedGame.OldData.LibraryGameId!].CompletionStatusId = updatedGame.NewData.CompletionStatusId;
                     }
 
                     if (Settings.KeepFavouritesSynced && favouriteCollection != null && updatedGame.ChangedProperties.Contains(nameof(Game.Favorite)))
@@ -250,12 +249,19 @@ namespace Graviton
                             favouriteCollection.RomIDs.Remove(romMID);
 
                         favouriteCollection.HasBeenUpdated = true;
-                        ImportedGames![updatedGame.OldData.LibraryGameId].Favorite = updatedGame.NewData.Favorite;
                     }
                 }
                 if (Settings.KeepFavouritesSynced && favouriteCollection != null && favouriteCollection.HasBeenUpdated)
                 {
                     await StatusController!.UpdateFavorites(favouriteCollection);
+                }
+            }
+
+            if(args.RemovedItems?.Count > 0 && args.RemovedItems.Any(x => x.LibraryId == Id))
+            {
+                foreach (var removed in args.RemovedItems)
+                {
+                    ImportedGames!.TryRemove(removed.LibraryGameId!, out _);
                 }
             }
         }
@@ -321,6 +327,11 @@ namespace Graviton
             {
                 StatusController?.StopActivityHeartbeat();
                 StatusController?.PushPlaySession(args.StartingArgs.Game.LibraryGameId!, stoppedTime, args.StoppedArgs.SessionLength*1000);
+
+                if (args.StartingArgs.Game.ExternalIdentifiers != null && args.StartingArgs.Game.ExternalIdentifiers.Any(x => x.TypeId == "retroachievements"))
+                {
+
+                }
             }
 
             return base.OnGameStoppedAsync(args);

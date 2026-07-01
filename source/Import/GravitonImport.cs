@@ -195,32 +195,36 @@ namespace Graviton.Import
                     return new(gameID, null);
                 }
             }
-
-            var game = _plugin.ImportedGames!.GetValueOrDefault(gameID);
-            if (game != null) // Skip full import if ROM has already been imported 
+          
+            if (_plugin.ImportedGames!.ContainsKey(gameID)) // Skip full import if ROM has already been imported 
             {
-                if(ROM.Collections != null)
-                    game.Favorite = ROM.Collections.Any(x => x.Name == "Favorites");
+                var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames[gameID])!;
 
-                if (ROM.Notes != null)
+                if (ROM.Collections != null)
                 {
-                    foreach (var note in ROM.Notes)
-                    {
-                        var rootGameNote = _playniteAPI.Library.GameNotes.FirstOrDefault(x => x.Id == game.Id);
-                        if(rootGameNote != null)
-                        {
-                            rootGameNote.Text = note.Note;
-                            await _playniteAPI.Library.GameNotes.UpdateAsync(rootGameNote);
-                        }
-                        else
-                        {
-                            GameNote newNote = new(game.Id, note.Note, GameNoteFormat.Markdown);
-                            newNote.Name = note.Title;
-                            await _playniteAPI.Library.GameNotes.AddAsync(newNote);
-                        }
-                    }
+                    game.Favorite = ROM.Collections.Any(x => x.Name == "Favorites");
                 }
+                    
+                //if (ROM.Notes != null)
+                //{
+                //    foreach (var note in ROM.Notes)
+                //    {
+                //        var rootGameNote = _playniteAPI.Library.GameNotes.FirstOrDefault(x => x.Id == game.Id);
+                //        if(rootGameNote != null)
+                //        {
+                //            rootGameNote.Text = note.Note;
+                //            await _playniteAPI.Library.GameNotes.UpdateAsync(rootGameNote);
+                //        }
+                //        else
+                //        {
+                //            GameNote newNote = new(game.Id, note.Note, GameNoteFormat.Markdown);
+                //            newNote.Name = note.Title;
+                //            await _playniteAPI.Library.GameNotes.AddAsync(newNote);
+                //        }
+                //    }
+                //}
 
+                await _playniteAPI.Library.Games.UpdateAsync(game);
                 ROM.Processed = true; // Skips the ROM being remerged if user has split the ROMs apart
                 return new(gameID, null);
             }
@@ -230,7 +234,7 @@ namespace Graviton.Import
                 if (importedGame != null)
                 {
                     await _playniteAPI.Library.Games.AddAsync(importedGame);
-                    _plugin.ImportedGames!.TryAdd(gameID ,importedGame);
+                    _plugin.ImportedGames!.TryAdd(gameID ,importedGame.Id);
                     return new(gameID, importedGame);
                 }
                 else
@@ -350,8 +354,10 @@ namespace Graviton.Import
 
             if (oldgame.Value != null)
             {
-                oldgame.Value.LibraryGameId = $"{ROM.Id}:{ROM.SHA1}";
-                await _playniteAPI.Library.Games.UpdateAsync(oldgame.Value);
+                var game = _playniteAPI.Library.Games.Get(oldgame.Value)!;
+
+                game.LibraryGameId = $"{ROM.Id}:{ROM.SHA1}";
+                await _playniteAPI.Library.Games.UpdateAsync(game);
                 
                 _plugin.ImportedGames!.TryRemove(oldgame.Key, out _);
                 _plugin.ImportedGames!.TryAdd($"{ROM.Id}:{ROM.SHA1}", oldgame.Value);
@@ -376,9 +382,10 @@ namespace Graviton.Import
 
                 if (ROM.Siblings?.Count > 0)
                 {
-                    var game = _plugin.ImportedGames!.GetValueOrDefault($"{ROM.Id}:{ROM.SHA1}");
-                    if (game == null) 
+                    if (!_plugin.ImportedGames!.ContainsKey($"{ROM.Id}:{ROM.SHA1}")) 
                         continue;
+
+                    var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames![$"{ROM.Id}:{ROM.SHA1}"])!;
 
                     List<(RomMRom ROM, Game Game)> SiblingROMs = new List<(RomMRom ROM, Game Game)>();
                     foreach (var sibling in ROM.Siblings)
@@ -391,11 +398,12 @@ namespace Graviton.Import
                                 continue;
 
                             // Check to see if sibling has been imported
-                            var siblingGame = _plugin.ImportedGames!.GetValueOrDefault($"{siblingROM.Id}:{siblingROM.SHA1}");
-                            if (siblingGame == null) 
-                                continue;
-
-                            SiblingROMs.Add((siblingROM, siblingGame));
+                            if(_plugin.ImportedGames!.ContainsKey($"{siblingROM.Id}:{siblingROM.SHA1}"))
+                            {
+                                var siblingGame = _playniteAPI.Library.Games.Get(_plugin.ImportedGames![$"{siblingROM.Id}:{siblingROM.SHA1}"])!;
+                                SiblingROMs.Add((siblingROM, siblingGame));
+                            }
+                         
                         }
                     }
 

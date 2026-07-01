@@ -223,46 +223,51 @@ namespace Graviton.Import
 
             foreach (var game in _plugin.ImportedGames!.ToList())
             {
-                var splitID = game.Value.LibraryGameId?.Split(':');
+                if (ImportedGames.Contains(game.Key))
+                    continue;
+
+                var splitID = game.Key.Split(':');
                 if (splitID == null || splitID.Length != 2)
                     continue;
 
                 string gameSHA1 = splitID[1]!;
-                if(!_SHA1Regex.IsMatch(gameSHA1))
+                if (!_SHA1Regex.IsMatch(gameSHA1))
                     continue;
 
-                var mappingID = game.Value.ExternalIdentifiers?.FirstOrDefault(x => x.TypeId == "mappingid");
-                var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId.ToString() == mappingID?.IdValue);
-                if (mapping != null)
+                if (File.Exists($"{_plugin.PluginDataPath}/Games/{gameSHA1}.json"))
                 {
-                    // Don't remove games from mappings that are disabled
-                    if (!mapping.Enabled)
-                        continue;
-                    if (ImportedGames.Contains(game.Key))
-                        continue;
+                    var gamejson = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{_plugin.PluginDataPath}/Games/{splitID[1]}.json"));
+
+                    var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == gamejson?.MappingID);
+                    if (mapping != null)
+                    {
+                        // Don't remove games from mappings that are disabled
+                        if (!mapping.Enabled)
+                            continue;
+                    }
                 }
 
-                var rootgamerelation = _playniteAPI.Library.GameRelations.FirstOrDefault(x => x.PrimaryGame == game.Value.Id);
+                var rootgamerelation = _playniteAPI.Library.GameRelations.FirstOrDefault(x => x.PrimaryGame == game.Value);
                 if (rootgamerelation != null)
                 {
                     await _playniteAPI.Library.GameRelations.RemoveAsync(rootgamerelation.Id);
                 }
                 else
                 {
-                    var linkedRelations = _playniteAPI.Library.GameRelations.Where(x => x.LinkedGames.Any(y => y == game.Value.Id)).ToList();
+                    var linkedRelations = _playniteAPI.Library.GameRelations.Where(x => x.LinkedGames.Any(y => y == game.Value)).ToList();
                     foreach (var gamerelation in linkedRelations)
                     {
-                        gamerelation.LinkedGames.Remove(game.Value.Id);
+                        gamerelation.LinkedGames.Remove(game.Value);
                         await _playniteAPI.Library.GameRelations.UpdateAsync(gamerelation);
                     }
                 }
 
-                await _playniteAPI.Library.Games.RemoveAsync(game.Value.Id);
+                await _playniteAPI.Library.Games.RemoveAsync(game.Value);
                 _plugin.ImportedGames!.TryRemove(game.Key, out _);
                 
                 File.Delete($"{_plugin.PluginDataPath}/Games/{splitID[1]}.json");
 
-                _logger.Info($"[Importer] Removing {game.Value.Name}");
+                _logger.Info($"[Importer] Removing {splitID[0]}");
             }
 
             _logger.Info($"[Importer] Finished removing not found games");
