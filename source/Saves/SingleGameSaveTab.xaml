@@ -3,10 +3,53 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:sys="clr-namespace:System;assembly=mscorlib"
-             xmlns:s="clr-namespace:Graviton.Saves"
-             mc:Ignorable="d"
-             d:DesignHeight="900" d:DesignWidth="750">
+             mc:Ignorable="d" d:DesignHeight="600" d:DesignWidth="700">
 
+    <UserControl.Resources>
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="LightGray"/>
+        </Style>
+    </UserControl.Resources>
 
+    <StackPanel Margin="10">
+        <StackPanel Orientation="Horizontal">
+            <Image Name="GameIcon" Width="40" Height="40" Margin="0,0,10,0"/>
+            <TextBlock Name="GameNameText" FontSize="20" VerticalAlignment="Center"/>
+        </StackPanel>
+        <Separator Margin="0,5,0,15"/>
+
+        <Border Name="ConflictBanner" Background="#402a1c" BorderBrush="DarkOrange" BorderThickness="1"
+                CornerRadius="4" Padding="10" Margin="0,0,0,15" Visibility="Collapsed">
+            <StackPanel>
+                <TextBlock Name="ConflictText" Text="Local and remote saves differ." TextWrapping="Wrap"/>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Click="KeepLocal_Click" Margin="0,0,10,0">
+                        <TextBlock Text="Keep Local (upload)"/>
+                    </Button>
+                    <Button Click="KeepRemote_Click">
+                        <TextBlock Text="Keep Remote (download)"/>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Name="LocalSectionText" Text="Local" FontWeight="Bold" Margin="0,0,0,5"/>
+        <ItemsControl Name="LocalList" Margin="0,0,0,10"/>
+        <TextBlock Name="ManualPickHintText" Text="Select the file(s) that belong to this game's save, then click Set as Save."
+                   FontStyle="Italic" Foreground="DarkGray" TextWrapping="Wrap" Visibility="Collapsed"/>
+        <Button Name="SetAsSaveButton" Click="SetAsSave_Click" HorizontalAlignment="Left" Margin="0,5,0,15" Visibility="Collapsed">
+            <TextBlock Text="Set as Save"/>
+        </Button>
+
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Name="RemoteSectionText" Text="Remote" FontWeight="Bold" VerticalAlignment="Center"/>
+            <CheckBox Name="SyncEnabledBox" Content="Sync enabled" Margin="20,0,0,0" VerticalAlignment="Center"
+                      Checked="SyncEnabled_Changed" Unchecked="SyncEnabled_Changed"/>
+        </StackPanel>
+        <Separator Margin="0,5,0,10"/>
+        <ItemsControl Name="RemoteList"/>
+        <Button Click="UploadNew_Click" HorizontalAlignment="Left" Margin="0,10,0,0">
+            <TextBlock Text="Upload New Save"/>
+        </Button>
+    </StackPanel>
 </UserControl>

@@ -34,6 +34,7 @@ namespace Graviton.Models
         [ObservableProperty] private SaveLayoutStyle _saveLayout = SaveLayoutStyle.SingleFile;
         [ObservableProperty] private string _savePath = "";
         [ObservableProperty] private string _saveStatePath = "";
+        [ObservableProperty] private string _saveFileExtensions = "";
 
         [ObservableProperty] [property: JsonIgnore] private bool _isSelected = false;
 

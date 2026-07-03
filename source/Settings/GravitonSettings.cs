@@ -63,7 +63,9 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _saveStateSyncEnabled = false;      
         [ObservableProperty] private bool _downloadSaveOnLaunch = true;      
         [ObservableProperty] private bool _uploadSaveOnFinished = true;      
-        [ObservableProperty] private SaveConflictStyle _saveConflictStyle = SaveConflictStyle.Ask;      
+        [ObservableProperty] private SaveConflictStyle _saveConflictStyle = SaveConflictStyle.Ask;
+        [ObservableProperty] private bool _autoCleanupSaves = false;
+        [ObservableProperty] private int _autoCleanupSavesLimit = 10;
 
         [ObservableProperty] private ObservableCollection<EmulatorMapping> _mappings = new ObservableCollection<EmulatorMapping>();
 
@@ -162,6 +164,8 @@ namespace Graviton.Settings
                 DownloadSaveOnLaunch = this.DownloadSaveOnLaunch,
                 UploadSaveOnFinished = this.UploadSaveOnFinished,
                 SaveConflictStyle = this.SaveConflictStyle,
+                AutoCleanupSaves = this.AutoCleanupSaves,
+                AutoCleanupSavesLimit = this.AutoCleanupSavesLimit,
 
                 Mappings = new(this.Mappings),
 
@@ -361,5 +365,23 @@ namespace Graviton.Settings
         {
             throw new NotImplementedException("Not implemented.");
         }
+    }
+
+    public class EnumDescriptionConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            if (value == null) 
+                return string.Empty;
+
+            var field = value.GetType().GetField(value.ToString()!);
+            if (field == null) 
+                return value.ToString()!;
+
+            var attribute = (System.ComponentModel.DescriptionAttribute?)Attribute.GetCustomAttribute(field, typeof(System.ComponentModel.DescriptionAttribute));
+            return attribute?.Description ?? value.ToString()!;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => throw new NotImplementedException("Not implemented.");
     }
 }

@@ -185,20 +185,23 @@ namespace Graviton.Import
             string gameID = $"{ROM.Id}:{ROM.SHA1}";
 
             // Save Game ROM data to file
-            SaveGameData(ROM);
+            var savedata = SaveGameData(ROM);
 
             // If keep deleted games is enabled and a deleted game gets re-added back to the server under a new romMId, Update playnite entry
             if (_plugin.Settings.KeepDeletedGames)
             {
                 if (await UpdatedDeletedGame(ROM))
                 {
+                    if(savedata != null)
+                        _plugin.ImportedGames![gameID] = savedata;
+
                     return new(gameID, null);
                 }
             }
           
-            if (_plugin.ImportedGames!.ContainsKey(gameID)) // Skip full import if ROM has already been imported 
+            if (_plugin.ImportedGames!.ContainsKey(gameID) && !string.IsNullOrEmpty(_plugin.ImportedGames[gameID].PlayniteID)) // Skip full import if ROM has already been imported 
             {
-                var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames[gameID])!;
+                var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames[gameID].PlayniteID!)!;
 
                 if (ROM.Collections != null)
                 {
@@ -225,6 +228,9 @@ namespace Graviton.Import
                 //}
 
                 await _playniteAPI.Library.Games.UpdateAsync(game);
+                if (savedata != null)
+                    _plugin.ImportedGames![gameID] = savedata;
+
                 ROM.Processed = true; // Skips the ROM being remerged if user has split the ROMs apart
                 return new(gameID, null);
             }
@@ -234,7 +240,8 @@ namespace Graviton.Import
                 if (importedGame != null)
                 {
                     await _playniteAPI.Library.Games.AddAsync(importedGame);
-                    _plugin.ImportedGames!.TryAdd(gameID ,importedGame.Id);
+                    savedata!.PlayniteID = importedGame.Id;
+                    _plugin.ImportedGames!.TryAdd(gameID , savedata!);
                     return new(gameID, importedGame);
                 }
                 else
@@ -289,7 +296,7 @@ namespace Graviton.Import
             game.Links = new();
             game.ExternalIdentifiers = new();
             game.ExternalIdentifiers?.Add(new("romm", ROM.Id.ToString()!));
-            game.ExternalIdentifiers?.Add(new("mappingid", _mapping.MappingId.ToString()));
+            game.ExternalIdentifiers?.Add(new("gravitonmappingid", _mapping.MappingId.ToString()));
             if (ROM.IgdbId != null)
             {
                 game.ExternalIdentifiers?.Add(new("igdb", ROM.IgdbId.ToString()!));
@@ -354,7 +361,7 @@ namespace Graviton.Import
 
             if (oldgame.Value != null)
             {
-                var game = _playniteAPI.Library.Games.Get(oldgame.Value)!;
+                var game = _playniteAPI.Library.Games.Get(oldgame.Value.PlayniteID!)!;
 
                 game.LibraryGameId = $"{ROM.Id}:{ROM.SHA1}";
                 await _playniteAPI.Library.Games.UpdateAsync(game);
@@ -382,10 +389,10 @@ namespace Graviton.Import
 
                 if (ROM.Siblings?.Count > 0)
                 {
-                    if (!_plugin.ImportedGames!.ContainsKey($"{ROM.Id}:{ROM.SHA1}")) 
+                    if (!_plugin.ImportedGames!.ContainsKey($"{ROM.Id}:{ROM.SHA1}") || string.IsNullOrEmpty(_plugin.ImportedGames![$"{ROM.Id}:{ROM.SHA1}"].PlayniteID))
                         continue;
 
-                    var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames![$"{ROM.Id}:{ROM.SHA1}"])!;
+                    var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames![$"{ROM.Id}:{ROM.SHA1}"].PlayniteID!)!;
 
                     List<(RomMRom ROM, Game Game)> SiblingROMs = new List<(RomMRom ROM, Game Game)>();
                     foreach (var sibling in ROM.Siblings)
@@ -398,12 +405,11 @@ namespace Graviton.Import
                                 continue;
 
                             // Check to see if sibling has been imported
-                            if(_plugin.ImportedGames!.ContainsKey($"{siblingROM.Id}:{siblingROM.SHA1}"))
+                            if(_plugin.ImportedGames!.ContainsKey($"{siblingROM.Id}:{siblingROM.SHA1}") && !string.IsNullOrEmpty(_plugin.ImportedGames![$"{siblingROM.Id}:{siblingROM.SHA1}"].PlayniteID))
                             {
-                                var siblingGame = _playniteAPI.Library.Games.Get(_plugin.ImportedGames![$"{siblingROM.Id}:{siblingROM.SHA1}"])!;
+                                var siblingGame = _playniteAPI.Library.Games.Get(_plugin.ImportedGames![$"{siblingROM.Id}:{siblingROM.SHA1}"].PlayniteID!)!;
                                 SiblingROMs.Add((siblingROM, siblingGame));
-                            }
-                         
+                            }             
                         }
                     }
 
@@ -477,7 +483,7 @@ namespace Graviton.Import
             _logger.Info($"[Importer] Finished merging new games for {_mapping.RomMPlatform?.Name}");
         }
 
-        private void SaveGameData(RomMRom ROM)
+        private RomMRomLocal? SaveGameData(RomMRom ROM)
         {
 
             RomMRomLocal toSave = new RomMRomLocal();
@@ -493,7 +499,7 @@ namespace Graviton.Import
                 if (romfile == null)
                 {
                     _logger.Error("[Importer] Unable to save ROM data as there is no rom file!");
-                    return;
+                    return null;
                 }
 
                 toSave.FileName = romfile.FileName;
@@ -511,10 +517,12 @@ namespace Graviton.Import
                 // Write data to file
                 string json = JsonSerializer.Serialize(toSave);
                 File.WriteAllText($"{_plugin.PluginDataPath}/Games/{ROM.SHA1}.json", json);
+                return toSave;
             }
             catch (Exception ex)
             {
                 GravitonNotify.Add(new GravitonNotification($"graviton.write.rom.{ROM.Id}", $"{Loc.GetString("ROMDataSaveFailed")} - {ex.Message}", GravitonSeverity.Error, ex));
+                return null;
             }
 
         }  

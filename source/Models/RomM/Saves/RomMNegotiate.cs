@@ -1,14 +1,37 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Graviton.Models.RomM
 {
+    public class RomMNegotiateSave
+    {
+        [JsonPropertyName("rom_id")]
+        public int ROMID { get; set; }
+
+        [JsonPropertyName("file_name")]
+        public string? FileName { get; set; }
+
+        [JsonPropertyName("slot")]
+        public string? Slot { get; set; }
+
+        [JsonPropertyName("content_hash")]
+        public string? ContentHash { get; set; }
+
+        [JsonPropertyName("updated_at")]
+        public string? UpdatedAt { get; set; }
+
+        [JsonPropertyName("file_size_bytes")]
+        public long FileSize { get; set; }
+
+    }
+
     public class RomMNegotiate
     {
         [JsonPropertyName("device_id")]
         public string? DeviceID { get; set; }
 
         [JsonPropertyName("saves")]
-        public List<RomMSave> Saves { get; set; } = new List<RomMSave>();
+        public List<RomMNegotiateSave> Saves { get; set; } = new List<RomMNegotiateSave>();
     }
 
     public class RomMNegotiateResponse

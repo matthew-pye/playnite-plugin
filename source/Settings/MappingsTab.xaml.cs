@@ -1,5 +1,6 @@
 ﻿using Graviton.Models;
 using Graviton.Models.Notifications;
+using Graviton.Saves;
 
 using Playnite;
 
@@ -124,6 +125,19 @@ namespace Graviton.Settings
                 mapping.SaveStatePath = path[0];
 
             e.Handled = true;
+        }
+
+        private void OpenSaveManager_Click(object sender, RoutedEventArgs e)
+        {
+            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
+            if (mapping == null) return;
+
+            var tab = new MappingSaveTab();
+            tab.Load(mapping);
+
+            var window = new SaveManagerWindow(Loc.GetString("SaveManagerTitle"), tab);
+            window.Owner = System.Windows.Application.Current.MainWindow;
+            window.ShowDialog();
         }
     }
 }

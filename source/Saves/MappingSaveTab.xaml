@@ -1,12 +1,143 @@
 ﻿<UserControl x:Class="Graviton.Saves.MappingSaveTab"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="clr-namespace:Graviton.Saves"     
+             xmlns:m="clr-namespace:Graviton.Models"         
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:sys="clr-namespace:System;assembly=mscorlib"
-             xmlns:s="clr-namespace:Graviton.Saves"
-             mc:Ignorable="d"
-             d:DesignHeight="900" d:DesignWidth="750">
+             d:DesignHeight="900" d:DesignWidth="750"
+             mc:Ignorable="d">
 
+    <UserControl.Resources>
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="LightGray"/>
+        </Style>
+    </UserControl.Resources>
 
+    <DockPanel Margin="5">
+
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock Name="TitleText" FontSize="20" Margin="0,0,0,5"/>
+            <Separator Margin="0,0,0,10"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <Button Click="Refresh_Click" Margin="0,0,10,0">
+                    <TextBlock Name="RefreshText" Text="&#xf46a; Refresh"/>
+                </Button>
+                <Button Click="EnableAllMatched_Click" Margin="0,0,10,0">
+                    <TextBlock Name="EnableAllText" Text="Enable Sync for All Matched"/>
+                </Button>
+
+                <Grid>
+                    <TextBox Width="220" VerticalContentAlignment="Center" x:Name="FilterBox" TextChanged="FilterBox_TextChanged"/>
+                    <TextBlock IsHitTestVisible="False" Text="Filter by game name" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=FilterBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </StackPanel>
+
+            <Grid Margin="5,0,5,5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="60"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Game" FontWeight="Bold"/>
+                <TextBlock Grid.Column="1" Text="Local Files" FontWeight="Bold"/>
+                <TextBlock Grid.Column="2" Text="Reason" FontWeight="Bold"/>
+                <TextBlock Grid.Column="3" Text="Status" FontWeight="Bold"/>
+                <TextBlock Grid.Column="4" Text="Sync" FontWeight="Bold"/>
+            </Grid>
+            <Separator/>
+        </StackPanel>
+
+        <TextBlock Name="EmptyStateText" DockPanel.Dock="Top" Text="No saves found for this platform yet — click Refresh." Foreground="DarkGray" FontStyle="Italic" Margin="5,20,5,5" Visibility="Collapsed"/>
+        
+        <StackPanel>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl Name="RowsList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type m:SaveRow}">
+                            <Grid Margin="5,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="60"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding GameName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                <TreeView Grid.Column="1" ItemsSource="{Binding SaveDirectoryView}">
+                                    <TreeView.Resources>
+                                        <HierarchicalDataTemplate DataType="{x:Type m:DirectorySaveFile}"
+                                          ItemsSource="{Binding Children}">
+                                            <TextBlock Text="{Binding Name}"/>
+                                        </HierarchicalDataTemplate>
+                                    </TreeView.Resources>
+                                </TreeView>
+                                <TextBlock Grid.Column="2" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="Unknown"/>
+                                            <Setter Property="Foreground" Value="Gray"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static m:SaveSyncStatus.upload}">
+                                                    <Setter Property="Text" Value="Local Newer"/>
+                                                    <Setter Property="Foreground" Value="#31708f"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static m:SaveSyncStatus.download}">
+                                                    <Setter Property="Text" Value="Remote Newer"/>
+                                                    <Setter Property="Foreground" Value="#9f6000"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static m:SaveSyncStatus.conflict}">
+                                                    <Setter Property="Text" Value="Conflict"/>
+                                                    <Setter Property="Foreground" Value="#d8000c"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static m:SaveSyncStatus.no_op}">
+                                                    <Setter Property="Text" Value="Synced"/>
+                                                    <Setter Property="Foreground" Value="#31708f"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <Button Grid.Column="3" VerticalAlignment="Center" Click="SyncSave_Click">
+                                    <TextBlock Name="SyncSaveButtonText" Text="Sync" TextTrimming="CharacterEllipsis">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="IsEnabled" Value="True"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static m:SaveSyncStatus.no_op}">
+                                                        <Setter Property="IsEnabled" Value="False"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Button>
+                                
+                                <CheckBox Grid.Column="4" IsChecked="{Binding SyncEnabled, Mode=TwoWay}" HorizontalAlignment="Center"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </StackPanel>
+
+        <Button Click="AddSave_Click" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="5">
+            <TextBlock x:Name="AddSaveButtonText" Text="Add Save"/>
+        </Button>
+
+    </DockPanel>
 </UserControl>

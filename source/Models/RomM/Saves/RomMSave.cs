@@ -1,13 +1,11 @@
 ﻿using System.ComponentModel;
 using System.Text.Json.Serialization;
 
-namespace Graviton.Models.RomM
+namespace Graviton.Models.RomM.Saves
 {
-    //NOTE - Swap descriptions for localization strings
-
     public enum SaveConflictStyle
     {
-        [Description("Ask")]  Ask,
+        [Description("Ask")] Ask,
         [Description("Prefer Newer")] PreferNewer,
         [Description("Prefer Remote")] PreferRemote,
         [Description("Prefer Local")] PreferLocal
@@ -21,13 +19,31 @@ namespace Graviton.Models.RomM
         [Description("Manual Per-Game")] ManualPerGame
     }
 
-    public class RomMSave
+    internal class RomMSave
     {
+        [JsonPropertyName("id")]
+        public int ID { get; set; }
+
         [JsonPropertyName("rom_id")]
         public int ROMID { get; set; }
 
+        [JsonPropertyName("user_id")]
+        public int UserID { get; set; }
+
         [JsonPropertyName("file_name")]
         public string? FileName { get; set; }
+
+        [JsonPropertyName("file_size_bytes")]
+        public long? FileSize { get; set; }
+
+        [JsonPropertyName("full_path")]
+        public string? FullPath { get; set; }
+
+        [JsonPropertyName("download_path")]
+        public string? DownloadPath { get; set; }
+
+        [JsonPropertyName("missing_from_fs")]
+        public bool MissingFromFileSystem { get; set; }
 
         [JsonPropertyName("slot")]
         public string? Slot { get; set; }
@@ -35,11 +51,14 @@ namespace Graviton.Models.RomM
         [JsonPropertyName("content_hash")]
         public string? ContentHash { get; set; }
 
-        [JsonPropertyName("updated_at")]
-        public string? UpdatedAt { get; set; }
+    }
 
-        [JsonPropertyName("file_size_bytes")]
-        public int FileSize { get; set; }
+    public class LocalSave
+    {
+        public List<string> SourceFilePaths { get; set; } = new();
 
+        public int SaveID { get; set; }
+        public string? Slot { get; set; }
+        public bool Enabled { get; set; } = false;
     }
 }

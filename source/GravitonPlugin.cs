@@ -2,8 +2,10 @@
 using Graviton.Install;
 using Graviton.Install.Downloads;
 using Graviton.Models.Notifications;
+using Graviton.Models.RomM;
 using Graviton.Models.RomM.Collection;
 using Graviton.Models.RomM.Rom;
+using Graviton.Saves;
 using Graviton.Settings;
 using Graviton.Status;
 
@@ -35,8 +37,9 @@ namespace Graviton
         internal GravitonImportController? ImportController { get; private set; }
         internal StatusController? StatusController { get; private set; }
         internal DownloadQueueController? DownloadQueueController { get; private set; }
+        internal SaveController? SaveController { get; private set; }
 
-        internal ConcurrentDictionary<string, string>? ImportedGames { get; private set; }
+        internal ConcurrentDictionary<string, RomMRomLocal>? ImportedGames { get; private set; }
 
         internal GravitonPluginSettings Settings 
         { 
@@ -123,7 +126,7 @@ namespace Graviton
             await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("howlongtobeat", "HowLongToBeat"));
 
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("romm", "RomM"));
-            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("mappingid", "MappingID"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("gravitonmappingid", "MappingID"));
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("igdb", "IGDB"));
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("screenscraper", "Screenscraper"));
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("hasheous", "Hasheous"));
@@ -149,10 +152,23 @@ namespace Graviton
             StatusController = new(Instance, PlayniteApi, Logger);
             Account = new(Instance, PlayniteApi, Logger);
 
-            ImportedGames = new ConcurrentDictionary<string, string>();
-            foreach (var game in PlayniteApi.Library.Games.Where(x => x.LibraryId == Id))
+            ImportedGames = new ConcurrentDictionary<string, RomMRomLocal>();
+            foreach (var rompath in Directory.EnumerateFiles($"{PluginDataPath}/Games/"))
             {
-                ImportedGames.TryAdd(game.LibraryGameId!, game.Id);
+                try
+                {
+                    var rom = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllBytes(rompath));
+                    if (rom != null || !string.IsNullOrEmpty(rom!.PlayniteID))
+                    {
+                        ImportedGames.TryAdd(rom.PlayniteID!, rom);
+                    }
+
+                    throw new Exception($"ROM / PlayniteID was null, failed to add {Path.GetFileName(rompath)}");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex);
+                }
             }
 
             _downloadsViewModel = new();
@@ -179,11 +195,6 @@ namespace Graviton
 
                 if (Account == null)
                     throw new Exception("Account hasn't been initailized, cannot continue!");
-
-                foreach (var gamesession in PlayniteApi.Library.GameSessions)
-                {
-                    Logger.Debug($"LibraryID: {gamesession.LibraryId} | GameID: {gamesession.GameId} | SessionID: {gamesession.SessionId} | Name: {gamesession.Name} | Length: {gamesession.Length} | ");
-                }
 
                 // Check server exists
                 var result = await Account.Heartbeat();
@@ -262,6 +273,8 @@ namespace Graviton
                 foreach (var removed in args.RemovedItems)
                 {
                     ImportedGames!.TryRemove(removed.LibraryGameId!, out _);
+                    if (File.Exists($"{PluginDataPath}/Games/{removed.LibraryGameId!.Split(':')[1]}.json"))
+                        File.Delete($"{PluginDataPath}/Games/{removed.LibraryGameId!.Split(':')[1]}.json");
                 }
             }
         }
@@ -425,6 +438,41 @@ namespace Graviton
             return null;
         }
 
+        public override ICollection<MenuItemDescriptor> GetGameMenuItemDescriptors(GetGameMenuItemDescriptorsArgs args)
+        {
+            return
+            [
+                new MenuItemDescriptor("graviton.manage.saves", "Manage Saves"),
+                new MenuItemDescriptor("graviton.manage.savestates", "Manage Save States")
+            ];
+        }
+
+        public override ICollection<MenuItemImpl>? GetGameMenuItems(GetGameMenuItemsArgs args)
+        {
+            if (args.Games.Count != 1 || args.Games[0].LibraryId != Id)
+                return null;
+
+            if (args.ItemId == "graviton.manage.saves")
+            {
+                return [new MenuItemImpl("Manage Saves", (_) =>
+                {
+                    var mappingID = args.Games[0].ExternalIdentifiers?.FirstOrDefault(y => y.TypeId == "gravitonmappingid");
+                    if(mappingID == null)
+                        return;
+
+                    var mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId.ToString() == mappingID.IdValue);
+                    if (mapping == null) 
+                        return;
+
+                    var tab = new Saves.SinglegameSaveTab();
+                    tab.LoadForGame(args.Games[0], mapping);
+                    new Saves.SaveManagerWindow("Manage Saves", tab) { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog();
+                })];
+            }
+
+            return null;
+        }
+
         //public override ICollection<MenuItemDescriptor> GetGameMenuItemDescriptors(GetGameMenuItemDescriptorsArgs args)
         //{
         //    //return
@@ -432,24 +480,6 @@ namespace Graviton
         //    //    new MenuItemDescriptor("graviton.open.manual", "Open RomM manual")
         //    //];
         //}
-
-        public override ICollection<MenuItemImpl>? GetGameMenuItems(GetGameMenuItemsArgs args)
-        {
-            if (args.Games.Count != 1)
-                return null;
-
-            //if (args.ItemId == "graviton.open.manual" && args.Games[0].LibraryId == Id)
-            //{
-            //    var sha1 = args.Games[0].LibraryId.Split(':')[1];
-            //    if (Regex.IsMatch(sha1, @"^[0-9a-fA-F]{40}$"))
-            //    {
-            //        //return [new MenuItemImpl("Open game manual", (_) => ProcessStarter.StartProcess(manualFile))];
-            //    }
-            //
-            //}
-
-            return null;
-        }
 
         #endregion
 

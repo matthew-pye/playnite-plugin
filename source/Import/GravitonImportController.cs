@@ -247,22 +247,22 @@ namespace Graviton.Import
                     }
                 }
 
-                var rootgamerelation = _playniteAPI.Library.GameRelations.FirstOrDefault(x => x.PrimaryGame == game.Value);
+                var rootgamerelation = _playniteAPI.Library.GameRelations.FirstOrDefault(x => x.PrimaryGame == game.Value.PlayniteID);
                 if (rootgamerelation != null)
                 {
                     await _playniteAPI.Library.GameRelations.RemoveAsync(rootgamerelation.Id);
                 }
                 else
                 {
-                    var linkedRelations = _playniteAPI.Library.GameRelations.Where(x => x.LinkedGames.Any(y => y == game.Value)).ToList();
+                    var linkedRelations = _playniteAPI.Library.GameRelations.Where(x => x.LinkedGames.Any(y => y == game.Value.PlayniteID)).ToList();
                     foreach (var gamerelation in linkedRelations)
                     {
-                        gamerelation.LinkedGames.Remove(game.Value);
+                        gamerelation.LinkedGames.Remove(game.Value.PlayniteID!);
                         await _playniteAPI.Library.GameRelations.UpdateAsync(gamerelation);
                     }
                 }
 
-                await _playniteAPI.Library.Games.RemoveAsync(game.Value);
+                await _playniteAPI.Library.Games.RemoveAsync(game.Value.PlayniteID!);
                 _plugin.ImportedGames!.TryRemove(game.Key, out _);
                 
                 File.Delete($"{_plugin.PluginDataPath}/Games/{splitID[1]}.json");

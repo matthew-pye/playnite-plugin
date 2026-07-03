@@ -5,12 +5,19 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:s="clr-namespace:Graviton.Settings"
+             xmlns:models="clr-namespace:Graviton.Models.RomM"
              mc:Ignorable="d"
              d:DesignHeight="750" d:DesignWidth="900">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
         <s:ImageCacheConverter x:Key="imageCacheConverter" />
+        <s:EnumDescriptionConverter x:Key="EnumDescConverter"/>
+        <ObjectDataProvider x:Key="SaveLayoutStyleValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="models:SaveLayoutStyle"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
         <Style TargetType="{x:Type TextBlock}">
             <Setter Property="Foreground" Value="LightGray" />
         </Style>
@@ -225,26 +232,49 @@
             <TextBlock Name="SaveOptionText" Text="Save Options" Margin="5,15,5,5" FontSize="20" VerticalAlignment="Center" HorizontalAlignment="Left"/>
             <Separator Margin="5,0,10,0"/>
 
+            
+
             <StackPanel Orientation="Horizontal" Margin="5">
-                <TextBlock Name="SaveLayoutStyleText" Text="Save Layout: " TextWrapping="Wrap"/>
-                <!--<ComboBox ItemsSource="{models:SaveLayoutStyle models:SaveLayoutStyle}" DisplayMemberPath="Description" SelectedValuePath="Value" SelectedValue="{Binding SaveLayout}"/> -->
+                <TextBlock Name="SaveLayoutStyleText" Text="Save Layout" MinWidth="100" MaxWidth="150" VerticalAlignment="Center"/>
+                <ComboBox MinWidth="200" ItemsSource="{Binding Source={StaticResource SaveLayoutStyleValues}}" SelectedItem="{Binding SaveLayout, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Name="SaveLocText" Text="Save location" Margin="5" MinWidth="100" MaxWidth="150" VerticalAlignment="Center" HorizontalAlignment="Left"/>
-                <TextBox Margin="5" MinWidth="300" Text="{Binding SavePath, Mode=TwoWay}"/>
-                <Button Click="Click_BrowseSaveDestination" Margin="5">
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <TextBlock Name="SaveExtensionsText" Text="Save Extensions" MinWidth="100" MaxWidth="150" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                <Grid>
+                    <TextBox MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="SearchTermTextBox" Text="{Binding SaveFileExtensions, Mode=TwoWay}"/>
+                    <TextBlock IsHitTestVisible="False" Text="srm;sav;gci" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="DarkGray">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=SearchTermTextBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <TextBlock Name="SaveLocText" Text="Save Location" MinWidth="100" MaxWidth="150" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                <TextBox MinWidth="300" VerticalAlignment="Center" Text="{Binding SavePath, Mode=TwoWay}"/>
+                <Button Click="Click_BrowseSaveDestination" Margin="5,0,0,0">
                     <TextBlock Name="SaveLocButtonText" Text="Browse"/>
                 </Button>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Name="SaveStateLocText" Text="Save state location" Margin="5" MinWidth="100" MaxWidth="150" VerticalAlignment="Center" HorizontalAlignment="Left"/>
-                <TextBox Margin="5" MinWidth="300" Text="{Binding SaveStatePath, Mode=TwoWay}"/>
-                <Button Click="Click_BrowseSaveStateDestination" Margin="5">
-                    <TextBlock Name="SaveStateLocButtonText" Text="Browse"/>
-                </Button>
-            </StackPanel>
+            <Button Click="OpenSaveManager_Click" Margin="5" HorizontalAlignment="Left">
+                <TextBlock Name="OpenSaveManagerText" Text="&#xf0193; Manage Saves"/>
+            </Button>
 
         </StackPanel>
     </Grid>
