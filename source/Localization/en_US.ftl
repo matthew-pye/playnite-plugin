@@ -1,7 +1,7 @@
 # Generic
 Authentication = Authentication
 Options = Options
-Mappings = Mappings
+Mappings = Emulator Mappings
 Saves = Saves
 States = Save States
 Browse = Browse

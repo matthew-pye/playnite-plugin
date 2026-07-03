@@ -103,5 +103,27 @@ namespace Graviton.Settings
             
             e.Handled = true;
         }
+
+        private async void Click_BrowseSaveDestination(object sender, RoutedEventArgs e)
+        {
+            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
+            var path = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync();
+
+            if (mapping != null && path != null)
+                mapping.SavePath = path[0];
+
+            e.Handled = true;
+        }
+
+        private async void Click_BrowseSaveStateDestination(object sender, RoutedEventArgs e)
+        {
+            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
+            var path = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync();
+
+            if (mapping != null && path != null)
+                mapping.SaveStatePath = path[0];
+
+            e.Handled = true;
+        }
     }
 }

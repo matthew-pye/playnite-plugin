@@ -2,6 +2,7 @@
 
 using Graviton.Models;
 using Graviton.Models.Notifications;
+using Graviton.Models.RomM;
 using Graviton.Models.RomM.Platform;
 
 using Playnite;
@@ -56,6 +57,13 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _keepFavouritesSynced = false;      
         [ObservableProperty] private bool _keepPrivateNotesSynced = false;      
         [ObservableProperty] private bool _keepPublicNotesSynced = false;      
+
+
+        [ObservableProperty] private bool _saveSyncEnabled = true;      
+        [ObservableProperty] private bool _saveStateSyncEnabled = false;      
+        [ObservableProperty] private bool _downloadSaveOnLaunch = true;      
+        [ObservableProperty] private bool _uploadSaveOnFinished = true;      
+        [ObservableProperty] private SaveConflictStyle _saveConflictStyle = SaveConflictStyle.Ask;      
 
         [ObservableProperty] private ObservableCollection<EmulatorMapping> _mappings = new ObservableCollection<EmulatorMapping>();
 
@@ -148,6 +156,12 @@ namespace Graviton.Settings
                 KeepFavouritesSynced = this.KeepFavouritesSynced,
                 KeepPrivateNotesSynced = this.KeepPrivateNotesSynced,
                 KeepPublicNotesSynced = this.KeepPublicNotesSynced,
+
+                SaveSyncEnabled = this.SaveSyncEnabled,
+                SaveStateSyncEnabled = this.SaveStateSyncEnabled,
+                DownloadSaveOnLaunch = this.DownloadSaveOnLaunch,
+                UploadSaveOnFinished = this.UploadSaveOnFinished,
+                SaveConflictStyle = this.SaveConflictStyle,
 
                 Mappings = new(this.Mappings),
 

@@ -143,17 +143,17 @@ namespace Graviton.Status
             await HttpClientSingleton.RomMPutJsonAsync($"/api/roms/{romMID}/props", props);
         }
 
-        public async Task RefreshRA()
-        {
-            var refresh = new { incremental = true };
-
-            var result = await HttpClientSingleton.RomMPostJsonAsync($"/api/users/{_plugin.Settings.AccountState.UserID}/ra/refresh", refresh);
-            if(result != null)
-            {
-
-            }
-
-        }
+        //public async Task RefreshRA()
+        //{
+        //    var refresh = new { incremental = true };
+        //
+        //    var result = await HttpClientSingleton.RomMPostJsonAsync($"/api/users/{_plugin.Settings.AccountState.UserID}/ra/refresh", refresh);
+        //    if(result != null)
+        //    {
+        //
+        //    }
+        //
+        //}
 
         public async Task StartActivityHeartbeat(string GameID)
         {

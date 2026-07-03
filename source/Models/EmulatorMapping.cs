@@ -1,11 +1,13 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using System.Text.Json.Serialization;
 
+using Graviton.Models.RomM;
 using Graviton.Models.RomM.Platform;
 
 using Playnite;
+
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Text.Json.Serialization;
 
 
 namespace Graviton.Models
@@ -29,8 +31,11 @@ namespace Graviton.Models
         [ObservableProperty] private int _romMPlatformId = -1;
         [ObservableProperty] private string _destinationPath = "";
 
-        [ObservableProperty] [property: JsonIgnore] private bool _isSelected = false;
+        [ObservableProperty] private SaveLayoutStyle _saveLayout = SaveLayoutStyle.SingleFile;
+        [ObservableProperty] private string _savePath = "";
+        [ObservableProperty] private string _saveStatePath = "";
 
+        [ObservableProperty] [property: JsonIgnore] private bool _isSelected = false;
 
         [JsonConstructor]
         public EmulatorMapping() {}

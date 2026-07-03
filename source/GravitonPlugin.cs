@@ -314,6 +314,16 @@ namespace Graviton
         {
             if (args.Game.LibraryId == Id && args.Game.LibraryGameId != null)
             {
+                if(Settings.SaveSyncEnabled)
+                {
+                    // Sync Saves
+                }
+
+                if (Settings.SaveStateSyncEnabled)
+                {
+                    // Sync Saves States
+                }
+
                 _ = Task.Run(async () => await StatusController?.StartActivityHeartbeat(args.Game.LibraryGameId)!);
             }
 
@@ -324,14 +334,24 @@ namespace Graviton
             var stoppedTime = DateTime.UtcNow;
 
             if(args.StartingArgs.Game.LibraryId == Id)
-            {
+            { 
                 StatusController?.StopActivityHeartbeat();
                 StatusController?.PushPlaySession(args.StartingArgs.Game.LibraryGameId!, stoppedTime, args.StoppedArgs.SessionLength*1000);
 
-                if (args.StartingArgs.Game.ExternalIdentifiers != null && args.StartingArgs.Game.ExternalIdentifiers.Any(x => x.TypeId == "retroachievements"))
+                if (Settings.SaveSyncEnabled)
                 {
-
+                    // Sync Saves
                 }
+
+                if (Settings.SaveStateSyncEnabled)
+                {
+                    // Sync Saves States
+                }
+
+                //if (args.StartingArgs.Game.ExternalIdentifiers != null && args.StartingArgs.Game.ExternalIdentifiers.Any(x => x.TypeId == "retroachievements"))
+                //{
+                //
+                //}
             }
 
             return base.OnGameStoppedAsync(args);
