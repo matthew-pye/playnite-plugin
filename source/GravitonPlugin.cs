@@ -2,7 +2,6 @@
 using Graviton.Install;
 using Graviton.Install.Downloads;
 using Graviton.Models.Notifications;
-using Graviton.Models.RomM;
 using Graviton.Models.RomM.Collection;
 using Graviton.Models.RomM.Rom;
 using Graviton.Saves;
@@ -10,6 +9,8 @@ using Graviton.Settings;
 using Graviton.Status;
 
 using Playnite;
+
+using Svg;
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -113,6 +114,10 @@ namespace Graviton
 
         public override async Task InitializeAsync(InitializeArgs args)
         {
+            // Mitigate svg containing potential malicious external images/elements
+            SvgDocument.ResolveExternalImages = ExternalType.None;
+            SvgDocument.ResolveExternalElements = ExternalType.None;
+
             PlayniteApi = args.Api ?? throw new Exception("Failed to set playnite instance!");
             Loc.Api = args.Api ?? throw new Exception("Failed to set localization api instance!");
             Logger = LogManager.GetLogger();
@@ -150,6 +155,7 @@ namespace Graviton
             SettingsHandler = new(Instance, PlayniteApi, Logger);
             ImportController = new(Instance, PlayniteApi, Logger);
             StatusController = new(Instance, PlayniteApi, Logger);
+            SaveController = new(Instance, PlayniteApi, Logger);
             Account = new(Instance, PlayniteApi, Logger);
 
             ImportedGames = new ConcurrentDictionary<string, RomMRomLocal>();
@@ -158,9 +164,10 @@ namespace Graviton
                 try
                 {
                     var rom = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllBytes(rompath));
-                    if (rom != null || !string.IsNullOrEmpty(rom!.PlayniteID))
+                    if (rom != null && !string.IsNullOrEmpty(rom!.PlayniteID))
                     {
                         ImportedGames.TryAdd(rom.PlayniteID!, rom);
+                        continue;
                     }
 
                     throw new Exception($"ROM / PlayniteID was null, failed to add {Path.GetFileName(rompath)}");
