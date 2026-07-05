@@ -173,7 +173,7 @@ namespace Graviton.Settings
 
                 if (!string.IsNullOrEmpty(userinfo.IconPath) && _iconPathRegex.IsMatch(userinfo.IconPath))
                 {
-                    var response = await HttpClientSingleton.Instance.GetAsync($"{_plugin.Settings.Host}/api/raw/assets/{userinfo.IconPath}", System.Net.Http.HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken());
+                    var response = await HttpClientSingleton.Instance.GetAsync($"{_plugin.Settings.Host}/api/users/{userinfo.Id}/avatar", System.Net.Http.HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken());
                     response.EnsureSuccessStatusCode();
                     var imagebytes = await response.Content.ReadAsByteArrayAsync();
 
