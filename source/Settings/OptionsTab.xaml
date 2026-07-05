@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:s="clr-namespace:Graviton.Settings"
-             xmlns:models="clr-namespace:Graviton.Models.RomM"
+             xmlns:models="clr-namespace:Graviton.Models.RomM.Saves"
              xmlns:psdk="clr-namespace:Playnite.Desktop;assembly=Playnite.SDK"
              mc:Ignorable="d"
              d:DesignHeight="900" d:DesignWidth="750">

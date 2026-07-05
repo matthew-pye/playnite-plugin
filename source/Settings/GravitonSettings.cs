@@ -4,6 +4,7 @@ using Graviton.Models;
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM;
 using Graviton.Models.RomM.Platform;
+using Graviton.Models.RomM.Saves;
 
 using Playnite;
 
@@ -265,16 +266,6 @@ namespace Graviton.Settings
                 HttpClientSingleton.Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
             }
             InEditingMode = false;
-
-            foreach (var header in HttpClientSingleton.Instance.DefaultRequestHeaders)
-            {
-                var headerValue = "";
-                foreach (var value in header.Value)
-                {
-                    headerValue += value + " | ";
-                }
-                _logger.Info($"Name: {header.Key} | {headerValue}");
-            }
 
             await Task.CompletedTask;
         }

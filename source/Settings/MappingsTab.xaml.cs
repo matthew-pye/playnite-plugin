@@ -135,9 +135,7 @@ namespace Graviton.Settings
             var tab = new MappingSaveTab();
             tab.Load(mapping);
 
-            var window = new SaveManagerWindow(Loc.GetString("SaveManagerTitle"), tab);
-            window.Owner = System.Windows.Application.Current.MainWindow;
-            window.ShowDialog();
+            SaveManagerWindow.Show(Loc.GetString("SaveManagerTitle"), tab);
         }
     }
 }

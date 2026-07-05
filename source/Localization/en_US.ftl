@@ -6,6 +6,7 @@ Saves = Saves
 States = Save States
 Browse = Browse
 Installation = Installation
+Refresh = Refresh
 
 # Authentication Page
 AuthButton = Authenticate
@@ -87,3 +88,10 @@ LibraryIdConvertFailed = Failed to parse GameID, Skipping status update!
 CompletionStatusNameFailed = Failed to get name of completion status
 ConvertStatusFailed = {$PlayniteStatus} cannot be converted to a RomM status
 GameHeartbeatFailed = Failed to send activity heartbeat 
+
+# Mapping Saves
+EnableAllSaves = Enable All Saves
+SaveManagerTitle = Save Manager
+LocalSaves = Local Saves
+RemoteSaves = Remote Saves
+NoSavePathSet = Save Path in mapping not set cannot download save!

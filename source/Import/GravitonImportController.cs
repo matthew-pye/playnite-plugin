@@ -123,6 +123,7 @@ namespace Graviton.Import
                     {
                         using Stream stream = await HttpClientSingleton.Instance!.GetStreamAsync($"{_plugin.Settings.Host}/assets/platforms/{platform.Slug}.svg");
                         var svg = SvgDocument.Open<SvgDocument>(stream);
+                        
                         var image = svg.Draw();
                         image.Save($"{_plugin.PluginDataPath}/Platforms/{platform.Slug}.png", ImageFormat.Png);
                     }

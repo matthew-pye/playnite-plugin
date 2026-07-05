@@ -184,15 +184,15 @@ namespace Graviton.Import
 
             string gameID = $"{ROM.Id}:{ROM.SHA1}";
 
-            // Save Game ROM data to file
-            var savedata = SaveGameData(ROM);
-
             // If keep deleted games is enabled and a deleted game gets re-added back to the server under a new romMId, Update playnite entry
             if (_plugin.Settings.KeepDeletedGames)
             {
                 if (await UpdatedDeletedGame(ROM))
                 {
-                    if(savedata != null)
+                    // Save Game ROM data to file
+                    var savedata = SaveGameData(ROM);
+
+                    if (savedata != null)
                         _plugin.ImportedGames![gameID] = savedata;
 
                     return new(gameID, null);
@@ -228,6 +228,8 @@ namespace Graviton.Import
                 //}
 
                 await _playniteAPI.Library.Games.UpdateAsync(game);
+                var savedata = SaveGameData(ROM);
+
                 if (savedata != null)
                     _plugin.ImportedGames![gameID] = savedata;
 
@@ -240,7 +242,7 @@ namespace Graviton.Import
                 if (importedGame != null)
                 {
                     await _playniteAPI.Library.Games.AddAsync(importedGame);
-                    savedata!.PlayniteID = importedGame.Id;
+                    var savedata = SaveGameData(ROM, importedGame.Id);
                     _plugin.ImportedGames!.TryAdd(gameID , savedata!);
                     return new(gameID, importedGame);
                 }
@@ -364,6 +366,7 @@ namespace Graviton.Import
                 var game = _playniteAPI.Library.Games.Get(oldgame.Value.PlayniteID!)!;
 
                 game.LibraryGameId = $"{ROM.Id}:{ROM.SHA1}";
+                oldgame.Value.Id = ROM.Id;
                 await _playniteAPI.Library.Games.UpdateAsync(game);
                 
                 _plugin.ImportedGames!.TryRemove(oldgame.Key, out _);
@@ -483,7 +486,7 @@ namespace Graviton.Import
             _logger.Info($"[Importer] Finished merging new games for {_mapping.RomMPlatform?.Name}");
         }
 
-        private RomMRomLocal? SaveGameData(RomMRom ROM)
+        private RomMRomLocal? SaveGameData(RomMRom ROM, string PlayniteID = "")
         {
 
             RomMRomLocal toSave = new RomMRomLocal();
@@ -493,6 +496,8 @@ namespace Graviton.Import
             toSave.Name = ROM.Name;
             toSave.SHA1 = ROM.SHA1;
             toSave.HasMultipleFiles = ROM.HasMultipleFiles;
+            toSave.PlayniteID = string.IsNullOrEmpty(PlayniteID) ? _plugin.ImportedGames![$"{ROM.Id}:{ROM.SHA1}"].PlayniteID : PlayniteID;
+
             if(!ROM.HasMultipleFiles)
             {
                 var romfile = DetermineFile(ROM);
@@ -502,12 +507,12 @@ namespace Graviton.Import
                     return null;
                 }
 
-                toSave.FileName = romfile.FileName;
+                toSave.FileName = Path.GetFileName(romfile.FileName);
                 toSave.DownloadURL = $"{_plugin.Settings.Host}/api/roms/{romfile.Id}/files/content/{romfile.FileName}";
             }
             else
             {
-                toSave.FileName = ROM.FileName;
+                toSave.FileName = Path.GetFileName(ROM.FileName);
                 toSave.DownloadURL = $"{_plugin.Settings.Host}/api/roms/{ROM.Id}/content/{ROM.FileName}";
             } 
             toSave.MappingID = _mapping.MappingId;

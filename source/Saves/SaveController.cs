@@ -1,13 +1,12 @@
 ﻿using Graviton.Models;
 using Graviton.Models.RomM;
+using Graviton.Models.RomM.Saves;
 
 using Playnite;
 
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 
 namespace Graviton.Saves
 {
@@ -102,6 +101,40 @@ namespace Graviton.Saves
             { return null; }
 
             
+
+        }
+
+        public async Task<List<SaveRow>?> GetRemoteSaves(EmulatorMapping mapping)
+        {
+            var response = await HttpClientSingleton.RomMGetAsync($"/api/saves?platform_id={mapping.RomMPlatformId}&device_id={_plugin.Settings.AccountState.DeviceID}");
+            if (response == null)
+                return null;
+
+            var result = JsonSerializer.Deserialize<List<RomMSave>>(response);
+            if (result == null)
+                return null;
+
+            var roms = _plugin.ImportedGames!.Where(x => x.Value.MappingID == mapping.MappingId).Select(y => y.Value);
+
+            List<SaveRow> saverows = new();
+            foreach (var save in result)
+            {
+                var row = new SaveRow()
+                {
+                    GameName = roms.First(x => x.Id == save.ROMID).Name!,
+                    SaveID = save.ID,
+                    SyncStatus = SaveSyncStatus.download,
+                };
+
+                row.SaveDirectoryView.Add(new DirectorySaveFile
+                {
+                    Name = save.FileName!
+                });
+
+                saverows.Add(row);
+            }
+
+            return saverows;
 
         }
 

@@ -106,7 +106,7 @@ namespace Graviton
 
                 GravitonNotify.Add(new GravitonNotification(nofiyType, $"{Loc.GetString(locFailedMessage, [("APIPath", apiPath)])} - {ex.Message}", GravitonSeverity.Error, ex));
 
-                if (response?.StatusCode == HttpStatusCode.UnprocessableContent && content?.Length <= 0)
+                if (response?.StatusCode == HttpStatusCode.UnprocessableContent && content?.Length > 0)
                     GravitonPlugin.Logger.Error(new StreamReader(content!, Encoding.UTF8).ReadToEnd());
 
                 return null;

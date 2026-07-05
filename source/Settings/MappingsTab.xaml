@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:s="clr-namespace:Graviton.Settings"
-             xmlns:models="clr-namespace:Graviton.Models.RomM"
+             xmlns:models="clr-namespace:Graviton.Models.RomM.Saves"
              mc:Ignorable="d"
              d:DesignHeight="750" d:DesignWidth="900">
 
@@ -151,7 +151,7 @@
         </ScrollViewer>
 
         <!-- Mappings Page -->        
-        <StackPanel Name="MappingOptions" Grid.Column="1" Visibility="Visible" Margin="5">
+        <StackPanel Name="MappingOptions" Grid.Column="1" Visibility="Hidden" Margin="5">
 
             <StackPanel Orientation="Horizontal">
                 <Image Name="MappingIcon" Source="{Binding PlatformIcon, Mode=OneWay, Converter={StaticResource imageCacheConverter}}"  Margin="5,0,5,0" Stretch="UniformToFill" Width="50" Height="50"/>

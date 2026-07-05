@@ -473,7 +473,7 @@ namespace Graviton
 
                     var tab = new Saves.SinglegameSaveTab();
                     tab.LoadForGame(args.Games[0], mapping);
-                    new Saves.SaveManagerWindow("Manage Saves", tab) { Owner = System.Windows.Application.Current.MainWindow }.ShowDialog();
+                    SaveManagerWindow.Show("Manage Saves", tab);
                 })];
             }
 

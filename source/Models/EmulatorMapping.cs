@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 using Graviton.Models.RomM;
 using Graviton.Models.RomM.Platform;
+using Graviton.Models.RomM.Saves;
 
 using Playnite;
 
