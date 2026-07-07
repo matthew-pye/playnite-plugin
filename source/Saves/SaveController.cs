@@ -13,7 +13,6 @@ using SharpCompress.Common;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Runtime.Intrinsics.Arm;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -29,12 +28,7 @@ namespace Graviton.Saves
         private string GetSaveFileName(string gamename, LocalSave save) => save.SourceFilePaths.Count == 1 && Path.HasExtension(save.SourceFilePaths[0]) ? Path.GetFileName(save.SourceFilePaths[0]) : $"{gamename}-{save.SaveID}.rommsave.zip";
         private static readonly Regex ServerTimestampTagPattern = new(@"[ _]?\[\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\](?=\.[^.]+$)", RegexOptions.Compiled);
 
-        private List<MessageBoxResponse> ConflictMessageBoxResponses = new List<MessageBoxResponse>
-        {
-            new MessageBoxResponse("Use Remote"),
-            new MessageBoxResponse("Use Local"),
-            new MessageBoxResponse("Skip",  isDefault: true, isCancel: true),
-        };
+        private List<MessageBoxResponse> ConflictMessageBoxResponses = new();
 
 
         public SaveController(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
@@ -42,6 +36,13 @@ namespace Graviton.Saves
             _plugin = plugin;
             _playniteAPI = playniteAPI;
             _logger = logger;
+
+            ConflictMessageBoxResponses = new List<MessageBoxResponse>
+            {
+                new MessageBoxResponse(Loc.GetString("UseRemote")),
+                new MessageBoxResponse(Loc.GetString("UseLocal")),
+                new MessageBoxResponse(Loc.GetString("Skip"),  isDefault: true, isCancel: true),
+            };
         }
 
         public async Task<List<SaveRow>?> GetLocalSaves(EmulatorMapping mapping)
@@ -102,7 +103,7 @@ namespace Graviton.Saves
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.getlocalsaves.failed", $"Failed to get local saves - {ex.Message}", GravitonSeverity.Error, ex));
+                GravitonNotify.Add(new GravitonNotification("graviton.getlocalsaves.failed", Loc.GetString("FailedGetSaves", ("Error", ex.Message)), GravitonSeverity.Error, ex));
                 _logger.Error(response.RootElement.ToString());
                 return null; 
             }  
@@ -409,7 +410,7 @@ namespace Graviton.Saves
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.uploadnewsave.failed", $"Failed to upload new save - {ex}", GravitonSeverity.Error, ex));
+                GravitonNotify.Add(new GravitonNotification("graviton.uploadnewsave.failed", Loc.GetString("FailedUploadSaves", ("Error", ex.Message)), GravitonSeverity.Error, ex));
                 return null;
             }
             
@@ -447,12 +448,12 @@ namespace Graviton.Saves
 
                     if (operation.Action == "conflict")
                     {
-                        var conflictresponse = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"Which save do you want to keep?\nRemote:\n\tLast Updated: {operation.UpdatedAt}\nLocal:\n\tLast Updated: {save.UpdatedAt}", "Save Conflict!", MessageBoxSeverity.Question, ConflictMessageBoxResponses, new List<MessageBoxOption>());
-                        if (conflictresponse == null || conflictresponse.Title == "Skip")
+                        var conflictresponse = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{Loc.GetString("WantKeepSave")}\n{Loc.GetString("Remote")}:\n\t{Loc.GetString("LastModified")}: {operation.UpdatedAt}\n{Loc.GetString("Local")}:\n\t{Loc.GetString("LastModified")}: {save.UpdatedAt}", Loc.GetString("SaveConflict"), MessageBoxSeverity.Question, ConflictMessageBoxResponses, new List<MessageBoxOption>());
+                        if (conflictresponse == null || conflictresponse.Title == Loc.GetString("Skip"))
                             operation.Action = "no_op";
-                        else if (conflictresponse.Title == "Use Remote")
+                        else if (conflictresponse.Title == Loc.GetString("UseRemote"))
                             operation.Action = "download";
-                        else if (conflictresponse.Title == "Use Local")
+                        else if (conflictresponse.Title == Loc.GetString("UseLocal"))
                             operation.Action = "upload";
                     }
 
@@ -497,7 +498,7 @@ namespace Graviton.Saves
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.negotiatesaves.failed", $"Failed to get negotiate saves - {ex.Message}", GravitonSeverity.Error, ex));
+                GravitonNotify.Add(new GravitonNotification("graviton.negotiatesaves.failed", Loc.GetString("FailedNegotiateSaves", ("Error", ex.Message)), GravitonSeverity.Error, ex));
                 _logger.Error(response.RootElement.ToString());
                 return null;
             }
@@ -538,12 +539,12 @@ namespace Graviton.Saves
 
                     if (save.Action == "conflict")
                     {
-                        var conflictresponse = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"Which save do you want to keep?\nRemote:\n\tLast Updated: {save.UpdatedAt}\nLocal:\n\tLast Updated: {localSave.UpdatedAt}", "Save Conflict!", MessageBoxSeverity.Question, ConflictMessageBoxResponses, new List<MessageBoxOption>());
-                        if (conflictresponse == null || conflictresponse.Title == "Skip")
+                        var conflictresponse = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{Loc.GetString("WantKeepSave")}\n{Loc.GetString("Remote")}:\n\t{Loc.GetString("LastModified")}: {save.UpdatedAt}\n{Loc.GetString("Local")}:\n\t{Loc.GetString("LastModified")}: {localSave.UpdatedAt}", Loc.GetString("SaveConflict"), MessageBoxSeverity.Question, ConflictMessageBoxResponses, new List<MessageBoxOption>());
+                        if (conflictresponse == null || conflictresponse.Title == Loc.GetString("Skip"))
                             save.Action = "no_op";
-                        else if (conflictresponse.Title == "Use Remote")
+                        else if (conflictresponse.Title == Loc.GetString("UseRemote"))
                             save.Action = "download";
-                        else if (conflictresponse.Title == "Use Local")
+                        else if (conflictresponse.Title == Loc.GetString("UseLocal"))
                             save.Action = "upload";
                     }
 
@@ -574,7 +575,7 @@ namespace Graviton.Saves
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.negotiatesaves.failed", $"Failed to get negotiate saves - {ex.Message}", GravitonSeverity.Error, ex));
+                GravitonNotify.Add(new GravitonNotification("graviton.negotiatesaves.failed", Loc.GetString("FailedNegotiateSaves", ("Error", ex.Message)), GravitonSeverity.Error, ex));
                 _logger.Error(response.RootElement.ToString());
                 return false;
             }
@@ -608,6 +609,7 @@ namespace Graviton.Saves
                     negotiateSave.FileSize = new FileInfo(save.SourceFilePaths[0]).Length;
                     negotiateSave.FileName = Path.GetFileName(save.SourceFilePaths[0]);
                     negotiateSave.UpdatedAt = new FileInfo(save.SourceFilePaths[0]).LastWriteTimeUtc.ToString("O");
+                    save.UpdatedAt = negotiateSave.UpdatedAt;
                     hashfilepath = save.SourceFilePaths[0];
                 }
                 else
@@ -632,6 +634,7 @@ namespace Graviton.Saves
                     negotiateSave.FileSize = new FileInfo(packedsavepath).Length;
                     negotiateSave.FileName = Path.GetFileName(packedsavepath);
                     negotiateSave.UpdatedAt = saveWritetimes.Max().ToString("O");
+                    save.UpdatedAt = negotiateSave.UpdatedAt;
                     hashfilepath = packedsavepath;
                 }
 
@@ -685,7 +688,7 @@ namespace Graviton.Saves
                 return false;
 
             var bytes = savedata.Length < 1000 ? $"{savedata.Length}B" : savedata.Length < 1000000 ? $"{(((float)savedata.Length) / 1000).ToString("F1")}KB" : $"{(((float)savedata.Length) / 1000000).ToString("F1")}MB";
-            GravitonNotify.Add(new GravitonNotification($"graviton.save.{save.SaveID}.downloaded", $"Downloaded save - {Path.GetFileName(savepath)} ({bytes})", GravitonSeverity.Success));
+            GravitonNotify.Add(new GravitonNotification($"graviton.save.{save.SaveID}.downloaded", Loc.GetString("DownloadedSave", ("SavePath", Path.GetFileName(savepath)), ("Bytes", bytes)), GravitonSeverity.Success));
 
             return true;
         }
@@ -694,6 +697,10 @@ namespace Graviton.Saves
         {
             var isPackedTemp = save.SourceFilePaths.Count > 1;
             var uploadfilepath = isPackedTemp ? $"{_plugin.PluginDataPath}/temp/{save.PackedFilename}" : save.SourceFilePaths[0];
+
+            if (isPackedTemp)
+                if (!PackSave(save.SourceFilePaths, mapping.SavePath, uploadfilepath))
+                    return false;
 
             using var content = new MultipartFormDataContent();
             var savebytes = await File.ReadAllBytesAsync(uploadfilepath);
@@ -709,7 +716,7 @@ namespace Graviton.Saves
                 return false;
 
             var bytes = savebytes.Length < 1000 ? $"{savebytes.Length}B" : savebytes.Length < 1000000 ? $"{(((float)savebytes.Length) / 1000).ToString("F1")}KB" : $"{(((float)savebytes.Length) / 1000000).ToString("F1")}MB";
-            GravitonNotify.Add(new GravitonNotification($"graviton.save.{save.SaveID}.uploaded", $"Uploaded save - {Path.GetFileName(uploadfilepath)} ({bytes})", GravitonSeverity.Success));
+            GravitonNotify.Add(new GravitonNotification($"graviton.save.{save.SaveID}.uploaded", Loc.GetString("DownloadedSave", ("SavePath", Path.GetFileName(uploadfilepath)), ("Bytes", bytes)), GravitonSeverity.Success));
 
             return true;
         }
@@ -719,7 +726,7 @@ namespace Graviton.Saves
         {
             if (!File.Exists(tempSaveLocation))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", $"Save archive not found at {tempSaveLocation} — aborting extraction", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", Loc.GetString("SaveArchiveNotFound", ("SaveLoc", tempSaveLocation)), GravitonSeverity.Error));
                 return null;
             }
 
@@ -738,7 +745,7 @@ namespace Graviton.Saves
                     var resolvedPath = Path.GetFullPath(Path.Combine(destinationFull, entry.Key!));
                     if (!resolvedPath.StartsWith(destinationFull, StringComparison.OrdinalIgnoreCase))
                     {
-                        GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", $"Archive entry '{entry.Key}' resolves outside destination — aborting extraction", GravitonSeverity.Error));
+                        GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", Loc.GetString("ArchiveResolvesOutside", ("Entry", entry.Key!)), GravitonSeverity.Error));
                         return null;
                     }
                     resolvedPaths.Add(resolvedPath);
@@ -748,7 +755,7 @@ namespace Graviton.Saves
 
                 if (fileEntries.Count > 0 && !Directory.EnumerateFileSystemEntries(destinationPath).Any())
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", $"Extraction reported success but {destinationPath} is empty", GravitonSeverity.Error));
+                    GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", Loc.GetString("ExtractionEmpty"), GravitonSeverity.Error));
                     return null;
                 }
 
@@ -767,7 +774,7 @@ namespace Graviton.Saves
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", $"Failed to unpack save archive {tempSaveLocation}", GravitonSeverity.Error, ex));
+                GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", Loc.GetString("FailedUnpack", ("SaveLoc", tempSaveLocation)), GravitonSeverity.Error, ex));
                 return null;
             }
         }

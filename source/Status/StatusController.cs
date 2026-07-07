@@ -7,7 +7,6 @@ using Playnite;
 
 using System.Net.Http;
 using System.Text.Json;
-using System.Windows.Markup;
 
 namespace Graviton.Status
 {
@@ -33,7 +32,7 @@ namespace Graviton.Status
             int romMID;
             if (!int.TryParse(GameID.Split(':')[0], out romMID))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed"), GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", GameID)), GravitonSeverity.Error));
                 return;
             }
 
@@ -115,7 +114,7 @@ namespace Graviton.Status
             int romMID;
             if (!int.TryParse(game.LibraryGameId?.Split(':')[0], out romMID))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed"), GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", game.LibraryGameId!.ToString())), GravitonSeverity.Error));
                 return;
             }
 
@@ -162,9 +161,9 @@ namespace Graviton.Status
             var token = _heartbeatCts.Token;
 
             int romMID;
-            if (!int.TryParse(GameID?.Split(':')[0], out romMID))
+            if (!int.TryParse(GameID.Split(':')[0], out romMID))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.start.game.failed", Loc.GetString("LibraryIdConvertFailed"), GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.start.game.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", GameID)), GravitonSeverity.Error));
                 return;
             }
 

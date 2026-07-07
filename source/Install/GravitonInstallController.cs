@@ -4,8 +4,6 @@ using Graviton.Models.RomM.Rom;
 
 using Playnite;
 
-using SharpCompress.Archives;
-
 using System.IO;
 
 namespace Graviton.Install
@@ -128,7 +126,7 @@ namespace Graviton.Install
 
                 OnFailed = ex =>
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.install.failed",$"{Loc.GetString("DownloadFailed")} {Game.Name}.\n\n{ex.Message}", GravitonSeverity.Error, ex)); 
+                    GravitonNotify.Add(new GravitonNotification("graviton.install.failed", Loc.GetString("DownloadFailed", ("GameName", Game.Name), ("Error", ex.Message)), GravitonSeverity.Error, ex)); 
 
                     //Game.IsInstalling = false;
                 }

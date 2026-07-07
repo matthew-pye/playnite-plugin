@@ -24,13 +24,7 @@ namespace Graviton.Saves
         public bool IsLoadingRemote = false;
         public bool IsLoadingAutoDetected = false;
 
-        List <MessageBoxResponse> DeleteSaveMessageBoxResponses = new List<MessageBoxResponse>
-        {
-            new MessageBoxResponse("Remove entry",  isDefault: true),
-            new MessageBoxResponse("Delete Save Local Only"),
-            new MessageBoxResponse("Delete Save Completly"),
-            new MessageBoxResponse("Cancel", isCancel: true)
-        };
+        List <MessageBoxResponse> DeleteSaveMessageBoxResponses = new();
 
         private void RefreshFilteredItemSources()
         {
@@ -43,20 +37,29 @@ namespace Graviton.Saves
         public MappingSaveTab()
         {
             InitializeComponent();
-            LocalRowsList.ItemsSource = LocalSaveRow;
-            RemoteRowsList.ItemsSource = RemoteSaveRow;
-            AutoDetectRowsList.ItemsSource = UnmatchedAutoDetectSaveRow;
+            DeleteSaveMessageBoxResponses = new List<MessageBoxResponse>
+            {
+                new MessageBoxResponse(Loc.GetString("RemoveEntry"),  isDefault: true),
+                new MessageBoxResponse(Loc.GetString("DeleteSaveLocal")),
+                new MessageBoxResponse(Loc.GetString("DeleteSaveBoth")),
+                new MessageBoxResponse(Loc.GetString("Cancel"), isCancel: true)
+            };
 
             RefreshText.Text = $"\uf46a {Loc.GetString("Refresh")}";
             RefreshText.FontFamily = Playnite.Fonts.NerdFont;
-            EnableAllText.Text = Loc.GetString("EnableAllSaves");
 
             LocalTitleText.Text = Loc.GetString("LocalSaves");
             RemoteTitleText.Text = Loc.GetString("RemoteSaves");
             AutoDetectTitleText.Text = Loc.GetString("UnsyncedAutoDetectSaves");
+            AddSaveButtonText.Text = Loc.GetString("AddManualSave");
+            EmptyStateText.Text = Loc.GetString("EmptyLocalSaves");
+            EmptyRemoteText.Text = Loc.GetString("EmptyRemoteSaves");
+            EmptyUnmatchedText.Text = Loc.GetString("EmptyUnmatchedSaves");
 
-            if (Mapping != null)
-                Load(Mapping);
+            LocalRowsList.ItemsSource = LocalSaveRow;
+            RemoteRowsList.ItemsSource = RemoteSaveRow;
+            AutoDetectRowsList.ItemsSource = UnmatchedAutoDetectSaveRow;
+
         }
 
         public async Task Load(EmulatorMapping mapping)
@@ -72,23 +75,17 @@ namespace Graviton.Saves
             LoadingRemoteBar.Visibility = Visibility.Visible;
             LoadingAutoBar.Visibility = Visibility.Visible;
 
-            await Task.Delay(1000);
-
             var rows = await _plugin.SaveController!.GetLocalSaves(mapping);
             if (rows != null && rows.Count > 0)
                 LocalSaveRow.AddRangeIfNotNull(rows.OrderBy(x => x.GameName));
             LoadingLocalBar.Visibility = Visibility.Collapsed;
             EmptyStateText.Visibility = LocalSaveRow.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
-            await Task.Delay(500);
-
             rows = await _plugin.SaveController!.GetRemoteSaves(mapping);
             if (rows != null && rows.Count > 0)
                 RemoteSaveRow.AddRangeIfNotNull(rows.Where(x => !LocalSaveRow.Any(y => y.SaveID == x.SaveID)).OrderBy(x => x.GameName));
             LoadingRemoteBar.Visibility = Visibility.Collapsed;
             EmptyRemoteText.Visibility = RemoteSaveRow.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-
-            await Task.Delay(800);
 
             rows = await _plugin.SaveController!.FindUntrackedAutoDetectSaves(mapping, LocalSaveRow.ToList());
             if (rows != null && rows.Count > 0)
@@ -122,7 +119,7 @@ namespace Graviton.Saves
                 picker.LoadForPath(Mapping.SavePath);
                 picker.ROMs = _plugin.ImportedGames!.Where(x => x.Value.MappingID == Mapping.MappingId).Select(y => y.Value).ToList();
 
-                SaveManagerWindow.Show("Add Manual Save", picker);
+                SaveManagerWindow.Show(Loc.GetString("AddManualSave"), picker);
 
                 if (!picker.WasConfirmed)
                 {
@@ -132,14 +129,14 @@ namespace Graviton.Saves
 
                 if (picker.ROM == null)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.selectsave.nogameselected", "No game was selected cannot create save backup", GravitonSeverity.Warn));
+                    GravitonNotify.Add(new GravitonNotification("graviton.selectsave.nogameselected", Loc.GetString("SaveNoGameSelected"), GravitonSeverity.Warn));
                     e.Handled = true;
                     return;
                 }
 
                 if (picker.SelectedSourcePaths.Count <= 0)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.selectsave.nonselected", "No save files/folders were selected cannot create save backup", GravitonSeverity.Warn));
+                    GravitonNotify.Add(new GravitonNotification("graviton.selectsave.nonselected", Loc.GetString("SaveNoFilesSelected"), GravitonSeverity.Warn));
                     e.Handled = true;
                     return;
                 }
@@ -216,18 +213,18 @@ namespace Graviton.Saves
                 return;
             }
 
-            var result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"How do you want to delete the save?", "Delete Save?", MessageBoxSeverity.Question, DeleteSaveMessageBoxResponses, new List<MessageBoxOption>());
+            var result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("HowDeleteSave"), Loc.GetString("HowDeleteSaveTitle"), MessageBoxSeverity.Question, DeleteSaveMessageBoxResponses, new List<MessageBoxOption>());
 
-            if(result != null && result.Title != "Cancel")
+            if(result != null && result.Title != Loc.GetString("Cancel"))
             {
-                var doublecheckresult = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"Are you sure you want to '{result.Title}' ?", "Delete Save?", MessageBoxButtons.YesNo, MessageBoxSeverity.Question);
+                var doublecheckresult = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("AreYouSure"), Loc.GetString("HowDeleteSaveTitle"), MessageBoxButtons.YesNo, MessageBoxSeverity.Question);
                 if (doublecheckresult == Playnite.MessageBoxResult.Yes)
                 {
                     var rom = _plugin.ImportedGames!.First(x => x.Value.Id == row.GameID).Value;
                     var save = rom.Saves.First(x => x.LocalID == row.LocalSaveGuid);
                     rom.Saves.Remove(save);
 
-                    if (result.Title == "Delete Save Local Only")
+                    if (result.Title == Loc.GetString("DeleteSaveLocal"))
                     {
                         foreach (var path in save.SourceFilePaths)
                         {
@@ -244,7 +241,7 @@ namespace Graviton.Saves
                         }
 
                     }
-                    else if (result.Title == "Delete Save Completly")
+                    else if (result.Title == Loc.GetString("DeleteSaveBoth"))
                     {
                         foreach (var path in save.SourceFilePaths)
                         {
@@ -263,7 +260,8 @@ namespace Graviton.Saves
                         var response = await HttpClientSingleton.RomMPostJsonAsync("/api/saves/delete", deleteSave);
                     }
 
-                    await _plugin.SaveController!.UntrackSave(save.SaveID);
+                    if(save.SaveID >= 0)
+                        await _plugin.SaveController!.UntrackSave(save.SaveID);
 
                     string json = JsonSerializer.Serialize(rom);
                     File.WriteAllText($"{_plugin.PluginDataPath}/Games/{rom.SHA1}.json", json);
@@ -289,7 +287,7 @@ namespace Graviton.Saves
                 var row = ((FrameworkElement)sender).DataContext as SaveRow;
                 if (row != null && Mapping != null)
                 {
-                    var result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"Do you want to save download save?\nSave: {row.SaveDirectoryView[0].Name}\nSave Path: {Mapping.SavePath}'?", "Download Save?", MessageBoxButtons.YesNo, MessageBoxSeverity.Question);
+                    var result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("WantDownloadSave", ("SaveName", row.SaveDirectoryView[0].Name), ("SavePath", Mapping.SavePath!)), Loc.GetString("WantDownloadSaveTitle"), MessageBoxButtons.YesNo, MessageBoxSeverity.Question);
                     if (result == Playnite.MessageBoxResult.Yes)
                     {
                         var saverow = await _plugin.SaveController!.DownloadNewSave(Mapping, row);
@@ -324,7 +322,7 @@ namespace Graviton.Saves
                 var row = ((FrameworkElement)sender).DataContext as SaveRow;
                 if (row != null && Mapping != null)
                 {
-                    var result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"Do you want to upload this save?", "Upload Save?", MessageBoxButtons.YesNo, MessageBoxSeverity.Question);
+                    var result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("WantUploadSave"), Loc.GetString("WantUploadSaveTitle"), MessageBoxButtons.YesNo, MessageBoxSeverity.Question);
                     if (result == Playnite.MessageBoxResult.Yes)
                     {
                         var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Value.Id == row.GameID).Value;

@@ -5,8 +5,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:s="clr-namespace:Graviton.Settings"
+             xmlns:playnite="clr-namespace:Playnite;assembly=Playnite.SDK"
              mc:Ignorable="d"
-             d:DesignHeight="900" d:DesignWidth="750">
+             d:DesignHeight="540" d:DesignWidth="960">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
@@ -14,63 +15,330 @@
         <s:InvertBoolConverter x:Key="InvertBoolConverter" />
         <Style TargetType="{x:Type TextBlock}">
             <Setter Property="Foreground" Value="LightGray" />
+            <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style TargetType="{x:Type Label}">
             <Setter Property="Foreground" Value="LightGray" />
+            <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style TargetType="{x:Type PasswordBox}">
             <Setter Property="Foreground" Value="LightGray" />
         </Style>
     </UserControl.Resources>
 
-    <Grid Margin="0,0,0,10">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="170"/>
-            <ColumnDefinition Width="1*"/>
-            <ColumnDefinition Width="1*"/>
-            <ColumnDefinition Width="120"/>
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="85"/>
-            <RowDefinition Height="85"/>
-            <RowDefinition Height="45"/>
-            <RowDefinition Height="45"/>
-            <RowDefinition Height="45"/>
-            <RowDefinition Name="BasicAuthRow1" Height="0"/>
-            <RowDefinition Name="BasicAuthRow2" Height="0"/>
-            <RowDefinition Name="BasicAuthRow3" Height="0"/>
-            <RowDefinition Height="45"/>
-            <RowDefinition Height="45"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="45"/>
-        </Grid.RowDefinitions>
+    <StackPanel>
 
-        <Grid Name="ProfileIconGrid" Grid.Row="0" Grid.RowSpan="2" Width="160" Height="160" Margin="0,5,0,5">
-            <Border Name="ProfileIconBorder" BorderThickness="0" CornerRadius="8" ClipToBounds="True">
-                <Border.Background>
-                    <ImageBrush ImageSource="{Binding ProfilePath, Mode=OneWay, Converter={StaticResource imageCacheConverter}}" Stretch="UniformToFill" AlignmentX="Center" AlignmentY="Center"/>
-                </Border.Background>
-                <Border.Style>
-                    <Style TargetType="Border">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=ProfileIconGrid}" Value="True">
-                                <Setter Property="Opacity" Value="0.7"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=ProfileEditButton}" Value="True">
-                                <Setter Property="Opacity" Value="0.5"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Border.Style>
-            </Border>
+        <Border Grid.Column="0" BorderThickness="1" CornerRadius="3" BorderBrush="#22696969">
+            <Grid Margin="5,10,5,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="5*"/>
+                </Grid.ColumnDefinitions>
 
-            <Button Name="ProfileEditButton" Content="&#xf03eb;" FontSize="24" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="10" Click="Click_UpdateProfileIcon">
+                <!-- #region UserData -->
+                <Grid Grid.Column="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="30"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Grid.Column="0" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="BorderBrush" Value="#ebfeefb3"/>
+                                <Setter Property="Background" Value="#ebfeefb3"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
+                                        <Setter Property="BorderBrush" Value="#ebd5fa97"/>
+                                        <Setter Property="Background" Value="#ebd5fa97"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Unauthorized">
+                                        <Setter Property="BorderBrush" Value="#ebffbaba"/>
+                                        <Setter Property="Background" Value="#ebffbaba"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Forbidden">
+                                        <Setter Property="BorderBrush" Value="#ebffbaba"/>
+                                        <Setter Property="Background" Value="#ebffbaba"/>
+                                    </DataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding AccountState.AuthenticateFailed}" Value="{x:Null}" />
+                                            <Condition Binding="{Binding AccountState.UserID}" Value="-1" />
+                                        </MultiDataTrigger.Conditions>
+                                        <MultiDataTrigger.Setters>
+                                            <Setter Property="BorderBrush" Value="#eba6a5a5"/>
+                                            <Setter Property="Background" Value="#eba6a5a5"/>
+                                        </MultiDataTrigger.Setters>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontSize="12" FontFamily="{x:Static playnite:Fonts.NerdFont}" Margin="3,0,3,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="&#xf444;"/>
+                                        <Setter Property="Foreground" Value="#ff9f6000"/>
+                                        <!-- TODO flash when reconnecting (Claude recommendation?) -->
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
+                                                <Setter Property="Foreground" Value="#ff4f8a10"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Unauthorized">
+                                                <Setter Property="Foreground" Value="#ffd8000c"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Forbidden">
+                                                <Setter Property="Foreground" Value="#ffd8000c"/>
+                                            </DataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding AccountState.AuthenticateFailed}" Value="{x:Null}" />
+                                                    <Condition Binding="{Binding AccountState.UserID}" Value="-1" />
+                                                </MultiDataTrigger.Conditions>
+                                                <MultiDataTrigger.Setters>
+                                                    <Setter Property="Foreground" Value="#ff696969"/>
+                                                </MultiDataTrigger.Setters>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock FontSize="12" Margin="0,0,3,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Reconnecting..."/>
+                                        <Setter Property="Foreground" Value="#ff9f6000"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
+                                                <Setter Property="Text" Value="Logged In"/>
+                                                <Setter Property="Foreground" Value="#ff4f8a10"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Unauthorized">
+                                                <Setter Property="Text" Value="Logged Out"/>
+                                                <Setter Property="Foreground" Value="#ffd8000c"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Forbidden">
+                                                <Setter Property="Text" Value="Logged Out"/>
+                                                <Setter Property="Foreground" Value="#ffd8000c"/>
+                                            </DataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding AccountState.AuthenticateFailed}" Value="{x:Null}" />
+                                                    <Condition Binding="{Binding AccountState.UserID}" Value="-1" />
+                                                </MultiDataTrigger.Conditions>
+                                                <MultiDataTrigger.Setters>
+                                                    <Setter Property="Text" Value="Not Logged In"/>
+                                                    <Setter Property="Foreground" Value="#ff696969"/>
+                                                </MultiDataTrigger.Setters>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,5,0">
+                        <Label Name="RomMServerVersionText" Content="Server Ver." Foreground="DimGray" FontSize="12"/>
+                        <Label Name="RomMServerVersion" Content="{Binding AccountState.ServerVersion, Mode=OneWay}" Foreground="DimGray" FontSize="12" Margin="0"/>
+                    </StackPanel>
+
+                    <!-- #region Profile Icon -->
+                    <Grid Grid.Column="0" Grid.Row="2" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Name="ProfileIconGrid" Grid.Column="0">
+                            <Border Name="ProfileIconBorder" BorderThickness="0" CornerRadius="8" ClipToBounds="True">
+                                <Border.Background>
+                                    <ImageBrush ImageSource="{Binding ProfilePath, Mode=OneWay, Converter={StaticResource imageCacheConverter}}" Stretch="UniformToFill" AlignmentX="Center" AlignmentY="Center"/>
+                                </Border.Background>
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=ProfileIconGrid}" Value="True">
+                                                <Setter Property="Opacity" Value="0.7"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=ProfileEditButton}" Value="True">
+                                                <Setter Property="Opacity" Value="0.5"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
+                        </Grid>
+                        <Button Grid.Column="0" Name="ProfileEditButton" Content="&#xf03eb;" FontSize="24" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="10" Click="Click_UpdateProfileIcon">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                    <Setter Property="Opacity" Value="0"/>
+                                    <Setter Property="Cursor" Value="Hand"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMouseOver, ElementName=ProfileIconGrid}" Value="True">
+                                            <Setter Property="Opacity" Value="0.5"/>
+                                        </DataTrigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Opacity" Value="1"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
+                    <!-- #endregion -->
+
+                    <TextBlock Name="RomMLoggedStatus" Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" FontSize="18" FontWeight="Bold" VerticalAlignment="Bottom" Margin="5">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
+                                        <Setter Property="Text" Value="Logged In"/>
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Unauthorized">
+                                        <Setter Property="Text" Value="Logged Out"/>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Forbidden">
+                                        <Setter Property="Text" Value="Logged Out"/>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding AccountState.AuthenticateFailed}" Value="{x:Null}" />
+                                            <Condition Binding="{Binding AccountState.UserID}" Value="-1" />
+                                        </MultiDataTrigger.Conditions>
+                                        <MultiDataTrigger.Setters>
+                                            <Setter Property="Text" Value="Not Logged In"/>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger.Setters>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <TextBlock Name="RomMUser" Text="{Binding AccountState.User, Mode=OneWay}" Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" FontSize="22" FontWeight="Bold" Margin="10,0,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Name="RomMProfileType" Text="{Binding AccountState.UserType, Mode=OneWay}" Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2" Margin="20,0,0,0" Foreground="DimGray" FontSize="12">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                </Grid>
+                <!-- #endregion -->
+
+                <Border Grid.Column="0" BorderThickness="1" CornerRadius="3" BorderBrush="#41696969" Width="1" HorizontalAlignment="Right" Margin="0,0,-1,0"/>
+
+                <!-- #region Login -->
+                <Grid Grid.Column="1">
+
+                    
+                    
+                </Grid>
+                <!-- #endregion -->
+                
+            </Grid>
+        </Border>
+        <!--<Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="170"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="120"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="85"/>
+                <RowDefinition Height="85"/>
+                <RowDefinition Height="45"/>
+                <RowDefinition Height="45"/>
+                <RowDefinition Height="45"/>
+                <RowDefinition Name="BasicAuthRow1" Height="0"/>
+                <RowDefinition Name="BasicAuthRow2" Height="0"/>
+                <RowDefinition Name="BasicAuthRow3" Height="0"/>
+                <RowDefinition Height="45"/>
+                <RowDefinition Height="45"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="45"/>
+            </Grid.RowDefinitions>
+
+            </Grid>
+
+            <Button Name="TestServer" Click="Click_Authenticate" Grid.Row="1" Grid.Column="3" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Top">
+                <TextBlock Name="AuthButtonText" Text="Authenticate" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Button>
+
+            <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,10,0">
+                <Label Name="RomMServerVersionText2" Foreground="DimGray" FontSize="12" VerticalAlignment="Top" HorizontalAlignment="Center"/>
+                <Label Name="RomMServerVersion2" Content="{Binding AccountState.ServerVersion, Mode=OneWay}" Foreground="DimGray" FontSize="12" HorizontalAlignment="Center" Margin="0"/>
+            </StackPanel>
+
+            <TextBlock Name="ServerHostText" Text="RomM Server Address" Grid.Row="2" Grid.Column="0" Margin="5" VerticalAlignment="Center"/>
+            <TextBox x:Name="RomMHost" Grid.Row="2" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding Host, Mode=TwoWay}" />
+
+            <Button Name="QRAuth" Click="Click_LoginViaQR" Grid.Row="2" Grid.Column="2" Margin="0,5,5,5" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <TextBlock Name="QRAuthText" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Button>
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Margin="5" VerticalAlignment="Center">
+           <Hyperlink Name="ClientTokenLink" RequestNavigate="Hyperlink_ClientToken" NavigateUri="{Binding Host}">
+              <Run Name="TokenText" Text="Client Token"/>
+           </Hyperlink>
+            </TextBlock>
+            <TextBox Grid.Row="3" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding ClientTokenNP, Mode=TwoWay}" />
+
+            <CheckBox IsChecked="{Binding UseBasicAuth, Mode=TwoWay}" Grid.Row="4" Grid.Column="0" Margin="5" VerticalAlignment="Center" Unchecked="Unchecked_UseBasicAuth" Checked="Checked_UseBasicAuth">
+                <TextBlock Name="UseBasicAuthText" Text="Use Basic Auth" TextWrapping="Wrap" FontSize="12"/>
+            </CheckBox>
+
+            <TextBlock Name="UserPassWarning" Text="Warning! Using this is NOT recommended!" TextWrapping="Wrap" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" TextAlignment="Center" VerticalAlignment="Top" Margin="5,15,5,5" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}" Foreground="#ffb329" Grid.RowSpan="2"/>
+
+           
+            <TextBlock Name="PasswordText" Text="Password" Grid.Row="7" Grid.Column="0" Margin="40,5,5,0" VerticalAlignment="Center" HorizontalAlignment="Stretch" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
+            <TextBox x:Name="RomMPasswordUnmasked" Grid.Row="7" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Stretch" Height="25" Text="{Binding PasswordNP, Mode=TwoWay}" Visibility="Collapsed"/>
+            <PasswordBox x:Name="RomMPassword" Grid.Row="7" Grid.Column="1" PasswordChar="●" VerticalAlignment="Center" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" FontSize="14" Height="25" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
+            <Button Name="ShowPassword" Content="&#xea70;" Grid.Row="7" Grid.Column="1" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Right" Height="25" Margin="0,0,5,0" Click="Click_ShowPassword" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}">
                 <Button.Style>
                     <Style TargetType="Button">
                         <Setter Property="Background" Value="Transparent"/>
                         <Setter Property="BorderBrush" Value="Transparent"/>
-                        <Setter Property="Foreground" Value="White"/>
-                        <Setter Property="Opacity" Value="0"/>
+                        <Setter Property="Foreground" Value="DimGray"/>
+                        <Setter Property="Opacity" Value="0.7"/>
                         <Setter Property="Cursor" Value="Hand"/>
                         <Setter Property="Template">
                             <Setter.Value>
@@ -79,76 +347,16 @@
                                 </ControlTemplate>
                             </Setter.Value>
                         </Setter>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=ProfileIconGrid}" Value="True">
-                                <Setter Property="Opacity" Value="0.5"/>
-                            </DataTrigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Opacity" Value="1"/>
-                            </Trigger>
-                        </Style.Triggers>
                     </Style>
                 </Button.Style>
             </Button>
-        </Grid>
 
-        <Label Name="RomMUser" Content="{Binding AccountState.User, Mode=OneWay}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" FontSize="22" VerticalAlignment="Bottom" Margin="5,0,0,0"/>
-        <Label Name="RomMProfileType" Content="{Binding AccountState.UserType, Mode=OneWay}" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" VerticalAlignment="Top" Margin="5,0,0,0" Foreground="DimGray" FontSize="12" />
-        <Button Name="TestServer" Click="Click_Authenticate" Grid.Row="1" Grid.Column="3" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Top">
-            <TextBlock Name="AuthButtonText" Text="Authenticate" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-        </Button>
+            <Image Name="LoginQR" Margin="10" Grid.Row="3" Grid.Column="2" Grid.RowSpan="8" Grid.ColumnSpan="2" Stretch="Uniform"/>
+            <TextBlock Name="LoginQRTimer" Grid.Row="11" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Center"/>
+        </Grid> -->
 
-        <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,10,0">
-            <Label Name="RomMServerVersionText" Content="Server Ver." Foreground="DimGray" FontSize="12" VerticalAlignment="Top" HorizontalAlignment="Center"/>
-            <Label Name="RomMServerVersion" Content="{Binding AccountState.ServerVersion, Mode=OneWay}" Foreground="DimGray" FontSize="12" HorizontalAlignment="Center" Margin="0"/>
-        </StackPanel>
-
-        <TextBlock Name="ServerHostText" Text="RomM Server Address" Grid.Row="2" Grid.Column="0" Margin="5" VerticalAlignment="Center"/>
-        <TextBox x:Name="RomMHost" Grid.Row="2" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding Host, Mode=TwoWay}" />
-
-        <Button Name="QRAuth" Click="Click_LoginViaQR" Grid.Row="2" Grid.Column="2" Margin="0,5,5,5" HorizontalAlignment="Left" VerticalAlignment="Center">
-            <TextBlock Name="QRAuthText" Text="Login via QR Code" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-        </Button>
-
-        <TextBlock Grid.Row="3" Grid.Column="0" Margin="5" VerticalAlignment="Center">
-               <Hyperlink Name="ClientTokenLink" RequestNavigate="Hyperlink_ClientToken" NavigateUri="{Binding Host}">
-                  <Run Name="TokenText" Text="Client Token"/>
-               </Hyperlink>
-        </TextBlock>
-        <TextBox Grid.Row="3" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding ClientTokenNP, Mode=TwoWay}" />
-
-        <CheckBox IsChecked="{Binding UseBasicAuth, Mode=TwoWay}" Grid.Row="4" Grid.Column="0" Margin="5" VerticalAlignment="Center" Unchecked="Unchecked_UseBasicAuth" Checked="Checked_UseBasicAuth">
-            <TextBlock Name="UseBasicAuthText" Text="Use Basic Auth" TextWrapping="Wrap" FontSize="12"/>
-        </CheckBox>
-
-        <TextBlock Name="UserPassWarning" Text="Warning! Using this is NOT recommended!" TextWrapping="Wrap" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" TextAlignment="Center" VerticalAlignment="Top" Margin="5,15,5,5" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}" Foreground="#ffb329" Grid.RowSpan="2"/>
-
-        <TextBlock Name="UsernameText" Text="Username" Grid.Row="6" Grid.Column="0" Margin="40,0,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
-        <TextBox x:Name="RomMUsername" Grid.Row="6" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Stretch" Height="25" Text="{Binding UsernameNP, Mode=TwoWay}" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
-
-        <TextBlock Name="PasswordText" Text="Password" Grid.Row="7" Grid.Column="0" Margin="40,5,5,0" VerticalAlignment="Center" HorizontalAlignment="Stretch" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
-        <TextBox x:Name="RomMPasswordUnmasked" Grid.Row="7" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Stretch" Height="25" Text="{Binding PasswordNP, Mode=TwoWay}" Visibility="Collapsed"/>
-        <PasswordBox x:Name="RomMPassword" Grid.Row="7" Grid.Column="1" PasswordChar="●" VerticalAlignment="Center" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" FontSize="14" Height="25" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
-        <Button Name="ShowPassword" Content="&#xea70;" Grid.Row="7" Grid.Column="1" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Right" Height="25" Margin="0,0,5,0" Click="Click_ShowPassword" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}">
-            <Button.Style>
-                <Style TargetType="Button">
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="BorderBrush" Value="Transparent"/>
-                    <Setter Property="Foreground" Value="DimGray"/>
-                    <Setter Property="Opacity" Value="0.7"/>
-                    <Setter Property="Cursor" Value="Hand"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="Button">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-            </Button.Style>
-        </Button>
-
-        <TextBlock Name="AdvanceOptionsText" Text="Advanced Options" Grid.Row="8" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" FontWeight="Bold"/>
+        <!-- #region Advance Options -->
+        <TextBlock Name="AdvanceOptionsText" Grid.Row="8" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" FontWeight="Bold"/>
         <Separator Grid.Row="8" Grid.ColumnSpan="4" VerticalAlignment="Bottom" Margin="5"/>
 
         <TextBlock Name="CustomHeadersText" Text="Custom Headers" Grid.Row="9" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
@@ -160,7 +368,7 @@
                             <CheckBox IsChecked="{Binding Enabled}" Checked="Header_Checked" Unchecked="Header_Unchecked" />
                             <Grid>
                                 <TextBox MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="HeaderNameText" Margin="5" Text="{Binding Name, Mode=TwoWay}" IsEnabled="{Binding Enabled, Converter={StaticResource InvertBoolConverter}}"/>
-                                <TextBlock IsHitTestVisible="False" Text="Name" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
+                                <TextBlock x:Name="HeaderNamePlaceholderText" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
                                     <TextBlock.Style>
                                         <Style TargetType="{x:Type TextBlock}">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -175,7 +383,7 @@
                             </Grid>
                             <Grid>
                                 <TextBox MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="HeaderValueText" Margin="5" Text="{Binding Value, Mode=TwoWay}" IsEnabled="{Binding Enabled, Converter={StaticResource InvertBoolConverter}}"/>
-                                <TextBlock IsHitTestVisible="False" Text="Value" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
+                                <TextBlock x:Name="HeaderValuePlaceholderText" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
                                     <TextBlock.Style>
                                         <Style TargetType="{x:Type TextBlock}">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -240,12 +448,11 @@
                         </Style.Triggers>
                     </Style>
                 </Button.Style>
-                <TextBlock Name="AddHeaderText"  Text="&#xea60; New Header" Margin="2,0,5,0"/>
+                <TextBlock Name="AddHeaderText" Margin="2,0,5,0"/>
             </Button>
         </StackPanel>
+        <!-- #endregion -->
 
-        <Image Name="LoginQR" Margin="10" Grid.Row="3" Grid.Column="2" Grid.RowSpan="8" Grid.ColumnSpan="2" Stretch="Uniform"/>
-        <TextBlock Name="LoginQRTimer" Grid.Row="11" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Center"/>
-    </Grid>
+    </StackPanel>
 
 </UserControl>

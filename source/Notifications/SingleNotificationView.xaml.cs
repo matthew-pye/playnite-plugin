@@ -1,5 +1,7 @@
 ﻿using Graviton.Models.Notifications;
 
+using Playnite;
+
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Animation;
@@ -19,6 +21,8 @@ namespace Graviton.Settings
         {
             InitializeComponent();
             DataContext = new NotificationViewModel(notification);
+
+            CloseButton.ToolTip = Loc.GetString("Dismiss");
 
             Loaded += (_, _) =>
             {

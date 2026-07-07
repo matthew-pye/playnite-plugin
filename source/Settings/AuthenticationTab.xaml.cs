@@ -1,24 +1,20 @@
 ﻿using Graviton.Models;
 using Graviton.Models.Notifications;
-using Graviton.Models.RomM;
 
 using Playnite;
 
-using QRCoder;
-using QRCoder.Xaml;
+//using QRCoder;
+//using QRCoder.Xaml;
 
-using System.Diagnostics;
+//using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Media;
+//using System.Windows.Media;
 
 namespace Graviton.Settings
 {
@@ -40,36 +36,28 @@ namespace Graviton.Settings
         {
             InitializeComponent();
 
-            AuthButtonText.Text = Loc.GetString("AuthButton");
-            ServerHostText.Text = Loc.GetString("ServerText");
-            TokenText.Text = Loc.GetString("ClientToken");
-            UseBasicAuthText.Text = Loc.GetString("UseBasicAuth");
-            UserPassWarning.Text = Loc.GetString("UserPassWarning");
-            UsernameText.Text = Loc.GetString("Username");
-            PasswordText.Text = Loc.GetString("Password");
+            //AuthButtonText.Text = Loc.GetString("AuthButton");
+            //ServerHostText.Text = Loc.GetString("ServerText");
+            //TokenText.Text = Loc.GetString("ClientToken");
+            //UseBasicAuthText.Text = Loc.GetString("UseBasicAuth");
+            //UserPassWarning.Text = Loc.GetString("UserPassWarning");
+            //UsernameText.Text = Loc.GetString("Username");
+            //PasswordText.Text = Loc.GetString("Password");
+            //CustomHeadersText.Text = Loc.GetString("CustomHeaders");
+            //
+            //ProfileEditButton.FontFamily = Playnite.Fonts.NerdFont;
+            //ShowPassword.FontFamily = Playnite.Fonts.NerdFont;
+            //AddHeaderText.FontFamily = Playnite.Fonts.NerdFont;
+            //
+            //RomMPassword.Password = _plugin.Settings.PasswordNP;
+            //RomMPassword.PasswordChanged += (_, _) =>
+            //{
+            //    _plugin.Settings.PasswordNP = RomMPassword.Password;
+            //};
+            //
+            //RomMPassword.Background = RomMUsername.Background;
+            //RomMPassword.BorderBrush = RomMUsername.BorderBrush;
 
-            ProfileEditButton.FontFamily = Playnite.Fonts.NerdFont;
-            ShowPassword.FontFamily = Playnite.Fonts.NerdFont;
-            AddHeaderText.FontFamily = Playnite.Fonts.NerdFont;
-
-            RomMPassword.Password = _plugin.Settings.PasswordNP;
-            RomMPassword.PasswordChanged += (_, _) =>
-            {
-                _plugin.Settings.PasswordNP = RomMPassword.Password;
-            };
-
-            RomMPassword.Background = RomMUsername.Background;
-            RomMPassword.BorderBrush = RomMUsername.BorderBrush;
-
-        }
-
-        private async void Click_Authenticate(object sender, System.Windows.RoutedEventArgs e)
-        {
-            TestServer.IsEnabled = false;
-            await _plugin.Account!.Login();
-            TestServer.IsEnabled = true;
-
-            e.Handled = true;
         }
 
         private async void Click_UpdateProfileIcon(object sender, RoutedEventArgs e)
@@ -114,7 +102,7 @@ namespace Graviton.Settings
                 content.Add(fileContent, "avatar", fileName);
                 var result = await HttpClientSingleton.RomMPutContentAsync($"/api/users/{_plugin.Settings.AccountState.UserID}", content);
 
-                if(result != null)
+                if (result != null)
                 {
                     File.WriteAllBytes($"{_playniteAPI.UserDataDir}\\avatar.png", fileBytes);
                     _plugin.Settings.ProfilePath = $"{_playniteAPI.UserDataDir}\\avatar.png";
@@ -125,8 +113,19 @@ namespace Graviton.Settings
                 }
             }
 
-            e.Handled = true;   
+            e.Handled = true;
         }
+
+        /*private async void Click_Authenticate(object sender, System.Windows.RoutedEventArgs e)
+        {
+            TestServer.IsEnabled = false;
+            await _plugin.Account!.Login();
+            TestServer.IsEnabled = true;
+
+            e.Handled = true;
+        }
+
+        
 
         private void Hyperlink_ClientToken(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
         {
@@ -183,54 +182,6 @@ namespace Graviton.Settings
             e.Handled = true;
         }
 
-        private void Click_RemoveHeader(object sender, RoutedEventArgs e)
-        {
-            var header = ((FrameworkElement)sender).DataContext as CustomHTTPHeader;
-            if (header != null)
-            {
-                if(!string.IsNullOrEmpty(header.Name))
-                    HttpClientSingleton.Instance.DefaultRequestHeaders.Remove(header.Name);
-
-                _plugin.Settings.CustomHeaders.Remove(header);
-            }
-            
-            e.Handled = true;
-        }
-
-        private void Click_AddHeader(object sender, RoutedEventArgs e)
-        {
-            _plugin.Settings.CustomHeaders.Add(new CustomHTTPHeader());
-            e.Handled = true;
-        }
-
-        private void Header_Checked(object sender, RoutedEventArgs e)
-        {
-            var header = ((FrameworkElement)sender).DataContext as CustomHTTPHeader;
-            if (header != null && !string.IsNullOrEmpty(header.Name) && !string.IsNullOrEmpty(header.Value))
-            {
-                if (!HttpClientSingleton.Instance.DefaultRequestHeaders.Contains(header.Name))
-                    HttpClientSingleton.Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
-            }
-            else if(header != null)
-            {
-                header.Enabled = false;
-                GravitonNotify.Add(new GravitonNotification("graviton.header.ismalformed", "Custom header doesn't contain both a Name and Value!", GravitonSeverity.Error));
-            }
-                
-            e.Handled = true;
-        }
-
-        private void Header_Unchecked(object sender, RoutedEventArgs e)
-        {
-            var header = ((FrameworkElement)sender).DataContext as CustomHTTPHeader;
-            if (header != null && !string.IsNullOrEmpty(header.Name))
-            {
-                HttpClientSingleton.Instance.DefaultRequestHeaders.Remove(header.Name);
-            }
-
-            e.Handled = true;
-        }
-
         private async void Click_LoginViaQR(object sender, RoutedEventArgs e)
         {
             var initDevice = await _plugin.Account!.InitDevicePair();
@@ -256,6 +207,53 @@ namespace Graviton.Settings
             UIDispatcher.Invoke(() => LoginQR.Source = null);
             UIDispatcher.Invoke(() => LoginQRTimer.Text = "");
             UIDispatcher.Invoke(() => QRAuth.IsEnabled = true);
+
+            e.Handled = true;
+        }*/
+
+        private void Click_AddHeader(object sender, RoutedEventArgs e)
+        {
+            _plugin.Settings.CustomHeaders.Add(new CustomHTTPHeader());
+            e.Handled = true;
+        }
+        private void Click_RemoveHeader(object sender, RoutedEventArgs e)
+        {
+            var header = ((FrameworkElement)sender).DataContext as CustomHTTPHeader;
+            if (header != null)
+            {
+                if (!string.IsNullOrEmpty(header.Name))
+                    HttpClientSingleton.Instance.DefaultRequestHeaders.Remove(header.Name);
+
+                _plugin.Settings.CustomHeaders.Remove(header);
+            }
+
+            e.Handled = true;
+        }
+
+        private void Header_Checked(object sender, RoutedEventArgs e)
+        {
+            var header = ((FrameworkElement)sender).DataContext as CustomHTTPHeader;
+            if (header != null && !string.IsNullOrEmpty(header.Name) && !string.IsNullOrEmpty(header.Value))
+            {
+                if (!HttpClientSingleton.Instance.DefaultRequestHeaders.Contains(header.Name))
+                    HttpClientSingleton.Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
+            }
+            else if (header != null)
+            {
+                header.Enabled = false;
+                GravitonNotify.Add(new GravitonNotification("graviton.header.ismalformed", Loc.GetString("CustomHeaderMalformed"), GravitonSeverity.Error));
+            }
+
+            e.Handled = true;
+        }
+
+        private void Header_Unchecked(object sender, RoutedEventArgs e)
+        {
+            var header = ((FrameworkElement)sender).DataContext as CustomHTTPHeader;
+            if (header != null && !string.IsNullOrEmpty(header.Name))
+            {
+                HttpClientSingleton.Instance.DefaultRequestHeaders.Remove(header.Name);
+            }
 
             e.Handled = true;
         }

@@ -1,6 +1,8 @@
 ﻿using Graviton.Models;
 using Graviton.Models.RomM.Rom;
 
+using Playnite;
+
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
@@ -21,12 +23,16 @@ namespace Graviton.Saves
         {
             InitializeComponent();
             DataContext = this;
+
+            SelectGameText.Text = Loc.GetString("SelectGame");
+            CancelText.Text = Loc.GetString("Cancel");
+            SyncNewSaveText.Text = Loc.GetString("SyncNewSave");
         }
 
         public void LoadForPath(string savePath)
         {
             RootItems.Clear();
-            TitleText.Text = $"Select save files/folders in {savePath}";
+            TitleText.Text = Loc.GetString("SelectSaveFilesInPath", ("SavePath", savePath));
 
             if (!Directory.Exists(savePath))
                 return;

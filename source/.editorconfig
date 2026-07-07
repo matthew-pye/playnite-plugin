@@ -2,6 +2,8 @@
 # Orginize imports
 dotnet_separate_import_directive_groups = true
 dotnet_sort_system_directives_first = false
+dotnet_diagnostic.IDE0005.severity = error
+dotnet_diagnostic.CS1591.severity = none
 
 # Nullable warnings as errors
 dotnet_diagnostic.CS8600.severity = error

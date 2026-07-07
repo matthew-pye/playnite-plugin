@@ -34,6 +34,16 @@ namespace Graviton.Settings
             KeepFavouritesSyncedText.Text = Loc.GetString("KeepFavouritesSynced");
             KeepPrivateNotesSyncedText.Text = Loc.GetString("KeepPrivateNotesSynced");
             KeepPublicNotesSyncedText.Text = Loc.GetString("KeepPublicNotesSynced");
+            ExcludeGenresPlaceholderText.Text = Loc.GetString("ExcludeGenresPlaceholder");
+
+            SaveSyncTitle.Text = Loc.GetString("SaveSync");
+            SaveSyncEnabledText.Text = Loc.GetString("EnableSaveSyncing");
+            DownloadSaveOnLaunchText.Text = Loc.GetString("DownloadSaveOnLaunch");
+            UploadSaveOnFinishedText.Text = Loc.GetString("UploadSaveOnFinished");
+            ConflictStyleText.Text = Loc.GetString("SaveConflictsLabel");
+            AutoCleanupSavesText.Text = Loc.GetString("AutoCleanOldSaves");
+            SaveStateSyncTitle.Text = Loc.GetString("SaveStateSync");
+            SaveStateSyncEnabledText.Text = Loc.GetString("EnableSaveStateSyncing");
 
         }
 

@@ -76,7 +76,7 @@
                                             Margin="0,6,0,0"
                                             HorizontalAlignment="Right">
 
-									<Button Content="Cancel"
+									<Button Content="{p:LocalizedString Cancel}"
                                             MinWidth="72"
                                             Click="CancelClicked"
                                             Tag="{Binding}"

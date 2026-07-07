@@ -21,35 +21,35 @@
         <Border Name="ConflictBanner" Background="#402a1c" BorderBrush="DarkOrange" BorderThickness="1"
                 CornerRadius="4" Padding="10" Margin="0,0,0,15" Visibility="Collapsed">
             <StackPanel>
-                <TextBlock Name="ConflictText" Text="Local and remote saves differ." TextWrapping="Wrap"/>
+                <TextBlock Name="ConflictText" TextWrapping="Wrap"/>
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                     <Button Click="KeepLocal_Click" Margin="0,0,10,0">
-                        <TextBlock Text="Keep Local (upload)"/>
+                        <TextBlock Name="KeepLocalText"/>
                     </Button>
                     <Button Click="KeepRemote_Click">
-                        <TextBlock Text="Keep Remote (download)"/>
+                        <TextBlock Name="KeepRemoteText"/>
                     </Button>
                 </StackPanel>
             </StackPanel>
         </Border>
 
-        <TextBlock Name="LocalSectionText" Text="Local" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBlock Name="LocalSectionText" FontWeight="Bold" Margin="0,0,0,5"/>
         <ItemsControl Name="LocalList" Margin="0,0,0,10"/>
-        <TextBlock Name="ManualPickHintText" Text="Select the file(s) that belong to this game's save, then click Set as Save."
+        <TextBlock Name="ManualPickHintText"
                    FontStyle="Italic" Foreground="DarkGray" TextWrapping="Wrap" Visibility="Collapsed"/>
         <Button Name="SetAsSaveButton" Click="SetAsSave_Click" HorizontalAlignment="Left" Margin="0,5,0,15" Visibility="Collapsed">
-            <TextBlock Text="Set as Save"/>
+            <TextBlock Name="SetAsSaveText"/>
         </Button>
 
         <StackPanel Orientation="Horizontal">
-            <TextBlock Name="RemoteSectionText" Text="Remote" FontWeight="Bold" VerticalAlignment="Center"/>
-            <CheckBox Name="SyncEnabledBox" Content="Sync enabled" Margin="20,0,0,0" VerticalAlignment="Center"
+            <TextBlock Name="RemoteSectionText" FontWeight="Bold" VerticalAlignment="Center"/>
+            <CheckBox Name="SyncEnabledBox" Margin="20,0,0,0" VerticalAlignment="Center"
                       Checked="SyncEnabled_Changed" Unchecked="SyncEnabled_Changed"/>
         </StackPanel>
         <Separator Margin="0,5,0,10"/>
         <ItemsControl Name="RemoteList"/>
         <Button Click="UploadNew_Click" HorizontalAlignment="Left" Margin="0,10,0,0">
-            <TextBlock Text="Upload New Save"/>
+            <TextBlock Name="UploadNewSaveText"/>
         </Button>
     </StackPanel>
 </UserControl>

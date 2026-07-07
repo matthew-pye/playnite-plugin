@@ -22,6 +22,16 @@ namespace Graviton.Saves
         {
             InitializeComponent();
             RemoteList.ItemsSource = RemoteSaves;
+
+            ConflictText.Text = Loc.GetString("SaveConflictBannerText");
+            KeepLocalText.Text = Loc.GetString("KeepLocalUpload");
+            KeepRemoteText.Text = Loc.GetString("KeepRemoteDownload");
+            LocalSectionText.Text = Loc.GetString("Local");
+            ManualPickHintText.Text = Loc.GetString("ManualPickHint");
+            SetAsSaveText.Text = Loc.GetString("SetAsSave");
+            RemoteSectionText.Text = Loc.GetString("Remote");
+            SyncEnabledBox.Content = Loc.GetString("SyncEnabled");
+            UploadNewSaveText.Text = Loc.GetString("UploadNewSave");
         }
 
         public void LoadForGame(Game game, EmulatorMapping mapping)

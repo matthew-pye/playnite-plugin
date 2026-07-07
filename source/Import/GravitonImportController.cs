@@ -37,7 +37,7 @@ namespace Graviton.Import
             var enabledMappings = _plugin.Settings.Mappings.Where(m => m.Enabled).ToList();
             if (!enabledMappings.Any())
             {
-                _playniteAPI.Notifications.Add(new NotificationMessage($"graviton.emulators.notconfigured", Loc.GetString("NoEmulatorsConfigured"), NotificationSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification($"graviton.emulators.notconfigured", Loc.GetString("NoEmulatorsConfigured"), GravitonSeverity.Warn));
                 return new List<Game>();
             }
 

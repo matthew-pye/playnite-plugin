@@ -143,7 +143,7 @@ namespace Graviton.Settings
                 return false;
             else if (platforms.Count <= 0)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.GET.no.platforms", $"No platforms pulled from server!", GravitonSeverity.Warn));
+                GravitonNotify.Add(new GravitonNotification("graviton.GET.no.platforms", Loc.GetString("NoPlatforms"), GravitonSeverity.Warn));
                 return false;
             }
 
@@ -199,7 +199,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.GET.profileicon.failed", $"{Loc.GetString("GETProfileIconFailed")} - {ex.Message}", GravitonSeverity.Error, ex));
+                GravitonNotify.Add(new GravitonNotification("graviton.GET.profileicon.failed", Loc.GetString("GETProfileIconFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
                 _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
             }
 
@@ -222,7 +222,7 @@ namespace Graviton.Settings
                     }
                     catch (Exception ex)
                     {
-                        GravitonNotify.Add(new GravitonNotification("graviton.GET.device.failed", $"{Loc.GetString("GETDevicesFailed")} - {ex.Message}", GravitonSeverity.Warn, ex));
+                        GravitonNotify.Add(new GravitonNotification("graviton.GET.device.failed", Loc.GetString("GETDevicesFailed", ("Error", ex.Message)), GravitonSeverity.Warn, ex));
                         return false;
                     }
                 }
@@ -251,7 +251,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.POST.device.failed", $"{Loc.GetString("CreateNewDeviceFailed")} - {ex.Message}", GravitonSeverity.Error, ex));
+                GravitonNotify.Add(new GravitonNotification("graviton.POST.device.failed", Loc.GetString("CreateNewDeviceFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
                 return false;
             }
         }
@@ -322,7 +322,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.login.QR.failed", $"Failed to setup QR code - {ex.Message}", GravitonSeverity.Error, ex));
+                GravitonNotify.Add(new GravitonNotification("graviton.login.QR.failed", Loc.GetString("FailedQRSetup", ("Error", ex.Message)), GravitonSeverity.Error, ex));
                 return null;
             }
         }
@@ -353,7 +353,7 @@ namespace Graviton.Settings
 
                         if (result == null)
                         {
-                            GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Response was null", GravitonSeverity.Error));
+                            GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairWasNull"))), GravitonSeverity.Error));
                             return false;
                         }
 
@@ -370,18 +370,18 @@ namespace Graviton.Settings
                             var result = await response.Content.ReadAsStringAsync();
                             if (result.Contains("expired_token"))
                             {
-                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Expired", GravitonSeverity.Info));
+                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairExpired"))), GravitonSeverity.Info));
                                 return false;
                             }
                             if (result.Contains("access_denied"))
                             {
-                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Request was denied", GravitonSeverity.Warn));
+                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairWasDenied"))), GravitonSeverity.Warn));
                                 return false;
                             }
 
                             if (response.StatusCode != HttpStatusCode.BadRequest)
                             {
-                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - {ex.Message}", GravitonSeverity.Error, ex));
+                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", ex.Message)), GravitonSeverity.Error, ex));
                                 return false;
                             }
                         }
@@ -396,7 +396,7 @@ namespace Graviton.Settings
                 intervalMillisecs -= 100;
             }
 
-            GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", $"Failed to pair with server - Expired", GravitonSeverity.Info));
+            GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairExpired"))), GravitonSeverity.Info));
             return false;
         }
 

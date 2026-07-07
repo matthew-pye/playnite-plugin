@@ -30,8 +30,19 @@ namespace Graviton.Settings
             OptionText.Text = Loc.GetString("Options");
             AutoExtractROMText.Text = Loc.GetString("AutoExtractROMs");
             Preferm3uText.Text = Loc.GetString("PreferM3U");
+            MappingEnabledText.Text = Loc.GetString("MappingEnabled");
+            AutoExtractROMCheckBox.ToolTip = Loc.GetString("AutoExtractROMsTooltip");
+            PreferM3UCheckBox.ToolTip = Loc.GetString("PreferM3UTooltip");
+            SaveOptionText.Text = Loc.GetString("SaveOptions");
+            SaveLayoutStyleText.Text = Loc.GetString("AutoSaveDetection");
+            SaveLayoutStyleCombo.ToolTip = Loc.GetString("AutoSaveDetectionTooltip");
+            SaveExtensionsText.Text = Loc.GetString("SaveExtensions");
+            SaveLocText.Text = Loc.GetString("SaveLocation");
+            SaveLocButtonText.Text = Loc.GetString("Browse");
+            OpenSaveManagerText.Text = $"\uf019 {Loc.GetString("ManageSaves")}";
 
             AddMappingIcon.FontFamily = Playnite.Fonts.NerdFont;
+            OpenSaveManagerText.FontFamily = Playnite.Fonts.NerdFont;
         }
 
         private void AddMapping_Click(object sender, RoutedEventArgs e)
@@ -84,7 +95,7 @@ namespace Graviton.Settings
             var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
             if(mapping != null)
             {
-                var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{mapping.GetDescriptionLines()}", "Are you sure you want to delete this mapping?", Playnite.MessageBoxButtons.YesNoCancel);
+                var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{mapping.GetDescriptionLines()}", Loc.GetString("DeleteMappingConfirmTitle"), Playnite.MessageBoxButtons.YesNoCancel);
 
                 if (response == Playnite.MessageBoxResult.Yes)
                 {
@@ -133,7 +144,7 @@ namespace Graviton.Settings
             if (mapping == null) return;
 
             var tab = new MappingSaveTab();
-            tab.Load(mapping);
+            _ = tab.Load(mapping);
 
             SaveManagerWindow.Show(Loc.GetString("SaveManagerTitle"), tab);
         }

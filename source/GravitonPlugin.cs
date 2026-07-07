@@ -260,7 +260,7 @@ namespace Graviton
                         int romMID;
                         if (!int.TryParse(updatedGame.OldData.LibraryGameId?.Split(':')[0], out romMID))
                         {
-                            GravitonNotify.Add(new GravitonNotification($"graviton.{updatedGame.OldData.LibraryGameId}.update.status.failed", $"{updatedGame.OldData.LibraryGameId}: {Loc.GetString("LibraryIdConvertFailed")}", GravitonSeverity.Error));
+                            GravitonNotify.Add(new GravitonNotification($"graviton.{updatedGame.OldData.LibraryGameId}.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", updatedGame.OldData.LibraryGameId!.ToString())), GravitonSeverity.Error));
                             continue;
                         }
 
@@ -328,12 +328,12 @@ namespace Graviton
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.install.idmalformed", $"Failed to install - {ex.Message}", GravitonSeverity.Error, ex));
+                GravitonNotify.Add(new GravitonNotification("graviton.install.idmalformed", Loc.GetString("InstallFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
                 return [];
             }
         }
         
-        public override Task OnGameStartingAsync(OnGameStartingEventArgs args)
+        public override async Task OnGameStartingAsync(OnGameStartingEventArgs args)
         {
             if (args.Game.LibraryId == Id && args.Game.LibraryGameId != null)
             {
@@ -341,7 +341,7 @@ namespace Graviton
                 {
                     var rom = ImportedGames!.FirstOrDefault(x => x.Key == args.Game.LibraryGameId);
                     if(rom.Value != null)
-                        SaveController!.NegotiateSaves(rom.Value).GetAwaiter().GetResult();
+                        await SaveController!.NegotiateSaves(rom.Value);
                 }
 
                 if (Settings.SaveStateSyncEnabled)
@@ -352,9 +352,10 @@ namespace Graviton
                 _ = Task.Run(async () => await StatusController?.StartActivityHeartbeat(args.Game.LibraryGameId)!);
             }
 
-            return base.OnGameStartingAsync(args);
+            await base.OnGameStartingAsync(args);
+            return;
         }
-        public override Task OnGameStoppedAsync(OnGameStoppedEventArgs args)
+        public override async Task OnGameStoppedAsync(OnGameStoppedEventArgs args)
         {
             var stoppedTime = DateTime.UtcNow;
 
@@ -367,7 +368,7 @@ namespace Graviton
                 {
                     var rom = ImportedGames!.FirstOrDefault(x => x.Key == args.StartingArgs.Game.LibraryGameId);
                     if (rom.Value != null)
-                        SaveController!.NegotiateSaves(rom.Value).GetAwaiter().GetResult();
+                        await SaveController!.NegotiateSaves(rom.Value);
                 }
 
                 if (Settings.SaveStateSyncEnabled)
@@ -380,8 +381,8 @@ namespace Graviton
                 //
                 //}
             }
-
-            return base.OnGameStoppedAsync(args);
+            await base.OnGameStoppedAsync(args);
+            return;
         }
 
         #region Views
@@ -412,8 +413,8 @@ namespace Graviton
         {
             return
             [
-                new MenuItemDescriptor($"graviton.open.web", "Open RomM library"),
-                new MenuItemDescriptor($"graviton.open.account", "Open RomM profile")
+                new MenuItemDescriptor($"graviton.open.web", Loc.GetString("OpenRomMLibrary")),
+                new MenuItemDescriptor($"graviton.open.account", Loc.GetString("OpenRomMProfile"))
             ];
         }
         public override ICollection<MenuItemImpl>? GetAppMenuItems(GetAppMenuItemsArgs args)
@@ -434,7 +435,7 @@ namespace Graviton
 
                 if (args.ItemId == "graviton.open.web")
                 {
-                    return [new MenuItemImpl("Open RomM library", (_) => { Process.Start(new ProcessStartInfo(Settings.Host) { UseShellExecute = true })?.Dispose(); })];
+                    return [new MenuItemImpl(Loc.GetString("OpenRomMLibrary"), (_) => { Process.Start(new ProcessStartInfo(Settings.Host) { UseShellExecute = true })?.Dispose(); })];
                 }
 
                 if (Settings.AccountState.UserID < 0)
@@ -445,7 +446,7 @@ namespace Graviton
 
                 if (args.ItemId == "graviton.open.account")
                 {
-                    return [new MenuItemImpl("Open RomM profile", (_) => { Process.Start(new ProcessStartInfo($"{Settings.Host}/user/{Settings.AccountState.UserID}") { UseShellExecute = true })?.Dispose(); })];
+                    return [new MenuItemImpl(Loc.GetString("OpenRomMProfile"), (_) => { Process.Start(new ProcessStartInfo($"{Settings.Host}/user/{Settings.AccountState.UserID}") { UseShellExecute = true })?.Dispose(); })];
                 }
             }    
 
@@ -456,8 +457,8 @@ namespace Graviton
         {
             return
             [
-                new MenuItemDescriptor("graviton.manage.saves", "Manage Saves"),
-                new MenuItemDescriptor("graviton.manage.savestates", "Manage Save States")
+                new MenuItemDescriptor("graviton.manage.saves", Loc.GetString("ManageSaves")),
+                new MenuItemDescriptor("graviton.manage.savestates", Loc.GetString("ManageSaveStates"))
             ];
         }
 
@@ -468,7 +469,7 @@ namespace Graviton
 
             if (args.ItemId == "graviton.manage.saves")
             {
-                return [new MenuItemImpl("Manage Saves", (_) =>
+                return [new MenuItemImpl(Loc.GetString("ManageSaves"), (_) =>
                 {
                     var mappingID = args.Games[0].ExternalIdentifiers?.FirstOrDefault(y => y.TypeId == "gravitonmappingid");
                     if(mappingID == null)
@@ -480,7 +481,7 @@ namespace Graviton
 
                     var tab = new Saves.SinglegameSaveTab();
                     tab.LoadForGame(args.Games[0], mapping);
-                    SaveManagerWindow.Show("Manage Saves", tab);
+                    SaveManagerWindow.Show(Loc.GetString("ManageSaves"), tab);
                 })];
             }
 

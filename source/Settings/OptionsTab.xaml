@@ -46,7 +46,7 @@
             <TextBlock Name="ExcludeGenresText" Text="Exclude Genres" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5"/>
             <Grid>
                 <TextBox  MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="SearchTermTextBox" Margin="5" Text="{Binding ExcludeGenres, Mode=TwoWay}"/>
-                <TextBlock IsHitTestVisible="False" Text="Adventure;Platform;RPG;" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
+                <TextBlock x:Name="ExcludeGenresPlaceholderText" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
                     <TextBlock.Style>
                         <Style TargetType="{x:Type TextBlock}">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -89,21 +89,21 @@
             <TextBlock Name="KeepPublicNotesSyncedText" Text="Keep public notes in sync with RomM" TextWrapping="Wrap"/>
         </CheckBox>
 
-        <TextBlock Name="SaveSyncTitle" Text="Save Sync" FontWeight="Bold" Margin="0,10,0,0" />
+        <TextBlock Name="SaveSyncTitle" FontWeight="Bold" Margin="0,10,0,0" />
         <Separator Margin="0,5,0,10" />
 
         <CheckBox IsChecked="{Binding SaveSyncEnabled, Mode=TwoWay}" Margin="5">
-            <TextBlock Name="SaveSyncEnabledText" Text="Enable Save Syncing" TextWrapping="Wrap"/>
+            <TextBlock Name="SaveSyncEnabledText" TextWrapping="Wrap"/>
         </CheckBox>
         <CheckBox IsChecked="{Binding DownloadSaveOnLaunch, Mode=TwoWay}" Margin="5" IsEnabled="{Binding SaveSyncEnabled}">
-            <TextBlock Name="DownloadSaveOnLaunchText" Text="Download save on game launch" TextWrapping="Wrap"/>
+            <TextBlock Name="DownloadSaveOnLaunchText" TextWrapping="Wrap"/>
         </CheckBox>
         <CheckBox IsChecked="{Binding UploadSaveOnFinished, Mode=TwoWay}" Margin="5" IsEnabled="{Binding SaveSyncEnabled}">
-            <TextBlock Name="UploadSaveOnFinishedText" Text="Upload save after game finished" TextWrapping="Wrap"/>
+            <TextBlock Name="UploadSaveOnFinishedText" TextWrapping="Wrap"/>
         </CheckBox>
 
         <StackPanel Orientation="Horizontal" Margin="5">
-            <TextBlock Name="ConflictStyleText" Text="Save conflicts" MinWidth="120" VerticalAlignment="Center"/>
+            <TextBlock Name="ConflictStyleText" MinWidth="120" VerticalAlignment="Center"/>
             <ComboBox MinWidth="180" ItemsSource="{Binding Source={StaticResource SaveConflictStyleValues}}"
               SelectedItem="{Binding SaveConflictStyle, Mode=TwoWay}" IsEnabled="{Binding SaveSyncEnabled}">
                 <ComboBox.ItemTemplate>
@@ -116,14 +116,14 @@
 
         <StackPanel Orientation="Horizontal" Margin="5">
             <CheckBox IsChecked="{Binding AutoCleanupSaves, Mode=TwoWay}" VerticalAlignment="Center" IsEnabled="{Binding SaveSyncEnabled}"/>
-            <TextBlock Name="AutoCleanupSavesText" Text="Auto-clean old saves on server, keeping the newest" Margin="5,0,5,0" VerticalAlignment="Center"/>
+            <TextBlock Name="AutoCleanupSavesText" Margin="5,0,5,0" VerticalAlignment="Center"/>
             <psdk:NumericUpDown Value="{Binding AutoCleanupSavesLimit, Mode=TwoWay}" Minimum="1" Maximum="100" Width="70" IsEnabled="{Binding AutoCleanupSaves}"/>
         </StackPanel>
 
-        <TextBlock Name="SaveStateSyncTitle" Text="Save State Sync" FontWeight="Bold" Margin="0,10,0,0" />
+        <TextBlock Name="SaveStateSyncTitle" FontWeight="Bold" Margin="0,10,0,0" />
         <Separator Margin="0,5,0,10" />
         <CheckBox IsChecked="{Binding SaveStateSyncEnabled, Mode=TwoWay}" Margin="5">
-            <TextBlock Name="SaveStateSyncEnabledText" Text="Enable Save State Syncing" TextWrapping="Wrap"/>
+            <TextBlock Name="SaveStateSyncEnabledText" TextWrapping="Wrap"/>
         </CheckBox>
 
     </StackPanel>

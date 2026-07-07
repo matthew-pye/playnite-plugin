@@ -248,7 +248,7 @@ namespace Graviton.Import
                 }
                 else
                 {
-                    GravitonNotify.Add(new GravitonNotification($"graviton.import.game.{ROM.Id}.failed", $"{Loc.GetString("ROMImportFailed")} {ROM.Name} [ID:{ROM.Id}]", GravitonSeverity.Error));
+                    GravitonNotify.Add(new GravitonNotification($"graviton.import.game.{ROM.Id}.failed", Loc.GetString("ROMImportFailed", ("GameName", ROM.Name!), ("ROMID", ROM.Id)), GravitonSeverity.Error));
                     return null;
                 }
             }
@@ -526,7 +526,7 @@ namespace Graviton.Import
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification($"graviton.write.rom.{ROM.Id}", $"{Loc.GetString("ROMDataSaveFailed")} - {ex.Message}", GravitonSeverity.Error, ex));
+                GravitonNotify.Add(new GravitonNotification($"graviton.write.rom.{ROM.Id}", Loc.GetString("ROMDataSaveFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
                 return null;
             }
 

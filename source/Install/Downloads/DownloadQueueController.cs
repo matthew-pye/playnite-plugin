@@ -46,7 +46,7 @@ namespace Graviton.Install.Downloads
 
             activeDownloads[item.GameId] = item.Cts;
 
-            item.SetStatus(DownloadStatus.Queued, "Queued");
+            item.SetStatus(DownloadStatus.Queued, Loc.GetString("DownloadStatusQueued"));
             item.SetProgress(0, 1, true);
 
             UIDispatcher.Invoke(() => DownloadQueueVM.Items.Add(item));
@@ -78,7 +78,7 @@ namespace Graviton.Install.Downloads
             {
                 await DownloadAndInstall(item, req).ConfigureAwait(false);
 
-                item.SetStatus(DownloadStatus.Completed, "Completed");
+                item.SetStatus(DownloadStatus.Completed, Loc.GetString("DownloadStatusCompleted"));
                 item.SetProgress(item.ProgressMaximum, item.ProgressMaximum, false);
 
                 await Task.Delay(1000).ConfigureAwait(false);
@@ -87,7 +87,7 @@ namespace Graviton.Install.Downloads
             }
             catch (OperationCanceledException)
             {
-                item.SetStatus(DownloadStatus.Canceled, "Canceled");
+                item.SetStatus(DownloadStatus.Canceled, Loc.GetString("DownloadStatusCanceled"));
                 item.SetProgress(0, 1, false);
 
                 TryCleanupPartialInstall(req);
@@ -99,7 +99,7 @@ namespace Graviton.Install.Downloads
             }
             catch (Exception ex)
             {
-                item.SetStatus(DownloadStatus.Failed, "Failed");
+                item.SetStatus(DownloadStatus.Failed, Loc.GetString("DownloadStatusFailed"));
                 TryCleanupPartialInstall(req);
 
                 req.OnFailed?.Invoke(ex);
@@ -118,7 +118,7 @@ namespace Graviton.Install.Downloads
         {
             var ct = item.Cts.Token;
 
-            item.SetStatus(DownloadStatus.Downloading, "Downloading...");
+            item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloading"));
             item.SetProgress(0, 1, true);
 
             using (var response = await HttpClientSingleton.Instance.GetAsync(req.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct)
@@ -161,12 +161,12 @@ namespace Graviton.Install.Downloads
                             {
                                 item.SetProgress(downloaded, totalBytes.Value, false);
                                 var pct = (double)downloaded / totalBytes.Value * 100.0;
-                                item.SetStatus(DownloadStatus.Downloading, "Downloading... " + pct.ToString("0") + "%");
+                                item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloadingPct", ("Percent", pct.ToString("0"))));
                             }
                             else
                             {
                                 item.SetProgress(downloaded, Math.Max(1, downloaded), true);
-                                item.SetStatus(DownloadStatus.Downloading, "Downloading...");
+                                item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloading"));
                             }
                         }
                     }
@@ -176,7 +176,7 @@ namespace Graviton.Install.Downloads
             // Extract if needed (we treat extract as 0..100 in its own bar)
             if (req.HasMultipleFiles || (req.AutoExtract && IsFileCompressed(req.GamePath)))
             {
-                item.SetStatus(DownloadStatus.Extracting, "Extracting...");
+                item.SetStatus(DownloadStatus.Extracting, Loc.GetString("DownloadStatusExtracting"));
                 Logger.Info($"Extracting {req.GamePath}...");
 
                 if (req.Use7z && !string.IsNullOrEmpty(req.PathTo7Z) && req.PathTo7Z.EndsWith("7z.exe", StringComparison.OrdinalIgnoreCase))
@@ -262,7 +262,7 @@ namespace Graviton.Install.Downloads
                     done++;
                     item.SetProgress(done, total, false);
                     var pct = total > 0 ? (double)done / total * 100.0 : 100.0;
-                    item.SetStatus(DownloadStatus.Extracting, "Extracting... " + pct.ToString("0") + "%");
+                    item.SetStatus(DownloadStatus.Extracting, Loc.GetString("DownloadStatusExtractingPct", ("Percent", pct.ToString("0"))));
                 }
             }
         }

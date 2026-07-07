@@ -2,7 +2,6 @@
 
 using Graviton.Models;
 using Graviton.Models.Notifications;
-using Graviton.Models.RomM;
 using Graviton.Models.RomM.Platform;
 using Graviton.Models.RomM.Saves;
 
@@ -11,6 +10,7 @@ using Playnite;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -21,6 +21,7 @@ using System.Windows.Media.Imaging;
 
 namespace Graviton.Settings
 {
+
     public partial class GravitonAccountState : ObservableObject
     {
         [ObservableProperty] private string _serverVersion = "---";
@@ -30,6 +31,7 @@ namespace Graviton.Settings
         [ObservableProperty] private string _deviceID = "";
 
         [ObservableProperty] private DateTime? _lastAuthenticated;
+        [ObservableProperty] [property:JsonIgnore] private HttpStatusCode? _authenticateFailed;
 
         [ObservableProperty] private ObservableCollection<RomMPlatform> _romMPlatforms = new ObservableCollection<RomMPlatform>();
     }
@@ -285,7 +287,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.settings.save.failed", $"{Loc.GetString("SettingSaveFailed")} - {ex.Message}", GravitonSeverity.Error, ex));
+                GravitonNotify.Add(new GravitonNotification("graviton.settings.save.failed", Loc.GetString("SettingSaveFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
             }
         }
 
@@ -309,7 +311,7 @@ namespace Graviton.Settings
                 }
                 catch (Exception ex)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.settings.load.failed", $"{Loc.GetString("SettingLoadFailed")} - {ex.Message}", GravitonSeverity.Error, ex));
+                    GravitonNotify.Add(new GravitonNotification("graviton.settings.load.failed", Loc.GetString("SettingLoadFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
                 }
             }
 
@@ -364,6 +366,10 @@ namespace Graviton.Settings
         {
             if (value == null) 
                 return string.Empty;
+
+            var locKey = $"{value.GetType().Name}_{value}";
+            if (Loc.IsStringId(locKey))
+                return Loc.GetString(locKey);
 
             var field = value.GetType().GetField(value.ToString()!);
             if (field == null) 

@@ -9,6 +9,7 @@
              xmlns:msav="clr-namespace:Graviton.Models.RomM.Saves"     
              xmlns:m="clr-namespace:Graviton.Models"
              xmlns:playnite="clr-namespace:Playnite;assembly=Playnite.SDK"
+             xmlns:loc="clr-namespace:Playnite"
              d:DesignHeight="900" d:DesignWidth="750"
              mc:Ignorable="d">
 
@@ -67,7 +68,7 @@
 
                         <Grid>
                             <TextBox Width="220" VerticalContentAlignment="Center" x:Name="FilterBox" TextChanged="FilterBox_TextChanged"/>
-                            <TextBlock IsHitTestVisible="False" Text="Filter by game name" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
+                            <TextBlock IsHitTestVisible="False" Text="{loc:LocalizedString FilterByGameName}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
                                 <TextBlock.Style>
                                     <Style TargetType="{x:Type TextBlock}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -91,7 +92,7 @@
                         <Grid>
                             <TextBlock Name="LocalTitleText" FontSize="18" Margin="0,0,0,5"/>
                             <Button Click="AddNewSave_Click" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="5">
-                                <TextBlock x:Name="AddSaveButtonText" Text="Add Manual Save"/>
+                                <TextBlock x:Name="AddSaveButtonText"/>
                             </Button>
                         </Grid>
                         <Separator Margin="0,0,0,10"/>
@@ -104,15 +105,15 @@
                                 <ColumnDefinition Width="2*"/>
                                 <ColumnDefinition Width="1*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Game" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="1" Text="Local Files" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="2" Text="Status" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="3" Text="Sync" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="4" Text="Enabled?" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="0" Text="{loc:LocalizedString Game}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="1" Text="{loc:LocalizedString LocalFiles}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="2" Text="{loc:LocalizedString Status}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="3" Text="{loc:LocalizedString Sync}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="4" Text="{loc:LocalizedString Enabled}" FontWeight="Bold"/>
                         </Grid>
                         <Separator/>
 
-                        <TextBlock Name="EmptyStateText" Text="No local saves found for this platform yet" Foreground="DarkGray" FontStyle="Italic" Margin="5" Visibility="Collapsed"/>
+                        <TextBlock Name="EmptyStateText" Foreground="DarkGray" FontStyle="Italic" Margin="5" Visibility="Collapsed"/>
                         <ProgressBar Name="LoadingLocalBar" Margin="5" Width="Auto" Height="4" IsIndeterminate="True" Visibility="Collapsed"/>
                         
                         <ItemsControl Name="LocalRowsList">
@@ -137,23 +138,23 @@
                                         <TextBlock Grid.Column="2" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="Unknown"/>
+                                                    <Setter Property="Text" Value="{loc:LocalizedString SaveStatusUnknown}"/>
                                                     <Setter Property="Foreground" Value="Gray"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.upload}">
-                                                            <Setter Property="Text" Value="Local Newer"/>
+                                                            <Setter Property="Text" Value="{loc:LocalizedString SaveStatusLocalNewer}"/>
                                                             <Setter Property="Foreground" Value="#31708f"/>
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.download}">
-                                                            <Setter Property="Text" Value="Remote Newer"/>
+                                                            <Setter Property="Text" Value="{loc:LocalizedString SaveStatusRemoteNewer}"/>
                                                             <Setter Property="Foreground" Value="#9f6000"/>
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.conflict}">
-                                                            <Setter Property="Text" Value="Conflict"/>
+                                                            <Setter Property="Text" Value="{loc:LocalizedString SaveStatusConflict}"/>
                                                             <Setter Property="Foreground" Value="#d8000c"/>
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.no_op}">
-                                                            <Setter Property="Text" Value="Synced"/>
+                                                            <Setter Property="Text" Value="{loc:LocalizedString SaveStatusSynced}"/>
                                                             <Setter Property="Foreground" Value="#31708f"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
@@ -175,7 +176,7 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </Button.Style>
-                                            <TextBlock Name="SyncSaveButtonText" Text="Sync" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Name="SyncSaveButtonText" Text="{loc:LocalizedString Sync}" TextTrimming="CharacterEllipsis"/>
                                         </Button>
 
 
@@ -226,14 +227,14 @@
                                 <ColumnDefinition Width="2*"/>
                                 <ColumnDefinition Width="2*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Game" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="1" Text="File" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="2" Text="Status" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="3" Text="Sync" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="0" Text="{loc:LocalizedString Game}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="1" Text="{loc:LocalizedString File}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="2" Text="{loc:LocalizedString Status}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="3" Text="{loc:LocalizedString Sync}" FontWeight="Bold"/>
                         </Grid>
                         <Separator/>
 
-                        <TextBlock Name="EmptyRemoteText" Text="No remote saves found for this platform yet — click Refresh." Foreground="DarkGray" FontStyle="Italic" Margin="5" Visibility="Collapsed"/>
+                        <TextBlock Name="EmptyRemoteText" Foreground="DarkGray" FontStyle="Italic" Margin="5" Visibility="Collapsed"/>
                         <ProgressBar Name="LoadingRemoteBar" Margin="5" Width="Auto" Height="4" IsIndeterminate="True" Visibility="Collapsed"/>
 
                         <ItemsControl Name="RemoteRowsList">
@@ -257,23 +258,23 @@
                                         <TextBlock Grid.Column="2" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="Unknown"/>
+                                                    <Setter Property="Text" Value="{loc:LocalizedString SaveStatusUnknown}"/>
                                                     <Setter Property="Foreground" Value="Gray"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.upload}">
-                                                            <Setter Property="Text" Value="Local Newer"/>
+                                                            <Setter Property="Text" Value="{loc:LocalizedString SaveStatusLocalNewer}"/>
                                                             <Setter Property="Foreground" Value="#31708f"/>
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.download}">
-                                                            <Setter Property="Text" Value="Remote Newer"/>
+                                                            <Setter Property="Text" Value="{loc:LocalizedString SaveStatusRemoteNewer}"/>
                                                             <Setter Property="Foreground" Value="#9f6000"/>
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.conflict}">
-                                                            <Setter Property="Text" Value="Conflict"/>
+                                                            <Setter Property="Text" Value="{loc:LocalizedString SaveStatusConflict}"/>
                                                             <Setter Property="Foreground" Value="#d8000c"/>
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.no_op}">
-                                                            <Setter Property="Text" Value="Synced"/>
+                                                            <Setter Property="Text" Value="{loc:LocalizedString SaveStatusSynced}"/>
                                                             <Setter Property="Foreground" Value="#31708f"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
@@ -282,7 +283,7 @@
                                         </TextBlock>
 
                                         <StackPanel Orientation="Horizontal" Grid.Column="3">
-                                            <TextBlock VerticalAlignment="Center" Margin="5" Text="&#xea6c;" Foreground="#d8000c" FontFamily="{x:Static playnite:Fonts.NerdFont}" ToolTip="Save has no slot, a copy of this save will be created when syncing!">
+                                            <TextBlock VerticalAlignment="Center" Margin="5" Text="&#xea6c;" Foreground="#d8000c" FontFamily="{x:Static playnite:Fonts.NerdFont}" ToolTip="{loc:LocalizedString NoSlotWarning}">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -308,7 +309,7 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
-                                                <TextBlock Name="SyncSaveButtonText" Text="Sync" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Name="SyncSaveButtonText" Text="{loc:LocalizedString Sync}" TextTrimming="CharacterEllipsis"/>
                                             </Button>
                                         </StackPanel>
                                         
@@ -330,14 +331,14 @@
                                 <ColumnDefinition Width="2*"/>
                                 <ColumnDefinition Width="2*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Game" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="1" Text="Local Files" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="2" Text="Status" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="3" Text="Sync" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="0" Text="{loc:LocalizedString Game}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="1" Text="{loc:LocalizedString LocalFiles}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="2" Text="{loc:LocalizedString Status}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="3" Text="{loc:LocalizedString Sync}" FontWeight="Bold"/>
                         </Grid>
                         <Separator/>
 
-                        <TextBlock Name="EmptyUnmatchedText" Text="All possible auto detected files are already matched for this platform" Foreground="DarkGray" FontStyle="Italic" Margin="5" Visibility="Collapsed"/>
+                        <TextBlock Name="EmptyUnmatchedText" Foreground="DarkGray" FontStyle="Italic" Margin="5" Visibility="Collapsed"/>
                         <ProgressBar Name="LoadingAutoBar" Margin="5" Width="Auto" Height="4" IsIndeterminate="True" Visibility="Collapsed"/>
 
                         <ItemsControl Name="AutoDetectRowsList">
@@ -362,23 +363,23 @@
                                             <TextBlock Grid.Column="2" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
-                                                        <Setter Property="Text" Value="Unknown"/>
+                                                        <Setter Property="Text" Value="{loc:LocalizedString SaveStatusUnknown}"/>
                                                         <Setter Property="Foreground" Value="Gray"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.upload}">
-                                                                <Setter Property="Text" Value="Local Newer"/>
+                                                                <Setter Property="Text" Value="{loc:LocalizedString SaveStatusLocalNewer}"/>
                                                                 <Setter Property="Foreground" Value="#31708f"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.download}">
-                                                                <Setter Property="Text" Value="Remote Newer"/>
+                                                                <Setter Property="Text" Value="{loc:LocalizedString SaveStatusRemoteNewer}"/>
                                                                 <Setter Property="Foreground" Value="#9f6000"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.conflict}">
-                                                                <Setter Property="Text" Value="Conflict"/>
+                                                                <Setter Property="Text" Value="{loc:LocalizedString SaveStatusConflict}"/>
                                                                 <Setter Property="Foreground" Value="#d8000c"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.no_op}">
-                                                                <Setter Property="Text" Value="Synced"/>
+                                                                <Setter Property="Text" Value="{loc:LocalizedString SaveStatusSynced}"/>
                                                                 <Setter Property="Foreground" Value="#31708f"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -397,7 +398,7 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
-                                                <TextBlock Name="SyncSaveButtonText" Text="Sync" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Name="SyncSaveButtonText" Text="{loc:LocalizedString Sync}" TextTrimming="CharacterEllipsis"/>
                                             </Button>
                                         </Grid>
                                         <Separator Margin="10,0,10,0"/>

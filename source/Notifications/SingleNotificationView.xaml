@@ -93,7 +93,7 @@
                 <TextBlock Grid.Column="0" Text="{Binding Icon}" Foreground="{Binding TextColour}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,2,0,2"/>
                 <TextBlock Grid.Column="1" Text="{Binding Message}" Foreground="{Binding TextColour}" HorizontalAlignment="Left" VerticalAlignment="Center" TextWrapping="Wrap" Margin="10,0,0,0"/>
 
-                <Button Grid.Column="2" x:Name="CloseButton" Click="CloseButton_Click" Width="16" Height="16" VerticalAlignment="Center" Margin="8,0,0,0" Cursor="Hand" ToolTip="Dismiss">
+                <Button Grid.Column="2" x:Name="CloseButton" Click="CloseButton_Click" Width="16" Height="16" VerticalAlignment="Center" Margin="8,0,0,0" Cursor="Hand" >
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Background" Value="Transparent"/>
