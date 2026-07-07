@@ -37,7 +37,7 @@ namespace Graviton.Models.RomM
     public class RomMNegotiateResponse
     {
         [JsonPropertyName("session_id")]
-        public string? SessionID { get; set; }
+        public int SessionID { get; set; }
 
         [JsonPropertyName("operations")]
         public List<RomMNegotiateOperations> Operations { get; set; } = new List<RomMNegotiateOperations>();
@@ -52,7 +52,7 @@ namespace Graviton.Models.RomM
         public int ROMID { get; set; }
 
         [JsonPropertyName("save_id")]
-        public int SaveID { get; set; }
+        public int? SaveID { get; set; }
 
         [JsonPropertyName("file_name")]
         public string? FileName { get; set; }

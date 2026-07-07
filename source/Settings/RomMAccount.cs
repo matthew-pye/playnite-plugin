@@ -200,6 +200,7 @@ namespace Graviton.Settings
             catch (Exception ex)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.GET.profileicon.failed", $"{Loc.GetString("GETProfileIconFailed")} - {ex.Message}", GravitonSeverity.Error, ex));
+                _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
             }
 
             return false;

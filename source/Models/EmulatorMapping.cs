@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
-using Graviton.Models.RomM;
 using Graviton.Models.RomM.Platform;
 using Graviton.Models.RomM.Saves;
 
@@ -32,10 +31,12 @@ namespace Graviton.Models
         [ObservableProperty] private int _romMPlatformId = -1;
         [ObservableProperty] private string _destinationPath = "";
 
-        [ObservableProperty] private SaveLayoutStyle _saveLayout = SaveLayoutStyle.SingleFile;
+        [ObservableProperty] private SaveLayoutStyle _findSaveLayout = SaveLayoutStyle.Disabled;
+        [ObservableProperty] private string _findSaveFileExtensions = "";
         [ObservableProperty] private string _savePath = "";
+        [ObservableProperty] private bool _extractArchivedSaves = true;
         [ObservableProperty] private string _saveStatePath = "";
-        [ObservableProperty] private string _saveFileExtensions = "";
+       
 
         [ObservableProperty] [property: JsonIgnore] private bool _isSelected = false;
 

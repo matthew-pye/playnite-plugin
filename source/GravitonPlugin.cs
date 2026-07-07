@@ -149,6 +149,9 @@ namespace Graviton
             if(!Directory.Exists($"{PluginDataPath}/Games/"))
                 Directory.CreateDirectory($"{PluginDataPath}/Games/");
 
+            if (!Directory.Exists($"{PluginDataPath}/temp/"))
+                Directory.CreateDirectory($"{PluginDataPath}/temp/");
+
             GravitonNotify.Initialize(Instance, PlayniteApi, Logger);
             HttpClientSingleton.Initialize(Instance);
 
@@ -336,7 +339,9 @@ namespace Graviton
             {
                 if(Settings.SaveSyncEnabled)
                 {
-                    // Sync Saves
+                    var rom = ImportedGames!.FirstOrDefault(x => x.Key == args.Game.LibraryGameId);
+                    if(rom.Value != null)
+                        SaveController!.NegotiateSaves(rom.Value).GetAwaiter().GetResult();
                 }
 
                 if (Settings.SaveStateSyncEnabled)
@@ -360,7 +365,9 @@ namespace Graviton
 
                 if (Settings.SaveSyncEnabled)
                 {
-                    // Sync Saves
+                    var rom = ImportedGames!.FirstOrDefault(x => x.Key == args.StartingArgs.Game.LibraryGameId);
+                    if (rom.Value != null)
+                        SaveController!.NegotiateSaves(rom.Value).GetAwaiter().GetResult();
                 }
 
                 if (Settings.SaveStateSyncEnabled)

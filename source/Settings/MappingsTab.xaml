@@ -235,8 +235,9 @@
             
 
             <StackPanel Orientation="Horizontal" Margin="5">
-                <TextBlock Name="SaveLayoutStyleText" Text="Save Layout" MinWidth="100" MaxWidth="150" VerticalAlignment="Center"/>
-                <ComboBox MinWidth="200" ItemsSource="{Binding Source={StaticResource SaveLayoutStyleValues}}" SelectedItem="{Binding SaveLayout, Mode=TwoWay}">
+                <TextBlock Name="SaveLayoutStyleText" Text="Auto Save Detection" MinWidth="150" MaxWidth="200" VerticalAlignment="Center"/>
+                <ComboBox MinWidth="200" ItemsSource="{Binding Source={StaticResource SaveLayoutStyleValues}}" SelectedItem="{Binding FindSaveLayout, Mode=TwoWay}" 
+                          ToolTip="Detects files that share the same name as the ROM filename &#x0a;&#x0a;[Single File]: Looks for a single save file of a set extention&#x0a;&#x9;e.g. Mario Kart DS (Europe).sav&#x0a;[Fixed Set]: Looks for all files that match the extentions set&#x0a;&#x9;e.g. Pokemon FireRed (Europe).sav&#x0a;&#x9;Pokemon FireRed (Europe).rtc&#x0a;[Folder]: Looks for a folder name that matches&#x0a;&#x9;e.g. {SaveDirectory}/Final Fantasy VII (Europe)/">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}"/>
@@ -246,9 +247,9 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="5">
-                <TextBlock Name="SaveExtensionsText" Text="Save Extensions" MinWidth="100" MaxWidth="150" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                <TextBlock Name="SaveExtensionsText" Text="Save Extensions" MinWidth="150" MaxWidth="200" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left"/>
                 <Grid>
-                    <TextBox MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="SearchTermTextBox" Text="{Binding SaveFileExtensions, Mode=TwoWay}"/>
+                    <TextBox MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="SearchTermTextBox" Text="{Binding FindSaveFileExtensions, Mode=TwoWay}"/>
                     <TextBlock IsHitTestVisible="False" Text="srm;sav;gci" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="DarkGray">
                         <TextBlock.Style>
                             <Style TargetType="{x:Type TextBlock}">
@@ -265,7 +266,7 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="5">
-                <TextBlock Name="SaveLocText" Text="Save Location" MinWidth="100" MaxWidth="150" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                <TextBlock Name="SaveLocText" Text="Save Location" MinWidth="150" MaxWidth="200" VerticalAlignment="Center" HorizontalAlignment="Left"/>
                 <TextBox MinWidth="300" VerticalAlignment="Center" Text="{Binding SavePath, Mode=TwoWay}"/>
                 <Button Click="Click_BrowseSaveDestination" Margin="5,0,0,0">
                     <TextBlock Name="SaveLocButtonText" Text="Browse"/>

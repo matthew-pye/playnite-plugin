@@ -30,7 +30,7 @@ namespace Graviton.Saves
             Mapping = mapping;
 
             GameNameText.Text = game.Name;
-            ManualPickHintText.Visibility = SetAsSaveButton.Visibility = mapping.SaveLayout == SaveLayoutStyle.ManualPerGame ? Visibility.Visible : Visibility.Collapsed;
+            ManualPickHintText.Visibility = SetAsSaveButton.Visibility = mapping.FindSaveLayout == SaveLayoutStyle.Disabled ? Visibility.Visible : Visibility.Collapsed;
 
         }
 

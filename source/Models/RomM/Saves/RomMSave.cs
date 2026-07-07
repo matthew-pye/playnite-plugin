@@ -16,9 +16,16 @@ namespace Graviton.Models.RomM.Saves
         [Description("Single File")] SingleFile,
         [Description("Fixed Set")] FixedSet,
         [Description("Folder")] WholeFolder,
-        [Description("Manual Per-Game")] ManualPerGame
+        [Description("Disabled")] Disabled
     }
 
+    public enum SaveSyncStatus
+    {
+        upload,
+        download,
+        conflict,
+        no_op
+    }
     internal class RomMSave
     {
         [JsonPropertyName("id")]
@@ -51,14 +58,24 @@ namespace Graviton.Models.RomM.Saves
         [JsonPropertyName("content_hash")]
         public string? ContentHash { get; set; }
 
+        [JsonPropertyName("created_at")]
+        public string? CreatedAt { get; set; }
+
+        [JsonPropertyName("updated_at")]
+        public string? UpdatedAt { get; set; }
+
     }
 
     public class LocalSave
     {
-        public List<string> SourceFilePaths { get; set; } = new();
+        public Guid LocalID { get; set; } = Guid.NewGuid();
 
-        public int SaveID { get; set; }
-        public string? Slot { get; set; }
+        public List<string> SourceFilePaths { get; set; } = new();
+        public string PackedFilename { get; set; } = string.Empty;
+
+        public int SaveID { get; set; } = -1;
+        public string? Slot { get; set; } = "Autosave";
+        [JsonIgnore] public string ? UpdatedAt { get; set; }
         public bool Enabled { get; set; } = false;
     }
 }

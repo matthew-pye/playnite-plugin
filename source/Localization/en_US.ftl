@@ -94,4 +94,5 @@ EnableAllSaves = Enable All Saves
 SaveManagerTitle = Save Manager
 LocalSaves = Local Saves
 RemoteSaves = Remote Saves
+UnsyncedAutoDetectSaves = Unsynced Auto-Detected Saves
 NoSavePathSet = Save Path in mapping not set cannot download save!
