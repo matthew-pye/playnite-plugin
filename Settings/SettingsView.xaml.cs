@@ -4,7 +4,6 @@ using Newtonsoft.Json.Linq;
 using Playnite.SDK;
 
 using QRCoder;
-using QRCoder.Xaml;
 
 using RomM.Models.RomM;
 using RomM.Models.RomM.Platform;
@@ -12,6 +11,8 @@ using RomM.Models.RomM.Platform;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -21,6 +22,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace RomM.Settings
 {
@@ -205,11 +207,27 @@ namespace RomM.Settings
         {
             using (var qrGenerator = new QRCodeGenerator())
             using (var qrCodeData = qrGenerator.CreateQrCode($"{SettingsViewModel.Instance.RomMHost}{pairDevice.VerificationPathComplete}", QRCodeGenerator.ECCLevel.Q))
-            using (var qrCode = new XamlQRCode(qrCodeData))
+            using (var qrCode = new QRCode(qrCodeData))
             {
-                DrawingImage qrImage = qrCode.GetGraphic(20);
-                qrImage.Freeze();
-                LoginQR.Source = qrImage;
+                Bitmap bitmap = qrCode.GetGraphic(
+                                        pixelsPerModule: 20,
+                                        darkColor: System.Drawing.Color.Black,
+                                        lightColor: System.Drawing.Color.White,
+                                        drawQuietZones: true);
+
+                var memory = new MemoryStream();
+
+                bitmap.Save(memory, ImageFormat.Png);
+                memory.Position = 0;
+
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.StreamSource = memory;
+                image.EndInit();
+                image.Freeze();
+
+                LoginQR.Source = image;
             }
 
             var intervalMillisecs = pairDevice.Interval * 1000;
