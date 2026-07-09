@@ -34,6 +34,7 @@ namespace RomM.Settings
         [JsonIgnore] private string _romMHost = "";
         [JsonIgnore] private string _romMServerVersion = "---";
         [JsonIgnore] private string _romMClientToken = "";
+        [JsonIgnore] private string _romMDeviceID = "";
         [JsonIgnore] private bool _useBasicAuth = true;
         [JsonIgnore] private string _romMUsername = "";
         [JsonIgnore] private string _romMPassword = "";
@@ -107,7 +108,7 @@ namespace RomM.Settings
                 OnPropertyChanged();
             }
         }
-        public void UpdateNotifcationBar(string Message, bool IsError = false)
+        public void UpdateNotificationBar(string Message, bool IsError = false)
         {
             if (IsError)
             {
@@ -155,6 +156,16 @@ namespace RomM.Settings
             }
         }
         public static readonly Regex ApiTokenPattern = new Regex(@"^rmm_[0-9a-f]{64}$", RegexOptions.Compiled);
+
+        public string RomMDeviceID
+        {
+            get => _romMDeviceID;
+            set
+            {
+                _romMDeviceID = value;
+                OnPropertyChanged();
+            }
+        }
 
         public bool UseBasicAuth
         {
@@ -439,7 +450,7 @@ namespace RomM.Settings
                 }
 
                 if(UpdateNotificationBar)
-                    UpdateNotifcationBar("Authenticated!");
+                    this.UpdateNotificationBar("Authenticated!");
             }
             catch (Exception ex)
             {
@@ -451,7 +462,7 @@ namespace RomM.Settings
                 LogManager.GetLogger().Error($"Failed to read response! {ex}");
 
                 if (UpdateNotificationBar)
-                    UpdateNotifcationBar($"Authentication failed: {ex.Message}", true);
+                    this.UpdateNotificationBar($"Authentication failed: {ex.Message}", true);
 
                 PlayniteAPI.Notifications.Add(new NotificationMessage($"RomMPlugin.Authentication.Failed.{ex.Message}", $"RomM - Authentication failed: {ex.Message}", NotificationType.Error));
                 return false;
@@ -536,12 +547,12 @@ namespace RomM.Settings
                 if (string.IsNullOrEmpty(m.DestinationPathResolved))
                 {
                     mappingErrors.Add($"{m.MappingId}: No destination path specified.");
-                    UpdateNotifcationBar($"{m.MappingId}: No destination path specified.", true);
+                    UpdateNotificationBar($"{m.MappingId}: No destination path specified.", true);
                 }
                 else if (!Directory.Exists(m.DestinationPathResolved))
                 {
                     mappingErrors.Add($"{m.MappingId}: Destination path doesn't exist ({m.DestinationPathResolved}).");
-                    UpdateNotifcationBar($"{m.MappingId}: Destination path doesn't exist ({m.DestinationPathResolved}).", true);
+                    UpdateNotificationBar($"{m.MappingId}: Destination path doesn't exist ({m.DestinationPathResolved}).", true);
                 }
             });
 
