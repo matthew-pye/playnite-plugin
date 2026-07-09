@@ -150,13 +150,13 @@ namespace RomM.Settings
                     var heartbeat = jsonResponse.ToObject<RomMHeartbeat>();
 
                     string raw = (heartbeat.SystemInfo.Version ?? string.Empty).Split('-', '+')[0];
-                    if (Version.TryParse(raw, out Version parsed))
-                        if(parsed.CompareTo(new Version(5,0,0)) < 0)
-                        {
-                            SettingsViewModel.Instance.UpdateNotificationBar("Server needs to be v5.0 or later!", true);
-                            e.Handled = true;
-                            return;
-                        }
+                    if (!Version.TryParse(raw, out var parsed) || parsed.CompareTo(new Version(5, 0, 0)) < 0)
+                    {
+                        SettingsViewModel.Instance.UpdateNotificationBar("Server needs to be v5.0.0 or later!", true);
+                        e.Handled = true;
+                        return;
+                    }
+
                 }
 
                 var deviceInit = new
@@ -221,71 +221,77 @@ namespace RomM.Settings
             LoginQR.Visibility = Visibility.Visible;          
             QRDetails.Visibility = Visibility.Visible;
 
-            while ((DateTime.UtcNow - startTime) < expiresin)
+            try
             {
-                if (intervalMillisecs <= 0)
+                while ((DateTime.UtcNow - startTime) < expiresin)
                 {
-                    HttpResponseMessage response = null;
-                    string result = ""; 
-                    try
+                    if (intervalMillisecs <= 0)
                     {
-                        var deviceCodeContent = new StringContent(JsonConvert.SerializeObject(deviceCode), Encoding.UTF8, "application/json");
-                        response = await HttpClientSingleton.Instance.PostAsync($"{SettingsViewModel.Instance.RomMHost}/api/auth/device/token", deviceCodeContent);
-                        result = await response.Content.ReadAsStringAsync();
-                        response.EnsureSuccessStatusCode();
+                        HttpResponseMessage response = null;
+                        string result = "";
+                        try
+                        {
+                            var deviceCodeContent = new StringContent(JsonConvert.SerializeObject(deviceCode), Encoding.UTF8, "application/json");
+                            response = await HttpClientSingleton.Instance.PostAsync($"{SettingsViewModel.Instance.RomMHost}/api/auth/device/token", deviceCodeContent);
+                            result = await response.Content.ReadAsStringAsync();
+                            response.EnsureSuccessStatusCode();
 
-                        var pairResponse = JsonConvert.DeserializeObject<RomMPairDeviceResponse>(result);
-                        SettingsViewModel.Instance.RomMDeviceID = pairResponse.DeviceID;
-                        SettingsViewModel.Instance.RomMClientToken = pairResponse.AccessToken;
-                        SettingsViewModel.Instance.TestConnection(true, true);
-                        break;
+                            var pairResponse = JsonConvert.DeserializeObject<RomMPairDeviceResponse>(result);
+                            SettingsViewModel.Instance.RomMDeviceID = pairResponse.DeviceID;
+                            SettingsViewModel.Instance.RomMClientToken = pairResponse.AccessToken;
+                            SettingsViewModel.Instance.TestConnection(true, true);
+                            break;
 
+                        }
+                        catch (Exception ex)
+                        {
+                            SettingsViewModel.Instance.Notify = false;
+                            if (response == null)
+                            {
+                                SettingsViewModel.Instance.UpdateNotificationBar($"Failed to login via QR! - No Response", true);
+                                LogManager.GetLogger().Error($"Failed to login via QR! - No Response - {ex}");
+                                break;
+                            }
+
+                            if (result.Contains("expired_token"))
+                            {
+                                SettingsViewModel.Instance.UpdateNotificationBar($"Failed to login via QR! - Login Expired", true);
+                                LogManager.GetLogger().Error($"Failed to login via QR! - Login Expired");
+                                break;
+                            }
+                            if (result.Contains("access_denied"))
+                            {
+                                SettingsViewModel.Instance.UpdateNotificationBar($"Failed to login via QR! - Access Denied", true);
+                                LogManager.GetLogger().Error($"Failed to login via QR! - Access Denied");
+                                break;
+                            }
+
+                            if (response.StatusCode != HttpStatusCode.BadRequest)
+                            {
+                                SettingsViewModel.Instance.UpdateNotificationBar($"Failed to login via QR! - {ex.Message}", true);
+                                LogManager.GetLogger().Error($"Failed to login via QR! - {ex}");
+                                break;
+                            }
+                        }
+
+                        intervalMillisecs = pairDevice.Interval * 1000;
                     }
-                    catch (Exception ex)
-                    {
-                        SettingsViewModel.Instance.Notify = false;
-                        if (response == null)
-                        {
-                            SettingsViewModel.Instance.UpdateNotificationBar($"Failed to login via QR! - No Response", true);
-                            LogManager.GetLogger().Error($"Failed to login via QR! - No Response - {ex}");
-                            break;
-                        }
 
-                        if (result.Contains("expired_token"))
-                        {
-                            SettingsViewModel.Instance.UpdateNotificationBar($"Failed to login via QR! - Login Expired", true);
-                            LogManager.GetLogger().Error($"Failed to login via QR! - Login Expired");
-                            break;
-                        }
-                        if (result.Contains("access_denied"))
-                        {
-                            SettingsViewModel.Instance.UpdateNotificationBar($"Failed to login via QR! - Access Denied", true);
-                            LogManager.GetLogger().Error($"Failed to login via QR! - Access Denied");
-                            break;
-                        }
+                    LoginQRTimer.Text = $"Expires in: {(((expiresin - (DateTime.UtcNow - startTime)).TotalMilliseconds) / 1000).ToString("F1")}s";
 
-                        if (response.StatusCode != HttpStatusCode.BadRequest)
-                        {
-                            SettingsViewModel.Instance.UpdateNotificationBar($"Failed to login via QR! - {ex.Message}", true);
-                            LogManager.GetLogger().Error($"Failed to login via QR! - {ex}");
-                            break;
-                        }
-                    }
-
-                    intervalMillisecs = pairDevice.Interval * 1000;
+                    await Task.Delay(100);
+                    intervalMillisecs -= 100;
                 }
-
-                LoginQRTimer.Text = $"Expires in: {(((expiresin - (DateTime.UtcNow - startTime)).TotalMilliseconds) / 1000).ToString("F1")}s";
-
-                await Task.Delay(100);
-                intervalMillisecs -= 100;
             }
-
-            LoginQR.Visibility = Visibility.Hidden;
-            LoginQRBorder.Visibility = Visibility.Hidden;
-            QRAuth.IsEnabled = true;
-            QRDetails.Visibility = Visibility.Hidden;
-            QRVerificationPath = "";
+            catch (Exception){}
+            finally
+            {
+                LoginQR.Visibility = Visibility.Hidden;
+                LoginQRBorder.Visibility = Visibility.Hidden;
+                QRAuth.IsEnabled = true;
+                QRDetails.Visibility = Visibility.Hidden;
+                QRVerificationPath = "";
+            }    
         }
 
         private void Click_OpenInBrowser(object sender, RoutedEventArgs e)
@@ -340,119 +346,130 @@ namespace RomM.Settings
             int size = pixelsPerModule * 7;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            var lightBrush = new SolidBrush(light);
-
-            using (var outer = new GraphicsPath())
-            using (var middleHole = new GraphicsPath())
+            using (var lightBrush = new SolidBrush(light))
             {
-                outer.AddPath(RoundedRect(new RectangleF(x, y, size, size), pixelsPerModule * 1.6f), false);
-
-                int border = (int)(pixelsPerModule * 0.6f);
-                middleHole.AddPath(RoundedRect(new RectangleF(x + border, y + border, size - border * 2, size - border * 2), pixelsPerModule * 1.2f), false);
-
-                using (var region = new System.Drawing.Region(outer))
+                using (var outer = new GraphicsPath())
+                using (var middleHole = new GraphicsPath())
                 {
-                    region.Exclude(middleHole);
-                    g.FillRegion(lightBrush, region);
-                }
-            }
+                    using (var outerShape = RoundedRect(new RectangleF(x, y, size, size), pixelsPerModule * 1.6f))
+                    {
+                        outer.AddPath(outerShape, false);
+                    }
 
-            int centre = pixelsPerModule * 2;
-            using (var centerPath = RoundedRect(new RectangleF(x + centre, y + centre, size - centre * 2, size - centre * 2), pixelsPerModule * 0.8f))
-            {
-                g.FillPath(lightBrush, centerPath);
-            }
+                    int border = (int)(pixelsPerModule * 0.6f);
+                    using (var middleHoleShape = RoundedRect(new RectangleF(x + border, y + border, size - border * 2, size - border * 2), pixelsPerModule * 1.2f))
+                    {
+                        middleHole.AddPath(middleHoleShape, false);
+                    }
+
+                    using (var region = new System.Drawing.Region(outer))
+                    {
+                        region.Exclude(middleHole);
+                        g.FillRegion(lightBrush, region);
+                    }
+                }
+
+                int centre = pixelsPerModule * 2;
+                using (var centerPath = RoundedRect(new RectangleF(x + centre, y + centre, size - centre * 2, size - centre * 2), pixelsPerModule * 0.8f))
+                {
+                    g.FillPath(lightBrush, centerPath);
+                }
+            }      
         }
 
         private BitmapImage BuildQRCode(string data)
         {
-            Bitmap logo = new Bitmap(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"icon.png"));
-
-            using (var qrGenerator = new QRCodeGenerator())
-            using (var qrCodeData = qrGenerator.CreateQrCode(data, QRCodeGenerator.ECCLevel.H))
-            using (var qrCode = new ArtQRCode(qrCodeData))
+            using (Bitmap logo = new Bitmap(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"icon.png")))
             {
-                var lightcolour = System.Drawing.Color.FromArgb(255, 250, 250, 245);
-                var darkcolour = System.Drawing.Color.FromArgb(255, 20, 20, 30);
-
-                Bitmap qrBitmap = qrCode.GetGraphic(
-                                                pixelsPerModule: 20,
-                                                darkColor: lightcolour,
-                                                lightColor: darkcolour,
-                                                backgroundColor: System.Drawing.Color.Transparent,
-                                                pixelSizeFactor: 0.7,
-                                                drawQuietZones: false
-                                                );
-
-                const int padding = 20;
-                Bitmap canvas = new Bitmap(qrBitmap.Width + padding * 2, qrBitmap.Height + padding * 2, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
-                using (Graphics g = Graphics.FromImage(canvas))
+                using (var qrGenerator = new QRCodeGenerator())
+                using (var qrCodeData = qrGenerator.CreateQrCode(data, QRCodeGenerator.ECCLevel.H))
+                using (var qrCode = new ArtQRCode(qrCodeData))
                 {
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-                    g.InterpolationMode = InterpolationMode.NearestNeighbor;
-                    g.PixelOffsetMode = PixelOffsetMode.Half;
+                    var lightcolour = System.Drawing.Color.FromArgb(255, 250, 250, 245);
+                    var darkcolour = System.Drawing.Color.FromArgb(255, 20, 20, 30);
 
-                    g.DrawImage(qrBitmap, padding, padding);
+                    Bitmap qrBitmap = qrCode.GetGraphic(
+                                                    pixelsPerModule: 20,
+                                                    darkColor: lightcolour,
+                                                    lightColor: darkcolour,
+                                                    backgroundColor: System.Drawing.Color.Transparent,
+                                                    pixelSizeFactor: 0.7,
+                                                    drawQuietZones: false
+                                                    );
 
-                    int finderSize = 7 * 20;
-                    using (var coverPath = new GraphicsPath())
+                    const int padding = 20;
+                    Bitmap canvas = new Bitmap(qrBitmap.Width + padding * 2, qrBitmap.Height + padding * 2, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+                    using (Graphics g = Graphics.FromImage(canvas))
                     {
-                        coverPath.AddRectangle(new RectangleF(padding, padding, finderSize, finderSize));
-                        coverPath.AddRectangle(new RectangleF(canvas.Width - padding - finderSize, padding, finderSize, finderSize));
-                        coverPath.AddRectangle(new RectangleF(padding, canvas.Height - padding - finderSize, finderSize, finderSize));
+                        g.SmoothingMode = SmoothingMode.AntiAlias;
+                        g.InterpolationMode = InterpolationMode.NearestNeighbor;
+                        g.PixelOffsetMode = PixelOffsetMode.Half;
 
-                        GraphicsState clearState = g.Save();
-                        g.SetClip(coverPath);
-                        g.Clear(System.Drawing.Color.Transparent);
-                        g.Restore(clearState);
+                        g.DrawImage(qrBitmap, padding, padding);
+
+                        int finderSize = 7 * 20;
+                        using (var coverPath = new GraphicsPath())
+                        {
+                            coverPath.AddRectangle(new RectangleF(padding, padding, finderSize, finderSize));
+                            coverPath.AddRectangle(new RectangleF(canvas.Width - padding - finderSize, padding, finderSize, finderSize));
+                            coverPath.AddRectangle(new RectangleF(padding, canvas.Height - padding - finderSize, finderSize, finderSize));
+
+                            GraphicsState clearState = g.Save();
+                            g.SetClip(coverPath);
+                            g.Clear(System.Drawing.Color.Transparent);
+                            g.Restore(clearState);
+                        }
+
+                        DrawFinder(g, 20, 20, 20, lightcolour);
+                        DrawFinder(g, canvas.Width - 20 - finderSize, 20, 20, lightcolour);
+                        DrawFinder(g, 20, canvas.Height - 20 - finderSize, 20, lightcolour);
+
+                        int iconSize = (int)(canvas.Width * 0.20);
+                        int iconX = (canvas.Width - iconSize) / 2;
+                        int iconY = (canvas.Height - iconSize) / 2;
+
+                        const int badgePadding = 20;
+                        const int badgeRadius = 20;
+
+                        RectangleF badgeRect = new RectangleF(iconX - badgePadding, iconY - badgePadding, iconSize + badgePadding * 2, iconSize + badgePadding * 2);
+                        using (var badgePath = RoundedRect(badgeRect, badgeRadius))
+                        {
+                            GraphicsState state = g.Save();
+                            g.SetClip(badgePath);
+                            g.Clear(System.Drawing.Color.Transparent);
+                            g.Restore(state);
+
+                            using (GraphicsPath logoPath = RoundedRect(new RectangleF(iconX, iconY, iconSize, iconSize), 16))
+                            {
+                                state = g.Save();
+                                g.SetClip(logoPath);
+                                g.DrawImage(logo, iconX, iconY, iconSize, iconSize);
+                                g.Restore(state);
+                            }
+                        }
                     }
 
-                    DrawFinder(g, 20, 20, 20, lightcolour);
-                    DrawFinder(g, canvas.Width - 20 - finderSize, 20, 20, lightcolour);
-                    DrawFinder(g, 20, canvas.Height - 20 - finderSize, 20, lightcolour);
+                    qrBitmap.Dispose();
+                    qrBitmap = canvas;
 
-                    int iconSize = (int)(canvas.Width * 0.20);
-                    int iconX = (canvas.Width - iconSize) / 2;
-                    int iconY = (canvas.Height - iconSize) / 2;
+                    using (MemoryStream memory = new MemoryStream())
+                    {
+                        qrBitmap.Save(memory, ImageFormat.Png);
+                        memory.Position = 0;
 
-                    const int badgePadding = 20;
-                    const int badgeRadius = 20;
+                        BitmapImage bitmapImage = new BitmapImage();
+                        bitmapImage.BeginInit();
+                        bitmapImage.StreamSource = memory;
+                        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmapImage.EndInit();
+                        bitmapImage.Freeze();
 
-                    RectangleF badgeRect = new RectangleF(iconX - badgePadding, iconY - badgePadding, iconSize + badgePadding * 2, iconSize + badgePadding * 2);
-                    GraphicsPath badgePath = RoundedRect(badgeRect, badgeRadius);
-
-                    GraphicsState state = g.Save();
-                    g.SetClip(badgePath);
-                    g.Clear(System.Drawing.Color.Transparent);
-                    g.Restore(state);
-
-                    GraphicsPath logoPath = RoundedRect(new RectangleF(iconX, iconY, iconSize, iconSize), 16);
-
-                    state = g.Save();
-                    g.SetClip(logoPath);
-                    g.DrawImage(logo, iconX, iconY, iconSize, iconSize);
-                    g.Restore(state);
+                        qrBitmap.Dispose();
+                        return bitmapImage;
+                    }
                 }
-
-                qrBitmap.Dispose();
-                qrBitmap = canvas;
-
-                using (MemoryStream memory = new MemoryStream())
-                {
-                    qrBitmap.Save(memory, ImageFormat.Png);
-                    memory.Position = 0;
-
-                    BitmapImage bitmapImage = new BitmapImage();
-                    bitmapImage.BeginInit();
-                    bitmapImage.StreamSource = memory;
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapImage.EndInit();
-                    bitmapImage.Freeze();
-
-                    return bitmapImage;
-                }
-            }
+            } 
         }
         #endregion
 
