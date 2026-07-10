@@ -6,6 +6,7 @@
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:s="clr-namespace:Graviton.Settings"
              xmlns:playnite="clr-namespace:Playnite;assembly=Playnite.SDK"
+             xmlns:loc="clr-namespace:Playnite"
              mc:Ignorable="d"
              d:DesignHeight="540" d:DesignWidth="960">
 
@@ -15,13 +16,14 @@
         <s:InvertBoolConverter x:Key="InvertBoolConverter" />
         <Style TargetType="{x:Type TextBlock}">
             <Setter Property="Foreground" Value="LightGray" />
-            <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style TargetType="{x:Type Label}">
             <Setter Property="Foreground" Value="LightGray" />
-            <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style TargetType="{x:Type PasswordBox}">
+            <Setter Property="Foreground" Value="LightGray" />
+        </Style>
+        <Style TargetType="{x:Type Expander}">
             <Setter Property="Foreground" Value="LightGray" />
         </Style>
     </UserControl.Resources>
@@ -34,9 +36,13 @@
                     <ColumnDefinition Width="2*"/>
                     <ColumnDefinition Width="5*"/>
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
                 <!-- #region UserData -->
-                <Grid Grid.Column="0">
+                <Grid Grid.Column="0" Grid.Row="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
@@ -49,6 +55,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
+                    <!-- #region Status -->
                     <Border Grid.Row="0" Grid.Column="0" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5">
                         <Border.Style>
                             <Style TargetType="Border">
@@ -86,7 +93,6 @@
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Text" Value="&#xf444;"/>
                                         <Setter Property="Foreground" Value="#ff9f6000"/>
-                                        <!-- TODO flash when reconnecting (Claude recommendation?) -->
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
                                                 <Setter Property="Foreground" Value="#ff4f8a10"/>
@@ -144,6 +150,7 @@
                             </TextBlock>
                         </StackPanel>
                     </Border>
+                    <!-- #endregion -->
 
                     <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,5,0">
                         <Label Name="RomMServerVersionText" Content="Server Ver." Foreground="DimGray" FontSize="12"/>
@@ -238,11 +245,23 @@
                     <TextBlock Name="RomMUser" Text="{Binding AccountState.User, Mode=OneWay}" Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" FontSize="22" FontWeight="Bold" Margin="10,0,0,0">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Setter Property="Visibility" Value="Visible"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
-                                        <Setter Property="Visibility" Value="Visible"/>
+                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Unauthorized">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
                                     </DataTrigger>
+                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Forbidden">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding AccountState.AuthenticateFailed}" Value="{x:Null}" />
+                                            <Condition Binding="{Binding AccountState.UserID}" Value="-1" />
+                                        </MultiDataTrigger.Conditions>
+                                        <MultiDataTrigger.Setters>
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </MultiDataTrigger.Setters>
+                                    </MultiDataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </TextBlock.Style>
@@ -250,11 +269,23 @@
                     <TextBlock Name="RomMProfileType" Text="{Binding AccountState.UserType, Mode=OneWay}" Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2" Margin="20,0,0,0" Foreground="DimGray" FontSize="12">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Setter Property="Visibility" Value="Visible"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
-                                        <Setter Property="Visibility" Value="Visible"/>
+                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Unauthorized">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
                                     </DataTrigger>
+                                    <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Forbidden">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding AccountState.AuthenticateFailed}" Value="{x:Null}" />
+                                            <Condition Binding="{Binding AccountState.UserID}" Value="-1" />
+                                        </MultiDataTrigger.Conditions>
+                                        <MultiDataTrigger.Setters>
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </MultiDataTrigger.Setters>
+                                    </MultiDataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </TextBlock.Style>
@@ -263,103 +294,258 @@
                 </Grid>
                 <!-- #endregion -->
 
-                <Border Grid.Column="0" BorderThickness="1" CornerRadius="3" BorderBrush="#41696969" Width="1" HorizontalAlignment="Right" Margin="0,0,-1,0"/>
+                <Border Grid.Column="0" Grid.RowSpan="2" BorderThickness="1" CornerRadius="3" BorderBrush="#41696969" Width="1" HorizontalAlignment="Right" Margin="0,0,-1,0"/>
 
                 <!-- #region Login -->
-                <Grid Grid.Column="1">
+                <Grid Grid.Column="1" Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="5*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                    
-                    
+                    <Grid Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Margin="10">
+                        <TextBox x:Name="ServerAddressBox" Text="{Binding Host, Mode=TwoWay}" VerticalAlignment="Center"/>
+                        <TextBlock Text="Server Address" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="DarkGray">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Text, ElementName=ServerAddressBox}" Value="">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+
+                    <!-- #region QR Code -->
+                    <Border BorderThickness="1" CornerRadius="8" ClipToBounds="True" BorderBrush="#41373737" Background="#41373737" Margin="10" Grid.Row="1" Grid.Column="0" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}">
+                        <TextBlock Name="TempQRText" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="{x:Static playnite:Fonts.NerdFont}" FontSize="56" Text="&#xf029;"/>
+                    </Border>
+                    <Border Name="LoginQRBorder" Visibility="Hidden" BorderThickness="1" CornerRadius="8" ClipToBounds="True" BorderBrush="#41373737" Margin="10" Grid.Row="1" Grid.Column="0" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}"/>
+                    <TextBlock Name="LoginQRTimer" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Center" Visibility="Collapsed"/>
+                    <!-- #endregion -->
+
+                    <!-- #region User Interact -->
+                    <Grid Grid.Row="1" Grid.Column="1" Margin="5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Margin="0,15,0,0"  Text="Login with QR code" Grid.Row="0" HorizontalAlignment="Left" FontSize="24" FontWeight="Bold"/>
+                        <TextBlock Text="Scan with phone or open in browser." Grid.Row="1" HorizontalAlignment="Left" FontSize="16" Foreground="Gray"/>
+                        <StackPanel Orientation="Horizontal" Grid.Row="2">
+                            <Button Name="QRAuth" Click="Click_LoginViaQR" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <TextBlock Name="QRAuthText" Text="Start" Margin="5" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
+                            <Button Name="OpenInBrowser" Click="Click_OnInBrowser" Visibility="Collapsed" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <TextBlock Name="OpenInBrowserText" Text="Open in browser" Margin="5" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
+                        </StackPanel>
+
+                        <TextBlock Margin="5" Grid.Row="3" Text="or" HorizontalAlignment="Left" FontSize="16" Foreground="Gray"/>
+                        <Grid Margin="5" Grid.Row="4" VerticalAlignment="Bottom">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{Binding ClientTokenNP, Mode=TwoWay}"/>
+                            <Grid Grid.Column="0">
+                                <TextBox x:Name="ClientTokenBox" Text="{Binding ClientTokenNP, Mode=TwoWay}"/>
+                                <TextBlock Name="ClientTokenPlaceholder" Text="Login with Client Token" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="DarkGray">
+                                    <TextBlock.Style>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, ElementName=ClientTokenBox}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                            <Button Grid.Column="1" Name="ConnectButton" Click="Click_Authenticate" Margin="5,0,5,0">
+                                <TextBlock Name="AuthButtonText" Text="Connect"/>
+                            </Button>
+                        </Grid>
+                    </Grid>
+                    <!-- #endregion -->
+
                 </Grid>
+
+                <!-- #region Advance Login-->
+                <Border Margin="5" Grid.Column="1" Grid.Row="1" BorderThickness="1" CornerRadius="3" BorderBrush="#41696969" VerticalAlignment="Top" HorizontalAlignment="Stretch"/>
+                <Expander Margin="10,15,0,0" Grid.Column="1" Grid.Row="1"  Header="Advanced: sign in with username and password">
+                    <Expander.Style>
+                        <Style TargetType="Expander">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Expander">
+                                        <StackPanel>
+                                            <ToggleButton x:Name="HeaderToggle" Foreground="DimGray" IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}" Content="{TemplateBinding Header}" Focusable="False">
+                                                <ToggleButton.Template>
+                                                    <ControlTemplate TargetType="ToggleButton">
+                                                        <StackPanel Orientation="Horizontal" Background="Transparent" Cursor="Hand">
+                                                            <Path x:Name="Arrow"
+                                                                        Data="M 0,4 L 5,0 L 10,4"
+                                                                        Stroke="Gray" StrokeThickness="2"
+                                                                        StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                                                        Width="10" Height="6" Stretch="Uniform"
+                                                                        VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                                        Margin="4,0,10,0"
+                                                                        RenderTransformOrigin="0.5,0.5">
+                                                                <Path.RenderTransform>
+                                                                    <RotateTransform x:Name="ArrowRotate" Angle="0"/>
+                                                                </Path.RenderTransform>
+                                                            </Path>
+                                                            <ContentPresenter VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsChecked" Value="True">
+                                                                <Trigger.EnterActions>
+                                                                    <BeginStoryboard>
+                                                                        <Storyboard>
+                                                                            <DoubleAnimation Storyboard.TargetName="ArrowRotate" Storyboard.TargetProperty="Angle" To="180" Duration="0:0:0.15"/>
+                                                                        </Storyboard>
+                                                                    </BeginStoryboard>
+                                                                </Trigger.EnterActions>
+                                                                <Trigger.ExitActions>
+                                                                    <BeginStoryboard>
+                                                                        <Storyboard>
+                                                                            <DoubleAnimation Storyboard.TargetName="ArrowRotate" Storyboard.TargetProperty="Angle" To="0" Duration="0:0:0.15"/>
+                                                                        </Storyboard>
+                                                                    </BeginStoryboard>
+                                                                </Trigger.ExitActions>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </ToggleButton.Template>
+                                            </ToggleButton>
+                                            <ContentPresenter x:Name="ExpandSite" Visibility="Collapsed"/>
+                                        </StackPanel>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsExpanded" Value="True">
+                                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Expander.Style>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Name="UserPassWarning" Margin="10,5,5,5" Text="Warning! Using this is NOT recommended!" TextWrapping="Wrap" Grid.Row="0" Foreground="#ffb329"/>
+
+                        <CheckBox IsChecked="{Binding UseBasicAuth, Mode=TwoWay}" Grid.Row="1" Margin="5">
+                            <TextBlock Name="UseBasicAuthText" Text="Use Basic Auth" TextWrapping="Wrap" FontSize="12"/>
+                        </CheckBox>
+
+                        <Grid Grid.Row="2" Margin="5">
+                            <TextBox x:Name="UsernameBox" Text="{Binding UsernameNP, Mode=TwoWay}" Height="24"/>
+                            <TextBlock Text="Username" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="DarkGray">
+                                <TextBlock.Style>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding UsernameNP}" Value="">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+
+                        <Grid Grid.Row="3" Margin="5">
+                            <TextBox x:Name="RomMPasswordUnmasked" Text="{Binding PasswordNP, Mode=TwoWay}" Visibility="Collapsed" Height="24"/>
+                            <PasswordBox x:Name="RomMPassword" PasswordChar="●" FontSize="14" PasswordChanged="RomMPassword_PasswordChanged">
+                                <PasswordBox.Style>
+                                    <Style TargetType="PasswordBox">
+                                        <Setter Property="Background" Value="{Binding Background, ElementName=UsernameBox}"/>
+                                        <Setter Property="Foreground" Value="{Binding Foreground, ElementName=UsernameBox}"/>
+                                        <Setter Property="BorderBrush" Value="{Binding BorderBrush, ElementName=UsernameBox}"/>
+                                        <Setter Property="BorderThickness" Value="{Binding BorderThickness, ElementName=UsernameBox}"/>
+                                        <Setter Property="Padding" Value="{Binding Padding, ElementName=UsernameBox}"/>
+                                        <Setter Property="CaretBrush" Value="{Binding Foreground, ElementName=UsernameBox}"/>
+                                        <Setter Property="Height" Value="28"/>
+                                    </Style>
+                                </PasswordBox.Style>
+                            </PasswordBox>
+
+                            <TextBlock Text="Password" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="DarkGray">
+                                <TextBlock.Style>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding PasswordNP}" Value="">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <Button Name="ShowPassword" Content="&#xea70;" FontSize="18" HorizontalAlignment="Right" Margin="0,0,10,0" Click="Click_ShowPassword">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                        <Setter Property="Foreground" Value="DimGray"/>
+                                        <Setter Property="Opacity" Value="0.7"/>
+                                        <Setter Property="Cursor" Value="Hand"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+
+                        <Button Name="BasicLoginButton" Grid.Column="1" Grid.Row="3" Click="Click_BasicLogin" Margin="5">
+                            <TextBlock Name="BasicLoginText" Text="Login" FontSize="18"/>
+                        </Button>
+
+                    </Grid>
+                </Expander>
+                <!-- #endregion-->
+                
                 <!-- #endregion -->
                 
             </Grid>
         </Border>
-        <!--<Grid Margin="0,0,0,10">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="170"/>
-                <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="120"/>
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="85"/>
-                <RowDefinition Height="85"/>
-                <RowDefinition Height="45"/>
-                <RowDefinition Height="45"/>
-                <RowDefinition Height="45"/>
-                <RowDefinition Name="BasicAuthRow1" Height="0"/>
-                <RowDefinition Name="BasicAuthRow2" Height="0"/>
-                <RowDefinition Name="BasicAuthRow3" Height="0"/>
-                <RowDefinition Height="45"/>
-                <RowDefinition Height="45"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="45"/>
-            </Grid.RowDefinitions>
-
-            </Grid>
-
-            <Button Name="TestServer" Click="Click_Authenticate" Grid.Row="1" Grid.Column="3" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Top">
-                <TextBlock Name="AuthButtonText" Text="Authenticate" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </Button>
-
-            <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,10,0">
-                <Label Name="RomMServerVersionText2" Foreground="DimGray" FontSize="12" VerticalAlignment="Top" HorizontalAlignment="Center"/>
-                <Label Name="RomMServerVersion2" Content="{Binding AccountState.ServerVersion, Mode=OneWay}" Foreground="DimGray" FontSize="12" HorizontalAlignment="Center" Margin="0"/>
-            </StackPanel>
-
-            <TextBlock Name="ServerHostText" Text="RomM Server Address" Grid.Row="2" Grid.Column="0" Margin="5" VerticalAlignment="Center"/>
-            <TextBox x:Name="RomMHost" Grid.Row="2" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding Host, Mode=TwoWay}" />
-
-            <Button Name="QRAuth" Click="Click_LoginViaQR" Grid.Row="2" Grid.Column="2" Margin="0,5,5,5" HorizontalAlignment="Left" VerticalAlignment="Center">
-                <TextBlock Name="QRAuthText" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </Button>
-
-            <TextBlock Grid.Row="3" Grid.Column="0" Margin="5" VerticalAlignment="Center">
-           <Hyperlink Name="ClientTokenLink" RequestNavigate="Hyperlink_ClientToken" NavigateUri="{Binding Host}">
-              <Run Name="TokenText" Text="Client Token"/>
-           </Hyperlink>
-            </TextBlock>
-            <TextBox Grid.Row="3" Grid.Column="1" Margin="0,5,5,5" VerticalAlignment="Center" HorizontalAlignment="Stretch" Text="{Binding ClientTokenNP, Mode=TwoWay}" />
-
-            <CheckBox IsChecked="{Binding UseBasicAuth, Mode=TwoWay}" Grid.Row="4" Grid.Column="0" Margin="5" VerticalAlignment="Center" Unchecked="Unchecked_UseBasicAuth" Checked="Checked_UseBasicAuth">
-                <TextBlock Name="UseBasicAuthText" Text="Use Basic Auth" TextWrapping="Wrap" FontSize="12"/>
-            </CheckBox>
-
-            <TextBlock Name="UserPassWarning" Text="Warning! Using this is NOT recommended!" TextWrapping="Wrap" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" TextAlignment="Center" VerticalAlignment="Top" Margin="5,15,5,5" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}" Foreground="#ffb329" Grid.RowSpan="2"/>
-
-           
-            <TextBlock Name="PasswordText" Text="Password" Grid.Row="7" Grid.Column="0" Margin="40,5,5,0" VerticalAlignment="Center" HorizontalAlignment="Stretch" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
-            <TextBox x:Name="RomMPasswordUnmasked" Grid.Row="7" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Stretch" Height="25" Text="{Binding PasswordNP, Mode=TwoWay}" Visibility="Collapsed"/>
-            <PasswordBox x:Name="RomMPassword" Grid.Row="7" Grid.Column="1" PasswordChar="●" VerticalAlignment="Center" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" FontSize="14" Height="25" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}"/>
-            <Button Name="ShowPassword" Content="&#xea70;" Grid.Row="7" Grid.Column="1" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Right" Height="25" Margin="0,0,5,0" Click="Click_ShowPassword" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="BorderBrush" Value="Transparent"/>
-                        <Setter Property="Foreground" Value="DimGray"/>
-                        <Setter Property="Opacity" Value="0.7"/>
-                        <Setter Property="Cursor" Value="Hand"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Button.Style>
-            </Button>
-
-            <Image Name="LoginQR" Margin="10" Grid.Row="3" Grid.Column="2" Grid.RowSpan="8" Grid.ColumnSpan="2" Stretch="Uniform"/>
-            <TextBlock Name="LoginQRTimer" Grid.Row="11" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Center"/>
-        </Grid> -->
 
         <!-- #region Advance Options -->
-        <TextBlock Name="AdvanceOptionsText" Grid.Row="8" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" FontWeight="Bold"/>
+        <TextBlock Name="AdvanceOptionsText" Text="Advanced Options" Grid.Row="8" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" FontWeight="Bold"/>
         <Separator Grid.Row="8" Grid.ColumnSpan="4" VerticalAlignment="Bottom" Margin="5"/>
 
-        <TextBlock Name="CustomHeadersText" Text="Custom Headers" Grid.Row="9" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+        <TextBlock Name="CustomHeadersText" Text="Custom Headers" FontSize="16" FontWeight="SemiBold" Grid.Row="9" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
         <StackPanel Grid.Row="10" Grid.ColumnSpan="2">
             <ItemsControl ItemsSource="{Binding CustomHeaders, Mode=TwoWay}" Grid.Row="9" Grid.ColumnSpan="2">
                 <ItemsControl.ItemTemplate>
@@ -368,7 +554,7 @@
                             <CheckBox IsChecked="{Binding Enabled}" Checked="Header_Checked" Unchecked="Header_Unchecked" />
                             <Grid>
                                 <TextBox MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="HeaderNameText" Margin="5" Text="{Binding Name, Mode=TwoWay}" IsEnabled="{Binding Enabled, Converter={StaticResource InvertBoolConverter}}"/>
-                                <TextBlock x:Name="HeaderNamePlaceholderText" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
+                                <TextBlock Text="{loc:LocalizedString Game}" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
                                     <TextBlock.Style>
                                         <Style TargetType="{x:Type TextBlock}">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -448,7 +634,7 @@
                         </Style.Triggers>
                     </Style>
                 </Button.Style>
-                <TextBlock Name="AddHeaderText" Margin="2,0,5,0"/>
+                <TextBlock Name="AddHeaderText" Text="&#xea60; New Header" Margin="2,0,5,0"/>
             </Button>
         </StackPanel>
         <!-- #endregion -->

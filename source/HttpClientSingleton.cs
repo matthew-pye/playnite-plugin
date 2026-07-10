@@ -97,13 +97,25 @@ namespace Graviton
                 if (content.Length <= 0)
                     return null;
 
+                _plugin.Settings.AccountState.AuthenticateFailed = HttpStatusCode.OK;
                 return await JsonDocument.ParseAsync(content);
             }
             catch (Exception ex)
             {
-                if (response?.StatusCode == HttpStatusCode.Unauthorized || response?.StatusCode == HttpStatusCode.Forbidden)
-                    _plugin.Settings.AccountState.LastAuthenticated = null;
+                if (response == null || response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    _plugin.Settings.AccountState.AuthenticateFailed = response?.StatusCode;
 
+                    if (response?.StatusCode == HttpStatusCode.Unauthorized || response?.StatusCode == HttpStatusCode.Forbidden)
+                    {
+                        _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
+                        _plugin.Settings.AccountState.User = "----";
+                        _plugin.Settings.AccountState.UserType = "----";
+                        _plugin.Settings.AccountState.LastAuthenticated = null;
+                        _plugin.Settings.AccountState.AuthenticateFailed = response?.StatusCode;
+                    }
+                }
+                
                 GravitonNotify.Add(new GravitonNotification(nofiyType, $"{Loc.GetString(locFailedMessage, [("APIPath", apiPath)])} - {ex.Message}", GravitonSeverity.Error, ex));
 
                 if (response?.StatusCode == HttpStatusCode.UnprocessableContent && content?.Length > 0)

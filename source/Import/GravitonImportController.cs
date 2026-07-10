@@ -108,8 +108,11 @@ namespace Graviton.Import
         {
             var result = await HttpClientSingleton.RomMGetAsync("/api/platforms");
             if (result == null)
+            {
+                _plugin.Settings.AccountState.LastAuthenticated = null;
                 return null;
-
+            }
+                
             var platforms = result.RootElement.Deserialize<List<RomMPlatform>>() ?? throw new Exception("Failed to deseralize plaforms from server!");
 
             if (!Directory.Exists($"{_plugin.PluginDataPath}/Platforms/"))

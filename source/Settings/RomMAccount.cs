@@ -55,7 +55,8 @@ namespace Graviton.Settings
             if (string.IsNullOrEmpty(_plugin.Settings.Host))
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.login.host.notset", Loc.GetString("HostNotSet"), GravitonSeverity.Warn));
-                SyncFailed();
+                _plugin.Settings.AccountState.AuthenticateFailed = null;
+                _plugin.Settings.AccountState.LastAuthenticated = null;
                 return false;
             }
 
@@ -64,7 +65,8 @@ namespace Graviton.Settings
                 if (string.IsNullOrEmpty(_plugin.Settings.UsernameNP) || string.IsNullOrEmpty(_plugin.Settings.PasswordNP))
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("UserPassNotSet"), GravitonSeverity.Warn));
-                    SyncFailed();
+                    _plugin.Settings.AccountState.AuthenticateFailed = null;
+                    _plugin.Settings.AccountState.LastAuthenticated = null;
                     return false;
                 }
                  
@@ -75,7 +77,8 @@ namespace Graviton.Settings
                 if (string.IsNullOrEmpty(_plugin.Settings.ClientTokenNP))
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("TokenNotSet"), GravitonSeverity.Warn));
-                    SyncFailed();
+                    _plugin.Settings.AccountState.AuthenticateFailed = null;
+                    _plugin.Settings.AccountState.LastAuthenticated = null;
                     return false;
                 }
                     
@@ -88,28 +91,27 @@ namespace Graviton.Settings
             ServerInfo? heartbeat = await Heartbeat();
             if (heartbeat == null)
             {
-                SyncFailed(); 
+                _plugin.Settings.AccountState.LastAuthenticated = null;
                 return false;
             }
                 
             _plugin.Settings.AccountState.ServerVersion = heartbeat.Value.Version;
 
-
             if (!(await RegisterNewDevice()))
             {
-                SyncFailed();
+                _plugin.Settings.AccountState.LastAuthenticated = null;
                 return false;
             }
             
             else if(!(await UpdateDevice()))
             {
-                SyncFailed();
+                _plugin.Settings.AccountState.LastAuthenticated = null;
                 return false;
             }
 
             if (!(await SyncUserData()))
             {
-                SyncFailed();
+                _plugin.Settings.AccountState.LastAuthenticated = null;
                 return false;
             }
 
@@ -117,7 +119,7 @@ namespace Graviton.Settings
 
             if (!(await SyncPlatforms()))
             {
-                SyncFailed();
+                _plugin.Settings.AccountState.LastAuthenticated = null;
                 return false;
             }
 
@@ -153,6 +155,7 @@ namespace Graviton.Settings
                 mapping.AvailablePlatforms = platforms.ToObservableCollection();
             }
 
+            _plugin.Settings.AccountState.AuthenticateFailed = HttpStatusCode.OK;
             return true;
         }
 
@@ -160,10 +163,7 @@ namespace Graviton.Settings
         {
             var result = await HttpClientSingleton.RomMGetAsync("/api/users/me");
             if (result == null)
-            {
-                SyncFailed();
-                return false;
-            }
+                return false;  
                   
             try
             {
@@ -398,15 +398,6 @@ namespace Graviton.Settings
 
             GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairExpired"))), GravitonSeverity.Info));
             return false;
-        }
-
-        void SyncFailed()
-        {
-            _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
-            _plugin.Settings.AccountState.User = "----";
-            _plugin.Settings.AccountState.UserType = "----";
-            _plugin.Settings.AccountState.ServerVersion = "---";
-            _plugin.Settings.AccountState.LastAuthenticated = null;
         }
     }
 }

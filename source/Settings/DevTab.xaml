@@ -21,11 +21,21 @@
 
     <Grid Margin="0,0,0,10">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="150"/>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="50"/>
             <RowDefinition Height="50"/>
             <RowDefinition Height="50"/>
             <RowDefinition Height="50"/>
@@ -34,18 +44,41 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Button Click="Success_Click" Grid.Row="0"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-            <TextBlock Text="Success notification"/>
+        <TextBlock x:Name="NotificationTestsText" Grid.Row="0" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Margin="5,5,10,5"/>
+
+        <Button Click="Success_Click" Grid.Row="1"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock x:Name="SuccessNotificationText"/>
         </Button>
-        <Button Click="Info_Click" Grid.Row="1"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-            <TextBlock Text="Info notification"/>
+        <Button Click="Info_Click" Grid.Row="2"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock x:Name="InfoNotificationText"/>
         </Button>
-        <Button Click="Warn_Click" Grid.Row="2"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-            <TextBlock Text="Warn notification"/>
+        <Button Click="Warn_Click" Grid.Row="3"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock x:Name="WarnNotificationText"/>
         </Button>
-        <Button Click="Error_Click" Grid.Row="3"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-            <TextBlock Text="Error notification"/>
+        <Button Click="Error_Click" Grid.Row="4"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock x:Name="ErrorNotificationText"/>
         </Button>
+
+        <Border Grid.Column="0" Grid.RowSpan="100" BorderThickness="1" CornerRadius="3" BorderBrush="#41696969" Width="1" HorizontalAlignment="Right" Margin="0,0,-1,0"/>
+
+        <TextBlock x:Name="LoginTestsText" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Margin="5,5,10,5"/>
+        <Button Click="LoggedIn_Click" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock x:Name="TestLoginText"/>
+        </Button>
+        <Button Click="Forbidden_Click" Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock x:Name="TestForbiddenText"/>
+        </Button>
+        <Button Click="Unauthorized_Click" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock x:Name="TestUnauthorizedText"/>
+        </Button>
+        <Button Click="Reconnecting_Click" Grid.Row="4" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock x:Name="TestReconnectingText"/>
+        </Button>
+        <Button Click="NotLoggedIn_Click" Grid.Row="5" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock x:Name="TestNotLoggedInText"/>
+        </Button>
+
+        <Border Grid.Column="1" Grid.RowSpan="100" BorderThickness="1" CornerRadius="3" BorderBrush="#41696969" Width="1" HorizontalAlignment="Right" Margin="0,0,-1,0"/>
 
     </Grid>
 

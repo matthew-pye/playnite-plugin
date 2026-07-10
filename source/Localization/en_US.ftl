@@ -28,16 +28,22 @@ OpenRomMProfile = Open RomM profile
 
 
 # Authentication Page
-AuthButton = Authenticate
+AuthButton = Connect
 ServerText = RomM Server Address
 ClientToken = Client Token
 UseBasicAuth = Use Basic Auth
-UserPassWarning = Warning! Using basic login NOT recommended!
+UserPassWarning = Warning! Using basic login is NOT recommended!
 Username = Username
 Password = Password
 InvalidScheme = Host address must start with http or https
 CustomHeaders = Custom Headers
 CustomHeaderMalformed = Custom header doesn't contain both a Name and Value!
+AdvanceOptions = Advanced Options
+NewHeader = New Header
+Login = Login
+EnableBasicAuth = Basic Auth not enabled, cannont login with username/password
+LoginNoToken = Client token is empty, cannot login!
+LoginWithToken = Login with Client Token
 
 # Mappings page
 SyncPlatforms = Sync Platforms
