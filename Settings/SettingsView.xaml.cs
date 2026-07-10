@@ -216,9 +216,8 @@ namespace RomM.Settings
 
             QRVerificationPath = pairDevice.VerificationPathComplete;
 
-            LoginQRBorder.Visibility = Visibility.Visible;
             LoginQR.Background = new System.Windows.Media.ImageBrush(BuildQRCode($"{SettingsViewModel.Instance.RomMHost}{QRVerificationPath}"));
-            LoginQR.Visibility = Visibility.Visible;          
+            QRPanel.Visibility = Visibility.Visible;
             QRDetails.Visibility = Visibility.Visible;
 
             try
@@ -286,10 +285,9 @@ namespace RomM.Settings
             catch (Exception){}
             finally
             {
-                LoginQR.Visibility = Visibility.Hidden;
-                LoginQRBorder.Visibility = Visibility.Hidden;
+                QRPanel.Visibility = Visibility.Collapsed;
                 QRAuth.IsEnabled = true;
-                QRDetails.Visibility = Visibility.Hidden;
+                QRDetails.Visibility = Visibility.Collapsed;
                 QRVerificationPath = "";
             }    
         }

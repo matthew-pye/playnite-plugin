@@ -111,8 +111,6 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="170"/>
                             <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -120,14 +118,12 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <Label Grid.Row="0" Grid.Column="0" Content="RomM host" Style="{StaticResource FieldLabel}" />
                         <TextBox Grid.Row="0" Grid.Column="1" Style="{StaticResource FieldBox}" Text="{Binding RomMHost, Mode=TwoWay}" />
 
-                        <TextBlock  Grid.Row="1" Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center">
                             <Hyperlink NavigateUri="{Binding ClientTokenURL}" RequestNavigate="Hyperlink_RequestNavigate">Client Token</Hyperlink>
                         </TextBlock>
                         <TextBox Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource FieldBox}" Text="{Binding RomMClientToken, Mode=TwoWay}" />
@@ -139,22 +135,26 @@
 
                         <Label Grid.Row="4" Grid.Column="0" Content="Password" Style="{StaticResource FieldLabel}" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}" />
                         <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource FieldBox}" Text="{Binding RomMPassword, Mode=TwoWay}" Visibility="{Binding UseBasicAuth, Converter={StaticResource BoolToVisConverter}}" />
+                    </Grid>
 
-                        <Button Name="QRAuth" Click="Click_LoginViaQR" Grid.Row="0" Grid.Column="2" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <!-- QR code login (button and code stacked below the credentials, in the layout flow so it never overlaps other sections) -->
+                    <StackPanel Margin="0,8,0,0" HorizontalAlignment="Left">
+                        <Button Name="QRAuth" Click="Click_LoginViaQR" Padding="12,4" HorizontalAlignment="Left">
                             <TextBlock Name="QRAuthText" Text="Login via QR Code" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
 
-                        <!--<Image Name="LoginQR" Margin="20" Grid.Row="1" Grid.Column="2" Grid.RowSpan="5" Grid.ColumnSpan="2" Stretch="Uniform" MaxHeight="250" HorizontalAlignment="Center"/>-->
-                        <Border Name="LoginQRBorder" Visibility="Hidden" BorderThickness="1" CornerRadius="8" ClipToBounds="True" BorderBrush="#41373737" Background="#41373737" Margin="10" Grid.Row="1" Grid.Column="2" Grid.RowSpan="5" Grid.ColumnSpan="2" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}"/>
-                        <Border Name="LoginQR" Panel.ZIndex="9999" Visibility="Hidden" BorderThickness="1" CornerRadius="8" ClipToBounds="True" Margin="10" Grid.Row="1" Grid.Column="2" Grid.RowSpan="5" Grid.ColumnSpan="2"  Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}"/>
-                        <StackPanel Name="QRDetails" Orientation="Horizontal" Grid.Row="6" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Center" Visibility="Hidden">
-                            <Button Click="Click_OpenInBrowser" Grid.Row="0" Grid.Column="2" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" >
+                        <Grid Name="QRPanel" Width="200" Height="200" Margin="0,10,0,0" HorizontalAlignment="Left" Visibility="Collapsed">
+                            <Border Name="LoginQRBorder" BorderThickness="1" CornerRadius="8" ClipToBounds="True" BorderBrush="#41373737" Background="#41373737"/>
+                            <Border Name="LoginQR" BorderThickness="1" CornerRadius="8" ClipToBounds="True"/>
+                        </Grid>
+
+                        <StackPanel Name="QRDetails" Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Left" Visibility="Collapsed">
+                            <Button Click="Click_OpenInBrowser" Padding="12,4" VerticalAlignment="Center">
                                 <TextBlock Text="Open in Browser" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
-                            <TextBlock Name="LoginQRTimer" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <TextBlock Name="LoginQRTimer" Margin="10,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </StackPanel>
-                        
-                    </Grid>
+                    </StackPanel>
 
                     <!-- Emulator path mappings -->
                     <DockPanel Margin="0,14,0,0">
