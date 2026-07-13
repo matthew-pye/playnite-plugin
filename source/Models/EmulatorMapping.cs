@@ -17,7 +17,6 @@ namespace Graviton.Models
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
 
         [ObservableProperty] private Guid _mappingId;
-        [ObservableProperty] [property: JsonIgnore] private string _mappingName = "Unknown Mapping";
         [ObservableProperty] private bool _enabled = true;
         [ObservableProperty] private bool _autoExtract = false;
         [ObservableProperty] private bool _useM3U = false;
@@ -36,9 +35,10 @@ namespace Graviton.Models
         [ObservableProperty] private string _savePath = "";
         [ObservableProperty] private bool _extractArchivedSaves = true;
         [ObservableProperty] private string _saveStatePath = "";
-       
-
+              
         [ObservableProperty] [property: JsonIgnore] private bool _isSelected = false;
+
+        [property: JsonIgnore] public bool IsSetup => RomMPlatform != null && !string.IsNullOrEmpty(DestinationPath);
 
         [JsonConstructor]
         public EmulatorMapping() {}
@@ -123,7 +123,6 @@ namespace Graviton.Models
                 if(value != null)
                 {
                     RomMPlatformId = value.Id;
-                    MappingName = "Emulator test value - " + "Profile test value - " + value.Name;
 
                     //if(Emulator != null)
                     //{

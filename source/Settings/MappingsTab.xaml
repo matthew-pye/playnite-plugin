@@ -5,278 +5,319 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:s="clr-namespace:Graviton.Settings"
-             xmlns:models="clr-namespace:Graviton.Models.RomM.Saves"
+             xmlns:savmodels="clr-namespace:Graviton.Models.RomM.Saves"
+             xmlns:models="clr-namespace:Graviton.Models"
+             x:Name="Root"
              mc:Ignorable="d"
-             d:DesignHeight="750" d:DesignWidth="900">
+             d:DesignHeight="540" d:DesignWidth="960">
 
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
-        <s:ImageCacheConverter x:Key="imageCacheConverter" />
-        <s:EnumDescriptionConverter x:Key="EnumDescConverter"/>
-        <ObjectDataProvider x:Key="SaveLayoutStyleValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
-            <ObjectDataProvider.MethodParameters>
-                <x:Type TypeName="models:SaveLayoutStyle"/>
-            </ObjectDataProvider.MethodParameters>
-        </ObjectDataProvider>
-        <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-        <Style TargetType="{x:Type Label}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-    </UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Graviton;component/ThemingDefaults.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
 
-    <Grid Margin="0,0,0,10">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-
-
-        <!-- Mappings Stack -->
-        <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled" Width="300">
-            <StackPanel Margin="2,0,0,0">
-
-                <Button Click="SyncPlatforms_Click" FontSize="20" Margin="5" HorizontalAlignment="Left">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="Foreground" Value="Gray"/>
-                            <Setter Property="Opacity" Value="0.6"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        </ContentPresenter>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                            <Style.Triggers>
+            <!-- #region Mapping Button -->
+            <Style x:Key="MappingRowStyle" TargetType="ListBoxItem">
+                <Setter Property="Padding" Value="8"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="RowBorder" Background="Transparent" BorderThickness="0.5" BorderBrush="Transparent" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter/>
+                            </Border>
+                            <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Opacity" Value="1"/>
+                                    <Setter TargetName="RowBorder" Property="Background" Value="{DynamicResource Graviton.TransparentMouseOverBackground.Colour}"/>
                                 </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Name="SyncPlatformsIcon"  Text="&#xf46a; Sync Platforms" Margin="2,0,5,0"/>
-                    </StackPanel>
-                </Button>
-                <Separator Margin="5,5,5,20"/>
-
-                <Button Click="AddMapping_Click" FontSize="20" Margin="5" HorizontalAlignment="Left">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="Foreground" Value="Gray"/>
-                            <Setter Property="Opacity" Value="0.6"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        </ContentPresenter>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Opacity" Value="1"/>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="RowBorder" Property="Background" Value="{DynamicResource Graviton.TransparentBackground.Colour}"/>
+                                    <Setter TargetName="RowBorder" Property="BorderBrush" Value="{DynamicResource Graviton.Background.Colour}"/>
                                 </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Name="AddMappingIcon"  Text="&#xea60; New Mapping" Margin="2,0,5,0"/>
-                    </StackPanel>
-                </Button>
-                <Separator Margin="5,5,5,20"/>
-
-                <StackPanel x:Name="MappingsStack">
-                    <ItemsControl ItemsSource="{Binding Mappings, Mode=OneWay}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Click="Mapping_Click" FontSize="14" Margin="5" HorizontalAlignment="Left" MaxWidth="300">
-                                    <Button.Style>
-                                        <Style TargetType="Button">
-                                            <Setter Property="Background" Value="Transparent"/>
-                                            <Setter Property="BorderBrush" Value="Transparent"/>
-                                            <Setter Property="Foreground" Value="Gray"/>
-                                            <Setter Property="Opacity" Value="0.7"/>
-                                            <Setter Property="Cursor" Value="Hand"/>
-
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="Button">
-                                                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" CornerRadius="6" Padding="4">
-                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                        </Border>
-                                                        <ControlTemplate.Triggers>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter Property="Opacity" Value="1"/>
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                    <Setter Property="Opacity" Value="1"/>
-                                                    <Setter Property="Foreground" Value="#55cdff"/>
-                                                </DataTrigger>
-
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-
-                                    <Grid MaxWidth="300">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="40"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <Image Grid.Column="0" Name="MappingIcon" Source="{Binding PlatformIcon, Mode=OneWay, Converter={StaticResource imageCacheConverter}}" Stretch="UniformToFill" Width="40" Height="40"/>
-                                        <TextBlock Grid.Column="1" Margin="5,0,5,0" Text="{Binding MappingName, Mode=OneWay}" VerticalAlignment="Center" TextWrapping="Wrap" TextTrimming="None"/>
-                                    </Grid>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- Mappings Page -->        
-        <StackPanel Name="MappingOptions" Grid.Column="1" Visibility="Hidden" Margin="5">
-
-            <StackPanel Orientation="Horizontal">
-                <Image Name="MappingIcon" Source="{Binding PlatformIcon, Mode=OneWay, Converter={StaticResource imageCacheConverter}}"  Margin="5,0,5,0" Stretch="UniformToFill" Width="50" Height="50"/>
-                <TextBlock Text="{Binding MappingName, Mode=OneWay}" VerticalAlignment="Center" FontSize="20"/>
-            </StackPanel>
-            <Separator Margin="5,2,5,10"/>
-
-            <Grid>
-                <StackPanel Orientation="Horizontal">
-                    <CheckBox HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" IsChecked="{Binding Enabled, Mode=TwoWay}"/>
-                    <TextBlock x:Name="MappingEnabledText" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                </StackPanel>
-
-                <Button Click="DeleteMapping_Click" FontSize="24" Margin="5" HorizontalAlignment="Right">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="Foreground" Value="Red"/>
-                            <Setter Property="Opacity" Value="0.6"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        </ContentPresenter>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Opacity" Value="1"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Name="DeleteMappingIcon"  Text="&#xf05e8;" Foreground="Red" Margin="2,0,5,0"/>
-                    </StackPanel>
-                </Button>
-            </Grid>
-
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Name="EmulatorText" Text="Emulator" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
-                <ComboBox Name="ComboEmulators"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailableEmulators}" DisplayMemberPath="Name" SelectedItem="{Binding Emulator, Mode=TwoWay}"/>
-            </StackPanel>
-
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Name="ProfileText" Text="Profile" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
-                <ComboBox Name="ComboProfiles"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailableProfiles}" DisplayMemberPath="Name" SelectedItem="{Binding EmulatorProfile, Mode=TwoWay}"/>
-            </StackPanel>
-
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Name="PlatformText" Text="Platform" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
-                <ComboBox Name="ComboPlatform"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="DisplayName" SelectedItem="{Binding RomMPlatform, Mode=TwoWay}"/>
-            </StackPanel>
-
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Name="ROMLocText" Text="ROM location" Margin="5" MinWidth="100" MaxWidth="150" VerticalAlignment="Center" HorizontalAlignment="Left"/>
-                <TextBox x:Name="Path" Margin="5" MinWidth="300" Text="{Binding Path=DestinationPath, Mode=TwoWay}"/>
-                <Button Click="Click_BrowseDestination" Margin="5">
-                    <TextBlock Name="ROMLocButtonText" Text="Browse"/>
-                </Button>
-            </StackPanel>
-            <Separator Margin="5,2,5,0"/>
-
-            <TextBlock Name="OptionText" Text="Options" Margin="5,15,5,5" FontSize="20" VerticalAlignment="Center" HorizontalAlignment="Left"/>
-            <Separator Margin="5,0,10,0"/>
-
-            <CheckBox x:Name="AutoExtractROMCheckBox" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding AutoExtract, Mode=TwoWay}">
-                <TextBlock Name="AutoExtractROMText" Text="Auto extract ROMs in archive format" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-            </CheckBox>
-
-            <CheckBox x:Name="PreferM3UCheckBox" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding UseM3U, Mode=TwoWay}">
-                <TextBlock Name="Preferm3uText" Text="Prefer .m3u for launch action" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-            </CheckBox>
-
-            <TextBlock Name="SaveOptionText" Margin="5,15,5,5" FontSize="20" VerticalAlignment="Center" HorizontalAlignment="Left"/>
-            <Separator Margin="5,0,10,0"/>
-
-            
-
-            <StackPanel Orientation="Horizontal" Margin="5">
-                <TextBlock Name="SaveLayoutStyleText" MinWidth="150" MaxWidth="200" VerticalAlignment="Center"/>
-                <ComboBox x:Name="SaveLayoutStyleCombo" MinWidth="200" ItemsSource="{Binding Source={StaticResource SaveLayoutStyleValues}}" SelectedItem="{Binding FindSaveLayout, Mode=TwoWay}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}"/>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </StackPanel>
-
-            <StackPanel Orientation="Horizontal" Margin="5">
-                <TextBlock Name="SaveExtensionsText" MinWidth="150" MaxWidth="200" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <DataTemplate x:Key="MappingRowTemplate" DataType="{x:Type models:EmulatorMapping}">
                 <Grid>
-                    <TextBox MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="SearchTermTextBox" Text="{Binding FindSaveFileExtensions, Mode=TwoWay}"/>
-                    <TextBlock Text="srm;sav;gci" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="DarkGray">
-                        <TextBlock.Style>
-                            <Style TargetType="{x:Type TextBlock}">
-                                <Setter Property="Visibility" Value="Collapsed"/>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Width="40" Height="40" CornerRadius="6" Background="{DynamicResource Graviton.TransparentBackground.Colour}" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="0.5" VerticalAlignment="Top" Margin="0,1,9,0">
+                        <Image Source="{Binding PlatformIcon}" Width="32" Height="32" Stretch="Uniform"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Emulator Name" FontSize="16" FontWeight="Medium" Foreground="{DynamicResource Graviton.Text.Colour}" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="Profile Name" FontSize="14" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                        <TextBlock Text="{Binding RomMPlatform.DisplayName}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                    </StackPanel>
+
+                    <Ellipse Grid.Column="2" Width="6" Height="6" VerticalAlignment="Top" Margin="6,5,0,0">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="{DynamicResource Graviton.Trace.Colour}"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Text, ElementName=SearchTermTextBox}" Value="">
-                                        <Setter Property="Visibility" Value="Visible"/>
+                                    <DataTrigger Binding="{Binding Enabled}" Value="False">
+                                        <Setter Property="Fill" Value="{DynamicResource Graviton.Trace.Colour}"/>
+                                        <Setter Property="ToolTip" Value="Disabled"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsSetup}" Value="False">
+                                        <Setter Property="Fill" Value="{DynamicResource Graviton.Warn.Colour}"/>
+                                        <Setter Property="ToolTip" Value="Setup Incomplete"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Enabled}" Value="True">
+                                        <Setter Property="Fill" Value="{DynamicResource Graviton.Success.Colour}"/>
+                                        <Setter Property="ToolTip" Value="Enabled"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                        </Ellipse.Style>
+                    </Ellipse>
                 </Grid>
-            </StackPanel>
+            </DataTemplate>
+            <!-- #endregion -->
 
-            <StackPanel Orientation="Horizontal" Margin="5">
-                <TextBlock Name="SaveLocText" MinWidth="150" MaxWidth="200" VerticalAlignment="Center" HorizontalAlignment="Left"/>
-                <TextBox MinWidth="300" VerticalAlignment="Center" Text="{Binding SavePath, Mode=TwoWay}"/>
-                <Button Click="Click_BrowseSaveDestination" Margin="5,0,0,0">
-                    <TextBlock Name="SaveLocButtonText"/>
+            <ObjectDataProvider x:Key="SaveLayoutStyleValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="savmodels:SaveLayoutStyle"/>
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="5,10,5,5">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="5*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border HorizontalAlignment="Right" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1"/>
+
+        <!-- #region Mappings Select -->
+        <StackPanel Grid.Column="0" Margin="5">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Name="MappingsTitle" Grid.Column="0" Text="Mappings" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+                <Button Name="SyncPlatformsButton" Click="SyncPlatforms_Click" Grid.Column="1" Margin="5" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Name="SyncPlatformsText" Text="&#xf46a; Sync Platforms" FontSize="14" FontWeight="Bold" Margin="2"/>
                 </Button>
-            </StackPanel>
+            </Grid>
+            <TextBlock Name="MappingsSubtitle" Margin="5,5,0,0" Text="Setup emulators for game importing" FontSize="12" FontWeight="SemiBold" Foreground="DimGray" VerticalAlignment="Center"/>
 
-            <Button Click="OpenSaveManager_Click" Margin="5" HorizontalAlignment="Left">
-                <TextBlock Name="OpenSaveManagerText"/>
+            <Button Name="AddNewMappingButton" Margin="5,15,5,5" Click="AddMapping_Click">
+                <TextBlock Name="AddMappingText" Text="&#xea60; New Mapping" FontSize="16" FontWeight="Bold" Margin="2" HorizontalAlignment="Center"/>
             </Button>
 
+            <ListBox ItemsSource="{Binding Mappings}" SelectedItem="{Binding SelectedMapping, ElementName=Root, Mode=TwoWay}" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource MappingRowStyle}" ItemTemplate="{StaticResource MappingRowTemplate}"/>
         </StackPanel>
+        <!-- #endregion -->
+
+        <!-- #region Mapping Options -->
+        <Grid Name="MappingOptions" Grid.Column="1" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- #region Top Bar -->
+            <Grid Grid.Row="0" Margin="10,10,5,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Width="80" Height="80" CornerRadius="6" Background="{DynamicResource Graviton.TransparentBackground.Colour}" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="0.5" VerticalAlignment="Top" Margin="0,1,9,0">
+                    <Image Source="{Binding PlatformIcon}" Width="65" Height="65" Stretch="UniformToFill"/>
+                </Border>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="Emulator Name" FontSize="22" FontWeight="Medium" Foreground="{DynamicResource Graviton.Text.Colour}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="Profile Name" FontSize="20" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                    <TextBlock Text="{Binding RomMPlatform.DisplayName}" FontSize="18" Foreground="{DynamicResource Graviton.SubSubText.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                </StackPanel>
+
+                <Button Click="DeleteMapping_Click" Grid.Column="3" Margin="5" HorizontalAlignment="Right" Width="40" Height="40">
+                    <TextBlock Name="DeleteMappingIcon" FontSize="24" Text="&#xf05e8;" Foreground="{DynamicResource Graviton.ErrorBackground.Colour}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Button>
+            </Grid>
+            <!-- #endregion -->
+
+            <ScrollViewer Grid.Row="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- #region Configuration -->
+                    <Border Grid.Row="0" Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="1" Background="Transparent">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Configuration" FontWeight="Bold" FontSize="22" Margin="10" Grid.Column="0" Grid.Row="0" Foreground="{DynamicResource Graviton.Text.Colour}" TextTrimming="CharacterEllipsis"/>
+
+                            <CheckBox Grid.Column="1" Grid.Row="0" HorizontalAlignment="Right" Margin="10" IsChecked="{Binding Enabled, Mode=TwoWay}">
+                                <TextBlock Name="EnabledText" Text="Enabled" TextWrapping="Wrap"/>
+                            </CheckBox>
+
+                            <TextBlock Name="EmulatorText" Text="Emulator" FontWeight="SemiBold" FontSize="14" Margin="10,10,10,0" Grid.Column="0" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <ComboBox Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="10,0,10,0" Grid.Column="0" Grid.Row="2" Tag="No Emulator Selected"/>
+                            <TextBlock Name="ProfileText" Text="Profile" FontWeight="SemiBold" FontSize="14" Margin="10,10,10,0" Grid.Column="1" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <ComboBox Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="10,0,10,0" Grid.Column="1" Grid.Row="2" Tag="No Profile Selected"/>
+
+                            <TextBlock Name="PlatformText" Text="Platform" FontWeight="SemiBold" FontSize="14" Margin="10,10,10,0" Grid.Column="0" Grid.Row="3" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <ComboBox Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="10,0,10,0" Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2" Tag="No Platform Selected" ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="DisplayName" SelectedItem="{Binding RomMPlatform, Mode=TwoWay}"/>
+
+                            <TextBlock Name="ROMLocText" Text="ROM location" FontWeight="SemiBold" FontSize="14" Margin="10,10,10,0" Grid.Column="0" Grid.Row="5" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <Grid Grid.Column="0" Grid.Row="6" Grid.ColumnSpan="2" Margin="10,0,10,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid Grid.Column="0">
+                                    <TextBox x:Name="ROMLocation" Height="36" Padding="3,0" VerticalContentAlignment="Center" Text="{Binding DestinationPath, Mode=TwoWay}"/>
+                                    <TextBlock Name="ROMLocationPlaceholder" Text="No Folder Selected" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="6,0,0,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="{x:Type TextBlock}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Text, ElementName=ROMLocation}" Value="">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                                <Button Click="BrowseROMLocation_Click" Height="36" Margin="5,0,0,0" Grid.Column="1" HorizontalAlignment="Right">
+                                    <TextBlock Name="BrowseROMLocationText" Text="Browse" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                            </Grid>
+
+
+                        </Grid>
+                    </Border>
+                    <!-- #endregion -->
+
+                    <!-- #region Options -->
+                    <Border Grid.Row="1" Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="1" Background="Transparent">
+                        <StackPanel>
+                            <TextBlock Name="OptionText" Text="Options" FontWeight="Bold" FontSize="22" Margin="10" Grid.Column="0" Grid.Row="0" Foreground="{DynamicResource Graviton.Text.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <CheckBox Name="ExtractArchiveROMs" Grid.Column="1" Grid.Row="0" IsChecked="{Binding AutoExtract, Mode=TwoWay}" Margin="10,0,10,10">
+                                <TextBlock Name="ExtractArchiveROMsText" Text="Automatically extract archived ROMs" TextWrapping="Wrap"/>
+                            </CheckBox>
+                            <CheckBox Name="Preferm3u" Grid.Column="1" Grid.Row="0" IsChecked="{Binding UseM3U, Mode=TwoWay}" Margin="10,0,10,10">
+                                <TextBlock Name="Preferm3uText" Text="Prefer .m3u for launch actions" TextWrapping="Wrap"/>
+                            </CheckBox>
+                        </StackPanel>
+                    </Border>
+                    <!-- #endregion -->
+
+                    <!-- #region Saves -->
+                    <Border Grid.Row="2" Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="1" Background="Transparent">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Name="SaveOptionText" Text="Saves" FontWeight="Bold" FontSize="22" Margin="10" Grid.Column="0" Grid.Row="0" Foreground="{DynamicResource Graviton.Text.Colour}" TextTrimming="CharacterEllipsis"/>
+
+                            <Button Click="OpenSaveManager_Click" Grid.Column="1" Grid.Row="0" Margin="10" HorizontalAlignment="Right">
+                                <TextBlock Name="OpenSaveManagerText" Text="Manage Saves" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
+
+                            <TextBlock Name="AutoDetectionStyleText" Text="Auto Detection Style" FontWeight="SemiBold" FontSize="14" Margin="10,10,10,0" Grid.Column="0" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <ComboBox Name="AutoDetectionStyleCombo" Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="10,0,10,0" Grid.Column="0" Grid.Row="2" Tag="No Auto-Save Style Selected" ItemsSource="{Binding Source={StaticResource SaveLayoutStyleValues}}" SelectedItem="{Binding FindSaveLayout, Mode=TwoWay}"/>
+                            <TextBlock Name="SaveExtensionsText" Text="Auto Detection Extensions" FontWeight="SemiBold" FontSize="14" Margin="10,10,10,0" Grid.Column="1" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <Grid Grid.Column="1" Grid.Row="2" Margin="10,0,10,0">
+                                <TextBox VerticalAlignment="Center" Height="36" Padding="3,0" VerticalContentAlignment="Center" x:Name="SaveExtensionBox" Text="{Binding FindSaveFileExtensions, Mode=TwoWay}"/>
+                                <TextBlock Text="srm;sav;gci" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="6,0,0,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, ElementName=SaveExtensionBox}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+
+                            <TextBlock Name="SaveLocText" Text="Save Location" FontWeight="SemiBold" FontSize="14" Margin="10,10,10,0" Grid.Column="0" Grid.Row="3" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <Grid Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2" Margin="10,0,10,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid Grid.Column="0">
+                                    <TextBox Name="SavePathBox" Text="{Binding SavePath, Mode=TwoWay}" Height="36" Padding="3,0" VerticalContentAlignment="Center"/>
+                                    <TextBlock Name="SavePathPlaceHolder" Text="No Folder Set" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="6,0,0,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="{x:Type TextBlock}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Text, ElementName=SavePathBox}" Value="">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                                <Button Click="Click_BrowseSaveDestination" Grid.Column="1" Height="36" Margin="5,0,0,0">
+                                    <TextBlock Name="SaveLocButtonText" Text="Browse" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                            </Grid>
+
+
+                        </Grid>
+                    </Border>
+                    <!-- #endregion -->
+
+                </Grid>
+            </ScrollViewer>
+
+        </Grid>
+        <!-- #endregion -->
+
     </Grid>
-        
+
 </UserControl>

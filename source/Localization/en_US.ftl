@@ -26,7 +26,6 @@ InstallFailed = Failed to install - {$Error}
 OpenRomMLibrary = Open RomM library
 OpenRomMProfile = Open RomM profile
 
-
 # Authentication Page
 AuthButton = Connect
 ServerText = RomM Server Address
@@ -53,13 +52,15 @@ Emulator = Emulator
 Profile = Profile
 Platform = Platform
 ROMLoc = ROM Location
+NoFolderPlaceholder = No Folder Selected
 AutoExtractROMs = Automatically Extract Archived ROMs
 PreferM3U = Prefer .m3u Files When Launching
 MappingEnabled = Enabled
 AutoExtractROMsTooltip = Will extract ROMs if they are stored in RAR, Zip, Tar, 7Zip, GZip, Arc, Arj, Ace or Lzw format!
 PreferM3UTooltip = Will use .m3u file if multi-file ROM and emulator supports .m3u!
+PlatformsSynced = {$PlaformCount} platforms synced!
 SaveOptions = Save Options
-AutoSaveDetection = Auto Save Detection
+AutoSaveDetection = Auto Detection Style
 AutoSaveDetectionTooltip =
     Detects files that share the same name as the ROM filename
 

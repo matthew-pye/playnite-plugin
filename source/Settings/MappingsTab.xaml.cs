@@ -16,137 +16,119 @@ namespace Graviton.Settings
     {
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
 
+        public static readonly DependencyProperty SelectedMappingProperty = DependencyProperty.Register(nameof(SelectedMapping), typeof(EmulatorMapping), typeof(MappingsTab), new PropertyMetadata(null, OnSelectedMappingChanged));
+
+        public EmulatorMapping? SelectedMapping
+        {
+            get => (EmulatorMapping)GetValue(SelectedMappingProperty);
+            set => SetValue(SelectedMappingProperty, value);
+        }
+
+        private static void OnSelectedMappingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var tab = (MappingsTab)d;
+            var mapping = e.NewValue as EmulatorMapping;
+
+            tab.MappingOptions.DataContext = mapping;
+            tab.MappingOptions.Visibility = mapping != null ? Visibility.Visible : Visibility.Collapsed;
+
+        }
+
         public MappingsTab()
         {
             InitializeComponent();
 
-            SyncPlatformsIcon.Text = $"\uf46a {Loc.GetString("SyncPlatforms")}";
-            AddMappingIcon.Text = $"\uea60 {Loc.GetString("NewMapping")}";
+            SyncPlatformsText.Text = $"\uf46a {Loc.GetString("SyncPlatforms")}";
+            AddMappingText.Text = $"\uea60 {Loc.GetString("NewMapping")}";
+
+            EnabledText.Text = Loc.GetString("MappingEnabled");
             EmulatorText.Text = Loc.GetString("Emulator");
             ProfileText.Text = Loc.GetString("Profile");
             PlatformText.Text = Loc.GetString("Platform");
             ROMLocText.Text = Loc.GetString("ROMLoc");
-            ROMLocButtonText.Text = Loc.GetString("Browse");
+            ROMLocationPlaceholder.Text = Loc.GetString("NoFolderPlaceholder");
+            BrowseROMLocationText.Text = Loc.GetString("Browse");
+           
             OptionText.Text = Loc.GetString("Options");
-            AutoExtractROMText.Text = Loc.GetString("AutoExtractROMs");
+            ExtractArchiveROMsText.Text = Loc.GetString("AutoExtractROMs");
+            ExtractArchiveROMs.ToolTip = Loc.GetString("AutoExtractROMsTooltip");
             Preferm3uText.Text = Loc.GetString("PreferM3U");
-            MappingEnabledText.Text = Loc.GetString("MappingEnabled");
-            AutoExtractROMCheckBox.ToolTip = Loc.GetString("AutoExtractROMsTooltip");
-            PreferM3UCheckBox.ToolTip = Loc.GetString("PreferM3UTooltip");
+            Preferm3u.ToolTip = Loc.GetString("PreferM3UTooltip");
+
             SaveOptionText.Text = Loc.GetString("SaveOptions");
-            SaveLayoutStyleText.Text = Loc.GetString("AutoSaveDetection");
-            SaveLayoutStyleCombo.ToolTip = Loc.GetString("AutoSaveDetectionTooltip");
+            AutoDetectionStyleText.Text = Loc.GetString("AutoSaveDetection");
+            AutoDetectionStyleCombo.ToolTip = Loc.GetString("AutoSaveDetectionTooltip");
             SaveExtensionsText.Text = Loc.GetString("SaveExtensions");
             SaveLocText.Text = Loc.GetString("SaveLocation");
+            SavePathPlaceHolder.Text = Loc.GetString("NoFolderPlaceholder");
             SaveLocButtonText.Text = Loc.GetString("Browse");
             OpenSaveManagerText.Text = $"\uf019 {Loc.GetString("ManageSaves")}";
-
-            AddMappingIcon.FontFamily = Playnite.Fonts.NerdFont;
-            OpenSaveManagerText.FontFamily = Playnite.Fonts.NerdFont;
+            
         }
 
+        private async void SyncPlatforms_Click(object sender, RoutedEventArgs e)
+        {
+            SyncPlatformsButton.IsEnabled = false;
+
+            if(await _plugin.Account!.SyncPlatforms())
+                GravitonNotify.Add(new GravitonNotification("graviton.GET.platforms", Loc.GetString("PlatformsSynced", ("PlaformCount", _plugin.Settings.AccountState.RomMPlatforms.Count)), GravitonSeverity.Success));
+
+            SyncPlatformsButton.IsEnabled = true;
+            e.Handled = true;
+        }
+        
         private void AddMapping_Click(object sender, RoutedEventArgs e)
         {
             _plugin.Settings.Mappings.Add(new EmulatorMapping(_plugin.Settings.AccountState.RomMPlatforms));
         }
-
-        private void Mapping_Click(object sender, RoutedEventArgs e)
-        {
-
-            if (_plugin.Settings.Mappings == null)
-                return;
-
-            foreach (var map in _plugin.Settings.Mappings)
-            {
-                map.IsSelected = false;
-            }
-
-            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
-
-            if (mapping != null && _plugin.Settings.AccountState.RomMPlatforms != null)
-            {
-                mapping.AvailablePlatforms = _plugin.Settings.AccountState.RomMPlatforms;
-                MappingOptions.DataContext = mapping;
-                MappingOptions.Visibility = Visibility.Visible;
-                mapping.IsSelected = true;
-            }
-            else
-            {
-                MappingOptions.Visibility = Visibility.Hidden;
-            }
-
-           
-            e.Handled = true;
-        }
-
-        private async void Click_BrowseDestination(object sender, RoutedEventArgs e)
-        {
-            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
-            var path = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync();
-
-            if (mapping != null && path != null)
-                mapping.DestinationPath = path[0];
-
-            e.Handled = true;
-        }
-
+        
         private async void DeleteMapping_Click(object sender, RoutedEventArgs e)
         {
-            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
-            if(mapping != null)
+            if (SelectedMapping != null)
             {
-                var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{mapping.GetDescriptionLines()}", Loc.GetString("DeleteMappingConfirmTitle"), Playnite.MessageBoxButtons.YesNoCancel);
-
+                var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{SelectedMapping.GetDescriptionLines()}", Loc.GetString("DeleteMappingConfirmTitle"), Playnite.MessageBoxButtons.YesNoCancel);
+         
                 if (response == Playnite.MessageBoxResult.Yes)
                 {
-                    _plugin.Settings.Mappings.Remove(mapping!);
+                    _plugin.Settings.Mappings.Remove(SelectedMapping);
+                    MappingOptions.Visibility = Visibility.Collapsed;
                     MappingOptions.DataContext = null;
-                    MappingOptions.Visibility = Visibility.Hidden;
                 }
             }
             
             e.Handled = true;
         }
 
-        private async void SyncPlatforms_Click(object sender, RoutedEventArgs e)
+        private async void BrowseROMLocation_Click(object sender, RoutedEventArgs e)
         {
-            if(await _plugin.Account!.SyncPlatforms())
-                GravitonNotify.Add(new GravitonNotification("graviton.GET.platforms", Loc.GetString("PlatformsSynced", [("PlaformCount", _plugin.Settings.AccountState.RomMPlatforms.Count)]), GravitonSeverity.Success));
-            
-            e.Handled = true;
-        }
-
-        private async void Click_BrowseSaveDestination(object sender, RoutedEventArgs e)
-        {
-            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
             var path = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync();
-
-            if (mapping != null && path != null)
-                mapping.SavePath = path[0];
-
+        
+            if (path != null)
+                SelectedMapping?.DestinationPath = path[0];
+        
             e.Handled = true;
-        }
 
-        private async void Click_BrowseSaveStateDestination(object sender, RoutedEventArgs e)
-        {
-            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
-            var path = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync();
-
-            if (mapping != null && path != null)
-                mapping.SaveStatePath = path[0];
-
-            e.Handled = true;
         }
 
         private void OpenSaveManager_Click(object sender, RoutedEventArgs e)
         {
-            var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
-            if (mapping == null) return;
+            if (SelectedMapping == null) 
+                return;
 
             var tab = new MappingSaveTab();
-            _ = tab.Load(mapping);
+            _ = tab.Load(SelectedMapping);
 
             SaveManagerWindow.Show(Loc.GetString("SaveManagerTitle"), tab);
+        }
+
+        private async void Click_BrowseSaveDestination(object sender, RoutedEventArgs e)
+        {
+            var path = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync();
+
+            if (SelectedMapping != null && path != null)
+                SelectedMapping.SavePath = path[0];
+
+            e.Handled = true;
         }
     }
 }

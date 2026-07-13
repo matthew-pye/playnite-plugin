@@ -49,7 +49,7 @@
     <Style TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.Background.Colour}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="Padding" Value="10, 5" />
@@ -83,7 +83,7 @@
     <Style TargetType="{x:Type TextBox}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.Background.Colour}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CaretBrush" Value="{DynamicResource Graviton.Text.Colour}" />
         <Setter Property="SelectionBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
@@ -121,7 +121,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
                     <StackPanel Orientation="Horizontal">
-                        <Border x:Name="Border" Width="18" Height="18" Background="Transparent" BorderBrush="{DynamicResource Graviton.SubText.Colour}" BorderThickness="1" CornerRadius="4" SnapsToDevicePixels="True">
+                        <Border x:Name="Border" Width="18" Height="18" Background="Transparent" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="1" CornerRadius="4" SnapsToDevicePixels="True">
                             <Path x:Name="Check" Data="M 2,7 L 6,11 L 13,3" Stroke="{DynamicResource Graviton.Text.Colour}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"  StrokeLineJoin="Round" Visibility="Collapsed"/>
                         </Border>
                         <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True"/>
@@ -159,7 +159,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsHighlighted" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource Graviton.SubText.Colour}" />
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource Graviton.TransparentBackground.Colour}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -170,7 +170,7 @@
     <Style TargetType="{x:Type ComboBox}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.Background.Colour}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="5, 5" />
         <Setter Property="Template">
@@ -198,7 +198,7 @@
                         <TextBlock x:Name="Placeholder" Text="{TemplateBinding Tag}" IsHitTestVisible="False" Foreground="{DynamicResource Graviton.SubSubText.Colour}"  Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed"/>
 
                         <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
-                            <Border Background="{DynamicResource Graviton.SubSubText.Colour}" BorderBrush="{DynamicResource Graviton.SubText.Colour}" BorderThickness="1" CornerRadius="6" Margin="0,4,0,0" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="300" SnapsToDevicePixels="True">
+                            <Border Background="{DynamicResource Graviton.Background.Colour}" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="1" CornerRadius="6" Margin="0,4,0,0" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="300" SnapsToDevicePixels="True">
                                 <ScrollViewer SnapsToDevicePixels="True">
                                     <ItemsPresenter/>
                                 </ScrollViewer>
@@ -226,7 +226,7 @@
     <Style TargetType="{x:Type PasswordBox}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.Background.Colour}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CaretBrush" Value="{DynamicResource Graviton.Text.Colour}" />
         <Setter Property="SelectionBrush" Value="{DynamicResource Graviton.SubText.Colour}" />

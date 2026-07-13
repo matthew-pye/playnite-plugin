@@ -155,6 +155,7 @@ namespace Graviton.Settings
                 mapping.AvailablePlatforms = platforms.ToObservableCollection();
             }
 
+
             _plugin.Settings.AccountState.AuthenticateFailed = HttpStatusCode.OK;
             return true;
         }

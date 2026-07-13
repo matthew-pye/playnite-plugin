@@ -14,32 +14,31 @@
              mc:Ignorable="d">
 
     <UserControl.Resources>
-        <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-        <Style TargetType="{x:Type Label}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-        <Style TargetType="{x:Type TreeView}">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type TreeView}">
-                        <Border Background="{TemplateBinding Background}"
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Graviton;component/ThemingDefaults.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <Style TargetType="{x:Type TreeView}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type TreeView}">
+                            <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 Padding="{TemplateBinding Padding}"
                                 SnapsToDevicePixels="True">
-                            <ItemsPresenter/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+                                <ItemsPresenter/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Canvas Name="SettingsCanvas" DataContext="{Binding Settings}" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=UserControl}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=UserControl}}">
@@ -63,7 +62,7 @@
 
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <Button Name="RefreshButton" Click="Refresh_Click" Margin="0,0,10,0">
-                            <TextBlock Name="RefreshText" Text="&#xf46a; Refresh"/>
+                            <TextBlock Name="RefreshText" Text="&#xf46a; Refresh" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
 
                         <Grid>
@@ -92,7 +91,7 @@
                         <Grid>
                             <TextBlock Name="LocalTitleText" FontSize="18" Margin="0,0,0,5"/>
                             <Button Click="AddNewSave_Click" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="5">
-                                <TextBlock x:Name="AddSaveButtonText"/>
+                                <TextBlock x:Name="AddSaveButtonText" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
                         </Grid>
                         <Separator Margin="0,0,0,10"/>
@@ -176,7 +175,7 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </Button.Style>
-                                            <TextBlock Name="SyncSaveButtonText" Text="{loc:LocalizedString Sync}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Name="SyncSaveButtonText" Text="{loc:LocalizedString Sync}" TextTrimming="CharacterEllipsis"  HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Button>
 
 
@@ -206,7 +205,7 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
-                                                <TextBlock Name="DeleteSaveIcon" Text="&#xf05e8;" FontSize="18" FontFamily="{x:Static playnite:Fonts.NerdFont}" Foreground="Red" Margin="2,0,5,0"/>
+                                                <TextBlock Name="DeleteSaveIcon" Text="&#xf05e8;" FontSize="18" FontFamily="{x:Static playnite:Fonts.NerdFont}" Foreground="Red" Margin="2,0,5,0"  HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Button>
                                         </StackPanel>
                                         
@@ -309,7 +308,7 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
-                                                <TextBlock Name="SyncSaveButtonText" Text="{loc:LocalizedString Sync}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Name="SyncSaveButtonText" Text="{loc:LocalizedString Sync}" TextTrimming="CharacterEllipsis"  HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Button>
                                         </StackPanel>
                                         
@@ -398,7 +397,7 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
-                                                <TextBlock Name="SyncSaveButtonText" Text="{loc:LocalizedString Sync}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Name="SyncSaveButtonText" Text="{loc:LocalizedString Sync}" TextTrimming="CharacterEllipsis"  HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Button>
                                         </Grid>
                                         <Separator Margin="10,0,10,0"/>
