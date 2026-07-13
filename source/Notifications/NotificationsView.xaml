@@ -8,15 +8,6 @@
              mc:Ignorable="d"
              d:DesignHeight="900" d:DesignWidth="750">
 
-    <UserControl.Resources>
-        <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-        <Style TargetType="{x:Type Label}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-    </UserControl.Resources>
-
     <StackPanel x:Name="ToastStack" Orientation="Vertical"/>
 
 </UserControl>

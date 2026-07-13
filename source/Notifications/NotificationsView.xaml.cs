@@ -5,9 +5,6 @@ using System.Windows.Threading;
 
 namespace Graviton.Settings
 {
-    /// <summary>
-    /// Interaction logic for GravitonSettingsView.xaml
-    /// </summary>
     public partial class NotificationsView : UserControl
     {
 
@@ -31,7 +28,6 @@ namespace Graviton.Settings
                     lock (GravitonNotify.NotificationsLock) { GravitonNotify.Notifications.Remove(notification); }
                 };
 
-                // Insert at index 0 so newest toast appears at the top
                 ToastStack.Children.Insert(0, toast);
             });
         }

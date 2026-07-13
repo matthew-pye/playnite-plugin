@@ -1,7 +1,5 @@
 ﻿using Graviton.Models.Notifications;
 
-using Playnite;
-
 using System.Windows;
 using System.Windows.Controls;
 
@@ -16,39 +14,26 @@ namespace Graviton.Settings
         public DevTab()
         {
             InitializeComponent();
-
-            NotificationTestsText.Text = Loc.GetString("NotificationTests");
-            SuccessNotificationText.Text = Loc.GetString("SuccessNotificationTest");
-            InfoNotificationText.Text = Loc.GetString("InfoNotificationTest");
-            WarnNotificationText.Text = Loc.GetString("WarnNotificationTest");
-            ErrorNotificationText.Text = Loc.GetString("ErrorNotificationTest");
-
-            LoginTestsText.Text = Loc.GetString("LoginTests");
-            TestLoginText.Text = Loc.GetString("TestLogin");
-            TestForbiddenText.Text = Loc.GetString("TestForbidden");
-            TestUnauthorizedText.Text = Loc.GetString("TestUnauthorized");
-            TestReconnectingText.Text = Loc.GetString("TestReconnecting");
-            TestNotLoggedInText.Text = Loc.GetString("TestNotLoggedIn");
         }
 
         private void Success_Click(object sender, RoutedEventArgs e)
         {
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.success.test", Loc.GetString("SuccessNotificationTest"), GravitonSeverity.Success));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.success.test", "Success Notification", GravitonSeverity.Success));
         }
 
         private void Info_Click(object sender, RoutedEventArgs e)
         {
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.info.test", Loc.GetString("InfoNotificationTest"), GravitonSeverity.Info));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.info.test", "Info Notification", GravitonSeverity.Info));
         }
 
         private void Warn_Click(object sender, RoutedEventArgs e)
         {
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.warn.test", Loc.GetString("WarnNotificationTest"), GravitonSeverity.Warn));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.warn.test", "Warn Notification", GravitonSeverity.Warn));
         }
 
         private void Error_Click(object sender, RoutedEventArgs e)
         {
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.error.test", Loc.GetString("ErrorNotificationTest"), GravitonSeverity.Error));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.error.test", "Error Notification", GravitonSeverity.Error));
         }
 
         private async void LoggedIn_Click(object sender, RoutedEventArgs e)
@@ -65,14 +50,14 @@ namespace Graviton.Settings
             GravitonPlugin.Instance.Settings.AccountState.UserID = 1000;
             GravitonPlugin.Instance.Settings.AccountState.LastAuthenticated = DateTime.UtcNow;
 
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", Loc.GetString("LoginTestStarted"), GravitonSeverity.Info));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", "Temporarily set login status to Logged In", GravitonSeverity.Info));
             await Task.Delay(10000);
 
             GravitonPlugin.Instance.Settings.AccountState.AuthenticateFailed = AuthenticateFailed;
             GravitonPlugin.Instance.Settings.AccountState.UserID = UserID;
             GravitonPlugin.Instance.Settings.AccountState.LastAuthenticated = LastAuthenticated;
 
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", Loc.GetString("LoginTestFinished"), GravitonSeverity.Info));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", "Reverted login status", GravitonSeverity.Info));
             testInProgress = false;
         }
 
@@ -90,14 +75,14 @@ namespace Graviton.Settings
             GravitonPlugin.Instance.Settings.AccountState.UserID = 1000;
             GravitonPlugin.Instance.Settings.AccountState.LastAuthenticated = null;
 
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", Loc.GetString("ForbiddenTestStarted"), GravitonSeverity.Info));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", "Temporarily set login status to forbidden", GravitonSeverity.Info));
             await Task.Delay(10000);
 
             GravitonPlugin.Instance.Settings.AccountState.AuthenticateFailed = AuthenticateFailed;
             GravitonPlugin.Instance.Settings.AccountState.UserID = UserID;
             GravitonPlugin.Instance.Settings.AccountState.LastAuthenticated = LastAuthenticated;
 
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", Loc.GetString("ForbiddenTestFinished"), GravitonSeverity.Info));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", "Reverted login status", GravitonSeverity.Info));
             testInProgress = false;
         }
 
@@ -115,14 +100,14 @@ namespace Graviton.Settings
             GravitonPlugin.Instance.Settings.AccountState.UserID = 1000;
             GravitonPlugin.Instance.Settings.AccountState.LastAuthenticated = null;
 
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", Loc.GetString("UnauthorizedTestStarted"), GravitonSeverity.Info));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", "Temporarily set login status to Unauthorised", GravitonSeverity.Info));
             await Task.Delay(10000);
 
             GravitonPlugin.Instance.Settings.AccountState.AuthenticateFailed = AuthenticateFailed;
             GravitonPlugin.Instance.Settings.AccountState.UserID = UserID;
             GravitonPlugin.Instance.Settings.AccountState.LastAuthenticated = LastAuthenticated;
 
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", Loc.GetString("UnauthorizedTestFinished"), GravitonSeverity.Info));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", "Reverted login status", GravitonSeverity.Info));
             testInProgress = false;
         }
 
@@ -141,14 +126,14 @@ namespace Graviton.Settings
             GravitonPlugin.Instance.Settings.AccountState.UserID = 1000;
             GravitonPlugin.Instance.Settings.AccountState.LastAuthenticated = DateTime.UtcNow;
 
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", Loc.GetString("ReconnectingTestStarted"), GravitonSeverity.Info));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", "Temporarily set login status to reconnecting", GravitonSeverity.Info));
             await Task.Delay(10000);
 
             GravitonPlugin.Instance.Settings.AccountState.AuthenticateFailed = AuthenticateFailed;
             GravitonPlugin.Instance.Settings.AccountState.UserID = UserID;
             GravitonPlugin.Instance.Settings.AccountState.LastAuthenticated = LastAuthenticated;
 
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", Loc.GetString("ReconnectingTestFinished"), GravitonSeverity.Info));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", "Reverted login status", GravitonSeverity.Info));
             testInProgress = false;
         }
 
@@ -166,14 +151,14 @@ namespace Graviton.Settings
             GravitonPlugin.Instance.Settings.AccountState.UserID = -1;
             GravitonPlugin.Instance.Settings.AccountState.LastAuthenticated = null;
 
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", Loc.GetString("NotLoggedInTestStarted"), GravitonSeverity.Info));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", "Temporarily set login status to Not logged in", GravitonSeverity.Info));
             await Task.Delay(10000);
 
             GravitonPlugin.Instance.Settings.AccountState.AuthenticateFailed = AuthenticateFailed;
             GravitonPlugin.Instance.Settings.AccountState.UserID = UserID;
             GravitonPlugin.Instance.Settings.AccountState.LastAuthenticated = LastAuthenticated;
 
-            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", Loc.GetString("NotLoggedInTestFinished"), GravitonSeverity.Info));
+            GravitonNotify.Add(new GravitonNotification("graviton.dev.login.test", "Reverted login status", GravitonSeverity.Info));
             testInProgress = false;
         }
     }

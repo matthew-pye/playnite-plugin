@@ -5,32 +5,20 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:s="clr-namespace:Graviton.Settings"
-             xmlns:playnite="clr-namespace:Playnite;assembly=Playnite.SDK"
              xmlns:loc="clr-namespace:Playnite"
              mc:Ignorable="d"
              d:DesignHeight="540" d:DesignWidth="960">
 
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
-        <s:ImageCacheConverter x:Key="imageCacheConverter" />
-        <s:InvertBoolConverter x:Key="InvertBoolConverter" />
-        <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-        <Style TargetType="{x:Type Label}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-        <Style TargetType="{x:Type PasswordBox}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-        <Style TargetType="{x:Type Expander}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Graviton;component/ThemingDefaults.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <StackPanel>
-
-        <Border Grid.Column="0" BorderThickness="1" CornerRadius="3" BorderBrush="#22696969">
+        <Border Grid.Column="0" BorderThickness="1" CornerRadius="3" BorderBrush="{DynamicResource Graviton.Background.Colour}">
             <Grid Margin="5,10,5,20">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="2*"/>
@@ -44,11 +32,11 @@
                 <!-- #region UserData -->
                 <Grid Grid.Column="0" Grid.Row="0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="2*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="50"/>
                         <RowDefinition Height="30"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
@@ -56,23 +44,19 @@
                     </Grid.RowDefinitions>
 
                     <!-- #region Status -->
-                    <Border Grid.Row="0" Grid.Column="0" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5">
+                    <Border Grid.Row="0" Grid.Column="0" CornerRadius="6" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,10,5,5">
                         <Border.Style>
                             <Style TargetType="Border">
-                                <Setter Property="BorderBrush" Value="#ebfeefb3"/>
-                                <Setter Property="Background" Value="#ebfeefb3"/>
+                                <Setter Property="Background" Value="{DynamicResource Graviton.WarnBackground.Colour}"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
-                                        <Setter Property="BorderBrush" Value="#ebd5fa97"/>
-                                        <Setter Property="Background" Value="#ebd5fa97"/>
+                                        <Setter Property="Background" Value="{DynamicResource Graviton.SuccessBackground.Colour}"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Unauthorized">
-                                        <Setter Property="BorderBrush" Value="#ebffbaba"/>
-                                        <Setter Property="Background" Value="#ebffbaba"/>
+                                        <Setter Property="Background" Value="{DynamicResource Graviton.ErrorBackground.Colour}"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Forbidden">
-                                        <Setter Property="BorderBrush" Value="#ebffbaba"/>
-                                        <Setter Property="Background" Value="#ebffbaba"/>
+                                        <Setter Property="Background" Value="{DynamicResource Graviton.ErrorBackground.Colour}"/>
                                     </DataTrigger>
                                     <MultiDataTrigger>
                                         <MultiDataTrigger.Conditions>
@@ -80,28 +64,26 @@
                                             <Condition Binding="{Binding AccountState.UserID}" Value="-1" />
                                         </MultiDataTrigger.Conditions>
                                         <MultiDataTrigger.Setters>
-                                            <Setter Property="BorderBrush" Value="#eba6a5a5"/>
-                                            <Setter Property="Background" Value="#eba6a5a5"/>
+                                            <Setter Property="Background" Value="{DynamicResource Graviton.SubSubText.Colour}"/>
                                         </MultiDataTrigger.Setters>
                                     </MultiDataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Border.Style>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock FontSize="12" FontFamily="{x:Static playnite:Fonts.NerdFont}" Margin="3,0,3,0">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="&#xf444;"/>
-                                        <Setter Property="Foreground" Value="#ff9f6000"/>
+                            <Ellipse Width="6" Height="6" Margin="5">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="{DynamicResource Graviton.Warn.Colour}"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
-                                                <Setter Property="Foreground" Value="#ff4f8a10"/>
+                                                <Setter Property="Fill" Value="{DynamicResource Graviton.Success.Colour}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Unauthorized">
-                                                <Setter Property="Foreground" Value="#ffd8000c"/>
+                                                <Setter Property="Fill" Value="{DynamicResource Graviton.Error.Colour}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Forbidden">
-                                                <Setter Property="Foreground" Value="#ffd8000c"/>
+                                                <Setter Property="Fill" Value="{DynamicResource Graviton.Error.Colour}"/>
                                             </DataTrigger>
                                             <MultiDataTrigger>
                                                 <MultiDataTrigger.Conditions>
@@ -109,30 +91,30 @@
                                                     <Condition Binding="{Binding AccountState.UserID}" Value="-1" />
                                                 </MultiDataTrigger.Conditions>
                                                 <MultiDataTrigger.Setters>
-                                                    <Setter Property="Foreground" Value="#ff696969"/>
+                                                    <Setter Property="Fill" Value="{DynamicResource Graviton.Text.Colour}"/>
                                                 </MultiDataTrigger.Setters>
                                             </MultiDataTrigger>
                                         </Style.Triggers>
                                     </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <TextBlock FontSize="12" Margin="0,0,3,0">
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock FontSize="12" Margin="0,2,5,2">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Text" Value="Reconnecting..."/>
-                                        <Setter Property="Foreground" Value="#ff9f6000"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource Graviton.Warn.Colour}"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
                                                 <Setter Property="Text" Value="Logged In"/>
-                                                <Setter Property="Foreground" Value="#ff4f8a10"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Success.Colour}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Unauthorized">
                                                 <Setter Property="Text" Value="Logged Out"/>
-                                                <Setter Property="Foreground" Value="#ffd8000c"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Forbidden">
                                                 <Setter Property="Text" Value="Logged Out"/>
-                                                <Setter Property="Foreground" Value="#ffd8000c"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
                                             </DataTrigger>
                                             <MultiDataTrigger>
                                                 <MultiDataTrigger.Conditions>
@@ -141,7 +123,7 @@
                                                 </MultiDataTrigger.Conditions>
                                                 <MultiDataTrigger.Setters>
                                                     <Setter Property="Text" Value="Not Logged In"/>
-                                                    <Setter Property="Foreground" Value="#ff696969"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}"/>
                                                 </MultiDataTrigger.Setters>
                                             </MultiDataTrigger>
                                         </Style.Triggers>
@@ -152,9 +134,9 @@
                     </Border>
                     <!-- #endregion -->
 
-                    <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,5,0">
-                        <Label Name="RomMServerVersionText" Content="Server Ver." Foreground="DimGray" FontSize="12"/>
-                        <Label Name="RomMServerVersion" Content="{Binding AccountState.ServerVersion, Mode=OneWay}" Foreground="DimGray" FontSize="12" Margin="0"/>
+                    <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,10,5,0">
+                        <Label Name="RomMServerVersionText" Content="Server Ver." Foreground="{DynamicResource Graviton.SubSubText.Colour}" FontSize="12"/>
+                        <Label Name="RomMServerVersion" Content="{Binding AccountState.ServerVersion, Mode=OneWay}" Foreground="{DynamicResource Graviton.SubSubText.Colour}" FontSize="12" Margin="0"/>
                     </StackPanel>
 
                     <!-- #region Profile Icon -->
@@ -162,7 +144,7 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Grid Name="ProfileIconGrid" Grid.Column="0">
+                        <Grid Name="ProfileIconGrid" Grid.Column="0" Margin="0,10,0,0">
                             <Border Name="ProfileIconBorder" BorderThickness="0" CornerRadius="8" ClipToBounds="True">
                                 <Border.Background>
                                     <ImageBrush ImageSource="{Binding ProfilePath, Mode=OneWay, Converter={StaticResource imageCacheConverter}}" Stretch="UniformToFill" AlignmentX="Center" AlignmentY="Center"/>
@@ -181,9 +163,9 @@
                                 </Border.Style>
                             </Border>
                         </Grid>
-                        <Button Grid.Column="0" Name="ProfileEditButton" Content="&#xf03eb;" FontSize="24" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="10" Click="Click_UpdateProfileIcon">
+                        <Button Grid.Column="0" Name="ProfileEditButton" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="10" Click="Click_UpdateProfileIcon">
                             <Button.Style>
-                                <Style TargetType="Button">
+                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                     <Setter Property="Background" Value="Transparent"/>
                                     <Setter Property="BorderBrush" Value="Transparent"/>
                                     <Setter Property="Foreground" Value="White"/>
@@ -206,6 +188,7 @@
                                     </Style.Triggers>
                                 </Style>
                             </Button.Style>
+                            <TextBlock Text="&#xf03eb;" FontFamily="{StaticResource NerdFont}" FontSize="24"/>
                         </Button>
                     </Grid>
                     <!-- #endregion -->
@@ -309,12 +292,13 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <Grid Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Margin="10">
+                    <Grid Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Margin="10,5,10,10">
                         <TextBox x:Name="ServerAddressBox" Text="{Binding Host, Mode=TwoWay}" VerticalAlignment="Center"/>
-                        <TextBlock Text="Server Address" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="DarkGray">
+                        <TextBlock Text="Server Address" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}">
                             <TextBlock.Style>
-                                <Style TargetType="{x:Type TextBlock}">
+                                <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.SubSubText.Colour}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Text, ElementName=ServerAddressBox}" Value="">
                                             <Setter Property="Visibility" Value="Visible"/>
@@ -327,7 +311,7 @@
 
                     <!-- #region QR Code -->
                     <Border BorderThickness="1" CornerRadius="8" ClipToBounds="True" BorderBrush="#41373737" Background="#41373737" Margin="10" Grid.Row="1" Grid.Column="0" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}">
-                        <TextBlock Name="TempQRText" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="{x:Static playnite:Fonts.NerdFont}" FontSize="56" Text="&#xf029;"/>
+                        <TextBlock Name="TempQRText" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="{StaticResource NerdFont}" FontSize="56" Text="&#xf029;"/>
                     </Border>
                     <Border Name="LoginQRBorder" Visibility="Hidden" BorderThickness="1" CornerRadius="8" ClipToBounds="True" BorderBrush="#41373737" Margin="10" Grid.Row="1" Grid.Column="0" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}"/>
                     <TextBlock Name="LoginQRTimer" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Center" Visibility="Collapsed"/>
@@ -347,10 +331,10 @@
                         <TextBlock Text="Scan with phone or open in browser." Grid.Row="1" HorizontalAlignment="Left" FontSize="16" Foreground="Gray"/>
                         <StackPanel Orientation="Horizontal" Grid.Row="2">
                             <Button Name="QRAuth" Click="Click_LoginViaQR" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                <TextBlock Name="QRAuthText" Text="Start" Margin="5" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Name="QRAuthText" Text="Start" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
                             <Button Name="OpenInBrowser" Click="Click_OnInBrowser" Visibility="Collapsed" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                <TextBlock Name="OpenInBrowserText" Text="Open in browser" Margin="5" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Name="OpenInBrowserText" Text="Open in browser" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
                         </StackPanel>
 
@@ -360,10 +344,9 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0" Text="{Binding ClientTokenNP, Mode=TwoWay}"/>
                             <Grid Grid.Column="0">
                                 <TextBox x:Name="ClientTokenBox" Text="{Binding ClientTokenNP, Mode=TwoWay}"/>
-                                <TextBlock Name="ClientTokenPlaceholder" Text="Login with Client Token" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="DarkGray">
+                                <TextBlock Name="ClientTokenPlaceholder" Text="Login with Client Token" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}">
                                     <TextBlock.Style>
                                         <Style TargetType="{x:Type TextBlock}">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -377,7 +360,7 @@
                                 </TextBlock>
                             </Grid>
                             <Button Grid.Column="1" Name="ConnectButton" Click="Click_Authenticate" Margin="5,0,5,0">
-                                <TextBlock Name="AuthButtonText" Text="Connect"/>
+                                <TextBlock Name="AuthButtonText" Text="Connect" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             </Button>
                         </Grid>
                     </Grid>
@@ -464,8 +447,8 @@
                         </CheckBox>
 
                         <Grid Grid.Row="2" Margin="5">
-                            <TextBox x:Name="UsernameBox" Text="{Binding UsernameNP, Mode=TwoWay}" Height="24"/>
-                            <TextBlock Text="Username" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="DarkGray">
+                            <TextBox x:Name="UsernameBox" Text="{Binding UsernameNP, Mode=TwoWay}"/>
+                            <TextBlock Text="Username" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}">
                                 <TextBlock.Style>
                                     <Style TargetType="{x:Type TextBlock}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -480,24 +463,11 @@
                         </Grid>
 
                         <Grid Grid.Row="3" Margin="5">
-                            <TextBox x:Name="RomMPasswordUnmasked" Text="{Binding PasswordNP, Mode=TwoWay}" Visibility="Collapsed" Height="24"/>
-                            <PasswordBox x:Name="RomMPassword" PasswordChar="●" FontSize="14" PasswordChanged="RomMPassword_PasswordChanged">
-                                <PasswordBox.Style>
-                                    <Style TargetType="PasswordBox">
-                                        <Setter Property="Background" Value="{Binding Background, ElementName=UsernameBox}"/>
-                                        <Setter Property="Foreground" Value="{Binding Foreground, ElementName=UsernameBox}"/>
-                                        <Setter Property="BorderBrush" Value="{Binding BorderBrush, ElementName=UsernameBox}"/>
-                                        <Setter Property="BorderThickness" Value="{Binding BorderThickness, ElementName=UsernameBox}"/>
-                                        <Setter Property="Padding" Value="{Binding Padding, ElementName=UsernameBox}"/>
-                                        <Setter Property="CaretBrush" Value="{Binding Foreground, ElementName=UsernameBox}"/>
-                                        <Setter Property="Height" Value="28"/>
-                                    </Style>
-                                </PasswordBox.Style>
-                            </PasswordBox>
-
-                            <TextBlock Text="Password" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="DarkGray">
+                            <TextBox x:Name="RomMPasswordUnmasked" Text="{Binding PasswordNP, Mode=TwoWay}" Visibility="Collapsed" FontSize="14" Margin="5,0,0,0"/>
+                            <PasswordBox x:Name="RomMPassword" FontSize="14" PasswordChar="●" PasswordChanged="RomMPassword_PasswordChanged"/>
+                            <TextBlock Text="Password" FontSize="14" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}">
                                 <TextBlock.Style>
-                                    <Style TargetType="{x:Type TextBlock}">
+                                    <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding PasswordNP}" Value="">
@@ -510,7 +480,7 @@
 
                             <Button Name="ShowPassword" Content="&#xea70;" FontSize="18" HorizontalAlignment="Right" Margin="0,0,10,0" Click="Click_ShowPassword">
                                 <Button.Style>
-                                    <Style TargetType="Button">
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                         <Setter Property="Background" Value="Transparent"/>
                                         <Setter Property="BorderBrush" Value="Transparent"/>
                                         <Setter Property="Foreground" Value="DimGray"/>
@@ -529,7 +499,7 @@
                         </Grid>
 
                         <Button Name="BasicLoginButton" Grid.Column="1" Grid.Row="3" Click="Click_BasicLogin" Margin="5">
-                            <TextBlock Name="BasicLoginText" Text="Login" FontSize="18"/>
+                            <TextBlock Name="BasicLoginText" Text="Login" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
 
                     </Grid>

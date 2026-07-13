@@ -284,7 +284,7 @@ namespace Graviton.Settings
         #region QR Code
         private GraphicsPath RoundedRect(RectangleF rect, float radius)
         {
-            using GraphicsPath path = new GraphicsPath();
+            GraphicsPath path = new GraphicsPath();
 
             float d = radius * 2;
 
@@ -314,116 +314,132 @@ namespace Graviton.Settings
             int size = pixelsPerModule * 7;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            using var lightBrush = new SolidBrush(light);
+            using (var lightBrush = new SolidBrush(light))
+            {
+                using (var outer = new GraphicsPath())
+                using (var middleHole = new GraphicsPath())
+                {
+                    using (var outerShape = RoundedRect(new RectangleF(x, y, size, size), pixelsPerModule * 1.6f))
+                    {
+                        outer.AddPath(outerShape, false);
+                    }
 
-            using var outer = new GraphicsPath();
-            using var middleHole = new GraphicsPath();
-            
-            outer.AddPath(RoundedRect(new RectangleF(x, y, size, size), pixelsPerModule * 1.6f), false);
+                    int border = (int)(pixelsPerModule * 0.6f);
+                    using (var middleHoleShape = RoundedRect(new RectangleF(x + border, y + border, size - border * 2, size - border * 2), pixelsPerModule * 1.2f))
+                    {
+                        middleHole.AddPath(middleHoleShape, false);
+                    }
 
-            int border = (int)(pixelsPerModule * 0.6f);
-            middleHole.AddPath(RoundedRect(new RectangleF(x + border, y + border, size - border * 2, size - border * 2), pixelsPerModule * 1.2f), false);
+                    using (var region = new System.Drawing.Region(outer))
+                    {
+                        region.Exclude(middleHole);
+                        g.FillRegion(lightBrush, region);
+                    }
+                }
 
-            using var region = new System.Drawing.Region(outer);
-            region.Exclude(middleHole);
-            g.FillRegion(lightBrush, region);
+                int centre = pixelsPerModule * 2;
+                using (var centerPath = RoundedRect(new RectangleF(x + centre, y + centre, size - centre * 2, size - centre * 2), pixelsPerModule * 0.8f))
+                {
+                    g.FillPath(lightBrush, centerPath);
+                }
+            }
 
-            int centre = pixelsPerModule * 2;
-            using var centerPath = RoundedRect(new RectangleF(x + centre, y + centre, size - centre * 2, size - centre * 2), pixelsPerModule * 0.8f);
-             g.FillPath(lightBrush, centerPath);
-            
         }
 
         private BitmapImage BuildQRCode(string data)
         {
-            Bitmap logo = new Bitmap($"{_plugin.PluginDLLPath}/libraryicon.png");
+            using (Bitmap logo = new Bitmap($"{_plugin.PluginDLLPath}/libraryicon.png"))
+            {
+                using (var qrGenerator = new QRCodeGenerator())
+                using (var qrCodeData = qrGenerator.CreateQrCode(data, QRCodeGenerator.ECCLevel.H))
+                using (var qrCode = new ArtQRCode(qrCodeData))
+                {
+                    var lightcolour = System.Drawing.Color.FromArgb(255, 250, 250, 245);
+                    var darkcolour = System.Drawing.Color.FromArgb(255, 20, 20, 30);
 
-            using var qrGenerator = new QRCodeGenerator();
-            using var qrCodeData = qrGenerator.CreateQrCode(data, QRCodeGenerator.ECCLevel.Q);
-            using var qrCode = new ArtQRCode(qrCodeData);
-            
-            var lightcolour = Color.FromArgb(255, 250, 250, 245);
-            var darkcolour = Color.FromArgb(255, 20, 20, 30);
+                    Bitmap qrBitmap = qrCode.GetGraphic(
+                                                    pixelsPerModule: 20,
+                                                    darkColor: lightcolour,
+                                                    lightColor: darkcolour,
+                                                    backgroundColor: System.Drawing.Color.Transparent,
+                                                    pixelSizeFactor: 0.7,
+                                                    drawQuietZones: false
+                                                    );
 
-            Bitmap qrBitmap = qrCode.GetGraphic(
-                                            pixelsPerModule: 20,
-                                            darkColor: lightcolour,
-                                            lightColor: Color.Transparent,
-                                            backgroundColor: Color.Transparent,
-                                            pixelSizeFactor: 0.7,
-                                            drawQuietZones: false
-                                            );
+                    const int padding = 20;
+                    Bitmap canvas = new Bitmap(qrBitmap.Width + padding * 2, qrBitmap.Height + padding * 2, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 
-            const int padding = 20;
-            Bitmap canvas = new Bitmap(qrBitmap.Width + padding * 2, qrBitmap.Height + padding * 2, PixelFormat.Format32bppArgb);
+                    using (Graphics g = Graphics.FromImage(canvas))
+                    {
+                        g.SmoothingMode = SmoothingMode.AntiAlias;
+                        g.InterpolationMode = InterpolationMode.NearestNeighbor;
+                        g.PixelOffsetMode = PixelOffsetMode.Half;
 
-            using Graphics g = Graphics.FromImage(canvas);
-            
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.InterpolationMode = InterpolationMode.NearestNeighbor;
-            g.PixelOffsetMode = PixelOffsetMode.Half;
+                        g.DrawImage(qrBitmap, padding, padding);
 
-            g.DrawImage(qrBitmap, padding, padding);
+                        int finderSize = 7 * 20;
+                        using (var coverPath = new GraphicsPath())
+                        {
+                            coverPath.AddRectangle(new RectangleF(padding, padding, finderSize, finderSize));
+                            coverPath.AddRectangle(new RectangleF(canvas.Width - padding - finderSize, padding, finderSize, finderSize));
+                            coverPath.AddRectangle(new RectangleF(padding, canvas.Height - padding - finderSize, finderSize, finderSize));
 
-            int finderSize = 7 * 20;
-            using var coverPath = new GraphicsPath();
-            
-            coverPath.AddRectangle(new RectangleF(padding, padding, finderSize, finderSize));
-            coverPath.AddRectangle(new RectangleF(canvas.Width - padding - finderSize, padding, finderSize, finderSize));
-            coverPath.AddRectangle(new RectangleF(padding, canvas.Height - padding - finderSize, finderSize, finderSize));
+                            GraphicsState clearState = g.Save();
+                            g.SetClip(coverPath);
+                            g.Clear(System.Drawing.Color.Transparent);
+                            g.Restore(clearState);
+                        }
 
-            GraphicsState clearState = g.Save();
-            g.SetClip(coverPath);
-            g.Clear(Color.Transparent); 
-            g.Restore(clearState);
-            
+                        DrawFinder(g, 20, 20, 20, lightcolour);
+                        DrawFinder(g, canvas.Width - 20 - finderSize, 20, 20, lightcolour);
+                        DrawFinder(g, 20, canvas.Height - 20 - finderSize, 20, lightcolour);
 
-            DrawFinder(g, 20, 20, 20, lightcolour);
-            DrawFinder(g, canvas.Width - 20 - finderSize, 20, 20, lightcolour);
-            DrawFinder(g, 20, canvas.Height - 20 - finderSize, 20, lightcolour);
+                        int iconSize = (int)(canvas.Width * 0.20);
+                        int iconX = (canvas.Width - iconSize) / 2;
+                        int iconY = (canvas.Height - iconSize) / 2;
 
-            int iconSize = (int)(canvas.Width * 0.20);
-            int iconX = (canvas.Width - iconSize) / 2;
-            int iconY = (canvas.Height - iconSize) / 2;
+                        const int badgePadding = 20;
+                        const int badgeRadius = 20;
 
-            const int badgePadding = 16;
-            const int badgeRadius = 20;
+                        RectangleF badgeRect = new RectangleF(iconX - badgePadding, iconY - badgePadding, iconSize + badgePadding * 2, iconSize + badgePadding * 2);
+                        using (var badgePath = RoundedRect(badgeRect, badgeRadius))
+                        {
+                            GraphicsState state = g.Save();
+                            g.SetClip(badgePath);
+                            g.Clear(System.Drawing.Color.Transparent);
+                            g.Restore(state);
 
-            RectangleF badgeRect = new RectangleF(iconX - badgePadding, iconY - badgePadding, iconSize + badgePadding * 2, iconSize + badgePadding * 2);
-            using GraphicsPath badgePath = RoundedRect(badgeRect, badgeRadius);
+                            using (GraphicsPath logoPath = RoundedRect(new RectangleF(iconX, iconY, iconSize, iconSize), 16))
+                            {
+                                state = g.Save();
+                                g.SetClip(logoPath);
+                                g.DrawImage(logo, iconX, iconY, iconSize, iconSize);
+                                g.Restore(state);
+                            }
+                        }
+                    }
 
-            GraphicsState state = g.Save();
-            g.SetClip(badgePath);
-            g.Clear(Color.Transparent);
-            g.Restore(state);
+                    qrBitmap.Dispose();
+                    qrBitmap = canvas;
 
-            using GraphicsPath logoPath = RoundedRect(new RectangleF(iconX, iconY, iconSize, iconSize), 16);
+                    using (MemoryStream memory = new MemoryStream())
+                    {
+                        qrBitmap.Save(memory, ImageFormat.Png);
+                        memory.Position = 0;
 
-            state = g.Save();
-            g.SetClip(logoPath);
-            g.DrawImage(logo, iconX, iconY, iconSize, iconSize);
-            g.Restore(state);
-            
+                        BitmapImage bitmapImage = new BitmapImage();
+                        bitmapImage.BeginInit();
+                        bitmapImage.StreamSource = memory;
+                        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmapImage.EndInit();
+                        bitmapImage.Freeze();
 
-            qrBitmap.Dispose();
-            qrBitmap = canvas;
+                        qrBitmap.Dispose();
+                        return bitmapImage;
+                    }
+                }
+            }
 
-            using MemoryStream memory = new MemoryStream();
-            
-            qrBitmap.Save(memory, ImageFormat.Png);
-            memory.Position = 0;
-
-            BitmapImage bitmapImage = new BitmapImage();
-            bitmapImage.BeginInit();
-            bitmapImage.StreamSource = memory;
-            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-            bitmapImage.EndInit();
-            bitmapImage.Freeze();
-
-            qrBitmap.Dispose();
-
-            return bitmapImage;
-   
         }
         #endregion
     }

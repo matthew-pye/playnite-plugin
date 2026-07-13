@@ -8,61 +8,56 @@
              mc:Ignorable="d"
              d:DesignHeight="900" d:DesignWidth="750">
 
+
     <UserControl.Resources>
-        <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-        <Style TargetType="{x:Type Label}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-        
-        <Storyboard x:Key="SlideInAnimation">
-            <DoubleAnimation 
-                Storyboard.TargetName="RootBorder"
-                Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
-                From="-80" To="0"
-                Duration="0:0:0.35"
-            >
-                <DoubleAnimation.EasingFunction>
-                    <CubicEase EasingMode="EaseOut"/>
-                </DoubleAnimation.EasingFunction>
-            </DoubleAnimation>
-            
-            <DoubleAnimation 
-                Storyboard.TargetName="RootBorder"
-                Storyboard.TargetProperty="Opacity"
-                From="0" To="1"
-                Duration="0:0:0.25"
-            />
-        </Storyboard>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Graviton;component/ThemingDefaults.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
 
-        <Storyboard x:Key="SlideOutAnimation" Completed="SlideOut_Completed">
-            <DoubleAnimation Storyboard.TargetName="RootBorder"
-                             Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
-                             From="0" To="-80"
-                             Duration="0:0:0.3">
-                <DoubleAnimation.EasingFunction>
-                    <CubicEase EasingMode="EaseIn"/>
-                </DoubleAnimation.EasingFunction>
-            </DoubleAnimation>
-            <DoubleAnimation Storyboard.TargetName="RootBorder"
-                             Storyboard.TargetProperty="Opacity"
-                             From="1" To="0"
-                             Duration="0:0:0.25"/>
-        </Storyboard>
+            <Storyboard x:Key="SlideInAnimation">
+                <DoubleAnimation 
+        Storyboard.TargetName="RootBorder"
+        Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+        From="-80" To="0"
+        Duration="0:0:0.35">
+                    <DoubleAnimation.EasingFunction>
+                        <CubicEase EasingMode="EaseOut"/>
+                    </DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
 
-        <Storyboard x:Key="ProgressBarAnimation" Completed="Progress_Completed">
-            <DoubleAnimation
-                Storyboard.TargetName="ProgressBar"
-                Storyboard.TargetProperty="Width"
-                From="336" To="0"
-                Duration="0:0:4"
-            />
-        </Storyboard>
+                <DoubleAnimation 
+        Storyboard.TargetName="RootBorder"
+        Storyboard.TargetProperty="Opacity"
+        From="0" To="1"
+        Duration="0:0:0.25"/>
+            </Storyboard>
 
+            <Storyboard x:Key="SlideOutAnimation" Completed="SlideOut_Completed">
+                <DoubleAnimation Storyboard.TargetName="RootBorder"
+                     Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                     From="0" To="-80"
+                     Duration="0:0:0.3">
+                    <DoubleAnimation.EasingFunction>
+                        <CubicEase EasingMode="EaseIn"/>
+                    </DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+                <DoubleAnimation Storyboard.TargetName="RootBorder"
+                     Storyboard.TargetProperty="Opacity"
+                     From="1" To="0"
+                     Duration="0:0:0.25"/>
+            </Storyboard>
+
+            <Storyboard x:Key="ProgressBarAnimation" Completed="Progress_Completed">
+                <DoubleAnimation
+        Storyboard.TargetName="ProgressBar"
+        Storyboard.TargetProperty="Width"
+        From="336" To="0"
+        Duration="0:0:4"/>
+            </Storyboard>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    
     <Border x:Name="RootBorder" CornerRadius="8" Margin="0,0,0,8" ClipToBounds="True" Opacity="0" SnapsToDevicePixels="True">
         <Border.Effect>
             <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.45" Direction="270"/>
@@ -73,7 +68,20 @@
 
         <Border.Style>
             <Style TargetType="Border">
-                <Setter Property="Background" Value="{Binding AccentColour}"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding WPFSeverity}" Value="Success">
+                        <Setter Property="Background" Value="{DynamicResource Graviton.SuccessBackground.Colour}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding WPFSeverity}" Value="Warn">
+                        <Setter Property="Background" Value="{DynamicResource Graviton.WarnBackground.Colour}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding WPFSeverity}" Value="Error">
+                        <Setter Property="Background" Value="{DynamicResource Graviton.ErrorBackground.Colour}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding WPFSeverity}" Value="Info">
+                        <Setter Property="Background" Value="{DynamicResource Graviton.InfoBackground.Colour}" />
+                    </DataTrigger>
+                </Style.Triggers>
             </Style>
         </Border.Style>
 
@@ -90,8 +98,50 @@
                     <ColumnDefinition Width="30"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" Text="{Binding Icon}" Foreground="{Binding TextColour}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,2,0,2"/>
-                <TextBlock Grid.Column="1" Text="{Binding Message}" Foreground="{Binding TextColour}" HorizontalAlignment="Left" VerticalAlignment="Center" TextWrapping="Wrap" Margin="10,0,0,0"/>
+                <TextBlock Grid.Column="0" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,2,0,2">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding WPFSeverity}" Value="Success">
+                                    <Setter Property="Text" Value="&#xf00c;" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Success.Colour}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding WPFSeverity}" Value="Warn">
+                                    <Setter Property="Text" Value="&#xea6c;" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Warn.Colour}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding WPFSeverity}" Value="Error">
+                                    <Setter Property="Text" Value="&#xf015d;" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding WPFSeverity}" Value="Info">
+                                    <Setter Property="Text" Value="&#xf449;" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Grid.Column="1" Text="{Binding WPFMessage}" HorizontalAlignment="Left" VerticalAlignment="Center" TextWrapping="Wrap" Margin="10,0,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding WPFSeverity}" Value="Success">
+                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Success.Colour}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding WPFSeverity}" Value="Warn">
+                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Warn.Colour}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding WPFSeverity}" Value="Error">
+                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding WPFSeverity}" Value="Info">
+                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
 
                 <Button Grid.Column="2" x:Name="CloseButton" Click="CloseButton_Click" Width="16" Height="16" VerticalAlignment="Center" Margin="8,0,0,0" Cursor="Hand" >
                     <Button.Style>
@@ -102,10 +152,26 @@
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="Button">
-                                        <Border Background="{TemplateBinding Background}"
-                                            CornerRadius="12">
-                                            <ContentPresenter HorizontalAlignment="Center"
-                                                          VerticalAlignment="Center"/>
+                                        <Border Background="{TemplateBinding Background}" CornerRadius="12">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding WPFSeverity}" Value="Success">
+                                                            <Setter Property="Background" Value="{DynamicResource Graviton.SuccessBackground.Colour}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding WPFSeverity}" Value="Warn">
+                                                            <Setter Property="Background" Value="{DynamicResource Graviton.WarnBackground.Colour}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding WPFSeverity}" Value="Error">
+                                                            <Setter Property="Background" Value="{DynamicResource Graviton.ErrorBackground.Colour}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding WPFSeverity}" Value="Info">
+                                                            <Setter Property="Background" Value="{DynamicResource Graviton.InfoBackground.Colour}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
@@ -123,7 +189,26 @@
             </Grid>
 
             <Border Grid.Row="1" Background="#22FFFFFF" Height="4">
-                <Rectangle x:Name="ProgressBar" Height="4" HorizontalAlignment="Left" Fill="{Binding ProgressBarColour}"/>
+                <Rectangle x:Name="ProgressBar" Height="4" HorizontalAlignment="Left">
+                    <Rectangle.Style>
+                        <Style TargetType="Rectangle">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding WPFSeverity}" Value="Success">
+                                    <Setter Property="Fill" Value="{DynamicResource Graviton.SuccessAccent.Colour}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding WPFSeverity}" Value="Warn">
+                                    <Setter Property="Fill" Value="{DynamicResource Graviton.WarnAccent.Colour}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding WPFSeverity}" Value="Error">
+                                    <Setter Property="Fill" Value="{DynamicResource Graviton.ErrorAccent.Colour}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding WPFSeverity}" Value="Info">
+                                    <Setter Property="Fill" Value="{DynamicResource Graviton.InfoAccent.Colour}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Rectangle.Style>
+                </Rectangle>
             </Border>
 
         </Grid>

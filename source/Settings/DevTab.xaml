@@ -9,14 +9,11 @@
              d:DesignHeight="900" d:DesignWidth="750">
 
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
-        <s:ImageCacheConverter x:Key="imageCacheConverter" />
-        <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-        <Style TargetType="{x:Type Label}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Graviton;component/ThemingDefaults.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid Margin="0,0,0,10">
@@ -44,38 +41,38 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock x:Name="NotificationTestsText" Grid.Row="0" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Margin="5,5,10,5"/>
+        <TextBlock x:Name="NotificationTestsText" Text="Test Notifications" Grid.Row="0" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Margin="5,5,10,5"/>
 
         <Button Click="Success_Click" Grid.Row="1"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-            <TextBlock x:Name="SuccessNotificationText"/>
+            <TextBlock x:Name="SuccessNotificationText" Text="Test Success Notification"/>
         </Button>
         <Button Click="Info_Click" Grid.Row="2"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-            <TextBlock x:Name="InfoNotificationText"/>
+            <TextBlock x:Name="InfoNotificationText" Text="Test Info Notification"/>
         </Button>
         <Button Click="Warn_Click" Grid.Row="3"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-            <TextBlock x:Name="WarnNotificationText"/>
+            <TextBlock x:Name="WarnNotificationText" Text="Test Warn Notification"/>
         </Button>
         <Button Click="Error_Click" Grid.Row="4"  VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-            <TextBlock x:Name="ErrorNotificationText"/>
+            <TextBlock x:Name="ErrorNotificationText" Text="Test Error Notification"/>
         </Button>
 
         <Border Grid.Column="0" Grid.RowSpan="100" BorderThickness="1" CornerRadius="3" BorderBrush="#41696969" Width="1" HorizontalAlignment="Right" Margin="0,0,-1,0"/>
 
-        <TextBlock x:Name="LoginTestsText" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Margin="5,5,10,5"/>
+        <TextBlock x:Name="LoginTestsText" Text="Test Login statuses" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Margin="5,5,10,5"/>
         <Button Click="LoggedIn_Click" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-            <TextBlock x:Name="TestLoginText"/>
+            <TextBlock x:Name="TestLoginText" Text="Test 'Logged In' status"/>
         </Button>
         <Button Click="Forbidden_Click" Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-            <TextBlock x:Name="TestForbiddenText"/>
+            <TextBlock x:Name="TestForbiddenText" Text="Test 'Forbidden' status"/>
         </Button>
         <Button Click="Unauthorized_Click" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-            <TextBlock x:Name="TestUnauthorizedText"/>
+            <TextBlock x:Name="TestUnauthorizedText" Text="Test 'Unauthorized' status"/>
         </Button>
         <Button Click="Reconnecting_Click" Grid.Row="4" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-            <TextBlock x:Name="TestReconnectingText"/>
+            <TextBlock x:Name="TestReconnectingText" Text="Test 'Reconnecting' status"/>
         </Button>
         <Button Click="NotLoggedIn_Click" Grid.Row="5" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
-            <TextBlock x:Name="TestNotLoggedInText"/>
+            <TextBlock x:Name="TestNotLoggedInText" Text="Test 'Not Logged In' status"/>
         </Button>
 
         <Border Grid.Column="1" Grid.RowSpan="100" BorderThickness="1" CornerRadius="3" BorderBrush="#41696969" Width="1" HorizontalAlignment="Right" Margin="0,0,-1,0"/>

@@ -8,9 +8,6 @@ using System.Windows.Media.Animation;
 
 namespace Graviton.Settings
 {
-    /// <summary>
-    /// Interaction logic for GravitonSettingsView.xaml
-    /// </summary>
     public partial class SingleNotificationView : UserControl
     {
         public event EventHandler? DismissCompleted;
@@ -20,7 +17,7 @@ namespace Graviton.Settings
         public SingleNotificationView(GravitonNotification notification)
         {
             InitializeComponent();
-            DataContext = new NotificationViewModel(notification);
+            DataContext = notification;
 
             CloseButton.ToolTip = Loc.GetString("Dismiss");
 

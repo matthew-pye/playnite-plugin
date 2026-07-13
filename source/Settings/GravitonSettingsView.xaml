@@ -10,14 +10,11 @@
              d:DesignHeight="1000" d:DesignWidth="800">
 
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
-        <s:ImageCacheConverter x:Key="imageCacheConverter" />
-        <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-        <Style TargetType="{x:Type Label}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Graviton;component/ThemingDefaults.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Canvas Name="SettingsCanvas" DataContext="{Binding Settings}" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=UserControl}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=UserControl}}">

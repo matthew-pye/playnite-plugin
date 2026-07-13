@@ -69,7 +69,7 @@ namespace Graviton.Saves
             UnmatchedAutoDetectSaveRow.Clear();
 
             Mapping = mapping;
-            TitleText.Text = $"{Loc.GetString("SaveManagerTitle")} — {mapping.MappingName}";
+            TitleText.Text = $"{Loc.GetString("SaveManagerTitle")}";
 
             LoadingLocalBar.Visibility = Visibility.Visible;
             LoadingRemoteBar.Visibility = Visibility.Visible;

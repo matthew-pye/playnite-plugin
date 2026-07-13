@@ -22,5 +22,8 @@ namespace Graviton.Models.Notifications
         public Exception? exeption;
         public int lineNumber;
         public string file;
+
+        public string WPFMessage => message;
+        public GravitonSeverity WPFSeverity => severity;
     }
 }

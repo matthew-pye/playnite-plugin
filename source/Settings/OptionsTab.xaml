@@ -11,121 +11,117 @@
              d:DesignHeight="900" d:DesignWidth="750">
 
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
-        <s:ImageCacheConverter x:Key="imageCacheConverter" />
-        <s:EnumDescriptionConverter x:Key="EnumDescConverter"/>
-        <ObjectDataProvider x:Key="SaveConflictStyleValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
-            <ObjectDataProvider.MethodParameters>
-                <x:Type TypeName="models:SaveConflictStyle"/>
-            </ObjectDataProvider.MethodParameters>
-        </ObjectDataProvider>
-        
-        <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
-        <Style TargetType="{x:Type Label}">
-            <Setter Property="Foreground" Value="LightGray" />
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Graviton;component/ThemingDefaults.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <ObjectDataProvider x:Key="SaveConflictStyleValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="models:SaveConflictStyle"/>
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <StackPanel>
-        <TextBlock Name="LibraryScanningText" Text="Library scanning" FontWeight="Bold" Margin="0,10,0,0" />
-        <Separator Margin="0,5,0,10" />
+    <ScrollViewer>
+        <StackPanel>
+            <TextBlock Name="LibraryScanningText" Text="Library scanning" FontWeight="Bold" Margin="0,10,0,0" />
+            <Separator Margin="0,5,0,10" />
 
-        <CheckBox IsChecked="{Binding MergeRevisions, Mode=TwoWay}" Margin="5">
-            <TextBlock Name="MergeROMText" Text="Merge ROM revisions" TextWrapping="Wrap"/>
-        </CheckBox>
-        <CheckBox IsChecked="{Binding KeepDeletedGames, Mode=TwoWay}" Margin="5">
-            <TextBlock Name="KeepDeleteText" Text="Keep games deleted from RomM server" TextWrapping="Wrap"/>
-        </CheckBox>
-        <CheckBox IsChecked="{Binding SkipMissingFiles, Mode=TwoWay}" Margin="5">
-            <TextBlock Name="SkipDeletedText" Text="Skip importing ROMs that are missing from RomM servers filesystem" TextWrapping="Wrap"/>
-        </CheckBox>
-
-        <StackPanel Orientation="Horizontal" Margin="5">
-            <TextBlock Name="ExcludeGenresText" Text="Exclude Genres" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5"/>
-            <Grid>
-                <TextBox  MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="SearchTermTextBox" Margin="5" Text="{Binding ExcludeGenres, Mode=TwoWay}"/>
-                <TextBlock x:Name="ExcludeGenresPlaceholderText" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
-                    <TextBlock.Style>
-                        <Style TargetType="{x:Type TextBlock}">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Text, ElementName=SearchTermTextBox}" Value="">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-            </Grid>
-        </StackPanel>
-
-        <TextBlock Name="InstallationText" Text="Installation" FontWeight="Bold" Margin="0,10,0,0" />
-        <Separator Margin="0,5,0,10" />
-
-        <StackPanel Orientation="Horizontal">
-            <CheckBox IsChecked="{Binding Use7z, Mode=TwoWay}" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock Name="Use7zText" Text="Use 7z for archive extraction" TextWrapping="Wrap"/>
+            <CheckBox IsChecked="{Binding MergeRevisions, Mode=TwoWay}" Margin="5">
+                <TextBlock Name="MergeROMText" Text="Merge ROM revisions" TextWrapping="Wrap"/>
             </CheckBox>
-            <TextBox x:Name="PathTo7zText" Grid.Row="0" Grid.Column="1" MinWidth="200" Margin="5" Text="{Binding PathTo7z, Mode=TwoWay}" />
-            <Button Click="Browse7zPath_Click" Margin="0,5,5,5">
-                <TextBlock Name="Browse7zText" Text="Browse" Margin="2"/>
-            </Button>
+            <CheckBox IsChecked="{Binding KeepDeletedGames, Mode=TwoWay}" Margin="5">
+                <TextBlock Name="KeepDeleteText" Text="Keep games deleted from RomM server" TextWrapping="Wrap"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding SkipMissingFiles, Mode=TwoWay}" Margin="5">
+                <TextBlock Name="SkipDeletedText" Text="Skip importing ROMs that are missing from RomM servers filesystem" TextWrapping="Wrap"/>
+            </CheckBox>
+
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <TextBlock Name="ExcludeGenresText" Text="Exclude Genres" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5"/>
+                <Grid>
+                    <TextBox  MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="ExcludeGenresBox" Margin="5" Text="{Binding ExcludeGenres, Mode=TwoWay}"/>
+                    <TextBlock x:Name="ExcludeGenresPlaceholderText" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=ExcludeGenresBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </StackPanel>
+
+            <TextBlock Name="InstallationText" Text="Installation" FontWeight="Bold" Margin="0,10,0,0" />
+            <Separator Margin="0,5,0,10" />
+
+            <StackPanel Orientation="Horizontal">
+                <CheckBox IsChecked="{Binding Use7z, Mode=TwoWay}" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Name="Use7zText" Text="Use 7z for archive extraction" TextWrapping="Wrap"/>
+                </CheckBox>
+                <TextBox x:Name="PathTo7zText" Grid.Row="0" Grid.Column="1" MinWidth="200" Margin="5" Text="{Binding PathTo7z, Mode=TwoWay}" />
+                <Button Click="Browse7zPath_Click" Margin="0,5,5,5">
+                    <TextBlock Name="Browse7zText" Text="Browse" Margin="2"/>
+                </Button>
+            </StackPanel>
+
+            <TextBlock Name="StatusTitle" Text="Status Sync" FontWeight="Bold" Margin="0,10,0,0" />
+            <Separator Margin="0,5,0,10" />
+            <CheckBox IsChecked="{Binding KeepStatusSynced, Mode=TwoWay}" Margin="5">
+                <TextBlock Name="KeepStatusSyncedText" Text="Keep completion status in sync with RomM" TextWrapping="Wrap"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding KeepFavouritesSynced, Mode=TwoWay}" Margin="5">
+                <TextBlock Name="KeepFavouritesSyncedText" Text="Keep favourites in sync with RomM" TextWrapping="Wrap"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding KeepPrivateNotesSynced, Mode=TwoWay}" Margin="5" IsEnabled="False">
+                <TextBlock Name="KeepPrivateNotesSyncedText" Text="Keep private notes in sync with RomM" TextWrapping="Wrap"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding KeepPublicNotesSynced, Mode=TwoWay}" Margin="5" IsEnabled="False">
+                <TextBlock Name="KeepPublicNotesSyncedText" Text="Keep public notes in sync with RomM" TextWrapping="Wrap"/>
+            </CheckBox>
+
+            <TextBlock Name="SaveSyncTitle" FontWeight="Bold" Margin="0,10,0,0" />
+            <Separator Margin="0,5,0,10" />
+
+            <CheckBox IsChecked="{Binding SaveSyncEnabled, Mode=TwoWay}" Margin="5">
+                <TextBlock Name="SaveSyncEnabledText" Text="Enable Save Syncing" TextWrapping="Wrap"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding DownloadSaveOnLaunch, Mode=TwoWay}" Margin="5" IsEnabled="{Binding SaveSyncEnabled}">
+                <TextBlock Name="DownloadSaveOnLaunchText" Text="Download saves on game launch" TextWrapping="Wrap"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding UploadSaveOnFinished, Mode=TwoWay}" Margin="5" IsEnabled="{Binding SaveSyncEnabled}">
+                <TextBlock Name="UploadSaveOnFinishedText" Text="Upload saves on game exit" TextWrapping="Wrap"/>
+            </CheckBox>
+
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <TextBlock Name="ConflictStyleText" Text="Conflict style" MinWidth="120" VerticalAlignment="Center"/>
+                <ComboBox MinWidth="180" ItemsSource="{Binding Source={StaticResource SaveConflictStyleValues}}" SelectedItem="{Binding SaveConflictStyle, Mode=TwoWay}" IsEnabled="{Binding SaveSyncEnabled}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <CheckBox IsChecked="{Binding AutoCleanupSaves, Mode=TwoWay}" VerticalAlignment="Center" IsEnabled="{Binding SaveSyncEnabled}"/>
+                <TextBlock Name="AutoCleanupSavesText" Text="Auto Cleanup Saves" Margin="5,0,5,0" VerticalAlignment="Center"/>
+                <psdk:NumericUpDown Value="{Binding AutoCleanupSavesLimit, Mode=TwoWay}" Minimum="1" Maximum="100" Width="70" IsEnabled="{Binding AutoCleanupSaves}"/>
+            </StackPanel>
+
+            <TextBlock Name="SaveStateSyncTitle" FontWeight="Bold" Margin="0,10,0,0" />
+            <Separator Margin="0,5,0,10" />
+            <CheckBox IsChecked="{Binding SaveStateSyncEnabled, Mode=TwoWay}" Margin="5">
+                <TextBlock Name="SaveStateSyncEnabledText" TextWrapping="Wrap"/>
+            </CheckBox>
+
         </StackPanel>
-
-        <TextBlock Name="StatusTitle" Text="Status Sync" FontWeight="Bold" Margin="0,10,0,0" />
-        <Separator Margin="0,5,0,10" />
-        <CheckBox IsChecked="{Binding KeepStatusSynced, Mode=TwoWay}" Margin="5">
-            <TextBlock Name="KeepStatusSyncedText" Text="Keep completion status in sync with RomM" TextWrapping="Wrap"/>
-        </CheckBox>
-        <CheckBox IsChecked="{Binding KeepFavouritesSynced, Mode=TwoWay}" Margin="5">
-            <TextBlock Name="KeepFavouritesSyncedText" Text="Keep favourites in sync with RomM" TextWrapping="Wrap"/>
-        </CheckBox>
-        <CheckBox IsChecked="{Binding KeepPrivateNotesSynced, Mode=TwoWay}" Margin="5" IsEnabled="False">
-            <TextBlock Name="KeepPrivateNotesSyncedText" Text="Keep private notes in sync with RomM" TextWrapping="Wrap"/>
-        </CheckBox>
-        <CheckBox IsChecked="{Binding KeepPublicNotesSynced, Mode=TwoWay}" Margin="5" IsEnabled="False">
-            <TextBlock Name="KeepPublicNotesSyncedText" Text="Keep public notes in sync with RomM" TextWrapping="Wrap"/>
-        </CheckBox>
-
-        <TextBlock Name="SaveSyncTitle" FontWeight="Bold" Margin="0,10,0,0" />
-        <Separator Margin="0,5,0,10" />
-
-        <CheckBox IsChecked="{Binding SaveSyncEnabled, Mode=TwoWay}" Margin="5">
-            <TextBlock Name="SaveSyncEnabledText" TextWrapping="Wrap"/>
-        </CheckBox>
-        <CheckBox IsChecked="{Binding DownloadSaveOnLaunch, Mode=TwoWay}" Margin="5" IsEnabled="{Binding SaveSyncEnabled}">
-            <TextBlock Name="DownloadSaveOnLaunchText" TextWrapping="Wrap"/>
-        </CheckBox>
-        <CheckBox IsChecked="{Binding UploadSaveOnFinished, Mode=TwoWay}" Margin="5" IsEnabled="{Binding SaveSyncEnabled}">
-            <TextBlock Name="UploadSaveOnFinishedText" TextWrapping="Wrap"/>
-        </CheckBox>
-
-        <StackPanel Orientation="Horizontal" Margin="5">
-            <TextBlock Name="ConflictStyleText" MinWidth="120" VerticalAlignment="Center"/>
-            <ComboBox MinWidth="180" ItemsSource="{Binding Source={StaticResource SaveConflictStyleValues}}"
-              SelectedItem="{Binding SaveConflictStyle, Mode=TwoWay}" IsEnabled="{Binding SaveSyncEnabled}">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}"/>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-        </StackPanel>
-
-        <StackPanel Orientation="Horizontal" Margin="5">
-            <CheckBox IsChecked="{Binding AutoCleanupSaves, Mode=TwoWay}" VerticalAlignment="Center" IsEnabled="{Binding SaveSyncEnabled}"/>
-            <TextBlock Name="AutoCleanupSavesText" Margin="5,0,5,0" VerticalAlignment="Center"/>
-            <psdk:NumericUpDown Value="{Binding AutoCleanupSavesLimit, Mode=TwoWay}" Minimum="1" Maximum="100" Width="70" IsEnabled="{Binding AutoCleanupSaves}"/>
-        </StackPanel>
-
-        <TextBlock Name="SaveStateSyncTitle" FontWeight="Bold" Margin="0,10,0,0" />
-        <Separator Margin="0,5,0,10" />
-        <CheckBox IsChecked="{Binding SaveStateSyncEnabled, Mode=TwoWay}" Margin="5">
-            <TextBlock Name="SaveStateSyncEnabledText" TextWrapping="Wrap"/>
-        </CheckBox>
-
-    </StackPanel>
-
+    </ScrollViewer>
 </UserControl>

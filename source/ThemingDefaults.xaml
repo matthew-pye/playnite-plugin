@@ -1,0 +1,258 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+                    xmlns:local="clr-namespace:Graviton"
+                    xmlns:playnite="clr-namespace:Playnite;assembly=Playnite.SDK">
+
+    <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+    <local:ImageCacheConverter x:Key="imageCacheConverter" />
+    <local:EnumDescriptionConverter x:Key="EnumDescConverter"/>
+
+    <SolidColorBrush x:Key="Graviton.Success.Colour" Color="#4f8a10"/>
+    <SolidColorBrush x:Key="Graviton.SuccessAccent.Colour" Color="#4f8a10"/>
+    <SolidColorBrush x:Key="Graviton.SuccessBackground.Colour" Color="#d5fa97"/>
+
+    <SolidColorBrush x:Key="Graviton.Warn.Colour" Color="#8a6a00"/>
+    <SolidColorBrush x:Key="Graviton.WarnAccent.Colour" Color="#8a6a00"/>
+    <SolidColorBrush x:Key="Graviton.WarnBackground.Colour" Color="#fff3c1"/>
+
+    <SolidColorBrush x:Key="Graviton.Error.Colour" Color="#8f0007 "/>
+    <SolidColorBrush x:Key="Graviton.ErrorAccent.Colour" Color="#8f0007"/>
+    <SolidColorBrush x:Key="Graviton.ErrorBackground.Colour" Color="#ffa6a6"/>
+
+    <SolidColorBrush x:Key="Graviton.Info.Colour" Color="#31708f"/>
+    <SolidColorBrush x:Key="Graviton.InfoAccent.Colour" Color="#31708f"/>
+    <SolidColorBrush x:Key="Graviton.InfoBackground.Colour" Color="#addef7"/>
+
+    <SolidColorBrush x:Key="Graviton.Text.Colour" Color="LightGray"/>
+    <SolidColorBrush x:Key="Graviton.SubText.Colour" Color="Gray"/>
+    <SolidColorBrush x:Key="Graviton.SubSubText.Colour" Color="DimGray"/>
+
+    <SolidColorBrush x:Key="Graviton.Background.Colour" Color="#414141"/>
+    <SolidColorBrush x:Key="Graviton.TransparentMouseOverBackground.Colour" Color="#32414141"/>
+    <SolidColorBrush x:Key="Graviton.TransparentBackground.Colour" Color="#20414141"/>
+    
+    <x:Static x:Key="NerdFont" Member="playnite:Fonts.NerdFont"/>
+    <x:Static x:Key="IcoFont" Member="playnite:Fonts.IcoFont"/>
+
+    <Style TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+    </Style>
+    <Style TargetType="{x:Type Label}">
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+    </Style>
+    <Style TargetType="{x:Type Expander}">
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+    </Style>
+    
+    <!-- #region Button-->
+    <Style TargetType="{x:Type Button}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Padding" Value="10, 5" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" SnapsToDevicePixels="True">
+                        <ContentPresenter Margin="{TemplateBinding Padding}" RecognizesAccessKey="True"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource Graviton.SubText.Colour}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Border" Property="Opacity" Value="0.8" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Border" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- #endregion -->
+
+    <!-- #region Textbox -->
+    <Style TargetType="{x:Type TextBox}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Graviton.Text.Colour}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
+        <Setter Property="Padding" Value="5,5" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" SnapsToDevicePixels="True">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource Graviton.Text.Colour}" />
+                        </Trigger>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource Graviton.Text.Colour}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Border" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- #endregion -->
+
+    <!-- #region Checkbox -->
+    <Style TargetType="{x:Type CheckBox}">
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <StackPanel Orientation="Horizontal">
+                        <Border x:Name="Border" Width="18" Height="18" Background="Transparent" BorderBrush="{DynamicResource Graviton.SubText.Colour}" BorderThickness="1" CornerRadius="4" SnapsToDevicePixels="True">
+                            <Path x:Name="Check" Data="M 2,7 L 6,11 L 13,3" Stroke="{DynamicResource Graviton.Text.Colour}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"  StrokeLineJoin="Round" Visibility="Collapsed"/>
+                        </Border>
+                        <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="{x:Null}">
+                            <Setter TargetName="Check" Property="Data" Value="M 2,6 L 13,6" />
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource Graviton.Text.Colour}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- #endregion -->
+
+    <!-- #region ComboBox -->
+    <Style TargetType="{x:Type ComboBoxItem}">
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+        <Setter Property="Padding" Value="2,5" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="Border" Background="Transparent" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource Graviton.SubText.Colour}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type ComboBox}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="5, 5" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <ToggleButton x:Name="Toggle" Background="Transparent" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" ClickMode="Press" Focusable="False">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" SnapsToDevicePixels="True">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="24"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Path Grid.Column="1" Data="M 0,0 L 4,4 L 8,0" Stroke="{DynamicResource Graviton.Text.Colour}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+
+                        <ContentPresenter x:Name="ContentSite" IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+
+                        <TextBlock x:Name="Placeholder" Text="{TemplateBinding Tag}" IsHitTestVisible="False" Foreground="{DynamicResource Graviton.SubSubText.Colour}"  Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed"/>
+
+                        <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                            <Border Background="{DynamicResource Graviton.SubSubText.Colour}" BorderBrush="{DynamicResource Graviton.SubText.Colour}" BorderThickness="1" CornerRadius="6" Margin="0,4,0,0" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="300" SnapsToDevicePixels="True">
+                                <ScrollViewer SnapsToDevicePixels="True">
+                                    <ItemsPresenter/>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Toggle" Property="BorderBrush" Value="{DynamicResource Graviton.Text.Colour}" />
+                        </Trigger>
+                        <Trigger Property="SelectedIndex" Value="-1">
+                            <Setter TargetName="Placeholder" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- #endregion -->
+
+    <!-- #region Passwordbox -->
+    <Style TargetType="{x:Type PasswordBox}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Graviton.Text.Colour}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
+        <Setter Property="Padding" Value="2,5" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="PasswordBox">
+                    <Border x:Name="Border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" SnapsToDevicePixels="True">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource Graviton.Text.Colour}" />
+                        </Trigger>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource Graviton.Text.Colour}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Border" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- #endregion -->
+    
+</ResourceDictionary>
