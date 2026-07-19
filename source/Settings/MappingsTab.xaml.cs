@@ -34,6 +34,14 @@ namespace Graviton.Settings
 
         }
 
+        public static readonly RoutedEvent ManageSavesRequestedEvent = EventManager.RegisterRoutedEvent("ManageSavesRequested", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(MappingsTab));
+
+        public event RoutedEventHandler ManageSavesRequested
+        {
+            add => AddHandler(ManageSavesRequestedEvent, value);
+            remove => RemoveHandler(ManageSavesRequestedEvent, value);
+        }
+
         public MappingsTab()
         {
             InitializeComponent();
@@ -112,13 +120,13 @@ namespace Graviton.Settings
 
         private void OpenSaveManager_Click(object sender, RoutedEventArgs e)
         {
-            if (SelectedMapping == null) 
+            if (SelectedMapping == null)
                 return;
 
             var tab = new MappingSaveTab();
             _ = tab.Load(SelectedMapping);
 
-            SaveManagerWindow.Show(Loc.GetString("SaveManagerTitle"), tab);
+            RaiseEvent(new ManageSavesRequestedEventArgs(ManageSavesRequestedEvent, tab));
         }
 
         private async void Click_BrowseSaveDestination(object sender, RoutedEventArgs e)
@@ -130,5 +138,11 @@ namespace Graviton.Settings
 
             e.Handled = true;
         }
+    }
+
+    public class ManageSavesRequestedEventArgs : RoutedEventArgs
+    {
+        public MappingSaveTab Tab { get; }
+        public ManageSavesRequestedEventArgs(RoutedEvent routedEvent, MappingSaveTab tab) : base(routedEvent) => Tab = tab;
     }
 }

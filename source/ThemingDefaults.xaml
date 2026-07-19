@@ -44,7 +44,10 @@
     <Style TargetType="{x:Type Expander}">
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
     </Style>
-    
+    <Style TargetType="{x:Type Separator}">
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.TransparentBackground.Colour}" />
+    </Style>
+
     <!-- #region Button-->
     <Style TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />

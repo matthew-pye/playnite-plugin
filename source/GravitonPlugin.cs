@@ -162,14 +162,15 @@ namespace Graviton
             Account = new(Instance, PlayniteApi, Logger);
 
             ImportedGames = new ConcurrentDictionary<string, RomMRomLocal>();
+            
             foreach (var rompath in Directory.EnumerateFiles($"{PluginDataPath}/Games/"))
             {
                 try
                 {
                     var rom = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllBytes(rompath));
-                    if (rom != null && !string.IsNullOrEmpty(rom!.PlayniteID))
+                    if (rom != null)
                     {
-                        ImportedGames.TryAdd(rom.PlayniteID!, rom);
+                        ImportedGames.TryAdd($"{rom.Id}:{rom.SHA1}", rom);
                         continue;
                     }
 
@@ -289,9 +290,9 @@ namespace Graviton
             }
         }
 
-        public override Task<List<Game>> ImportGamesAsync(ImportGamesArgs args)
+        public override async Task<List<Game>> ImportGamesAsync(ImportGamesArgs args)
         {
-            return ImportController?.Import(args) ?? throw new Exception("Import controller is null, cannot continue");
+            return await ImportController!.Import(args) ?? throw new Exception("Import controller is null, cannot continue");
         }
 
         public override async Task<List<InstallController>> GetInstallActionsAsync(GetInstallActionsArgs args)
@@ -318,6 +319,7 @@ namespace Graviton
                     FileName = gameinfo.FileName,
                     HasMultipleFiles = gameinfo.HasMultipleFiles,
                     DownloadURL = gameinfo.DownloadURL,
+                    PatchFileID = gameinfo.PatchFileId,
                     Mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId == gameinfo.MappingID)
                 };
 
@@ -337,7 +339,7 @@ namespace Graviton
         {
             if (args.Game.LibraryId == Id && args.Game.LibraryGameId != null)
             {
-                if(Settings.SaveSyncEnabled)
+                if(Settings.SaveSyncEnabled && Settings.DownloadSaveOnLaunch)
                 {
                     var rom = ImportedGames!.FirstOrDefault(x => x.Key == args.Game.LibraryGameId);
                     if(rom.Value != null)
@@ -364,7 +366,7 @@ namespace Graviton
                 StatusController?.StopActivityHeartbeat();
                 StatusController?.PushPlaySession(args.StartingArgs.Game.LibraryGameId!, stoppedTime, args.StoppedArgs.SessionLength*1000);
 
-                if (Settings.SaveSyncEnabled)
+                if (Settings.SaveSyncEnabled && Settings.UploadSaveOnFinished)
                 {
                     var rom = ImportedGames!.FirstOrDefault(x => x.Key == args.StartingArgs.Game.LibraryGameId);
                     if (rom.Value != null)

@@ -26,6 +26,14 @@ namespace Graviton.Saves
 
         List <MessageBoxResponse> DeleteSaveMessageBoxResponses = new();
 
+        public static readonly RoutedEvent BackRequestedEvent = EventManager.RegisterRoutedEvent("BackRequested", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(MappingSaveTab));
+
+        public event RoutedEventHandler BackRequested
+        {
+            add => AddHandler(BackRequestedEvent, value);
+            remove => RemoveHandler(BackRequestedEvent, value);
+        }
+
         private void RefreshFilteredItemSources()
         {
             var filter = FilterBox.Text?.Trim().ToLowerInvariant() ?? "";
@@ -117,7 +125,7 @@ namespace Graviton.Saves
             {
                 var picker = new NewManualSaveView();
                 picker.LoadForPath(Mapping.SavePath);
-                picker.ROMs = _plugin.ImportedGames!.Where(x => x.Value.MappingID == Mapping.MappingId).Select(y => y.Value).ToList();
+                picker.ROMs = _plugin.ImportedGames!.Where(x => x.Value.MappingID == Mapping.MappingId).Select(y => y.Value).OrderBy(z => z.Name).ToList();
 
                 SaveManagerWindow.Show(Loc.GetString("AddManualSave"), picker);
 
@@ -350,5 +358,7 @@ namespace Graviton.Saves
 
             e.Handled = true;
         }
+
+        private void Back_Click(object sender, RoutedEventArgs e) => RaiseEvent(new RoutedEventArgs(BackRequestedEvent));
     }
 }

@@ -28,7 +28,7 @@ namespace Graviton.Models
         [JsonIgnore] private RomMPlatform? _emulatedPlatform = null;
         [JsonIgnore] private ObservableCollection<RomMPlatform> _availablePlatforms = new ObservableCollection<RomMPlatform>();
         [ObservableProperty] private int _romMPlatformId = -1;
-        [ObservableProperty] private string _destinationPath = "";
+        [ObservableProperty][NotifyPropertyChangedFor(nameof(IsSetup))] private string _destinationPath = "";
 
         [ObservableProperty] private SaveLayoutStyle _findSaveLayout = SaveLayoutStyle.Disabled;
         [ObservableProperty] private string _findSaveFileExtensions = "";
@@ -63,6 +63,7 @@ namespace Graviton.Models
         //            RomMPlatform = new RomMPlatform();
         //            MappingName = value.Name;
         //            OnPropertyChanged();
+        //            OnPropertyChanged(nameof(IsSetup));
         //        } 
         //    }
         //}
@@ -100,6 +101,7 @@ namespace Graviton.Models
         //            }
         //        }
         //        OnPropertyChanged(); 
+        //        OnPropertyChanged(nameof(IsSetup));
         //    }
         //}
         public string? EmulatorProfileId
@@ -123,7 +125,6 @@ namespace Graviton.Models
                 if(value != null)
                 {
                     RomMPlatformId = value.Id;
-
                     //if(Emulator != null)
                     //{
                     //    var name = Emulator.Name;
@@ -143,6 +144,7 @@ namespace Graviton.Models
 
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(PlatformIcon));
+                OnPropertyChanged(nameof(IsSetup));
             }
         }
 

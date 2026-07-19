@@ -6,7 +6,6 @@ namespace Graviton.Models.RomM.Saves
     public enum SaveConflictStyle
     {
         [Description("Ask")] Ask,
-        [Description("Prefer Newer")] PreferNewer,
         [Description("Prefer Remote")] PreferRemote,
         [Description("Prefer Local")] PreferLocal
     }

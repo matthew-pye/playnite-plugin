@@ -373,7 +373,7 @@ namespace Graviton.Saves
             savecontent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             content.Add(savecontent, "saveFile", Path.GetFileName(uploadfilepath));
 
-            var response = await HttpClientSingleton.RomMPostContentAsync($"/api/saves?rom_id={rom.Id}&slot=Autosave&device_id={_plugin.Settings.AccountState.DeviceID}", content);
+            var response = await HttpClientSingleton.RomMPostContentAsync($"/api/saves?rom_id={rom.Id}&slot=Autosave&autocleanup={_plugin.Settings.AutoCleanupSaves}&autocleanup_limit={_plugin.Settings.AutoCleanupSavesLimit}&device_id={_plugin.Settings.AccountState.DeviceID}", content);
             if (isPackedTemp)
                 File.Delete(uploadfilepath);
 
@@ -448,19 +448,30 @@ namespace Graviton.Saves
 
                     if (operation.Action == "conflict")
                     {
-                        var conflictresponse = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{Loc.GetString("WantKeepSave")}\n{Loc.GetString("Remote")}:\n\t{Loc.GetString("LastModified")}: {operation.UpdatedAt}\n{Loc.GetString("Local")}:\n\t{Loc.GetString("LastModified")}: {save.UpdatedAt}", Loc.GetString("SaveConflict"), MessageBoxSeverity.Question, ConflictMessageBoxResponses, new List<MessageBoxOption>());
-                        if (conflictresponse == null || conflictresponse.Title == Loc.GetString("Skip"))
-                            operation.Action = "no_op";
-                        else if (conflictresponse.Title == Loc.GetString("UseRemote"))
-                            operation.Action = "download";
-                        else if (conflictresponse.Title == Loc.GetString("UseLocal"))
-                            operation.Action = "upload";
+                        switch (_plugin.Settings.SaveConflictStyle)
+                        {
+                            case SaveConflictStyle.PreferRemote:
+                                operation.Action = "download";
+                                break;
+                            case SaveConflictStyle.PreferLocal:
+                                operation.Action = "upload";
+                                break;
+                            default:
+                                var conflictresponse = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{Loc.GetString("WantKeepSave")}\n{Loc.GetString("Remote")}:\n\t{Loc.GetString("LastModified")}: {operation.UpdatedAt}\n{Loc.GetString("Local")}:\n\t{Loc.GetString("LastModified")}: {save.UpdatedAt}", Loc.GetString("SaveConflict"), MessageBoxSeverity.Question, ConflictMessageBoxResponses, new List<MessageBoxOption>());
+                                if (conflictresponse == null || conflictresponse.Title == Loc.GetString("Skip"))
+                                    operation.Action = "no_op";
+                                else if (conflictresponse.Title == Loc.GetString("UseRemote"))
+                                    operation.Action = "download";
+                                else if (conflictresponse.Title == Loc.GetString("UseLocal"))
+                                    operation.Action = "upload";
+                                break;
+                        }             
                     }
 
                     switch (operation.Action)
                     {
                         case "upload":
-                            if (await UpdateSave(mapping, save!))
+                            if (await UploadSave(mapping, save, rom))
                                 completedOperations++;
                             else
                                 return null;
@@ -539,19 +550,30 @@ namespace Graviton.Saves
 
                     if (save.Action == "conflict")
                     {
-                        var conflictresponse = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{Loc.GetString("WantKeepSave")}\n{Loc.GetString("Remote")}:\n\t{Loc.GetString("LastModified")}: {save.UpdatedAt}\n{Loc.GetString("Local")}:\n\t{Loc.GetString("LastModified")}: {localSave.UpdatedAt}", Loc.GetString("SaveConflict"), MessageBoxSeverity.Question, ConflictMessageBoxResponses, new List<MessageBoxOption>());
-                        if (conflictresponse == null || conflictresponse.Title == Loc.GetString("Skip"))
-                            save.Action = "no_op";
-                        else if (conflictresponse.Title == Loc.GetString("UseRemote"))
-                            save.Action = "download";
-                        else if (conflictresponse.Title == Loc.GetString("UseLocal"))
-                            save.Action = "upload";
+                        switch (_plugin.Settings.SaveConflictStyle)
+                        {
+                            case SaveConflictStyle.PreferRemote:
+                                save.Action = "download";
+                                break;
+                            case SaveConflictStyle.PreferLocal:
+                                save.Action = "upload";
+                                break;
+                            default:
+                                var conflictresponse = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{Loc.GetString("WantKeepSave")}\n{Loc.GetString("Remote")}:\n\t{Loc.GetString("LastModified")}: {save.UpdatedAt}\n{Loc.GetString("Local")}:\n\t{Loc.GetString("LastModified")}: {save.UpdatedAt}", Loc.GetString("SaveConflict"), MessageBoxSeverity.Question, ConflictMessageBoxResponses, new List<MessageBoxOption>());
+                                if (conflictresponse == null || conflictresponse.Title == Loc.GetString("Skip"))
+                                    save.Action = "no_op";
+                                else if (conflictresponse.Title == Loc.GetString("UseRemote"))
+                                    save.Action = "download";
+                                else if (conflictresponse.Title == Loc.GetString("UseLocal"))
+                                    save.Action = "upload";
+                                break;
+                        }
                     }
 
                     switch (save.Action)
                     {
                         case "upload":
-                            if (await UpdateSave(mapping, localSave!))
+                            if (await UploadSave(mapping, localSave!, rom))
                                 completedOperations++;
                             else   
                                 failedOperations++;
@@ -580,7 +602,7 @@ namespace Graviton.Saves
                 return false;
             }
 
-            return false;
+            return true;
         }
 
 
@@ -693,7 +715,7 @@ namespace Graviton.Saves
             return true;
         }
 
-        private async Task<bool> UpdateSave(EmulatorMapping mapping, LocalSave save)
+        private async Task<bool> UploadSave(EmulatorMapping mapping, LocalSave save, RomMRomLocal rom)
         {
             var isPackedTemp = save.SourceFilePaths.Count > 1;
             var uploadfilepath = isPackedTemp ? $"{_plugin.PluginDataPath}/temp/{save.PackedFilename}" : save.SourceFilePaths[0];
@@ -708,15 +730,25 @@ namespace Graviton.Saves
             savecontent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             content.Add(savecontent, "saveFile", Path.GetFileName(uploadfilepath));
 
-            var response = await HttpClientSingleton.RomMPutContentAsync($"/api/saves/{save.SaveID}?device_id={_plugin.Settings.AccountState.DeviceID}", content);
+            var response = await HttpClientSingleton.RomMPostContentAsync($"/api/saves?rom_id={rom.Id}&slot=Autosave&autocleanup={_plugin.Settings.AutoCleanupSaves}&autocleanup_limit={_plugin.Settings.AutoCleanupSavesLimit}&device_id={_plugin.Settings.AccountState.DeviceID}", content);
             if (isPackedTemp)
                 File.Delete(uploadfilepath);
 
             if (response == null)
                 return false;
 
+            var result = JsonSerializer.Deserialize<RomMSave>(response);
+            if (result == null)
+                return false;
+
             var bytes = savebytes.Length < 1000 ? $"{savebytes.Length}B" : savebytes.Length < 1000000 ? $"{(((float)savebytes.Length) / 1000).ToString("F1")}KB" : $"{(((float)savebytes.Length) / 1000000).ToString("F1")}MB";
             GravitonNotify.Add(new GravitonNotification($"graviton.save.{save.SaveID}.uploaded", Loc.GetString("DownloadedSave", ("SavePath", Path.GetFileName(uploadfilepath)), ("Bytes", bytes)), GravitonSeverity.Success));
+
+            rom.Saves.Remove(save);
+            save.SaveID = result.ID;
+            rom.Saves.Add(save);
+            string json = JsonSerializer.Serialize(rom);
+            File.WriteAllText($"{_plugin.PluginDataPath}/Games/{rom.SHA1}.json", json);
 
             return true;
         }

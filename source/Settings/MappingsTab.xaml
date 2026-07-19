@@ -63,17 +63,17 @@
                             <Style TargetType="Ellipse">
                                 <Setter Property="Fill" Value="{DynamicResource Graviton.Trace.Colour}"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Enabled}" Value="False">
-                                        <Setter Property="Fill" Value="{DynamicResource Graviton.Trace.Colour}"/>
-                                        <Setter Property="ToolTip" Value="Disabled"/>
+                                    <DataTrigger Binding="{Binding Enabled}" Value="True">
+                                        <Setter Property="Fill" Value="{DynamicResource Graviton.Success.Colour}"/>
+                                        <Setter Property="ToolTip" Value="Enabled"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsSetup}" Value="False">
                                         <Setter Property="Fill" Value="{DynamicResource Graviton.Warn.Colour}"/>
                                         <Setter Property="ToolTip" Value="Setup Incomplete"/>
                                     </DataTrigger>
-                                    <DataTrigger Binding="{Binding Enabled}" Value="True">
-                                        <Setter Property="Fill" Value="{DynamicResource Graviton.Success.Colour}"/>
-                                        <Setter Property="ToolTip" Value="Enabled"/>
+                                    <DataTrigger Binding="{Binding Enabled}" Value="False">
+                                        <Setter Property="Fill" Value="{DynamicResource Graviton.Trace.Colour}"/>
+                                        <Setter Property="ToolTip" Value="Disabled"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>

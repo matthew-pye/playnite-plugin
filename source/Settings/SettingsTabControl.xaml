@@ -42,22 +42,22 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <DockPanel>
-        <TabControl Name="SettingsTabs">
+    <Grid>
+        <TabControl Name="SettingsTabs" FontSize="14" FontFamily="{StaticResource NerdFont}">
 
             <!-- Authentication -->
             <TabItem Name="AuthItem" Header="&#xf0004; Authentication">
-                <s:AuthenticationTab FontSize="14" Margin="5,10,5,5"/>
+                <s:AuthenticationTab Margin="5,10,5,5"/>
             </TabItem>
 
             <!-- Options -->
             <TabItem Name="OptionsItem" Header="&#xf013; Options">
-                <s:OptionsTab FontSize="14" Margin="5,10,5,5"/>
+                <s:OptionsTab Margin="5,10,5,5"/>
             </TabItem>
 
             <!-- Mappings -->
             <TabItem Name="MappingsItem" Header="&#xf0eb6; Emulator Mappings">
-                <s:MappingsTab FontSize="14" Margin="5,10,5,5"/>
+                <s:MappingsTab Margin="5,10,5,5" ManageSavesRequested="MappingsTab_ManageSavesRequested"/>
             </TabItem>
 
             <!-- Saves 
@@ -72,9 +72,11 @@
 
             <!-- Dev options -->
             <TabItem Name="DEVTAB" Header="&#xeef4; Dev Settings">
-                <s:DevTab FontSize="14" Margin="5,10,5,5"/>
+                <s:DevTab Margin="5,10,5,5"/>
             </TabItem>
 
         </TabControl>
-    </DockPanel>
+
+        <ContentControl Name="SettingsFullView" Visibility="Collapsed"/>
+    </Grid>
 </UserControl>

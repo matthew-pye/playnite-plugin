@@ -7,18 +7,36 @@
              mc:Ignorable="d" d:DesignHeight="500" d:DesignWidth="500">
 
     <UserControl.Resources>
-        <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="Foreground" Value="LightGray"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Graviton;component/ThemingDefaults.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <Style TargetType="{x:Type TreeView}">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type TreeView}">
+                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                                <ItemsPresenter/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <DockPanel Margin="10">
 
         <StackPanel DockPanel.Dock="Top">
-            <TextBlock Name="TitleText" FontSize="18" Margin="0,0,10,10"/>
+            <TextBlock Name="TitleText" Text="Save Manager" FontSize="18" Margin="0,0,10,10"/>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Name="SelectGameText" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
-                <ComboBox Name="ComboPlatform"  Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding ROMs}" DisplayMemberPath="Name" SelectedItem="{Binding ROM, Mode=TwoWay}"/>
+                <TextBlock Name="SelectGameText" Text="Select Game" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="100" MaxWidth="150"/>
+                <ComboBox Name="ComboPlatform" Margin="5" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="300" ItemsSource="{Binding ROMs}" DisplayMemberPath="Name" SelectedItem="{Binding ROM, Mode=TwoWay}"/>
             </StackPanel>
         </StackPanel>
         

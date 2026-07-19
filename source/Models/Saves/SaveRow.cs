@@ -18,6 +18,7 @@ namespace Graviton.Models
         [ObservableProperty] private SaveSyncStatus _syncStatus;         
         [ObservableProperty] private string? _slot;
         [ObservableProperty] private bool _syncEnabled = false;
+        [ObservableProperty] private int _historicSaveCount = 0;
 
         [ObservableProperty] ObservableCollection<DirectorySaveFile> _saveDirectoryView = new();
         [ObservableProperty] List<string>? _sourcePaths = null;
