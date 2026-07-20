@@ -41,7 +41,6 @@ namespace Graviton.Settings
             InitializeComponent();
 
             AuthButtonText.Text = Loc.GetString("AuthButton");
-            ClientTokenPlaceholder.Text = Loc.GetString("LoginWithToken");
 
             UseBasicAuthText.Text = Loc.GetString("UseBasicAuth");
             UserPassWarning.Text = Loc.GetString("UserPassWarning");

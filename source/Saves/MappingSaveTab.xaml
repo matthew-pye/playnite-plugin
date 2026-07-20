@@ -137,23 +137,23 @@
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Text" Value="{loc:LocalizedString SaveStatusUnknown}"/>
-                                                        <Setter Property="Foreground" Value="Gray"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource Graviton.SubSubText.Colour}"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.upload}">
                                                                 <Setter Property="Text" Value="{loc:LocalizedString SaveStatusLocalNewer}"/>
-                                                                <Setter Property="Foreground" Value="#31708f"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.download}">
                                                                 <Setter Property="Text" Value="{loc:LocalizedString SaveStatusRemoteNewer}"/>
-                                                                <Setter Property="Foreground" Value="#9f6000"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Warn.Colour}"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.conflict}">
                                                                 <Setter Property="Text" Value="{loc:LocalizedString SaveStatusConflict}"/>
-                                                                <Setter Property="Foreground" Value="#d8000c"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.no_op}">
                                                                 <Setter Property="Text" Value="{loc:LocalizedString SaveStatusSynced}"/>
-                                                                <Setter Property="Foreground" Value="#31708f"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Success.Colour}"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -186,7 +186,7 @@
                                                         <Style TargetType="Button">
                                                             <Setter Property="Background" Value="Transparent"/>
                                                             <Setter Property="BorderBrush" Value="Transparent"/>
-                                                            <Setter Property="Foreground" Value="Red"/>
+                                                            <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
                                                             <Setter Property="Opacity" Value="0.6"/>
                                                             <Setter Property="Cursor" Value="Hand"/>
                                                             <Setter Property="Template">
@@ -204,7 +204,7 @@
                                                             </Style.Triggers>
                                                         </Style>
                                                     </Button.Style>
-                                                    <TextBlock Name="DeleteSaveIcon" Text="&#xf05e8;" FontSize="18" FontFamily="{x:Static playnite:Fonts.NerdFont}" Foreground="Red" Margin="2,0,5,0"  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <TextBlock Name="DeleteSaveIcon" Text="&#xf05e8;" FontSize="18" FontFamily="{x:Static playnite:Fonts.NerdFont}" Foreground="{DynamicResource Graviton.Error.Colour}" Margin="2,0,5,0"  HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Button>
                                             </StackPanel>
 
@@ -260,23 +260,23 @@
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Text" Value="{loc:LocalizedString SaveStatusUnknown}"/>
-                                                        <Setter Property="Foreground" Value="Gray"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource Graviton.SubSubText.Colour}"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.upload}">
                                                                 <Setter Property="Text" Value="{loc:LocalizedString SaveStatusLocalNewer}"/>
-                                                                <Setter Property="Foreground" Value="#31708f"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.download}">
                                                                 <Setter Property="Text" Value="{loc:LocalizedString SaveStatusRemoteNewer}"/>
-                                                                <Setter Property="Foreground" Value="#9f6000"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Warn.Colour}"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.conflict}">
                                                                 <Setter Property="Text" Value="{loc:LocalizedString SaveStatusConflict}"/>
-                                                                <Setter Property="Foreground" Value="#d8000c"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.no_op}">
                                                                 <Setter Property="Text" Value="{loc:LocalizedString SaveStatusSynced}"/>
-                                                                <Setter Property="Foreground" Value="#31708f"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Success.Colour}"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -360,23 +360,23 @@
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
                                                             <Setter Property="Text" Value="{loc:LocalizedString SaveStatusUnknown}"/>
-                                                            <Setter Property="Foreground" Value="Gray"/>
+                                                            <Setter Property="Foreground" Value="{DynamicResource Graviton.SubSubText.Colour}"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.upload}">
                                                                     <Setter Property="Text" Value="{loc:LocalizedString SaveStatusLocalNewer}"/>
-                                                                    <Setter Property="Foreground" Value="#31708f"/>
+                                                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}"/>
                                                                 </DataTrigger>
                                                                 <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.download}">
                                                                     <Setter Property="Text" Value="{loc:LocalizedString SaveStatusRemoteNewer}"/>
-                                                                    <Setter Property="Foreground" Value="#9f6000"/>
+                                                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Warn.Colour}"/>
                                                                 </DataTrigger>
                                                                 <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.conflict}">
                                                                     <Setter Property="Text" Value="{loc:LocalizedString SaveStatusConflict}"/>
-                                                                    <Setter Property="Foreground" Value="#d8000c"/>
+                                                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
                                                                 </DataTrigger>
                                                                 <DataTrigger Binding="{Binding SyncStatus}" Value="{x:Static msav:SaveSyncStatus.no_op}">
                                                                     <Setter Property="Text" Value="{loc:LocalizedString SaveStatusSynced}"/>
-                                                                    <Setter Property="Foreground" Value="#31708f"/>
+                                                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Success.Colour}"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>

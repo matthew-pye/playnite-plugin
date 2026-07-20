@@ -1,6 +1,9 @@
 ﻿using Playnite;
 
 using System.IO;
+using System.Runtime.CompilerServices;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
 
@@ -64,5 +67,36 @@ namespace Graviton
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => throw new NotImplementedException("Not implemented.");
+    }
+    public static class Placeholder
+    {
+        public static readonly DependencyProperty TextProperty = DependencyProperty.RegisterAttached("Text", typeof(string), typeof(Placeholder), new PropertyMetadata(string.Empty, OnTextChanged));
+
+        public static void SetText(DependencyObject element, string value) => element.SetValue(TextProperty, value);
+        public static string GetText(DependencyObject element) => (string)element.GetValue(TextProperty);
+
+        private static readonly DependencyPropertyKey HasTextPropertyKey = DependencyProperty.RegisterAttachedReadOnly("HasText", typeof(bool), typeof(Placeholder), new PropertyMetadata(false));
+        public static readonly DependencyProperty HasTextProperty = HasTextPropertyKey.DependencyProperty;
+
+        public static bool GetHasText(DependencyObject element) => (bool)element.GetValue(HasTextProperty);
+
+        private static readonly ConditionalWeakTable<PasswordBox, object> hookedPasswordBoxes = new();
+
+        private static void OnTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not PasswordBox passwordBox)
+                return;
+
+            if (hookedPasswordBoxes.TryGetValue(passwordBox, out _))
+                return;
+
+            hookedPasswordBoxes.Add(passwordBox, null!);
+            passwordBox.SetValue(HasTextPropertyKey, passwordBox.Password.Length > 0);
+            passwordBox.PasswordChanged += (sender, args) =>
+            {
+                var box = (PasswordBox)sender;
+                box.SetValue(HasTextPropertyKey, box.Password.Length > 0);
+            };
+        }
     }
 }

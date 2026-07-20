@@ -22,16 +22,16 @@
                         <ControlTemplate TargetType="{x:Type TabItem}">
                             <StackPanel Margin="10,2">
                                 <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header"/>
-                                <Rectangle Name="Rectangle" Fill="#55cdff" Height="2" Margin="-3,5,-3,-3"/>
+                                <Rectangle Name="Rectangle" Fill="#8b74e8" Height="2" Margin="-3,5,-3,-3"/>
                             </StackPanel>
 
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Foreground" Value="#55cdff"/>
-                                    <Setter TargetName="Rectangle" Property="Fill" Value="#55cdff"/>
+                                    <Setter Property="Foreground" Value="#8b74e8"/>
+                                    <Setter TargetName="Rectangle" Property="Fill" Value="#8b74e8"/>
                                 </Trigger>
                                 <Trigger Property="IsSelected" Value="False">
-                                    <Setter Property="Foreground" Value="LightGray"/>
+                                    <Setter Property="Foreground" Value="#524489"/>
                                     <Setter TargetName="Rectangle" Property="Fill" Value="Transparent"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
