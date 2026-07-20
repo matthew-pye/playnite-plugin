@@ -49,14 +49,23 @@ namespace Graviton.Settings
             }
         }
 
+        private void ResetAccountState()
+        {
+            _plugin.Settings.AccountState.User = "----";
+            _plugin.Settings.AccountState.UserType = "----";
+            _plugin.Settings.AccountState.ServerVersion = "---";
+            _plugin.Settings.AccountState.AuthenticateFailed = null;
+            _plugin.Settings.AccountState.LastAuthenticated = null;
+            _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
+        }
+
         public async Task<bool> Login()
         {
             // Check Host and Client token/UsernamePassword are set!
             if (string.IsNullOrEmpty(_plugin.Settings.Host))
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.login.host.notset", Loc.GetString("HostNotSet"), GravitonSeverity.Warn));
-                _plugin.Settings.AccountState.AuthenticateFailed = null;
-                _plugin.Settings.AccountState.LastAuthenticated = null;
+                ResetAccountState();
                 return false;
             }
 
@@ -65,8 +74,7 @@ namespace Graviton.Settings
                 if (string.IsNullOrEmpty(_plugin.Settings.UsernameNP) || string.IsNullOrEmpty(_plugin.Settings.PasswordNP))
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("UserPassNotSet"), GravitonSeverity.Warn));
-                    _plugin.Settings.AccountState.AuthenticateFailed = null;
-                    _plugin.Settings.AccountState.LastAuthenticated = null;
+                    ResetAccountState();
                     return false;
                 }
                  
@@ -77,8 +85,7 @@ namespace Graviton.Settings
                 if (string.IsNullOrEmpty(_plugin.Settings.ClientTokenNP))
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("TokenNotSet"), GravitonSeverity.Warn));
-                    _plugin.Settings.AccountState.AuthenticateFailed = null;
-                    _plugin.Settings.AccountState.LastAuthenticated = null;
+                    ResetAccountState();
                     return false;
                 }
                     

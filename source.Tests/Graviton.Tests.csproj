@@ -10,7 +10,7 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <RootNamespace>Graviton.Tests</RootNamespace>
-    <AssemblyName>Graviton-Tests</AssemblyName>
+    <AssemblyName>Graviton.Tests</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

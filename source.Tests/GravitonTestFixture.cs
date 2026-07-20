@@ -1,3 +1,4 @@
+using Graviton.Models.RomM.Rom;
 using Graviton.Settings;
 using Graviton.Tests.Fakes;
 
@@ -61,7 +62,7 @@ namespace Graviton.Tests
             SetInstance(plugin, "<SettingsHandler>k__BackingField", new GravitonSettingsHandler(GravitonPlugin.Instance, Playnite.Api, Logger.Object));
             SetInstance(plugin, "<PluginDataPath>k__BackingField", TempDir);
             SetInstance(plugin, "<PluginDLLPath>k__BackingField", TempDir);
-            SetInstance(plugin, "<ImportedGames>k__BackingField", new ConcurrentDictionary<string, Game>());
+            SetInstance(plugin, "<ImportedGames>k__BackingField", new ConcurrentDictionary<string, RomMRomLocal>());
 
             HttpClientSingleton.Initialize(plugin);
         }
@@ -82,7 +83,10 @@ namespace Graviton.Tests
         public void SeedImportedGame(Game game)
         {
             Playnite.AddExistingGame(game);
-            GravitonPlugin.Instance.ImportedGames![game.LibraryGameId!] = game;
+            GravitonPlugin.Instance.ImportedGames![game.LibraryGameId!] = new RomMRomLocal
+            {
+                PlayniteID = game.Id
+            };
         }
 
         public void Dispose()

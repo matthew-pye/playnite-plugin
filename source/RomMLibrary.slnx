@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="../source-tests/Graviton-Tests.csproj" Id="85031923-9581-4553-8a1a-912357e2d69e" />
+  <Project Path="../source.Tests/Graviton.Tests.csproj" Id="85031923-9581-4553-8a1a-912357e2d69e" />
   <Project Path="Graviton.csproj" />
 </Solution>

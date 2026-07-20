@@ -68,6 +68,9 @@ namespace Graviton.Tests.Fakes
             mock.As<IEnumerable<T>>().Setup(m => m.GetEnumerator()).Returns(() => list.GetEnumerator());
             mock.As<System.Collections.IEnumerable>().Setup(m => m.GetEnumerator()).Returns(() => list.GetEnumerator());
 
+            mock.Setup(m => m.Get(It.IsAny<string>())).Returns((string id) => list.FirstOrDefault(x => x.Id == id));
+            mock.Setup(m => m.Get(It.IsAny<IEnumerable<string>>())).Returns((IEnumerable<string> ids) => list.Where(x => ids.Contains(x.Id)).ToList());
+
             mock.Setup(m => m.AddAsync(It.IsAny<T>())).Callback<T>(item => list.Add(item)).Returns(Task.CompletedTask);
             mock.Setup(m => m.AddAsync(It.IsAny<IEnumerable<T>>())).Callback<IEnumerable<T>>(items => list.AddRange(items)).Returns(Task.CompletedTask);
 

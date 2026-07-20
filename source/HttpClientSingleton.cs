@@ -83,6 +83,9 @@ namespace Graviton
             if (_plugin!.Settings.AccountState.LastAuthenticated == null && !PublicEndpoint)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", Loc.GetString("Reauthenticate"), GravitonSeverity.Error));
+                _plugin.Settings.AccountState.User = "----";
+                _plugin.Settings.AccountState.UserType = "----";
+                _plugin.Settings.AccountState.LastAuthenticated = null;
                 return null;
             }
 
