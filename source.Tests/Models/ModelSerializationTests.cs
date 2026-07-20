@@ -155,6 +155,24 @@ namespace Graviton.Tests.Models
             Assert.False(rom.Processed);
         }
 
+        [Fact]
+        public void RomMRom_Deserialise_CoverPaths()
+        {
+            var rom = DeserializeRom(FakeApiResponses.RomMRom);
+
+            Assert.Equal("library/covers/gba/pokemon-emerald-version/small.png", rom.PathCoverS);
+            Assert.Equal("library/covers/gba/pokemon-emerald-version/large.png", rom.PathCoverL);
+        }
+
+        [Fact]
+        public void RomMRomMinimal_Deserialise_NoCoverPaths()
+        {
+            var rom = DeserializeRom(FakeApiResponses.RomMRomMinimal);
+
+            Assert.Null(rom.PathCoverS);
+            Assert.Null(rom.PathCoverL);
+        }
+
         #endregion
 
         #region Metadatum
@@ -360,6 +378,7 @@ namespace Graviton.Tests.Models
             Assert.Equal(42, p.RomCount);
             Assert.Equal(24UL, p.IgdbId);
             Assert.Equal("https://example.com/gba.png", p.LogoPath);
+            Assert.Equal("Game Boy Advance", p.DisplayName);
         }
 
         #endregion

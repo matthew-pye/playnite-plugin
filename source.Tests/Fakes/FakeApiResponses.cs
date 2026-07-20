@@ -6,7 +6,7 @@ namespace Graviton.Tests.Fakes
         public const string Heartbeat = """
             {
               "SYSTEM": {
-                "VERSION": "0.15.2",
+                "VERSION": "5.0.0",
                 "SHOW_SETUP_WIZARD": false
               }
             }
@@ -20,6 +20,7 @@ namespace Graviton.Tests.Fakes
                 "slug": "gba",
                 "fs_slug": "gba",
                 "name": "Game Boy Advance",
+                "display_name": "Game Boy Advance",
                 "rom_count": 42,
                 "igdb_id": 24,
                 "url_logo": "https://example.com/gba.png"
@@ -54,7 +55,8 @@ namespace Graviton.Tests.Fakes
               "has_simple_single_file": true,
               "has_nested_single_file": false,
               "has_multiple_files": false,
-              "has_cover": true,
+              "path_cover_small": "library/covers/gba/pokemon-emerald-version/small.png",
+              "path_cover_large": "library/covers/gba/pokemon-emerald-version/large.png",
               "url_cover": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1ieo.jpg",
               "regions": ["USA", "Europe"],
               "languages": ["en"],
