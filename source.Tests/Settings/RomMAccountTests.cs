@@ -11,7 +11,7 @@ namespace Graviton.Tests.Settings
     [Collection(GravitonCollection.Name)]
     public class RomMAccountTests(GravitonTestFixture fixture)
     {
-        private RomMAccount MakeAccount() => new RomMAccount(GravitonPlugin.Instance, fixture.Playnite.Api, fixture.Logger.Object);
+        private RomMAuthentication MakeAccount() => new RomMAuthentication(GravitonPlugin.Instance, fixture.Playnite.Api, fixture.Logger.Object);
 
         private void SetActiveAccountState()
         {
@@ -22,7 +22,7 @@ namespace Graviton.Tests.Settings
             state.LastAuthenticated = DateTime.UtcNow;
         }
 
-        private static Regex IconPathRegex => (Regex)typeof(RomMAccount).GetField("_iconPathRegex", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+        private static Regex IconPathRegex => (Regex)typeof(RomMAuthentication).GetField("_iconPathRegex", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
 
         #region Login
 

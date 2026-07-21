@@ -58,7 +58,7 @@ namespace Graviton
         private GravitonPluginSettings _settings = new();
 
         internal GravitonSettingsHandler? SettingsHandler { get; set; }
-        internal RomMAccount? Account { get; private set; }
+        internal RomMAuthentication? Account { get; private set; }
 
         private RomMDownloadsAppViewItem? _downloadsAppView { get; set; }
         private DownloadQueueViewModel? _downloadsViewModel;

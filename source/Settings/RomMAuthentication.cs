@@ -14,7 +14,7 @@ using System.Windows.Controls;
 
 namespace Graviton.Settings
 {
-    internal class RomMAccount
+    internal class RomMAuthentication
     {
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
@@ -22,7 +22,7 @@ namespace Graviton.Settings
 
         private static readonly Regex _iconPathRegex = new Regex(@"^users/[^/]+/profile/avatar\.(png|jpg|jpeg|webp)$");
 
-        public RomMAccount(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
+        public RomMAuthentication(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -48,24 +48,13 @@ namespace Graviton.Settings
                 return null;
             }
         }
-
-        private void ResetAccountState()
-        {
-            _plugin.Settings.AccountState.User = "----";
-            _plugin.Settings.AccountState.UserType = "----";
-            _plugin.Settings.AccountState.ServerVersion = "---";
-            _plugin.Settings.AccountState.AuthenticateFailed = null;
-            _plugin.Settings.AccountState.LastAuthenticated = null;
-            _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
-        }
-
         public async Task<bool> Login()
         {
             // Check Host and Client token/UsernamePassword are set!
             if (string.IsNullOrEmpty(_plugin.Settings.Host))
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.login.host.notset", Loc.GetString("HostNotSet"), GravitonSeverity.Warn));
-                ResetAccountState();
+                ResetLocalAccountState();
                 return false;
             }
 
@@ -74,7 +63,7 @@ namespace Graviton.Settings
                 if (string.IsNullOrEmpty(_plugin.Settings.UsernameNP) || string.IsNullOrEmpty(_plugin.Settings.PasswordNP))
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("UserPassNotSet"), GravitonSeverity.Warn));
-                    ResetAccountState();
+                    ResetLocalAccountState();
                     return false;
                 }
                  
@@ -85,7 +74,7 @@ namespace Graviton.Settings
                 if (string.IsNullOrEmpty(_plugin.Settings.ClientTokenNP))
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("TokenNotSet"), GravitonSeverity.Warn));
-                    ResetAccountState();
+                    ResetLocalAccountState();
                     return false;
                 }
                     
@@ -214,74 +203,14 @@ namespace Graviton.Settings
             return false;
         }
 
-        async Task<bool> RegisterNewDevice()
+        public void ResetLocalAccountState()
         {
-            // Check to see if current device id is valid
-            if (!string.IsNullOrEmpty(_plugin.Settings.AccountState.DeviceID))
-            {
-                var result = await HttpClientSingleton.RomMGetAsync("/api/devices");
-                if (result != null)
-                {
-                    try
-                    {
-                        List<RomMDevice> devices = result.RootElement.Deserialize<List<RomMDevice>>() ?? throw new Exception("Unable to deserialize UserInfo!");
-                        if (devices.Any(x => x.ID == _plugin.Settings.AccountState.DeviceID))
-                            return true;
-                    }
-                    catch (Exception ex)
-                    {
-                        GravitonNotify.Add(new GravitonNotification("graviton.GET.device.failed", Loc.GetString("GETDevicesFailed", ("Error", ex.Message)), GravitonSeverity.Warn, ex));
-                        return false;
-                    }
-                }
-                
-            }
-
-            // Setup data for new device to be added to RomM
-            RomMRegisterDevice newDevice = new();
-            newDevice.Name = $"Graviton-{Environment.MachineName}";
-            newDevice.Platform = "Windows";
-            newDevice.Client = "Graviton (Playnite Plugin)";
-            newDevice.ClientVersion = GravitonPlugin.Version.ToString();
-            newDevice.HostName = Environment.MachineName;
-
-            var request = await HttpClientSingleton.RomMPostJsonAsync("/api/devices", newDevice);
-            if (request == null)
-                return false;
-
-            try
-            {
-                RomMRegisterDeviceResponse newRomMDevice = request.RootElement.Deserialize<RomMRegisterDeviceResponse>() ?? throw new Exception("Unable to deserialize register device response!");
-
-                // Set ID that RomM responds with
-                _plugin.Settings.AccountState.DeviceID = newRomMDevice.DeviceID ?? throw new Exception("Response Device ID is null!");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                GravitonNotify.Add(new GravitonNotification("graviton.POST.device.failed", Loc.GetString("CreateNewDeviceFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
-                return false;
-            }
-        }
-
-        async Task<bool> UpdateDevice()
-        {
-            if (string.IsNullOrEmpty(_plugin.Settings.AccountState.DeviceID))
-                return false;
-
-            // Rebuild device data
-            RomMRegisterDevice newDevice = new();
-            newDevice.Platform = "Windows";
-            newDevice.Client = "Graviton (Playnite Plugin)";
-            newDevice.ClientVersion = GravitonPlugin.Version.ToString();
-            newDevice.MACAddress = (from nic in NetworkInterface.GetAllNetworkInterfaces() where nic.OperationalStatus == OperationalStatus.Up select nic.GetPhysicalAddress().ToString()).FirstOrDefault();
-            newDevice.HostName = Environment.MachineName;
-
-            var result = await HttpClientSingleton.RomMPutJsonAsync($"/api/devices/{_plugin.Settings.AccountState.DeviceID}", newDevice);
-            if (result == null)
-                return false;
-
-            return true;
+            _plugin.Settings.AccountState.User = "----";
+            _plugin.Settings.AccountState.UserType = "----";
+            _plugin.Settings.AccountState.ServerVersion = "---";
+            _plugin.Settings.AccountState.AuthenticateFailed = null;
+            _plugin.Settings.AccountState.LastAuthenticated = null;
+            _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
         }
 
         public async Task<RomMPairDevice?> InitDevicePair()
@@ -406,6 +335,76 @@ namespace Graviton.Settings
 
             GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairExpired"))), GravitonSeverity.Info));
             return false;
+        }
+
+        internal async Task<bool> RegisterNewDevice()
+        {
+            // Check to see if current device id is valid
+            if (!string.IsNullOrEmpty(_plugin.Settings.AccountState.DeviceID))
+            {
+                var result = await HttpClientSingleton.RomMGetAsync("/api/devices");
+                if (result != null)
+                {
+                    try
+                    {
+                        List<RomMDevice> devices = result.RootElement.Deserialize<List<RomMDevice>>() ?? throw new Exception("Unable to deserialize UserInfo!");
+                        if (devices.Any(x => x.ID == _plugin.Settings.AccountState.DeviceID))
+                            return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        GravitonNotify.Add(new GravitonNotification("graviton.GET.device.failed", Loc.GetString("GETDevicesFailed", ("Error", ex.Message)), GravitonSeverity.Warn, ex));
+                        return false;
+                    }
+                }
+
+            }
+
+            // Setup data for new device to be added to RomM
+            RomMRegisterDevice newDevice = new();
+            newDevice.Name = $"Graviton-{Environment.MachineName}";
+            newDevice.Platform = "Windows";
+            newDevice.Client = "Graviton (Playnite Plugin)";
+            newDevice.ClientVersion = GravitonPlugin.Version.ToString();
+            newDevice.HostName = Environment.MachineName;
+
+            var request = await HttpClientSingleton.RomMPostJsonAsync("/api/devices", newDevice);
+            if (request == null)
+                return false;
+
+            try
+            {
+                RomMRegisterDeviceResponse newRomMDevice = request.RootElement.Deserialize<RomMRegisterDeviceResponse>() ?? throw new Exception("Unable to deserialize register device response!");
+
+                // Set ID that RomM responds with
+                _plugin.Settings.AccountState.DeviceID = newRomMDevice.DeviceID ?? throw new Exception("Response Device ID is null!");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.POST.device.failed", Loc.GetString("CreateNewDeviceFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                return false;
+            }
+        }
+
+        internal async Task<bool> UpdateDevice()
+        {
+            if (string.IsNullOrEmpty(_plugin.Settings.AccountState.DeviceID))
+                return false;
+
+            // Rebuild device data
+            RomMRegisterDevice newDevice = new();
+            newDevice.Platform = "Windows";
+            newDevice.Client = "Graviton (Playnite Plugin)";
+            newDevice.ClientVersion = GravitonPlugin.Version.ToString();
+            newDevice.MACAddress = (from nic in NetworkInterface.GetAllNetworkInterfaces() where nic.OperationalStatus == OperationalStatus.Up select nic.GetPhysicalAddress().ToString()).FirstOrDefault();
+            newDevice.HostName = Environment.MachineName;
+
+            var result = await HttpClientSingleton.RomMPutJsonAsync($"/api/devices/{_plugin.Settings.AccountState.DeviceID}", newDevice);
+            if (result == null)
+                return false;
+
+            return true;
         }
     }
 }

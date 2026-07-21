@@ -4,10 +4,8 @@ using Graviton.Models.RomM.Rom;
 
 using Playnite;
 
-using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Graviton.Import
@@ -33,7 +31,7 @@ namespace Graviton.Import
             _cancelToken = cancelToken;
             _mapping = mapping;
             _roms = roms;
-        }      
+        }
 
         // Main library import functions
         public async Task<(List<Game> NewGames, List<string> ProcessedGames)> ProcessData()
@@ -48,7 +46,7 @@ namespace Graviton.Import
             {
                 await _playniteAPI.Library.Platforms.AddAsync(new Platform(_mapping.RomMPlatform.Name));
             }
-   
+
             // Process ROMs
             foreach (var ROM in _roms)
             {
@@ -56,36 +54,28 @@ namespace Graviton.Import
                     break;
 
                 var result = await ProcessROM(ROM);
-                if(result.HasValue)
+                if (result.HasValue)
                 {
                     ImportedGamesIDs.Add(result.Value.gameID);
 
-                    if(result.Value.newGame != null)
+                    if (result.Value.newGame != null)
                         games.Add(result.Value.newGame);
                 }
             }
 
             _logger?.Info($"[Importer] Finished adding new games for {_mapping.RomMPlatform?.Name}");
 
-            if(_plugin.Settings.MergeRevisions)
+            if (_plugin.Settings.MergeRevisions)
             {
-                await MergeSiblings();
+                _logger?.Info($"[Importer] Started merging new games for {_mapping.RomMPlatform?.Name}");
+                await GravitonSiblingMerger.MergeSiblings(_plugin, _roms);
+
+                _logger?.Info($"[Importer] Finished merging new games for {_mapping.RomMPlatform?.Name}");
             }
 
 
             _logger?.Info($"[Importer] Finished import of ROMs for {_mapping.RomMPlatform?.Name}.");
             return (games, ImportedGamesIDs);
-        }
-
-        private RomMFile? DetermineFile(RomMRom ROM)
-        {
-            if (ROM.Files == null)
-                return null;
-
-            if (ROM.Files.Count > 1)
-                return ROM.Files.OrderBy(f => f.FullPath.Count(c => c == '/')).FirstOrDefault();
-
-            return ROM.Files.FirstOrDefault();
         }
 
         private async Task PreProcessData()
@@ -111,10 +101,10 @@ namespace Graviton.Import
                     ROM.HasMultipleFiles = true;
 
                 var ROMGenres = ROM.Metadatum?.Genres?.Select(x => new Genre(x.ToLower(), x)).ToList();
-                if(ROMGenres != null)
+                if (ROMGenres != null)
                     genres.AddRange(ROMGenres);
 
-                var ROMCollections= ROM.Metadatum?.Collections?.Select(x => new Category(x.ToLower(), x)).ToList();
+                var ROMCollections = ROM.Metadatum?.Collections?.Select(x => new Category(x.ToLower(), x)).ToList();
                 ROMCollections?.RemoveAll(x => x.Name == "Favorites");
                 if (ROMCollections != null)
                     categories.AddRange(ROMCollections);
@@ -189,16 +179,10 @@ namespace Graviton.Import
             {
                 if (await UpdatedDeletedGame(ROM))
                 {
-                    // Save Game ROM data to file
-                    var savedata = SaveGameData(ROM);
-
-                    if (savedata != null)
-                        _plugin.ImportedGames![gameID] = savedata;
-
                     return new(gameID, null);
                 }
             }
-          
+
             if (_plugin.ImportedGames!.ContainsKey(gameID) && !string.IsNullOrEmpty(_plugin.ImportedGames[gameID].PlayniteID)) // Skip full import if ROM has already been imported 
             {
                 var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames[gameID].PlayniteID!)!;
@@ -207,7 +191,7 @@ namespace Graviton.Import
                 {
                     game.Favorite = ROM.Collections.Any(x => x.Name == "Favorites");
                 }
-                    
+
                 //if (ROM.Notes != null)
                 //{
                 //    foreach (var note in ROM.Notes)
@@ -228,10 +212,6 @@ namespace Graviton.Import
                 //}
 
                 await _playniteAPI.Library.Games.UpdateAsync(game);
-                var savedata = SaveGameData(ROM);
-
-                if (savedata != null)
-                    _plugin.ImportedGames![gameID] = savedata;
 
                 ROM.Processed = true; // Skips the ROM being remerged if user has split the ROMs apart
                 return new(gameID, null);
@@ -242,8 +222,7 @@ namespace Graviton.Import
                 if (importedGame != null)
                 {
                     await _playniteAPI.Library.Games.AddAsync(importedGame);
-                    var savedata = SaveGameData(ROM, importedGame.Id);
-                    _plugin.ImportedGames!.TryAdd(gameID , savedata!);
+                    RomMRomLocal.Build(_mapping.MappingId, ROM, importedGame.Id);
                     return new(gameID, importedGame);
                 }
                 else
@@ -271,7 +250,7 @@ namespace Graviton.Import
 
             game.ObtainedDate = ROM.CreatedAt;
             game.AddedDate = DateTime.UtcNow;
-            
+
             if (ROM.HLTBMetadata != null)
                 game.TimeToBeatEstimated = new(ROM.HLTBMetadata.MainStory, ROM.HLTBMetadata.MainStoryExtra, ROM.HLTBMetadata.Completionist);
 
@@ -288,10 +267,10 @@ namespace Graviton.Import
             game.Hidden = ROM.RomUser?.Hidden ?? false;
             game.LastPlayedDate = ROM.RomUser?.LastPlayed;
 
-            if(ROM.RomUser?.Status != null && RomMRomUser.CompletionStatusMap.ContainsKey(ROM.RomUser.Status))
+            if (ROM.RomUser?.Status != null && RomMRomUser.CompletionStatusMap.ContainsKey(ROM.RomUser.Status))
             {
                 var playniteStatus = _playniteAPI.Library.CompletionStatuses.FirstOrDefault(x => x.Name == RomMRomUser.CompletionStatusMap[ROM.RomUser.Status]);
-                if(playniteStatus != null)
+                if (playniteStatus != null)
                     game.CompletionStatusId = playniteStatus.Id;
             }
 
@@ -308,25 +287,25 @@ namespace Graviton.Import
                     game.Links.Add(new WebLink("igdb", $"https://www.igdb.com/games/{ROM.Slug}"));
                 }
             }
-            
+
             if (ROM.SSId != null)
             {
                 game.Links.Add(new WebLink("screenscraper", $"https://www.screenscraper.fr/gameinfos.php?gameid={ROM.SSId}"));
                 game.ExternalIdentifiers?.Add(new("screenscraper", ROM.SSId.ToString()!));
-            }                  
+            }
             if (ROM.HasheousId != null)
             {
                 game.Links.Add(new WebLink("hasheous", $"https://hasheous.org/index.html?page=dataobjectdetail&type=game&id={ROM.HasheousId}"));
                 game.ExternalIdentifiers?.Add(new("hasheous", ROM.HasheousId.ToString()!));
-            }                
+            }
             if (ROM.RAId != null)
             {
                 game.Links.Add(new WebLink("retroachievements", $"https://retroachievements.org/game/{ROM.RAId}"));
                 game.ExternalIdentifiers?.Add(new("retroachievements", ROM.RAId.ToString()!));
-            }    
+            }
             if (ROM.HLTBId != null)
             {
-                
+
                 game.Links.Add(new WebLink("howlongtobeat", $"https://howlongtobeat.com/game/{ROM.HLTBId}"));
                 game.ExternalIdentifiers?.Add(new("howlongtobeat", ROM.HLTBId.ToString()!));
             }
@@ -351,7 +330,7 @@ namespace Graviton.Import
 
             return game;
         }
-    
+
         private async Task<bool> UpdatedDeletedGame(RomMRom ROM)
         {
             // Check to see if a game already exists with an old romMId
@@ -368,9 +347,9 @@ namespace Graviton.Import
                 game.LibraryGameId = $"{ROM.Id}:{ROM.SHA1}";
                 oldgame.Value.Id = ROM.Id;
                 await _playniteAPI.Library.Games.UpdateAsync(game);
-                
+
                 _plugin.ImportedGames!.TryRemove(oldgame.Key, out _);
-                _plugin.ImportedGames!.TryAdd($"{ROM.Id}:{ROM.SHA1}", oldgame.Value);
+                oldgame.Value.Save();
 
                 return true;
             }
@@ -380,156 +359,5 @@ namespace Graviton.Import
             }
         }
 
-        private async Task MergeSiblings()
-        {
-            _logger.Info($"[Importer] Started merging new games for {_mapping.RomMPlatform?.Name}");
-
-            foreach (var ROM in _roms)
-            {
-                if (ROM.Processed)
-                    continue;
-
-
-                if (ROM.Siblings?.Count > 0)
-                {
-                    if (!_plugin.ImportedGames!.ContainsKey($"{ROM.Id}:{ROM.SHA1}") || string.IsNullOrEmpty(_plugin.ImportedGames![$"{ROM.Id}:{ROM.SHA1}"].PlayniteID))
-                        continue;
-
-                    var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames![$"{ROM.Id}:{ROM.SHA1}"].PlayniteID!)!;
-
-                    List<(RomMRom ROM, Game Game)> SiblingROMs = new List<(RomMRom ROM, Game Game)>();
-                    foreach (var sibling in ROM.Siblings)
-                    {
-                        if(_roms.Any(x => x.Id == sibling.Id))
-                        {
-                            // Check to see if sibling is apart of the ROMs being imported
-                            var siblingROM = _roms.FirstOrDefault(x => x.Id == sibling.Id);
-                            if (siblingROM == null) 
-                                continue;
-
-                            // Check to see if sibling has been imported
-                            if(_plugin.ImportedGames!.ContainsKey($"{siblingROM.Id}:{siblingROM.SHA1}") && !string.IsNullOrEmpty(_plugin.ImportedGames![$"{siblingROM.Id}:{siblingROM.SHA1}"].PlayniteID))
-                            {
-                                var siblingGame = _playniteAPI.Library.Games.Get(_plugin.ImportedGames![$"{siblingROM.Id}:{siblingROM.SHA1}"].PlayniteID!)!;
-                                SiblingROMs.Add((siblingROM, siblingGame));
-                            }             
-                        }
-                    }
-
-                    bool foundMergedSiblings = false;
-
-                    foreach (var relation in _playniteAPI.Library.GameRelations)
-                    {
-                        // Check to see if game is already the primary game in a game relation
-                        if(relation.PrimaryGame == game.Id)
-                        {
-                            foreach(var sibling in SiblingROMs)
-                            {
-                                relation.LinkedGames.Add(sibling.Game.Id);
-                                sibling.ROM.Processed = true;
-                            }
-
-                            await _playniteAPI.Library.GameRelations.UpdateAsync(relation);
-                            foundMergedSiblings = true;
-                            break;
-                        }
-
-                        // Check to see if sibling is already the primary game in a game relation and add this game to the linked games
-                        if (SiblingROMs.Any(x => x.Game.Id == relation.PrimaryGame))
-                        {
-                            relation.LinkedGames.Add(game.Id);
-                            await _playniteAPI.Library.GameRelations.UpdateAsync(relation);
-                            foundMergedSiblings = true;
-                            break;
-                        }
-                    }
-
-                    if (foundMergedSiblings)
-                        continue;
-
-      
-                    //Check to see if ROM is the main sibling
-                    MainSibling isMainSibling = MainSibling.None;
-                    if (ROM.RomUser != null && ROM.RomUser.IsMainSibling)
-                    {
-                        isMainSibling = MainSibling.Current;
-                    }
-                    else if (ROM.Siblings != null && ROM.Siblings.Count > 0)
-                    {
-                        //Find if there is a main sibling
-                        foreach (var sibling in SiblingROMs)
-                        {
-                            if (sibling.ROM.RomUser != null && sibling.ROM.RomUser.IsMainSibling)
-                            {
-                                isMainSibling = MainSibling.Other;
-                                break;
-                            }
-                        }
-                    }
-
-                    // Create new game relation if either there is no main sibling or the current game is the main sibling
-                    if(isMainSibling != MainSibling.Other) 
-                    {
-                        GameRelation newgamerelation = new GameRelation();
-                        newgamerelation.PrimaryGame = game.Id;
-                        foreach (var sibling in SiblingROMs)
-                        {
-                            newgamerelation.LinkedGames.Add(sibling.Game.Id);
-                            sibling.ROM.Processed = true;
-                        }
-
-                        await _playniteAPI.Library.GameRelations.AddAsync(newgamerelation);
-                    }
-                }
-            }
-
-            _logger.Info($"[Importer] Finished merging new games for {_mapping.RomMPlatform?.Name}");
-        }
-
-        private RomMRomLocal? SaveGameData(RomMRom ROM, string PlayniteID = "")
-        {
-
-            RomMRomLocal toSave = new RomMRomLocal();
-
-            // Save base ROM data
-            toSave.Id = ROM.Id;
-            toSave.Name = ROM.Name;
-            toSave.SHA1 = ROM.SHA1;
-            toSave.HasMultipleFiles = ROM.HasMultipleFiles;
-            toSave.PlayniteID = string.IsNullOrEmpty(PlayniteID) ? _plugin.ImportedGames![$"{ROM.Id}:{ROM.SHA1}"].PlayniteID : PlayniteID;
-
-            if(!ROM.HasMultipleFiles)
-            {
-                var romfile = DetermineFile(ROM);
-                if (romfile == null)
-                {
-                    _logger.Error("[Importer] Unable to save ROM data as there is no rom file!");
-                    return null;
-                }
-
-                toSave.FileName = Path.GetFileName(romfile.FileName);
-                toSave.DownloadURL = $"{_plugin.Settings.Host}/api/roms/{romfile.Id}/files/content/{romfile.FileName}";
-            }
-            else
-            {
-                toSave.FileName = Path.GetFileName(ROM.FileName);
-                toSave.DownloadURL = $"{_plugin.Settings.Host}/api/roms/{ROM.Id}/content/{ROM.FileName}";
-            } 
-            toSave.MappingID = _mapping.MappingId;
-
-            try
-            {
-                // Write data to file
-                string json = JsonSerializer.Serialize(toSave);
-                File.WriteAllText($"{_plugin.PluginDataPath}/Games/{ROM.SHA1}.json", json);
-                return toSave;
-            }
-            catch (Exception ex)
-            {
-                GravitonNotify.Add(new GravitonNotification($"graviton.write.rom.{ROM.Id}", Loc.GetString("ROMDataSaveFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
-                return null;
-            }
-
-        }  
     }
 }

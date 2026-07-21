@@ -111,10 +111,7 @@ namespace Graviton
 
                     if (response?.StatusCode == HttpStatusCode.Unauthorized || response?.StatusCode == HttpStatusCode.Forbidden)
                     {
-                        _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
-                        _plugin.Settings.AccountState.User = "----";
-                        _plugin.Settings.AccountState.UserType = "----";
-                        _plugin.Settings.AccountState.LastAuthenticated = null;
+                        _plugin.Account!.ResetLocalAccountState();
                         _plugin.Settings.AccountState.AuthenticateFailed = response?.StatusCode;
                     }
                 }
