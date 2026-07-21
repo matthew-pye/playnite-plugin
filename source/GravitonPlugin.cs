@@ -481,9 +481,9 @@ namespace Graviton
                     if (mapping == null) 
                         return;
 
-                    var tab = new Saves.SinglegameSaveTab();
-                    tab.LoadForGame(args.Games[0], mapping);
-                    SaveManagerWindow.Show(Loc.GetString("ManageSaves"), tab);
+                    //var tab = new Saves.SinglegameSaveTab();
+                    //tab.LoadForGame(args.Games[0], mapping);
+                    //SaveManagerWindow.Show(Loc.GetString("ManageSaves"), tab);
                 })];
             }
 

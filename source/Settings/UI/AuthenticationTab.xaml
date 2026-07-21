@@ -48,7 +48,7 @@
                     <Border Grid.Row="0" Grid.Column="0" CornerRadius="6" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,10,5,5">
                         <Border.Style>
                             <Style TargetType="Border">
-                                <Setter Property="Background" Value="{DynamicResource Graviton.WarnBackground.Colour}"/>
+                                <Setter Property="Background" Value="{DynamicResource Graviton.Trace.Colour}"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
                                         <Setter Property="Background" Value="{DynamicResource Graviton.SuccessBackground.Colour}"/>

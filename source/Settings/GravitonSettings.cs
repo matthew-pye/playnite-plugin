@@ -3,7 +3,7 @@
 using Graviton.Models;
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Platform;
-using Graviton.Models.RomM.Saves;
+using Graviton.Models.Saves;
 
 using Playnite;
 
@@ -62,7 +62,7 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _saveStateSyncEnabled = false;      
         [ObservableProperty] private bool _downloadSaveOnLaunch = true;      
         [ObservableProperty] private bool _uploadSaveOnFinished = true;      
-        [ObservableProperty] private SaveConflictStyle _saveConflictStyle = SaveConflictStyle.Ask;
+        [ObservableProperty] private SaveConflictResolve _saveConflictStyle = SaveConflictResolve.Ask;
         [ObservableProperty] private bool _autoCleanupSaves = false;
         [ObservableProperty] private int _autoCleanupSavesLimit = 10;
 
