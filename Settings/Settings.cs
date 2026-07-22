@@ -465,7 +465,7 @@ namespace RomM.Settings
                 if (!string.IsNullOrEmpty(userinfo.IconPath))
                 {
                     string raw = (ServerVersion ?? string.Empty).Split('-', '+')[0];
-                    if (Version.TryParse(raw, out Version parsed) && parsed.CompareTo(new Version(5, 0, 0)) <= 0)
+                    if (Version.TryParse(raw, out Version parsed) && parsed.CompareTo(new Version(5, 0, 0)) >= 0)
                     {
                         response = HttpClientSingleton.Instance.GetAsync($"{RomMHost}/api/users/{userinfo.Id}/avatar", System.Net.Http.HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(30)).Token).GetAwaiter().GetResult();
                     }
@@ -489,7 +489,13 @@ namespace RomM.Settings
             catch (Exception ex)
             {
                 LogManager.GetLogger().Error($"Failed to get profile info, skipping! {ex}");
+                
+                if(File.Exists($"{PlayniteAPI.Paths.ExtensionsDataPath}\\{RomM.Id.ToString()}\\avatar.png"))
+                    File.Delete($"{PlayniteAPI.Paths.ExtensionsDataPath}\\{RomM.Id.ToString()}\\avatar.png");
+
                 ProfilePath = _defaultprofilepath;
+                RomMUser = "----";
+                RomMProfileType = "----";
             }
         }
 
