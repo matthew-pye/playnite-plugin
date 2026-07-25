@@ -1,23 +1,7 @@
-﻿using System.ComponentModel;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace Graviton.Models.RomM.Saves
 {
-    public enum SaveConflictStyle
-    {
-        [Description("Ask")] Ask,
-        [Description("Prefer Remote")] PreferRemote,
-        [Description("Prefer Local")] PreferLocal
-    }
-
-    public enum SaveLayoutStyle
-    {
-        [Description("Single File")] SingleFile,
-        [Description("Fixed Set")] FixedSet,
-        [Description("Folder")] WholeFolder,
-        [Description("Disabled")] Disabled
-    }
-
     public enum SaveSyncStatus
     {
         upload,
@@ -25,6 +9,7 @@ namespace Graviton.Models.RomM.Saves
         conflict,
         no_op
     }
+
     internal class RomMSave
     {
         [JsonPropertyName("id")]
@@ -63,18 +48,6 @@ namespace Graviton.Models.RomM.Saves
         [JsonPropertyName("updated_at")]
         public string? UpdatedAt { get; set; }
 
-    }
-
-    public class LocalSave
-    {
-        public Guid LocalID { get; set; } = Guid.NewGuid();
-
-        public List<string> SourceFilePaths { get; set; } = new();
-        public string PackedFilename { get; set; } = string.Empty;
-
-        public int SaveID { get; set; } = -1;
-        public string? Slot { get; set; } = "Autosave";
-        [JsonIgnore] public string ? UpdatedAt { get; set; }
-        public bool Enabled { get; set; } = false;
+        [JsonIgnore] public List<RomMSave> HistoricSaves = new();
     }
 }

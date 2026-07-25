@@ -1,5 +1,6 @@
 ﻿using Graviton.Models;
 using Graviton.Models.Notifications;
+using Graviton.Models.RomM;
 using Graviton.Settings.UI;
 
 using Playnite;
@@ -166,6 +167,20 @@ namespace Graviton.Settings
 
         private async void Click_LoginViaQR(object sender, RoutedEventArgs e)
         {
+            ServerInfo? heartbeat = await _plugin.Account!.Heartbeat();
+            if (heartbeat == null)
+                return;
+            
+            _plugin.Settings.AccountState.ServerVersion = heartbeat.Value.Version;
+
+            string raw = (heartbeat.Value.Version ?? string.Empty).Split('-', '+')[0];
+            if (Version.TryParse(raw, out Version? parsed) && parsed.CompareTo(new Version(5, 0, 0)) < 0)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.QRlogin.gated", "Your server doesn't support QR login (5.0.0+), Use client token or username/password instead!", GravitonSeverity.Error));
+                e.Handled = true;
+                return;
+            }
+
             var initDevice = await _plugin.Account!.InitDevicePair();
             if (initDevice == null)
             {

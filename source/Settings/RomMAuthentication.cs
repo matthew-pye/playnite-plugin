@@ -243,7 +243,7 @@ namespace Graviton.Settings
 
             try
             {
-                var response = await HttpClientSingleton.RomMPostJsonAsync("/api/auth/device/init", deviceInit);
+                var response = await HttpClientSingleton.RomMPostJsonAsync("/api/auth/device/init", deviceInit, true);
                 if (response == null)
                 {
                     return null;

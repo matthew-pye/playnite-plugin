@@ -54,7 +54,6 @@ namespace Graviton.Settings
             ProfileText.Text = Loc.GetString("Profile");
             PlatformText.Text = Loc.GetString("Platform");
             ROMLocText.Text = Loc.GetString("ROMLoc");
-            ROMLocationPlaceholder.Text = Loc.GetString("NoFolderPlaceholder");
             BrowseROMLocationText.Text = Loc.GetString("Browse");
            
             OptionText.Text = Loc.GetString("Options");
@@ -68,7 +67,6 @@ namespace Graviton.Settings
             AutoDetectionStyleCombo.ToolTip = Loc.GetString("AutoSaveDetectionTooltip");
             SaveExtensionsText.Text = Loc.GetString("SaveExtensions");
             SaveLocText.Text = Loc.GetString("SaveLocation");
-            SavePathPlaceHolder.Text = Loc.GetString("NoFolderPlaceholder");
             SaveLocButtonText.Text = Loc.GetString("Browse");
             OpenSaveManagerText.Text = $"\uf019 {Loc.GetString("ManageSaves")}";
             
@@ -123,7 +121,7 @@ namespace Graviton.Settings
             if (SelectedMapping == null)
                 return;
 
-            var tab = new MappingSaveTab();
+            var tab = new SaveManagementView();
             _ = tab.Load(SelectedMapping);
 
             RaiseEvent(new ManageSavesRequestedEventArgs(ManageSavesRequestedEvent, tab));
@@ -142,7 +140,7 @@ namespace Graviton.Settings
 
     public class ManageSavesRequestedEventArgs : RoutedEventArgs
     {
-        public MappingSaveTab Tab { get; }
-        public ManageSavesRequestedEventArgs(RoutedEvent routedEvent, MappingSaveTab tab) : base(routedEvent) => Tab = tab;
+        public SaveManagementView Tab { get; }
+        public ManageSavesRequestedEventArgs(RoutedEvent routedEvent, SaveManagementView tab) : base(routedEvent) => Tab = tab;
     }
 }

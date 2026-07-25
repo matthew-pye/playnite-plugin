@@ -1,4 +1,12 @@
 <Solution>
-  <Project Path="../source.Tests/Graviton.Tests.csproj" Id="85031923-9581-4553-8a1a-912357e2d69e" />
-  <Project Path="Graviton.csproj" />
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="../source.Tests/Graviton.Tests.csproj" Id="85031923-9581-4553-8a1a-912357e2d69e">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="Graviton.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
 </Solution>

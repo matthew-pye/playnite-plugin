@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:s="clr-namespace:Graviton.Settings"
-             xmlns:models="clr-namespace:Graviton.Models.RomM.Saves"
+             xmlns:models="clr-namespace:Graviton.Models.Saves"
              xmlns:psdk="clr-namespace:Playnite.Desktop;assembly=Playnite.SDK"
              mc:Ignorable="d"
              d:DesignHeight="900" d:DesignWidth="750">
@@ -16,9 +16,9 @@
                 <ResourceDictionary Source="pack://application:,,,/Graviton;component/ThemingDefaults.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <ObjectDataProvider x:Key="SaveConflictStyleValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider x:Key="SaveConflictResolveValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
                 <ObjectDataProvider.MethodParameters>
-                    <x:Type TypeName="models:SaveConflictStyle"/>
+                    <x:Type TypeName="models:SaveConflictResolve"/>
                 </ObjectDataProvider.MethodParameters>
             </ObjectDataProvider>
         </ResourceDictionary>
@@ -27,7 +27,7 @@
     <ScrollViewer>
         <StackPanel>
 
-            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="1" Background="Transparent">
+            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" Background="Transparent">
                 <StackPanel>
                     <TextBlock Name="LibraryScanningText" Text="Library scanning" FontSize="20" FontWeight="Bold" Margin="10,10,10,15" />
 
@@ -66,7 +66,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="1" Background="Transparent">
+            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" Background="Transparent">
                 <StackPanel>
                     <TextBlock Name="InstallationText" Text="Installation" FontSize="20" FontWeight="Bold" Margin="10,10,10,15" />
 
@@ -87,7 +87,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="1" Background="Transparent">
+            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" Background="Transparent">
                 <StackPanel>
                     <TextBlock Name="StatusTitle" Text="Status Sync" FontWeight="Bold" FontSize="20" Margin="10,10,10,15" />
                     <CheckBox IsChecked="{Binding KeepStatusSynced, Mode=TwoWay}" Margin="5">
@@ -105,7 +105,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="1" Background="Transparent">
+            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" Background="Transparent">
                 <StackPanel>
                     <TextBlock Name="SaveSyncTitle" FontWeight="Bold" FontSize="20" Margin="10,10,10,15" />
 
@@ -121,7 +121,7 @@
 
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <TextBlock Name="ConflictStyleText" Text="Conflict style" MinWidth="120" VerticalAlignment="Center"/>
-                        <ComboBox MinWidth="180" ItemsSource="{Binding Source={StaticResource SaveConflictStyleValues}}" SelectedItem="{Binding SaveConflictStyle, Mode=TwoWay}" IsEnabled="{Binding SaveSyncEnabled}">
+                        <ComboBox MinWidth="180" ItemsSource="{Binding Source={StaticResource SaveConflictResolveValues}}" SelectedItem="{Binding SaveConflictStyle, Mode=TwoWay}" IsEnabled="{Binding SaveSyncEnabled}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}"/>
@@ -138,7 +138,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="1" Background="Transparent">
+            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" Background="Transparent">
                 <StackPanel>
                     <TextBlock Name="SaveStateSyncTitle" FontWeight="Bold" FontSize="20" Margin="10,10,10,15" />
                     <CheckBox IsChecked="{Binding SaveStateSyncEnabled, Mode=TwoWay}" Margin="5">

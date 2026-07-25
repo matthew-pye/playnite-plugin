@@ -63,10 +63,10 @@ namespace Graviton.Models.RomM
         public string? Reason { get; set; }
 
         [JsonPropertyName("server_updated_at")]
-        public string? UpdatedAt { get; set; }
+        public string? ServerUpdatedAt { get; set; }
 
         [JsonPropertyName("server_content_hash")]
-        public string? ContentHash { get; set; }
+        public string? ServerContentHash { get; set; }
 
     }
 

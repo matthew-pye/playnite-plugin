@@ -6,8 +6,9 @@
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:s="clr-namespace:Graviton.Settings"
              xmlns:loc="clr-namespace:Playnite"
+             xmlns:local="clr-namespace:Graviton"
              mc:Ignorable="d"
-             d:DesignHeight="540" d:DesignWidth="960">
+             d:DesignHeight="900" d:DesignWidth="1600">
 
     <UserControl.Resources>
         <ResourceDictionary>
@@ -19,7 +20,7 @@
     </UserControl.Resources>
 
     <StackPanel>
-        <Border Grid.Column="0" BorderThickness="1" CornerRadius="3" BorderBrush="{DynamicResource Graviton.Background.Colour}">
+        <Border Grid.Column="0" BorderThickness="1" CornerRadius="3" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}">
             <Grid Margin="5,10,5,20">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="2*"/>
@@ -226,7 +227,7 @@
                         </TextBlock.Style>
                     </TextBlock>
 
-                    <TextBlock Name="RomMUser" Text="{Binding AccountState.User, Mode=OneWay}" Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" FontSize="22" FontWeight="Bold" Margin="10,0,0,0">
+                    <TextBlock Name="RomMUser" Text="{Binding AccountState.User, Mode=OneWay}" Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" FontSize="26" FontWeight="Bold" Margin="10,0,0,0">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                 <Setter Property="Visibility" Value="Visible"/>
@@ -250,7 +251,7 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
-                    <TextBlock Name="RomMProfileType" Text="{Binding AccountState.UserType, Mode=OneWay}" Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2" Margin="20,0,0,0" Foreground="DimGray" FontSize="12">
+                    <TextBlock Name="RomMProfileType" Text="{Binding AccountState.UserType, Mode=OneWay}" Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2" Margin="20,0,0,0" Foreground="DimGray" FontSize="16">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                 <Setter Property="Visibility" Value="Visible"/>
@@ -293,22 +294,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <Grid Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Margin="10,5,10,10">
-                        <TextBox x:Name="ServerAddressBox" Text="{Binding Host, Mode=TwoWay}" VerticalAlignment="Center"/>
-                        <TextBlock Text="Server Address" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}">
-                            <TextBlock.Style>
-                                <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.SubSubText.Colour}"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Text, ElementName=ServerAddressBox}" Value="">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Grid>
+                    <TextBox x:Name="ServerAddressBox" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Margin="10,5,10,10" Text="{Binding Host, Mode=TwoWay}" VerticalAlignment="Center" local:Placeholder.Text="Server Address"/>
 
                     <!-- #region QR Code -->
                     <Border BorderThickness="1" CornerRadius="8" ClipToBounds="True" BorderBrush="#41373737" Background="#41373737" Margin="10" Grid.Row="1" Grid.Column="0" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}">
@@ -345,21 +331,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <Grid Grid.Column="0">
-                                <TextBox x:Name="ClientTokenBox" Text="{Binding ClientTokenNP, Mode=TwoWay}"/>
-                                <TextBlock Name="ClientTokenPlaceholder" Text="Login with Client Token" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Text, ElementName=ClientTokenBox}" Value="">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </Grid>
+                            <TextBox x:Name="ClientTokenBox" Grid.Column="0" Text="{Binding ClientTokenNP, Mode=TwoWay}" local:Placeholder.Text="Login with Client Token"/>
                             <Button Grid.Column="1" Name="ConnectButton" Click="Click_Authenticate" Margin="5,0,5,0">
                                 <TextBlock Name="AuthButtonText" Text="Connect" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             </Button>
@@ -447,38 +419,12 @@
                             <TextBlock Name="UseBasicAuthText" Text="Use Basic Auth" TextWrapping="Wrap" FontSize="12"/>
                         </CheckBox>
 
-                        <Grid Grid.Row="2" Margin="5">
-                            <TextBox x:Name="UsernameBox" Text="{Binding UsernameNP, Mode=TwoWay}"/>
-                            <TextBlock Text="Username" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}">
-                                <TextBlock.Style>
-                                    <Style TargetType="{x:Type TextBlock}">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding UsernameNP}" Value="">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </Grid>
+                        <TextBox x:Name="UsernameBox" Grid.Row="2" Margin="5" Text="{Binding UsernameNP, Mode=TwoWay}" local:Placeholder.Text="Username"/>
 
                         <Grid Grid.Row="3" Margin="5">
-                            <TextBox x:Name="RomMPasswordUnmasked" Text="{Binding PasswordNP, Mode=TwoWay}" Visibility="Collapsed" FontSize="14" Margin="5,0,0,0"/>
-                            <PasswordBox x:Name="RomMPassword" FontSize="14" PasswordChar="●" PasswordChanged="RomMPassword_PasswordChanged"/>
-                            <TextBlock Text="Password" FontSize="14" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}">
-                                <TextBlock.Style>
-                                    <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding PasswordNP}" Value="">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-
+                            <TextBox x:Name="RomMPasswordUnmasked" Text="{Binding PasswordNP, Mode=TwoWay}" Visibility="Collapsed" Margin="5,0,0,0" local:Placeholder.Text="Password"/>
+                            <PasswordBox x:Name="RomMPassword" PasswordChar="●" PasswordChanged="RomMPassword_PasswordChanged" local:Placeholder.Text="Password"/>
+                            
                             <Button Name="ShowPassword" Content="&#xea70;" FontSize="18" HorizontalAlignment="Right" Margin="0,0,10,0" Click="Click_ShowPassword">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -500,7 +446,7 @@
                         </Grid>
 
                         <Button Name="BasicLoginButton" Grid.Column="1" Grid.Row="3" Click="Click_BasicLogin" Margin="5">
-                            <TextBlock Name="BasicLoginText" Text="Login" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <TextBlock Name="BasicLoginText" Text="Login" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
 
                     </Grid>
@@ -513,46 +459,18 @@
         </Border>
 
         <!-- #region Advance Options -->
-        <TextBlock Name="AdvanceOptionsText" Text="Advanced Options" Grid.Row="8" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" FontWeight="Bold"/>
+        <TextBlock Name="AdvanceOptionsText" Text="Advanced Options" Grid.Row="8" Grid.ColumnSpan="2" Margin="5,20,5,5" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20" FontWeight="Bold"/>
         <Separator Grid.Row="8" Grid.ColumnSpan="4" VerticalAlignment="Bottom" Margin="5"/>
 
-        <TextBlock Name="CustomHeadersText" Text="Custom Headers" FontSize="16" FontWeight="SemiBold" Grid.Row="9" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+        <TextBlock Name="CustomHeadersText" Text="Custom Headers" FontSize="18" FontWeight="SemiBold" Grid.Row="9" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center"/>
         <StackPanel Grid.Row="10" Grid.ColumnSpan="2">
             <ItemsControl ItemsSource="{Binding CustomHeaders, Mode=TwoWay}" Grid.Row="9" Grid.ColumnSpan="2">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
                             <CheckBox IsChecked="{Binding Enabled}" Checked="Header_Checked" Unchecked="Header_Unchecked" />
-                            <Grid>
-                                <TextBox MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="HeaderNameText" Margin="5" Text="{Binding Name, Mode=TwoWay}" IsEnabled="{Binding Enabled, Converter={StaticResource InvertBoolConverter}}"/>
-                                <TextBlock Text="{loc:LocalizedString Game}" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
-                                    <TextBlock.Style>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Text, ElementName=HeaderNameText}" Value="">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </Grid>
-                            <Grid>
-                                <TextBox MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="HeaderValueText" Margin="5" Text="{Binding Value, Mode=TwoWay}" IsEnabled="{Binding Enabled, Converter={StaticResource InvertBoolConverter}}"/>
-                                <TextBlock x:Name="HeaderValuePlaceholderText" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="DarkGray">
-                                    <TextBlock.Style>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Text, ElementName=HeaderValueText}" Value="">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </Grid>
+                            <TextBox MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="HeaderNameText" Margin="5" Text="{Binding Name, Mode=TwoWay}" IsEnabled="{Binding Enabled, Converter={StaticResource InvertBoolConverter}}" local:Placeholder.Text="{loc:LocalizedString Name}"/>
+                            <TextBox MinWidth="250" VerticalAlignment="Center" HorizontalAlignment="Left" x:Name="HeaderValueText" Margin="5" Text="{Binding Value, Mode=TwoWay}" IsEnabled="{Binding Enabled, Converter={StaticResource InvertBoolConverter}}" local:Placeholder.Text="{loc:LocalizedString Value}"/>
                             <Button Click="Click_RemoveHeader" FontSize="16" Margin="5" HorizontalAlignment="Left">
                                 <Button.Style>
                                     <Style TargetType="Button">
@@ -582,7 +500,7 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <Button Click="Click_AddHeader" FontSize="16" Margin="5" HorizontalAlignment="Left">
+            <Button Click="Click_AddHeader" Margin="5" HorizontalAlignment="Left">
                 <Button.Style>
                     <Style TargetType="Button">
                         <Setter Property="Background" Value="Transparent"/>

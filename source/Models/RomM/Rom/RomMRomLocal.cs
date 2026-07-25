@@ -1,6 +1,5 @@
-﻿
-using Graviton.Models.Notifications;
-using Graviton.Models.RomM.Saves;
+﻿using Graviton.Models.Notifications;
+using Graviton.Models.Saves;
 
 using Playnite;
 
@@ -35,8 +34,8 @@ namespace Graviton.Models.RomM.Rom
 
         public int PatchFileId { get; set; } = -1;
 
-        public List<LocalSave> Saves { get; set; } = new List<LocalSave>();
-        public List<LocalSaveState> SaveStates { get; set; } = new List<LocalSaveState>();
+        public GravitonSave LocalSave { get; set; } = new();
+        public LocalSaveState SaveStates { get; set; } = new();
 
         public static RomMRomLocal? Build(Guid MappingID, RomMRom ROM, string PlayniteID = "")
         {

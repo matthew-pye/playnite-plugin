@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
 using Graviton.Models.RomM.Platform;
-using Graviton.Models.RomM.Saves;
+using Graviton.Models.Saves;
 
 using Playnite;
 
@@ -14,6 +14,8 @@ namespace Graviton.Models
 {
     public partial class EmulatorMapping : ObservableObject
     {
+        public static readonly string MappingPathToken = "{MappingSavePath}";
+
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
 
         [ObservableProperty] private Guid _mappingId;

@@ -29,20 +29,25 @@
     <SolidColorBrush x:Key="Graviton.SubSubText.Colour" Color="#73ffffff"/>
     <SolidColorBrush x:Key="Graviton.Trace.Colour" Color="#40ffffff"/>
 
-    <SolidColorBrush x:Key="Graviton.Background.Colour" Color="#1fffffff"/>
+    <SolidColorBrush x:Key="Graviton.Background.Colour" Color="#ffffff"/>
+    <SolidColorBrush x:Key="Graviton.DarkBackground.Colour" Color="#1f1f1f"/>
     <SolidColorBrush x:Key="Graviton.TransparentBackground.Colour" Color="#12ffffff"/>
     <SolidColorBrush x:Key="Graviton.TransparentMouseOverBackground.Colour" Color="#26ffffff"/>
-    <SolidColorBrush x:Key="Graviton.DarkTransparentBackground.Colour" Color="#12616161"/>
-    <SolidColorBrush x:Key="Graviton.DarkTransparentMouseOverBackground.Colour" Color="#26616161"/>
+    <SolidColorBrush x:Key="Graviton.DarkTransparentBackground.Colour" Color="#121f1f1f"/>
+    <SolidColorBrush x:Key="Graviton.LightDarkTransparentBackground.Colour" Color="#123f3f3f"/>
+    <SolidColorBrush x:Key="Graviton.DarkTransparentMouseOverBackground.Colour" Color="#261f1f1f"/>
+    <SolidColorBrush x:Key="Graviton.LightDarkTransparentMouseOverBackground.Colour" Color="#263f3f3f"/>
     
     <x:Static x:Key="NerdFont" Member="playnite:Fonts.NerdFont"/>
     <x:Static x:Key="IcoFont" Member="playnite:Fonts.IcoFont"/>
 
     <Style TargetType="{x:Type TextBlock}">
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+        <Setter Property="FontSize" Value="14" />
     </Style>
     <Style TargetType="{x:Type Label}">
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+        <Setter Property="FontSize" Value="14" />
     </Style>
     <Style TargetType="{x:Type Expander}">
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
@@ -55,9 +60,10 @@
     <Style TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.Background.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.TransparentBackground.Colour}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="16" />
         <Setter Property="Padding" Value="10, 5" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -89,11 +95,12 @@
     <Style TargetType="{x:Type TextBox}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.Background.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.TransparentBackground.Colour}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CaretBrush" Value="{DynamicResource Graviton.Text.Colour}" />
         <Setter Property="SelectionBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
         <Setter Property="Padding" Value="5,5" />
+        <Setter Property="FontSize" Value="14" />
         <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="Template">
             <Setter.Value>
@@ -129,11 +136,12 @@
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FontSize" Value="14" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
                     <StackPanel Orientation="Horizontal">
-                        <Border x:Name="Border" Width="18" Height="18" Background="Transparent" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="1" CornerRadius="4" SnapsToDevicePixels="True">
+                        <Border x:Name="Border" Width="18" Height="18" Background="Transparent" BorderBrush="{DynamicResource Graviton.TransparentMouseOverBackground.Colour}" BorderThickness="1" CornerRadius="4" SnapsToDevicePixels="True">
                             <Path x:Name="Check" Data="M 2,7 L 6,11 L 13,3" Stroke="{DynamicResource Graviton.Text.Colour}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"  StrokeLineJoin="Round" Visibility="Collapsed"/>
                         </Border>
                         <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True"/>
@@ -163,6 +171,7 @@
     <Style TargetType="{x:Type ComboBoxItem}">
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
         <Setter Property="Padding" Value="2,5" />
+        <Setter Property="FontSize" Value="14" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBoxItem">
@@ -182,9 +191,10 @@
     <Style TargetType="{x:Type ComboBox}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.Background.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.TransparentBackground.Colour}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="5, 5" />
+        <Setter Property="FontSize" Value="14" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
@@ -210,7 +220,7 @@
                         <TextBlock x:Name="Placeholder" Text="{TemplateBinding Tag}" IsHitTestVisible="False" Foreground="{DynamicResource Graviton.SubSubText.Colour}"  Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed"/>
 
                         <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
-                            <Border Background="{DynamicResource Graviton.Background.Colour}" BorderBrush="{DynamicResource Graviton.Background.Colour}" BorderThickness="1" CornerRadius="6" Margin="0,4,0,0" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="300" SnapsToDevicePixels="True">
+                            <Border Background="{DynamicResource Graviton.DarkBackground.Colour}" BorderBrush="{DynamicResource Graviton.DarkBackground.Colour}" BorderThickness="1" CornerRadius="6" Margin="0,4,0,0" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="300" SnapsToDevicePixels="True">
                                 <ScrollViewer SnapsToDevicePixels="True">
                                     <ItemsPresenter/>
                                 </ScrollViewer>
@@ -238,11 +248,12 @@
     <Style TargetType="{x:Type PasswordBox}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.Background.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.TransparentBackground.Colour}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CaretBrush" Value="{DynamicResource Graviton.Text.Colour}" />
         <Setter Property="SelectionBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
         <Setter Property="Padding" Value="2,5" />
+        <Setter Property="FontSize" Value="14" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
