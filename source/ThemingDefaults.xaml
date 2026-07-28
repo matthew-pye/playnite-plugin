@@ -24,6 +24,10 @@
     <SolidColorBrush x:Key="Graviton.InfoAccent.Colour" Color="#93c5fd"/>
     <SolidColorBrush x:Key="Graviton.InfoBackground.Colour" Color="#2a394a"/>
 
+    <SolidColorBrush x:Key="Graviton.Restored.Colour" Color="#c084fc"/>
+    <SolidColorBrush x:Key="Graviton.RestoredAccent.Colour" Color="#c084fc"/>
+    <SolidColorBrush x:Key="Graviton.RestoredBackground.Colour" Color="#332347"/>
+
     <SolidColorBrush x:Key="Graviton.Text.Colour" Color="#ffffff"/>
     <SolidColorBrush x:Key="Graviton.SubText.Colour" Color="#bfffffff"/>
     <SolidColorBrush x:Key="Graviton.SubSubText.Colour" Color="#73ffffff"/>
@@ -34,10 +38,8 @@
     <SolidColorBrush x:Key="Graviton.TransparentBackground.Colour" Color="#12ffffff"/>
     <SolidColorBrush x:Key="Graviton.TransparentMouseOverBackground.Colour" Color="#26ffffff"/>
     <SolidColorBrush x:Key="Graviton.DarkTransparentBackground.Colour" Color="#121f1f1f"/>
-    <SolidColorBrush x:Key="Graviton.LightDarkTransparentBackground.Colour" Color="#123f3f3f"/>
-    <SolidColorBrush x:Key="Graviton.DarkTransparentMouseOverBackground.Colour" Color="#261f1f1f"/>
-    <SolidColorBrush x:Key="Graviton.LightDarkTransparentMouseOverBackground.Colour" Color="#263f3f3f"/>
-    
+    <SolidColorBrush x:Key="Graviton.DarkTransparentMouseOverBackground.Colour" Color="#361f1f1f"/>
+
     <x:Static x:Key="NerdFont" Member="playnite:Fonts.NerdFont"/>
     <x:Static x:Key="IcoFont" Member="playnite:Fonts.IcoFont"/>
 

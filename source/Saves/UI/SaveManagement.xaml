@@ -97,42 +97,42 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Border Grid.Row="0" Grid.Column="0" Margin="5" CornerRadius="8" Background="{DynamicResource Graviton.LightDarkTransparentBackground.Colour}" BorderThickness="1">
+                    <Border Grid.Row="0" Grid.Column="0" Margin="5" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                         <StackPanel Margin="5">
                             <TextBlock Text="Synced" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                             <TextBlock Name="SyncedSavesCount" FontSize="28" Text="0" Foreground="{DynamicResource Graviton.Text.Colour}"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="0" Grid.Column="1" Margin="5" CornerRadius="8" Background="{DynamicResource Graviton.LightDarkTransparentBackground.Colour}" BorderThickness="1">
+                    <Border Grid.Row="0" Grid.Column="1" Margin="5" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                         <StackPanel Margin="5">
                             <TextBlock Text="Local Newer" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                             <TextBlock Name="LocalNewerSavesCount" FontSize="28" Text="0" Foreground="{DynamicResource Graviton.Text.Colour}"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="0" Grid.Column="2" Margin="5" CornerRadius="8" Background="{DynamicResource Graviton.LightDarkTransparentBackground.Colour}" BorderThickness="1">
+                    <Border Grid.Row="0" Grid.Column="2" Margin="5" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                         <StackPanel Margin="5">
                             <TextBlock Text="Remote Newer" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                             <TextBlock Name="RemoteNewerSavesCount" FontSize="28" Text="0" Foreground="{DynamicResource Graviton.Text.Colour}"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="1" Grid.Column="0" Margin="5" CornerRadius="8" Background="{DynamicResource Graviton.LightDarkTransparentBackground.Colour}" BorderThickness="1">
+                    <Border Grid.Row="1" Grid.Column="0" Margin="5" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                         <StackPanel Margin="5">
                             <TextBlock Text="Conflicts" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                             <TextBlock Name="ConflictedSavesCount" FontSize="28" Text="0" Foreground="{DynamicResource Graviton.ErrorAccent.Colour}"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="1" Grid.Column="1" Margin="5" CornerRadius="8" Background="{DynamicResource Graviton.LightDarkTransparentBackground.Colour}" BorderThickness="1">
+                    <Border Grid.Row="1" Grid.Column="1" Margin="5" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                         <StackPanel Margin="5">
                             <TextBlock Text="Untracked Server Saves" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                             <TextBlock Name="ServerOnlySavesCount" FontSize="28" Text="0" Foreground="{DynamicResource Graviton.Text.Colour}"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="1" Grid.Column="2" Margin="5" CornerRadius="8" Background="{DynamicResource Graviton.LightDarkTransparentBackground.Colour}" BorderThickness="1">
+                    <Border Grid.Row="1" Grid.Column="2" Margin="5" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                         <StackPanel Margin="5">
                             <TextBlock Text="Untracked Detected Saves" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                             <TextBlock Name="LocalOnlySavesCount" FontSize="28" Text="0" Foreground="{DynamicResource Graviton.Text.Colour}"/>
@@ -143,7 +143,7 @@
                     <!-- #endregion -->
 
                 <!--#region Saves -->
-                <Border Grid.Row="1" Margin="5" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.LightDarkTransparentMouseOverBackground.Colour}" BorderThickness="1">
+                <Border Grid.Row="1" Margin="5" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                     <StackPanel>
                         <Grid Margin="5,5,5,0">
                             <Grid.ColumnDefinitions>
@@ -154,9 +154,9 @@
                             </Grid.ColumnDefinitions>
 
                             <CheckBox Grid.Column="0" Margin="5" Visibility="Hidden"/>
-                            <TextBlock Grid.Column="1" Text="Savefile" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
-                            <TextBlock Grid.Column="2" Text="Status" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
-                            <TextBlock Grid.Column="3" Text="Last Synced" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                            <TextBlock Grid.Column="1" Text="Savefile" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                            <TextBlock Grid.Column="2" Text="Status" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                            <TextBlock Grid.Column="3" Text="Last Modified" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
                         </Grid>
                         <Separator Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
 
@@ -306,12 +306,12 @@
                                         <!--#endregion-->
 
                                         <StackPanel Grid.Row="0" Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right">
-                                            <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding LastSyncedString}" Foreground="{DynamicResource Graviton.Text.Colour}"/>
-                                                <TextBlock Text="{Binding FileSizeString}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                                            <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <TextBlock Text="{Binding LastSyncedString}" Foreground="{DynamicResource Graviton.Text.Colour}" HorizontalAlignment="Right"/>
+                                                <TextBlock Text="{Binding FileSizeString}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}" HorizontalAlignment="Right"/>
                                             </StackPanel>
-                                            <Button Margin="5" VerticalAlignment="Center" HorizontalAlignment="Right" IsEnabled="{Binding Enabled}">
-                                                <TextBlock FontSize="18" Padding="5,3" TextAlignment="Center"  TextWrapping="Wrap">
+                                            <Button Margin="5" Click="SyncSave_Click" VerticalAlignment="Center" HorizontalAlignment="Right" IsEnabled="{Binding Enabled}">
+                                                <TextBlock FontSize="18" Padding="3,2" TextAlignment="Center"  TextWrapping="Wrap">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
                                                             <Setter Property="FontFamily" Value="{DynamicResource NerdFont}"/>
@@ -374,23 +374,54 @@
                                                 </StackPanel>
 
                                                 <StackPanel Grid.Column="1" Grid.Row="0" Margin="10">
-                                                    <TextBlock Text="History" FontSize="12" Margin="0,0,0,6" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
-                                                    <ItemsControl ItemsSource="{Binding HistoricSaves}">
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <Grid Margin="0,0,0,4">
-                                                                    <StackPanel VerticalAlignment="Center">
-                                                                        <TextBlock Text="{Binding LastSyncedString}" FontSize="12" Foreground="{DynamicResource Graviton.Text.Colour}"/>
-                                                                        <TextBlock Text="{Binding FileSizeString}" FontSize="10" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                                                    <TextBlock Text="History" FontSize="16" Margin="0,0,0,6" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                                                    <ScrollViewer MaxHeight="100">
+                                                        <ItemsControl ItemsSource="{Binding HistoricSaves}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <StackPanel>
+                                                                        <Grid>
+                                                                            <StackPanel VerticalAlignment="Center">
+                                                                                <TextBlock Text="{Binding LastSyncedString}" Foreground="{DynamicResource Graviton.Text.Colour}"/>
+                                                                                <TextBlock Text="{Binding FileSizeString}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                                                                            </StackPanel>
+                                                                            <Border Grid.Row="0" Grid.Column="2" CornerRadius="6" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" Visibility="Hidden">
+                                                                                <Border.Style>
+                                                                                    <Style TargetType="Border">
+                                                                                        <Setter Property="Background" Value="{DynamicResource Graviton.Trace.Colour}"/>
+                                                                                        <Style.Triggers>
+                                                                                            <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                                            </DataTrigger>
+                                                                                        </Style.Triggers>
+                                                                                    </Style>
+                                                                                </Border.Style>
+                                                                                <TextBlock FontSize="12" Margin="5,3" Text="&#xf08d; Current" TextAlignment="Center" TextWrapping="Wrap" Foreground="{DynamicResource Graviton.Info.Colour}"/>
+
+                                                                            </Border>
+                                                                            <Button Click="RevertToHistoricSave_Click"  VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                                                <Button.Style>
+                                                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                                                        <Setter Property="IsEnabled" Value="True"/>
+                                                                                        <Style.Triggers>
+                                                                                            <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                                                                <Setter Property="IsEnabled" Value="False"/>
+                                                                                            </DataTrigger>
+                                                                                        </Style.Triggers>
+                                                                                    </Style>
+                                                                                </Button.Style>
+                                                                                <TextBlock Text="Switch to this" Padding="4,2" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                                                                            </Button>
+                                                                        </Grid>
+                                                                        <Separator Margin="4" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
                                                                     </StackPanel>
-                                                                    <Button Padding="4,2" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                                                        <TextBlock Text="Switch to this" FontSize="12" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
-                                                                    </Button>
-                                                                </Grid>
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
-                                                    <TextBlock TextWrapping="Wrap" FontSize="12">
+                                                                    
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </ScrollViewer>
+                                                    
+                                                    <TextBlock TextWrapping="Wrap">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock">
                                                                 <Setter Property="Foreground" Value="{DynamicResource Graviton.SubSubText.Colour}"/>
@@ -412,14 +443,14 @@
                                                 <Separator Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" VerticalAlignment="Top" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
 
                                                 <StackPanel Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" VerticalAlignment="Bottom" Margin="0,10,0,5" Orientation="Horizontal" HorizontalAlignment="Right">
-                                                    <Button Margin="4,0,0,0" Padding="6,4">
-                                                        <TextBlock FontSize="12" Text="&#xf40a; Force Upload" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                                                    <Button Margin="4,0,0,0">
+                                                        <TextBlock FontSize="16" Text="&#xf40a; Force Upload" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.SubText.Colour}" Padding="4,2"/>
                                                     </Button>
-                                                    <Button Margin="4,0,0,0" Padding="6,4">
-                                                        <TextBlock FontSize="12" Text="&#xf409; Force Download" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                                                    <Button Margin="4,0,0,0">
+                                                        <TextBlock FontSize="16" Text="&#xf409; Force Download" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.SubText.Colour}" Padding="4,2"/>
                                                     </Button>
-                                                    <Button Margin="4,0,0,0" Padding="6,4" ToolTip="Makes a permanent copy of the save that future syncs and auto-cleanup will never overwrite or delete">
-                                                        <TextBlock FontSize="12" Text="&#xebcc; Duplicate to archive" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                                                    <Button Margin="4,0,0,0" ToolTip="Makes a permanent copy of the save that future syncs and auto-cleanup will never overwrite or delete">
+                                                        <TextBlock FontSize="16" Text="&#xebcc; Duplicate to archive" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.SubText.Colour}" Padding="4,2"/>
                                                     </Button>
                                                 </StackPanel>
 

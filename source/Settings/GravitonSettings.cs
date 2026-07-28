@@ -63,7 +63,7 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _downloadSaveOnLaunch = true;      
         [ObservableProperty] private bool _uploadSaveOnFinished = true;      
         [ObservableProperty] private SaveConflictResolve _saveConflictStyle = SaveConflictResolve.Ask;
-        [ObservableProperty] private bool _autoCleanupSaves = false;
+        [ObservableProperty] private bool _autoCleanupSaves = true;
         [ObservableProperty] private int _autoCleanupSavesLimit = 10;
 
         [ObservableProperty] private ObservableCollection<EmulatorMapping> _mappings = new ObservableCollection<EmulatorMapping>();

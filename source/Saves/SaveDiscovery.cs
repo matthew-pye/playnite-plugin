@@ -6,8 +6,10 @@ using Graviton.Models.Saves;
 
 using Playnite;
 
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Graviton.Saves
 {
@@ -15,6 +17,8 @@ namespace Graviton.Saves
     {
         private static GravitonPlugin Plugin => GravitonPlugin.Instance;
         private static ILogger Logger => GravitonPlugin.Logger;
+
+        private static readonly Regex ServerTimestampTagPattern = new(@"[ _]?\[\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\](?=\.[^.]+$)", RegexOptions.Compiled);
 
         private static EmulatorMapping? Mapping;
         private static List<RomMRomLocal>? ROMs;
@@ -44,6 +48,7 @@ namespace Graviton.Saves
 
             List<GravitonSave> saves = new();
 
+            // Process remote saves
             var remotesaves = await GetRemoteSaves();
             if (remotesaves != null)
             {
@@ -58,7 +63,7 @@ namespace Graviton.Saves
                         remotesaves.Remove(remotesave);
                         continue;
                     }
-                        
+
                     var matchinglocal = localroms.FirstOrDefault(x => x.Id == remotesave.ROMID && x.LocalSave.Slot == remotesave.Slot);
                     if(matchinglocal != null)
                     {
@@ -72,6 +77,9 @@ namespace Graviton.Saves
                         {
                             // Add to historic saves list for that ROM
                             remotesaves.Remove(remotesave);
+                            if (matchinglocal.LocalSave.HistoricSaves == null)
+                                matchinglocal.LocalSave.HistoricSaves = new();
+
                             matchinglocal.LocalSave.HistoricSaves.Add(new()
                             {
                                 ROMID = remotesave.ROMID,
@@ -80,7 +88,7 @@ namespace Graviton.Saves
                                 Status = SaveStatus.ServerOnly,
                                 ServerHash = remotesave.ContentHash,
                                 ServerLastUpdatedAt = DateTime.TryParse(remotesave.UpdatedAt, out DateTime ServerUpdatedAt) ? ServerUpdatedAt : null,
-                                Filename = remotesave.FileName != null ? remotesave.FileName : "",
+                                Filename = remotesave.FileName != null ? ServerTimestampTagPattern.Replace(remotesave.FileName, "") : "",
                                 SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{remotesave.FileName}" },
                             });
                             continue;
@@ -117,7 +125,7 @@ namespace Graviton.Saves
                 foreach (var remotesave in remotesaves)
                 {
                     // Build save history
-                    List<GravitonSave>? historicSaves = null;
+                    ObservableCollection<GravitonSave>? historicSaves = null;
                     if(remotesave.HistoricSaves.Count > 0)
                     {
                         historicSaves = new();
@@ -130,24 +138,36 @@ namespace Graviton.Saves
                                 Slot = historicSave.Slot,
                                 Status = SaveStatus.ServerOnly,
                                 ServerHash = historicSave.ContentHash,
-                                Filename = historicSave.FileName != null ? historicSave.FileName : "",
+                                ServerLastUpdatedAt = DateTime.TryParse(historicSave.UpdatedAt, out DateTime HistoricServerUpdatedAt) ? HistoricServerUpdatedAt : null,
+                                Filename = historicSave.FileName != null ? ServerTimestampTagPattern.Replace(historicSave.FileName, "") : "",
                                 SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{historicSave.FileName}" },
                             });
                         }
                     }
 
                     // Add remote save
-                    saves.Add(new()
+                    GravitonSave newsave = new()
                     {
                         ROMID = remotesave.ROMID,
                         SaveID = remotesave.ID,
                         Slot = remotesave.Slot,
                         Status = SaveStatus.ServerOnly,
                         ServerHash = remotesave.ContentHash,
-                        Filename = remotesave.FileName != null ? remotesave.FileName : "",
+                        ServerLastUpdatedAt = DateTime.TryParse(remotesave.UpdatedAt, out DateTime ServerUpdatedAt) ? ServerUpdatedAt : null,
+                        Filename = remotesave.FileName != null ? ServerTimestampTagPattern.Replace(remotesave.FileName, "") : "",
                         SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{remotesave.FileName}" },
-                        HistoricSaves = historicSaves != null ? historicSaves : new()
-                    });
+                        HistoricSaves = historicSaves ?? null,
+                        IsCurrent = true
+                    };
+
+                    // Add newest save to historic saves list for switching
+                    if (newsave.HistoricSaves != null)
+                    {
+                        newsave.HistoricSaves.Add(newsave);
+                        newsave.HistoricSaves = newsave.HistoricSaves.OrderByDescending(x => x.ServerLastUpdatedAt).ToObservableCollection();
+                    }
+                       
+                    saves.Add(newsave);
 
                 }
             }
@@ -156,6 +176,7 @@ namespace Graviton.Saves
                 Logger.Debug($"Remote saves scan failed, skipping!");
             }
 
+            // Process local saves
             foreach (var localrom in localroms)
             {
                 var mapping = Plugin.Settings.Mappings.FirstOrDefault( x => x.MappingId == localrom.MappingID);
@@ -168,9 +189,18 @@ namespace Graviton.Saves
                 localrom.LocalSave.GameName = localrom.Name!;
                 localrom.LocalSave.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, localrom.LocalSave.SourceFilePaths);
 
+                // Add newest save to historic saves list for historic selection
+                if (localrom.LocalSave.HistoricSaves != null)
+                {
+                    localrom.LocalSave.HistoricSaves.Add(localrom.LocalSave);
+                    localrom.LocalSave.HistoricSaves = localrom.LocalSave.HistoricSaves.OrderByDescending(x => x.ServerLastUpdatedAt).ToObservableCollection();
+                }
+                    
+
                 saves.Add(localrom.LocalSave);
             }
 
+            // Process auto detected saves
             var autoDetectedSaves = await GetAutoDetectedSaves(saves);
             if(autoDetectedSaves != null)
             {
@@ -182,7 +212,6 @@ namespace Graviton.Saves
                 Logger.Debug($"Auto detect saves scan failed, skipping!");
             }
                 
-
             return saves;
         }
 
@@ -275,7 +304,6 @@ namespace Graviton.Saves
 
         private static async Task<List<GravitonSave>?> GetAutoDetectedSaves(List<GravitonSave> currectSaveList)
         {
-
             List<RomMRomLocal> roms;
 
             if(ROMs != null)
@@ -364,7 +392,8 @@ namespace Graviton.Saves
                         Status = SaveStatus.UntrackedLocal,
                         SourceFilePaths = new() { saveDir },
                         Filename = $"{Path.GetFileNameWithoutExtension(matchingROM.FileName)}.rommsave.zip",
-                        GameName = matchingROM.Name!
+                        GameName = matchingROM.Name!,
+                        ROMID = matchingROM.Id
                     };
                     save.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, save.SourceFilePaths);
 
@@ -410,7 +439,8 @@ namespace Graviton.Saves
                             Status = SaveStatus.UntrackedLocal,
                             SourceFilePaths = new() { filePath },
                             Filename = Path.GetFileName(filePath),
-                            GameName = rom.Name!
+                            GameName = rom.Name!,
+                            ROMID = rom.Id
                         };
                         save.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, save.SourceFilePaths);
 
@@ -434,7 +464,8 @@ namespace Graviton.Saves
                         Status = SaveStatus.UntrackedLocal,
                         SourceFilePaths = savePaths,
                         Filename = $"{Path.GetFileNameWithoutExtension(rom.FileName)}.rommsave.zip",
-                        GameName = rom.Name!
+                        GameName = rom.Name!,
+                        ROMID = rom.Id
                     };
                     save.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, save.SourceFilePaths);
 

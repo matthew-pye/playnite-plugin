@@ -9,6 +9,7 @@ using Graviton.Settings;
 using Graviton.Status;
 
 using Playnite;
+using Playnite.WebViews;
 
 using Svg;
 
@@ -17,6 +18,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Windows;
 
 
 namespace Graviton
@@ -38,7 +40,6 @@ namespace Graviton
         internal GravitonImportController? ImportController { get; private set; }
         internal StatusController? StatusController { get; private set; }
         internal DownloadQueueController? DownloadQueueController { get; private set; }
-        internal SaveController? SaveController { get; private set; }
 
         internal ConcurrentDictionary<string, RomMRomLocal>? ImportedGames { get; private set; }
 
@@ -158,7 +159,7 @@ namespace Graviton
             SettingsHandler = new(Instance, PlayniteApi, Logger);
             ImportController = new(Instance, PlayniteApi, Logger);
             StatusController = new(Instance, PlayniteApi, Logger);
-            SaveController = new(Instance, PlayniteApi, Logger);
+            
             Account = new(Instance, PlayniteApi, Logger);
 
             ImportedGames = new ConcurrentDictionary<string, RomMRomLocal>();
@@ -214,11 +215,12 @@ namespace Graviton
                     Settings.AccountState.ServerVersion = result.Value.Version;
 
                     if (await Account.SyncPlatforms())
-                        Logger.Info(Loc.GetString("PlatformsSynced", [("PlaformCount", Settings.AccountState.RomMPlatforms.Count)]));
+                        Logger.Info(Loc.GetString("PlatformsSynced", [("PlatformCount", Settings.AccountState.RomMPlatforms.Count)]));
              
                     await Account.SyncUserData();
                 }      
             } 
+
         }
 
         public override Task<PluginSettingsHandler?> GetSettingsHandlerAsync(GetSettingsHandlerArgs args)
@@ -342,13 +344,10 @@ namespace Graviton
                 if(Settings.SaveSyncEnabled && Settings.DownloadSaveOnLaunch)
                 {
                     var rom = ImportedGames!.FirstOrDefault(x => x.Key == args.Game.LibraryGameId);
-                    if(rom.Value != null)
-                        await SaveController!.NegotiateSaves(rom.Value);
-                }
-
-                if (Settings.SaveStateSyncEnabled)
-                {
-                    // Sync Saves States
+                    if(rom.Value != null && !rom.Value.LocalSave.IsTempRestored)
+                    {
+                        await SaveManager.NegotiateSave(rom.Value);
+                    }
                 }
 
                 _ = Task.Run(async () => await StatusController?.StartActivityHeartbeat(args.Game.LibraryGameId)!);
@@ -357,6 +356,7 @@ namespace Graviton
             await base.OnGameStartingAsync(args);
             return;
         }
+
         public override async Task OnGameStoppedAsync(OnGameStoppedEventArgs args)
         {
             var stoppedTime = DateTime.UtcNow;
@@ -370,21 +370,27 @@ namespace Graviton
                 {
                     var rom = ImportedGames!.FirstOrDefault(x => x.Key == args.StartingArgs.Game.LibraryGameId);
                     if (rom.Value != null)
-                        await SaveController!.NegotiateSaves(rom.Value);
+                    {
+                        if(rom.Value.LocalSave.IsTempRestored)
+                        {
+                            await SaveManager.CheckRestoredSaveNeedUploading(rom.Value);
+                        }
+                        else
+                        {
+                            await SaveManager.NegotiateSave(rom.Value);
+                        }
+                    }
                 }
-
-                if (Settings.SaveStateSyncEnabled)
-                {
-                    // Sync Saves States
-                }
-
-                //if (args.StartingArgs.Game.ExternalIdentifiers != null && args.StartingArgs.Game.ExternalIdentifiers.Any(x => x.TypeId == "retroachievements"))
-                //{
-                //
-                //}
             }
             await base.OnGameStoppedAsync(args);
             return;
+        }
+
+        public override Task OnGamepadButtonStateChangedAsync(OnGamepadButtonStateChangedArgs args)
+        {
+            Logger.Info($"Button: {args.Button.ToString()} | State: {args.State.ToString()}");
+
+            return Task.CompletedTask;
         }
 
         #region Views
@@ -416,13 +422,40 @@ namespace Graviton
             return
             [
                 new MenuItemDescriptor($"graviton.open.web", Loc.GetString("OpenRomMLibrary")),
-                new MenuItemDescriptor($"graviton.open.account", Loc.GetString("OpenRomMProfile"))
+                new MenuItemDescriptor($"graviton.open.account", Loc.GetString("OpenRomMProfile")),
+                new MenuItemDescriptor($"graviton.manage.saves", "Manage RomM Saves"),
+                new MenuItemDescriptor($"graviton.test.controller", "RomM Test Controller")
             ];
         }
         public override ICollection<MenuItemImpl>? GetAppMenuItems(GetAppMenuItemsArgs args)
         {
-            if (args.ItemId == "graviton.open.web" || args.ItemId == "graviton.open.account")
+            if (args.ItemId.StartsWith("graviton."))
             {
+                if (args.ItemId == "graviton.manage.saves")
+                {
+                    return [new MenuItemImpl("Manage RomM Saves", (_) => 
+                    {
+
+                         var window = PlayniteApi.CreateWindow(new WindowCreationOptions
+                         {
+                             ShowMinimizeButton = false,
+                             ShowMaximizeButton = true,
+                             ShowCloseButton = true,
+                             DefaultWidth = 1600,
+                             DefaultHeight = 900
+                         });
+
+                        var manageSavesView = new SaveManagementWindow();
+
+                        window.Title = "Save Management";
+                        window.Content = manageSavesView;
+                        window.Owner = PlayniteApi.GetLastActiveWindow();
+                        window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                        window.ShowDialog();
+
+                    })];
+                }
+
                 if (string.IsNullOrEmpty(Settings.Host))
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.open.library", Loc.GetString("HostNotSet"), GravitonSeverity.Error));
@@ -433,6 +466,26 @@ namespace Graviton
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.open.library", Loc.GetString("HostInvaild"), GravitonSeverity.Error));
                     return null;
+                }
+
+                if (args.ItemId == "graviton.test.controller")
+                {
+                    return [new MenuItemImpl("RomM Test Controller", async (_) =>
+                    {
+                        var webview = PlayniteApi.WebView.CreateView(new WebViewSettings()
+                        {
+                            JavaScriptEnabled = true,
+                            WindowWidth = 1600,
+                            WindowHeight = 900,
+                            CacheEnabled = true,
+                        });
+                        
+                        webview.WindowHost.Closed += (s, e) => webview.Dispose();
+
+                        await webview.OpenAsync();
+                        await webview.NavigateAndWaitAsync($"{Settings.Host}/controller-debug");
+
+                    })];
                 }
 
                 if (args.ItemId == "graviton.open.web")

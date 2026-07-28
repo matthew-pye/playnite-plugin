@@ -29,6 +29,7 @@ namespace Graviton.Models.Saves
         Conflicted,
         ServerOnly,
         UntrackedLocal,
+        TempRestored,
         Unknown
     }
 
@@ -50,12 +51,15 @@ namespace Graviton.Models.Saves
         [ObservableProperty] private DateTime _lastSyncedAt;
         [ObservableProperty] private DateTime? _serverLastUpdatedAt;
 
+        [ObservableProperty] private bool _isTempRestored = true;
+
         #region UI Only
         [JsonIgnore] public string GameName { get; set; } = string.Empty;
 
-        [JsonIgnore] public List<GravitonSave> HistoricSaves = new();
+        [JsonIgnore] public ObservableCollection<GravitonSave>? HistoricSaves { get; set; } = new();
 
         [ObservableProperty] [property:JsonIgnore] private bool _isExpanded = false;
+        [ObservableProperty] [property:JsonIgnore] private bool _isCurrent = false;
 
         [JsonIgnore]
         public string LastSyncedString
@@ -68,31 +72,24 @@ namespace Graviton.Models.Saves
                 if (Status == SaveStatus.UntrackedLocal)
                     return "Found on disk";
 
-                var now = DateTime.Now;
-                var differance = now.ToUniversalTime() - LastSyncedAt;
+                var difference = DateTime.Now - LastSyncedAt;
 
-                if(differance.TotalSeconds < 59)
-                {
-                    return $"{differance.TotalSeconds}s ago";
-                }
-                else if (differance.TotalMinutes < 59)
-                {
-                    return $"{differance.TotalMinutes}m ago";
-                }
-                else if (differance.TotalHours < 12)
-                {
-                    return $"{differance.TotalHours}h ago";
-                }
-                else if(DateTime.Today - LastSyncedAt.Date == TimeSpan.FromDays(1))
-                {
-                    var localSyncTime = LastSyncedAt.ToLocalTime();
-                    return $"Yesterday, {localSyncTime.ToString("t")}";
-                }
-                else
-                {
-                    return $"{differance.TotalDays}d ago";
-                }
- 
+                if (difference.TotalSeconds < 60)
+                    return $"{difference.TotalSeconds:F0}s ago";
+
+                if (difference.TotalMinutes < 60)
+                    return $"{difference.TotalMinutes:F0}m ago";
+
+                var daysAgo = (DateTime.Today - LastSyncedAt.Date).Days;
+
+                if (daysAgo == 0)
+                    return $"{difference.TotalHours:F0}h ago";
+
+                if (daysAgo == 1)
+                    return $"Yesterday, {LastSyncedAt.ToLocalTime():t}";
+
+                return $"{daysAgo}d ago";
+
             }
         }
 

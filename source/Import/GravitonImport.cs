@@ -6,6 +6,7 @@ using Playnite;
 
 using System.Security.Cryptography;
 using System.Text;
+using System.IO;
 using System.Text.RegularExpressions;
 
 namespace Graviton.Import
@@ -308,6 +309,13 @@ namespace Graviton.Import
 
                 game.Links.Add(new WebLink("howlongtobeat", $"https://howlongtobeat.com/game/{ROM.HLTBId}"));
                 game.ExternalIdentifiers?.Add(new("howlongtobeat", ROM.HLTBId.ToString()!));
+            }
+
+            game.InstallDirectory = _mapping.DestinationPathResolved;
+            if(!ROM.HasMultipleFiles)
+            {
+                var relativeROMPath = ROM.FullPath!.Replace(ROM.FileSystemPath!, "");
+                game.InstallState = File.Exists($"{game.InstallDirectory}\\{relativeROMPath}") ? InstallState.Installed : InstallState.Uninstalled;
             }
 
             await _playniteAPI.Library.GameDescriptions.AddAsync(new GameDescription(game.Id, ROM.Summary, GameDescriptionFormat.Markdown));
