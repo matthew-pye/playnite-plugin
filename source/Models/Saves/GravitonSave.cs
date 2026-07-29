@@ -30,6 +30,7 @@ namespace Graviton.Models.Saves
         ServerOnly,
         UntrackedLocal,
         TempRestored,
+        MissingFiles,
         Unknown
     }
 
@@ -55,6 +56,7 @@ namespace Graviton.Models.Saves
         [ObservableProperty] private DateTime? _serverLastUpdatedAt;
 
         [ObservableProperty] private bool _isTempRestored = false;
+        [ObservableProperty] private List<string> _missingFiles = new();
 
         #region UI Only
         [JsonIgnore] public string GameName { get; set; } = string.Empty;

@@ -141,7 +141,7 @@ namespace Graviton.Saves
 
             if(save.Status == SaveStatus.Conflicted)
             {
-                var result = SaveManager.ResolveConflict(save);
+                var result = SaveNegotiator.ResolveConflict(save);
                 switch (result)
                 {
                     case SaveSyncStatus.upload:
@@ -196,6 +196,36 @@ namespace Graviton.Saves
                     save = await SaveManager.TrackNewLocalSave(save);
                     Saves[saveindex] = save;
                     SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase));
+                    e.Handled = true;
+                    return;
+
+                case SaveStatus.TempRestored:
+                    var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync("How do you want to upload restored save?", "Upload Restored Save", MessageBoxButtons.YesNoCancel);
+
+                    if (response == Playnite.MessageBoxResult.Yes)
+                    {
+                        save = await SaveManager.Upload(save);
+                    }
+                    e.Handled = true;
+                    return;
+
+                case SaveStatus.MissingFiles:
+                    string pathsString = "\n";
+                    foreach (var path in save.MissingFiles)
+                    {
+                        pathsString += $"\t{path}\n";
+                    }
+                    var msresponse = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"Some files/folders were missing on last sync, Do you want to stop tracking these paths?{pathsString}", "Restore Historic Save", MessageBoxButtons.YesNoCancel);
+
+                    if(msresponse == Playnite.MessageBoxResult.Yes)
+                    {
+                        foreach (var path in save.MissingFiles)
+                            save.SourceFilePaths.Remove(path);
+
+                        save.Status = SaveStatus.LocalNewer;
+                        save = await SaveManager.Upload(save);
+                    }
+
                     e.Handled = true;
                     return;
 

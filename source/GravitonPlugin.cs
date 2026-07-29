@@ -346,7 +346,7 @@ namespace Graviton
                     var rom = ImportedGames!.FirstOrDefault(x => x.Key == args.Game.LibraryGameId);
                     if(rom.Value != null && !rom.Value.LocalSave.IsTempRestored)
                     {
-                        await SaveManager.NegotiateSave(rom.Value);
+                        await SaveNegotiator.NegotiateSave(rom.Value);
                     }
                 }
 
@@ -377,7 +377,7 @@ namespace Graviton
                         }
                         else
                         {
-                            await SaveManager.NegotiateSave(rom.Value);
+                            await SaveNegotiator.NegotiateSave(rom.Value);
                         }
                     }
                 }

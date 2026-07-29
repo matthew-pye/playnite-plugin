@@ -281,6 +281,12 @@
                                                         <DataTrigger Binding="{Binding Status}" Value="UntrackedLocal">
                                                             <Setter Property="Background" Value="{DynamicResource Graviton.InfoBackground.Colour}"/>
                                                         </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="TempRestored">
+                                                            <Setter Property="Background" Value="{DynamicResource Graviton.SpecialBackground.Colour}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="MissingFiles">
+                                                            <Setter Property="Background" Value="{DynamicResource Graviton.SpecialBackground.Colour}"/>
+                                                        </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
@@ -314,6 +320,14 @@
                                                             <DataTrigger Binding="{Binding Status}" Value="UntrackedLocal">
                                                                 <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}"/>
                                                                 <Setter Property="Text" Value="&#xf1276; Auto Detected"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="TempRestored">
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}"/>
+                                                                <Setter Property="ToolTip" Value="Temporarily Restored"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="MissingFiles">
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}"/>
+                                                                <Setter Property="ToolTip" Value="&#xf086f; Missing Files/Folders"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -359,6 +373,14 @@
                                                                 <DataTrigger Binding="{Binding Status}" Value="UntrackedLocal">
                                                                     <Setter Property="Text" Value="&#xf44c;"/>
                                                                     <Setter Property="ToolTip" Value="Start tracking (Upload)"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="TempRestored">
+                                                                    <Setter Property="Text" Value="&#xf0031;"/>
+                                                                    <Setter Property="ToolTip" Value="Upload restored save"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="MissingFiles">
+                                                                    <Setter Property="Text" Value="&#xf128;"/>
+                                                                    <Setter Property="ToolTip" Value="Resolve missing files"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>

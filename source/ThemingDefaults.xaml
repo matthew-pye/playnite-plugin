@@ -24,9 +24,9 @@
     <SolidColorBrush x:Key="Graviton.InfoAccent.Colour" Color="#93c5fd"/>
     <SolidColorBrush x:Key="Graviton.InfoBackground.Colour" Color="#2a394a"/>
 
-    <SolidColorBrush x:Key="Graviton.Restored.Colour" Color="#c084fc"/>
-    <SolidColorBrush x:Key="Graviton.RestoredAccent.Colour" Color="#c084fc"/>
-    <SolidColorBrush x:Key="Graviton.RestoredBackground.Colour" Color="#332347"/>
+    <SolidColorBrush x:Key="Graviton.Special.Colour" Color="#c084fc"/>
+    <SolidColorBrush x:Key="Graviton.SpecialAccent.Colour" Color="#c084fc"/>
+    <SolidColorBrush x:Key="Graviton.SpecialBackground.Colour" Color="#332347"/>
 
     <SolidColorBrush x:Key="Graviton.Text.Colour" Color="#ffffff"/>
     <SolidColorBrush x:Key="Graviton.SubText.Colour" Color="#bfffffff"/>

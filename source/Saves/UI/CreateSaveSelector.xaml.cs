@@ -69,7 +69,7 @@ namespace Graviton.Saves
 
             if (SelectedMapping != null)
             {
-                ROMsComboBox.DataContext = ROMs.Where(x => x.MappingID == SelectedMapping.MappingId);
+                ROMsComboBox.ItemsSource = ROMs.Where(x => x.MappingID == SelectedMapping.MappingId);
 
                 try
                 {
@@ -81,18 +81,18 @@ namespace Graviton.Saves
                 }
                 catch 
                 {
-                    FileTree.DataContext = null;
+                    FileTree.ItemsSource = null;
                     SelectedROM = null;
-                    ROMsComboBox.DataContext = null;
+                    ROMsComboBox.ItemsSource = null;
                     NoFilesText.Visibility = Visibility.Visible;
                 }
 
             }
             else
             {
-                FileTree.DataContext = null;
+                FileTree.ItemsSource = null;
                 SelectedROM = null;
-                ROMsComboBox.DataContext = null;
+                ROMsComboBox.ItemsSource = null;
                 
                 NoMappingText.Visibility = Visibility.Visible;
             }

@@ -242,7 +242,7 @@ namespace Graviton.Saves
             if (roms == null || roms.Count < 1)
                 return new();
 
-            roms = await SaveManager.SoftNegotiateSaves(roms.Where(x => x.LocalSave.Enabled).ToList());
+            roms = await SaveNegotiator.SoftNegotiateSaves(roms.Where(x => x.LocalSave.Enabled).ToList());
             if (roms == null)
                 return null;
 

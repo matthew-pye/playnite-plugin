@@ -1,6 +1,5 @@
 ﻿using Graviton.Models;
 using Graviton.Models.Notifications;
-using Graviton.Models.RomM;
 using Graviton.Models.RomM.Rom;
 using Graviton.Models.RomM.Saves;
 using Graviton.Models.Saves;
@@ -19,7 +18,6 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Windows;
 
 namespace Graviton.Saves
 {
@@ -28,281 +26,6 @@ namespace Graviton.Saves
         private static GravitonPlugin _plugin => GravitonPlugin.Instance;
         private static IPlayniteApi PlayniteAPI => GravitonPlugin.PlayniteApi;
  
-        public static async Task<List<RomMRomLocal>?> SoftNegotiateSaves(List<RomMRomLocal> roms)
-        {
-            var negotiate = BuildNegotiate(roms);
-
-            if (negotiate.Saves.Count <= 0) // Nothing to sync
-            {
-                GravitonPlugin.Logger.Error("[SaveManager] No saves in negotiate, skipping!");
-                return null;
-            }
-
-            var response = await Negotiate(negotiate);
-
-            foreach (var rom in roms)
-            {
-                if(response == null)
-                {
-                    rom.LocalSave.Status = SaveStatus.Unknown;
-                    rom.LocalSave.ServerHash = null;
-                    continue;
-                }
-
-               var operation = response.Operations.FirstOrDefault(x => x.ROMID == rom.Id && x.Slot == rom.LocalSave.Slot);
-               rom.LocalSave.ServerLastUpdatedAt = null;
-
-               if (operation == null)
-               {
-                    rom.LocalSave.Status = SaveStatus.Unknown;
-                    rom.LocalSave.ServerHash = null; 
-               }
-               else
-               {
-                    rom.LocalSave.ServerHash = operation.ServerContentHash;
-                    DateTime lastUpdatedAt;
-                    if (DateTime.TryParse(operation.ServerUpdatedAt!, out lastUpdatedAt))
-                        rom.LocalSave.ServerLastUpdatedAt = lastUpdatedAt;
-
-                    switch (operation.Action)
-                    {
-                        case "upload":
-                            rom.LocalSave.Status = SaveStatus.LocalNewer;
-                            break;
-
-                        case "download":
-                            rom.LocalSave.Status = SaveStatus.RemoteNewer;
-                            break;
-
-                        case "no_op":
-                            rom.LocalSave.Status = SaveStatus.Synced;
-                            break;
-
-                        case "conflict":
-                            rom.LocalSave.Status = SaveStatus.Conflicted;
-                            break;
-
-                        default:
-                            rom.LocalSave.Status = SaveStatus.Unknown;
-                            break;
-                    }
-                }
-
-                var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
-                if (mapping != null)
-                    rom.LocalSave.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, rom.LocalSave.SourceFilePaths);
-
-                rom.Save();
-            }
-
-            return roms;
-        }
-
-        public static async Task NegotiateSave(RomMRomLocal rom)
-        {
-            var negotiate = BuildNegotiate(new() { rom });
-            if (negotiate.Saves.Count <= 0) // Nothing to sync
-            {
-                GravitonPlugin.Logger.Error("[SaveManager] No saves in negotiate, skipping!");
-                return;
-            }
-
-            var response = await Negotiate(negotiate);
-
-            int operationCompleted = 0;
-            int operationFailed = 0;
-
-            if (response == null)
-            {
-                rom.LocalSave.Status = SaveStatus.Unknown;
-                rom.LocalSave.ServerHash = null;
-                rom.LocalSave.ServerLastUpdatedAt = null;
-                rom.Save();
-                return;
-            }
-            else
-            {
-                var operation = response.Operations.FirstOrDefault(x => x.ROMID == rom.Id && x.Slot == rom.LocalSave.Slot);
-                rom.LocalSave.ServerLastUpdatedAt = null;
-
-                if (operation == null)
-                {
-                    rom.LocalSave.Status = SaveStatus.Unknown;
-                    rom.LocalSave.ServerHash = null;
-                    operationFailed++;
-                }
-                else
-                {
-                    rom.LocalSave.ServerHash = operation.ServerContentHash;
-                    DateTime lastUpdatedAt;
-                    if (DateTime.TryParse(operation.ServerUpdatedAt!, out lastUpdatedAt))
-                        rom.LocalSave.ServerLastUpdatedAt = lastUpdatedAt;
-
-                    var action = operation.Action;
-
-                    if (operation.Action == "conflict")
-                    {
-                        action = ResolveConflict(rom.LocalSave).ToString();
-                    }
-
-                    switch (action)
-                    {
-                        case "upload":
-                            await Upload(rom.LocalSave);
-                            rom.LocalSave.IsTempRestored = false;
-                            operationCompleted++;
-                            break;
-
-                        case "download":
-                            await Download(rom.LocalSave);
-                            rom.LocalSave.IsTempRestored = false;
-                            operationCompleted++;
-                            break;
-
-                        case "no_op":
-                            rom.LocalSave.Status = SaveStatus.Synced;
-                            rom.LocalSave.IsTempRestored = false;
-                            operationCompleted++;
-                            break;
-
-                        default:
-                            rom.LocalSave.Status = SaveStatus.Unknown;
-                            operationFailed++;
-                            break;
-                    }
-                }
-
-                var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
-                if (mapping != null)
-                    rom.LocalSave.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, rom.LocalSave.SourceFilePaths);
-
-            }
-
-            rom.Save();
-
-            var deviceid = new { operations_completed = operationCompleted, operations_failed = operationFailed};
-            await HttpClientSingleton.RomMPostJsonAsync($"/api/sync/sessions/{response.SessionID}/complete", deviceid);
-
-        }
-
-        private static async Task<RomMNegotiateResponse?> Negotiate(RomMNegotiate negotiate)
-        {
-            
-            var response = await HttpClientSingleton.RomMPostJsonAsync("/api/sync/negotiate", negotiate);
-            if (response == null)
-                return null;
-
-            try
-            {
-                return JsonSerializer.Deserialize<RomMNegotiateResponse>(response);
-            }
-            catch (Exception ex)
-            {
-                GravitonNotify.Add(new GravitonNotification("graviton.negotiatesaves.failed", Loc.GetString("FailedNegotiateSaves", ("Error", ex.Message)), GravitonSeverity.Error, ex));
-                return null;
-            }
-        }
-
-        private static RomMNegotiate BuildNegotiate(List<RomMRomLocal> roms)
-        {
-            RomMNegotiate negotiate = new RomMNegotiate();
-            negotiate.DeviceID = _plugin.Settings.AccountState.DeviceID;
-
-            foreach (var rom in roms)
-            {
-                var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
-                if (mapping == null)
-                    continue;
-
-                RomMNegotiateSave negotiateSave = new()
-                {
-                    ROMID = rom.Id,
-                    Slot = rom.LocalSave.Slot
-                };
-
-                var path = rom.LocalSave.SourceFilePaths[0].Replace(EmulatorMapping.MappingPathToken, mapping.SavePath);
-
-                if (rom.LocalSave.SourceFilePaths.Count == 1 && File.Exists(path))
-                {
-                    negotiateSave.FileSize = new FileInfo(path).Length;
-                    rom.LocalSave.FileSize = negotiateSave.FileSize;
-
-                    negotiateSave.FileName = rom.LocalSave.Filename;
-                    negotiateSave.UpdatedAt = new FileInfo(path).LastWriteTimeUtc.ToString("O");
-
-                    negotiateSave.ContentHash = ComputeFileContentHash(path);
-                    rom.LocalSave.ContentHash = negotiateSave.ContentHash;
-                }
-                else if(rom.LocalSave.SourceFilePaths.Count > 1)
-                {
-                    var packedsavepath = $"{_plugin.PluginDataPath}/temp/{rom.LocalSave.Filename}";
-                    if (!PackSave(rom.LocalSave.SourceFilePaths, mapping.SavePath, packedsavepath))
-                        continue;
-
-                    negotiateSave.FileSize = new FileInfo(packedsavepath).Length;
-                    rom.LocalSave.FileSize = negotiateSave.FileSize;
-
-                    List<DateTime> saveWritetimes = new List<DateTime>();
-                    foreach (var savepath in rom.LocalSave.SourceFilePaths)
-                    {
-                        path = savepath.Replace(EmulatorMapping.MappingPathToken, mapping.SavePath);
-
-                        if (File.Exists(path))
-                        {
-                            saveWritetimes.Add(new FileInfo(path).LastWriteTimeUtc);
-                        }
-                        else
-                        {
-                            saveWritetimes.Add(new DirectoryInfo(path).LastWriteTimeUtc);
-                        }
-                    }
-
-                    negotiateSave.FileName = Path.GetFileName(packedsavepath);
-                    negotiateSave.UpdatedAt = saveWritetimes.Max().ToString("O");
-
-                    negotiateSave.ContentHash = ComputePackedContentHash(packedsavepath);
-                    rom.LocalSave.ContentHash = negotiateSave.ContentHash;
-
-                    if (!(rom.LocalSave.SourceFilePaths.Count == 1 && Path.HasExtension(rom.LocalSave.SourceFilePaths[0])))
-                        File.Delete(packedsavepath);
-                }
-                else
-                {
-                    continue;
-                }
-
-                negotiate.Saves.Add(negotiateSave);
-            }
-
-            return negotiate;
-        }
-
-        public static SaveSyncStatus ResolveConflict(GravitonSave save)
-        {
-            var window = PlayniteAPI.CreateWindow(new WindowCreationOptions
-            {
-                ShowMinimizeButton = false,
-                ShowMaximizeButton = false,
-                ShowCloseButton = true,
-                DefaultWidth = 650,
-                DefaultHeight = 315
-            });
-
-            if (save.ServerLastUpdatedAt == null)
-                return SaveSyncStatus.conflict;
-
-            var resolveConflictView = new ResolveConflictView(save.ServerLastUpdatedAt.Value, save.LastSyncedAt);
-
-            window.Title = "Save Conflict";
-            window.Content = resolveConflictView;
-            window.ResizeMode = ResizeMode.NoResize;
-            window.Owner = PlayniteAPI.GetLastActiveWindow();
-            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            window.ShowDialog();
-
-            return resolveConflictView.Status;
-        }
-
         public static async Task<GravitonSave> Upload(GravitonSave save, bool overwrite = false)
         {
             var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
@@ -319,21 +42,35 @@ namespace Graviton.Saves
                 return save;
             }
 
-            if(save.SaveID != -1)
-                await UntrackSave(rom.LocalSave.SaveID);
-
             bool isPacked = false;
             string savePath = save.SourceFilePaths[0].Replace(EmulatorMapping.MappingPathToken, mapping.SavePath);
-            if (save.SourceFilePaths.Count > 1 || !File.Exists(savePath))
+            
+            if (save.SourceFilePaths.Count > 1 || (!File.Exists(savePath) && Directory.Exists(savePath)))
             {
                 savePath = $"{_plugin.PluginDataPath}/temp/{save.Filename}";
                 isPacked = true;
-                if (!PackSave(save.SourceFilePaths, mapping.SavePath, savePath))
+
+                List<string>? skippedPaths = null;
+                if (!PackSave(save.SourceFilePaths, mapping.SavePath, savePath, out skippedPaths))
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.upload.failed", "Failed to pack save, skipping upload", GravitonSeverity.Error));
                     return save;
                 }
+
+                if (skippedPaths != null && skippedPaths.Count > 0)
+                {
+                    GravitonNotify.Add(new GravitonNotification("graviton.paths.skipped", "One or more paths were skipped when packing save, skipping upload", GravitonSeverity.Error));
+                    return save;
+                }
             }
+            else
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.files.missing", "Save files are missing, skipping upload", GravitonSeverity.Error));
+                return save;
+            }
+
+            if (save.SaveID != -1)
+                await UntrackSave(rom.LocalSave.SaveID);
 
             var savebytes = File.ReadAllBytes(savePath);
             var content = new MultipartFormDataContent();
@@ -349,7 +86,7 @@ namespace Graviton.Saves
                 var autoConflictResolve = await AutoConflictResolve(save, rom, savePath, isPacked);
                 
                 if (autoConflictResolve == SaveSyncStatus.conflict)
-                    autoConflictResolve = ResolveConflict(save);
+                    autoConflictResolve = SaveNegotiator.ResolveConflict(save);
 
                 switch (autoConflictResolve)
                 {
@@ -401,6 +138,8 @@ namespace Graviton.Saves
 
                 save.ServerLastUpdatedAt = DateTime.Parse(result.UpdatedAt!);
                 save.ServerHash = result.ContentHash;
+
+                save.MissingFiles = new();
 
                 rom.LocalSave = save;
                 rom.Save();
@@ -557,8 +296,7 @@ namespace Graviton.Saves
                     return save;
                 }
 
-                paths= save.SourceFilePaths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken)).ToList();
-                save.SourceFilePaths = paths;
+                save.SourceFilePaths = paths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken)).ToList();
             }
             else
             {
@@ -667,7 +405,7 @@ namespace Graviton.Saves
         public static async Task CheckRestoredSaveNeedUploading(RomMRomLocal rom)
         {
             string? prevContentHash = rom.LocalSave.ContentHash;
-            var negotiate = BuildNegotiate(new() { rom });
+            var negotiate = SaveNegotiator.BuildNegotiate(new() { rom });
             if (negotiate.Saves.Count <= 0) // Nothing to sync
             {
                 GravitonPlugin.Logger.Error("[SaveManager] No saves in negotiate, skipping!");
@@ -676,7 +414,7 @@ namespace Graviton.Saves
 
             if (prevContentHash != negotiate.Saves[0].ContentHash)
             {
-                await NegotiateSave(rom);
+                await SaveNegotiator.NegotiateSave(rom);
             }
         }
 
@@ -689,13 +427,18 @@ namespace Graviton.Saves
         private static async Task<SaveSyncStatus> AutoConflictResolve(GravitonSave save, RomMRomLocal rom, string localFilePath, bool isPacked)
         {
             string? localHash = null;
-            localHash = isPacked ? ComputePackedContentHash(localFilePath) : ComputeFileContentHash(localFilePath); 
+            localHash = isPacked ? ComputePackedContentHash(localFilePath) : ComputeFileContentHash(localFilePath);
+
+            if (localHash == null)
+            {
+                return SaveSyncStatus.conflict;
+            }
 
             if (isPacked) 
                 File.Delete(localFilePath); 
         
-            var negotiate = BuildNegotiate(new() { rom });
-            var negotiateResponse = negotiate.Saves.Count > 0 ? await Negotiate(negotiate) : null;
+            var negotiate = SaveNegotiator.BuildNegotiate(new() { rom });
+            var negotiateResponse = negotiate.Saves.Count > 0 ? await SaveNegotiator.Negotiate(negotiate) : null;
             var operation = negotiateResponse?.Operations.FirstOrDefault(x => x.ROMID == rom.Id && x.Slot == save.Slot);
 
             string? serverHeadHash = operation?.ServerContentHash;
@@ -722,7 +465,7 @@ namespace Graviton.Saves
 
 
         #region Helper Functions
-        private static List<string>? UnpackSave(string tempSaveLocation, string destinationPath)
+        public static List<string>? UnpackSave(string tempSaveLocation, string destinationPath)
         {
             if (!File.Exists(tempSaveLocation))
             {
@@ -779,8 +522,12 @@ namespace Graviton.Saves
             }
         }
 
-        private static bool PackSave(List<string> sourcePaths, string savePathRoot, string outputArchivePath)
+        public static bool PackSave(List<string> sourcePaths, string savePathRoot, string outputArchivePath, out List<string> skippedPaths)
         {
+            bool missingfiles = false;
+
+            List<string> localSkippedpaths = new();
+
             try
             {
                 using var archive = ZipArchive.CreateArchive();
@@ -813,6 +560,8 @@ namespace Graviton.Saves
                     else
                     {
                         GravitonPlugin.Logger.Warn($"Selected save path no longer exists, skipping: {processedpath}");
+                        localSkippedpaths.Add(processedpath);
+                        missingfiles = true;
                     }
                 }
 
@@ -820,47 +569,88 @@ namespace Graviton.Saves
             }
             catch (Exception ex)
             {
-                GravitonPlugin.Logger.Error(ex, $"Failed to pack save archive to {outputArchivePath}");
+                GravitonNotify.Add(new GravitonNotification("graviton.packsave.failed", $"Failed to pack save archive to {outputArchivePath}", GravitonSeverity.Error, ex));
+                skippedPaths = localSkippedpaths;
                 return false;
             }
 
+            if (missingfiles)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.packsave.missingfiles", $"One or more files/folders were skipped when packing save, see logs", GravitonSeverity.Warn));
+            }
+
+            skippedPaths = localSkippedpaths;
             return true;
         }
 
-        public static string ComputePackedContentHash(string zipPath)
+        public static string? ComputePackedContentHash(string zipPath)
         {
-            var entryHashes = new List<string>();
-
-            using (var archive = ZipArchive.OpenArchive(zipPath))
+            for (int i = 0; i < 3;)
             {
-                foreach (var entry in archive.Entries.Where(e => !e.IsDirectory).OrderBy(e => e.Key, StringComparer.Ordinal))
+                try
                 {
-                    using (var md5 = MD5.Create())
-                    using (var entryStream = entry.OpenEntryStream())
+                    var entryHashes = new List<string>();
+
+                    using (var archive = ZipArchive.OpenArchive(zipPath))
                     {
-                        var hash = md5.ComputeHash(entryStream);
-                        var hex = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-                        entryHashes.Add($"{entry.Key}:{hex}");
+                        if (!archive.Entries.Any())
+                        {
+                            GravitonNotify.Add(new GravitonNotification("graviton.archive.empty", $"Failed to compute hash for {zipPath} as the archive is empty, skipping", GravitonSeverity.Error));
+                            return null;
+                        }
+                        foreach (var entry in archive.Entries.Where(e => !e.IsDirectory).OrderBy(e => e.Key, StringComparer.Ordinal))
+                        {
+                            using (var md5 = MD5.Create())
+                            using (var entryStream = entry.OpenEntryStream())
+                            {
+                                var hash = md5.ComputeHash(entryStream);
+                                var hex = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                                entryHashes.Add($"{entry.Key}:{hex}");
+                            }
+                        }
                     }
+
+                    var combined = string.Join("\n", entryHashes);
+                    using (var md5 = MD5.Create())
+                    {
+                        var combinedHash = md5.ComputeHash(Encoding.UTF8.GetBytes(combined));
+                        
+                        return BitConverter.ToString(combinedHash).Replace("-", "").ToLowerInvariant();
+                    }
+                }
+                catch (Exception)
+                {
+                    GravitonPlugin.Logger.Error($"Failed to compute content hash for {zipPath}, retrying #{i++}");
+                    Task.Delay(100);
                 }
             }
 
-            var combined = string.Join("\n", entryHashes);
-            using (var md5 = MD5.Create())
-            {
-                var combinedHash = md5.ComputeHash(Encoding.UTF8.GetBytes(combined));
-                return BitConverter.ToString(combinedHash).Replace("-", "").ToLowerInvariant();
-            }
+            GravitonNotify.Add(new GravitonNotification("graviton.computehash.failed", $"Failed to compute hash for {zipPath}, skipping", GravitonSeverity.Error));
+            return null;
         }
 
-        public static string ComputeFileContentHash(string path)
+        public static string? ComputeFileContentHash(string path)
         {
-            using (var md5 = MD5.Create())
-            using (var stream = File.OpenRead(path))
+            for (int i = 0; i < 3;)
             {
-                var hash = md5.ComputeHash(stream);
-                return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                try
+                {
+                    using (var md5 = MD5.Create())
+                    using (var stream = File.OpenRead(path))
+                    {
+                        var hash = md5.ComputeHash(stream);
+                        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                    }
+                }
+                catch (Exception)
+                {
+                    GravitonPlugin.Logger.Error($"Failed to compute content hash for {path}, retrying #{i++}");
+                    Task.Delay(100);
+                }
             }
+
+            GravitonNotify.Add(new GravitonNotification("graviton.computehash.failed", $"Failed to compute hash for {path}, skipping", GravitonSeverity.Error));
+            return null;
         }
         #endregion
 
