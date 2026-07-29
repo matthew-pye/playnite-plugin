@@ -15,10 +15,10 @@ namespace Graviton.Saves
 {
     internal static class SaveDiscovery
     {
-        private static GravitonPlugin Plugin => GravitonPlugin.Instance;
+        private static GravitonPlugin _plugin => GravitonPlugin.Instance;
         private static ILogger Logger => GravitonPlugin.Logger;
 
-        private static readonly Regex ServerTimestampTagPattern = new(@"[ _]?\[\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\](?=\.[^.]+$)", RegexOptions.Compiled);
+        private static readonly Regex ServerTimestampTagPattern = new(@"[ _]\[\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\]", RegexOptions.Compiled);
 
         private static EmulatorMapping? Mapping;
         private static List<RomMRomLocal>? ROMs;
@@ -26,17 +26,23 @@ namespace Graviton.Saves
         public static async Task<List<GravitonSave>?> Discover(EmulatorMapping mapping)
         {
             Mapping = mapping;
-            return await Discover();
+            return await Discover(true);
         }
 
         public static async Task<List<GravitonSave>?> Discover(List<RomMRomLocal> roms)
         {
             ROMs = roms;
-            return await Discover();
+            return await Discover(true);
         }
 
-        public static async Task<List<GravitonSave>?> Discover()
+        public static async Task<List<GravitonSave>?> Discover(bool setup = false)
         {
+            if(!setup)
+            {
+                Mapping = null;
+                ROMs = null;
+            }
+
             var localroms = await GetLocalSaves();
             if (localroms == null)
             {
@@ -179,7 +185,7 @@ namespace Graviton.Saves
             // Process local saves
             foreach (var localrom in localroms)
             {
-                var mapping = Plugin.Settings.Mappings.FirstOrDefault( x => x.MappingId == localrom.MappingID);
+                var mapping = _plugin.Settings.Mappings.FirstOrDefault( x => x.MappingId == localrom.MappingID);
                 if (mapping == null)
                 {
                     Logger.Error($"[SaveDiscovery] Failed to find mapping for {localrom.Id}:{localrom.SHA1}");
@@ -215,6 +221,7 @@ namespace Graviton.Saves
             return saves;
         }
 
+
         private static async Task<List<RomMRomLocal>?> GetLocalSaves()
         {
             List<RomMRomLocal>? roms;
@@ -225,17 +232,17 @@ namespace Graviton.Saves
             }
             else if(Mapping != null)
             {
-                roms = Plugin.ImportedGames!.Where(x => x.Value.MappingID == Mapping.MappingId).Where(x => x.Value.LocalSave != null && x.Value.LocalSave.Enabled).Select(x => x.Value).ToList();
+                roms = _plugin.ImportedGames!.Where(x => x.Value.MappingID == Mapping.MappingId).Where(x => x.Value.LocalSave != null && x.Value.LocalSave.Enabled).Select(x => x.Value).ToList();
             }
             else
             {
-                roms = Plugin.ImportedGames!.Where(x => x.Value.LocalSave != null && x.Value.LocalSave.Enabled).Select(x => x.Value).ToList();
+                roms = _plugin.ImportedGames!.Where(x => x.Value.LocalSave != null && x.Value.LocalSave.Enabled).Select(x => x.Value).ToList();
             }
 
             if (roms == null || roms.Count < 1)
                 return new();
 
-            roms = await SaveManager.SoftNegotiateSaves(roms);
+            roms = await SaveManager.SoftNegotiateSaves(roms.Where(x => x.LocalSave.Enabled).ToList());
             if (roms == null)
                 return null;
 
@@ -243,6 +250,7 @@ namespace Graviton.Saves
 
             return roms;
         }
+
 
         private static async Task<List<RomMSave>?> GetRemoteSaves()
         {
@@ -302,6 +310,63 @@ namespace Graviton.Saves
             }
         }
 
+        public static async Task<List<RomMSave>?> GetArchivedSaves()
+        {
+            var saves = await GetRemoteSaves();
+            if (saves == null)
+                return null;
+
+            foreach (var save in saves)
+            {
+                var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Value.Id == save.ROMID);
+                if(rom.Value != null)
+                {
+                    save.ROMName = rom.Value.Name;
+                }
+            }
+
+            return saves.Where(x => string.IsNullOrEmpty(x.Slot) && !string.IsNullOrEmpty(x.ROMName)).ToList();
+        }
+        public static async Task<List<RomMSave>?> GetArchivedSaves(EmulatorMapping mapping)
+        {
+            var saves = await GetRemoteSaves();
+            var roms = _plugin.ImportedGames!.Where(x => x.Value.MappingID == mapping.MappingId);
+            if (saves == null)
+                return null;
+
+            foreach (var save in saves)
+            {
+                var rom = roms.FirstOrDefault(x => x.Value.Id == save.ROMID);
+                if (rom.Value != null)
+                {
+                    save.ROMName = rom.Value.Name;
+                }
+            }
+
+            return saves.Where(x => string.IsNullOrEmpty(x.Slot) && !string.IsNullOrEmpty(x.ROMName)).ToList();
+        }
+        public static async Task<List<RomMSave>?> GetArchivedSaves(List<RomMRomLocal> roms)
+        {
+            var saves = await GetRemoteSaves();
+            if (saves == null)
+                return null;
+
+            foreach (var save in saves)
+            {
+                var rom = roms.FirstOrDefault(x => x.Id == save.ROMID);
+                if (rom != null)
+                {
+                    save.ROMName = rom.Name;
+                }
+                else
+                {
+                    save.ROMName = " -- UNKNOWN GAME --";
+                }
+            }
+
+            return saves.Where(x => string.IsNullOrEmpty(x.Slot) && !string.IsNullOrEmpty(x.ROMName)).ToList();
+        }
+
         private static async Task<List<GravitonSave>?> GetAutoDetectedSaves(List<GravitonSave> currectSaveList)
         {
             List<RomMRomLocal> roms;
@@ -315,11 +380,11 @@ namespace Graviton.Saves
                 if (Mapping.FindSaveLayout == SaveLayoutStyle.Disabled)
                     return new();
 
-                roms = Plugin.ImportedGames!.Where(x => x.Value.MappingID == Mapping.MappingId).Select(y => y.Value).ToList();
+                roms = _plugin.ImportedGames!.Where(x => x.Value.MappingID == Mapping.MappingId).Select(y => y.Value).ToList();
             }
             else
             {
-                roms = Plugin.ImportedGames!.Select(y => y.Value).ToList();
+                roms = _plugin.ImportedGames!.Select(y => y.Value).ToList();
             }
 
 
@@ -330,7 +395,7 @@ namespace Graviton.Saves
             }
             else
             {
-                var mappings = Plugin.Settings.Mappings.Where(x => roms.Any(y => y.MappingID == x.MappingId));
+                var mappings = _plugin.Settings.Mappings.Where(x => roms.Any(y => y.MappingID == x.MappingId));
                 bool noExtentions = false;
 
                 List<GravitonSave>? saves = null;
@@ -463,7 +528,7 @@ namespace Graviton.Saves
                     {
                         Status = SaveStatus.UntrackedLocal,
                         SourceFilePaths = savePaths,
-                        Filename = $"{Path.GetFileNameWithoutExtension(rom.FileName)}.rommsave.zip",
+                        Filename = savePaths.Count > 1 ? $"{Path.GetFileNameWithoutExtension(rom.FileName)}.rommsave.zip" : Path.GetFileName(savePaths[0]),
                         GameName = rom.Name!,
                         ROMID = rom.Id
                     };
@@ -476,6 +541,7 @@ namespace Graviton.Saves
 
             return saves;
         }
+
 
         private static bool IsAlreadyTracked(string rootPath, string file, string sourcePath)
         {

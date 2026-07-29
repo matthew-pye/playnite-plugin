@@ -48,30 +48,47 @@
             <TextBlock Name="TitleText" FontSize="32" FontWeight="Bold" Margin="5" Text="Save Management"/>
             <Separator Margin="0,0,0,10"/>
 
-            <StackPanel Orientation="Horizontal" Margin="10,0,0,10">
-                <Button Name="BackButton" Click="Back_Click" Margin="0,0,10,0" Visibility="Collapsed">
-                    <TextBlock Name="BackText" Text="&#xf030d; Back" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                </Button>
-                <Button Name="RefreshButton" Click="Refresh_Click" Margin="0,0,10,0">
-                    <TextBlock Name="RefreshText" Text="&#xf46a; Refresh" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                </Button>
+            <Grid Margin="10,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" Grid.Column="0">
+                    <Button Name="BackButton" Click="Back_Click" Margin="0,0,10,0" Visibility="Collapsed">
+                        <TextBlock Name="BackText" Text="&#xf030d; Back" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                    <Button Name="RefreshButton" Click="Refresh_Click" Margin="0,0,10,0">
+                        <TextBlock Name="RefreshText" Text="&#xf46a; Refresh" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
 
-                <Grid>
-                    <TextBox Width="220" VerticalContentAlignment="Center" x:Name="SaveFilterBox" TextChanged="SaveFilterBox_TextChanged"/>
-                    <TextBlock IsHitTestVisible="False" Text="{loc:LocalizedString FilterByGameName}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="{DynamicResource Graviton.SubText.Colour}">
-                        <TextBlock.Style>
-                            <Style TargetType="{x:Type TextBlock}">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Text, ElementName=SaveFilterBox}" Value="">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                </Grid>
-            </StackPanel>
+                    <Grid>
+                        <TextBox MinWidth="100" Width="450" MaxWidth="450" VerticalContentAlignment="Center" x:Name="SaveFilterBox" TextChanged="SaveFilterBox_TextChanged"/>
+                        <TextBlock IsHitTestVisible="False" Text="{loc:LocalizedString FilterByGameName}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="{DynamicResource Graviton.SubText.Colour}">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Text, ElementName=SaveFilterBox}" Value="">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Grid.Column="2">
+                    <Button Name="CreateNewSaveButton" Click="CreateNewSave_Click" Margin="0,0,10,0" HorizontalAlignment="Right">
+                        <TextBlock Name="CreateNewSaveText" Text="&#xea7f; Create New Save" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+
+                    <Button Name="TrackArchivedSaveButton" Click="TrackArchivedSave_Click" Margin="0,0,10,0" HorizontalAlignment="Right">
+                        <TextBlock Name="TrackArchivedSaveText" Text="&#xf1763; Track Archived Save" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
             <Separator Margin="0,0,0,10"/>
         </StackPanel>
         <!-- #endregion -->
@@ -363,8 +380,19 @@
                                                 </Grid.RowDefinitions>
 
                                                 <StackPanel Grid.Column="0" Grid.Row="0" Margin="10">
-                                                    <TextBlock Text="Files" FontSize="12" Margin="0,0,0,6" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
-                                                    <TreeView VerticalAlignment="Top" HorizontalAlignment="Left" Margin="-6,0,0,0" ItemsSource="{Binding SaveDirectoryTrees}">
+                                                    <Grid>
+                                                        <TextBlock Text="Files" FontSize="12" Margin="0,0,0,6" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                            <Button Margin="3" Click="AddFileToSave_Click">
+                                                                <TextBlock Text="Add file" FontSize="12" Padding="3,2" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                                            </Button>
+                                                            <Button Margin="3" Click="AddFolderToSave_Click">
+                                                                <TextBlock Text="Add folder" FontSize="12" Padding="3,2" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                                            </Button>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                    
+                                                     <TreeView VerticalAlignment="Top" HorizontalAlignment="Left" Margin="-6,0,0,0" ItemsSource="{Binding SaveDirectoryTrees}">
                                                         <TreeView.Resources>
                                                             <HierarchicalDataTemplate DataType="{x:Type msav:SaveDirectoryTree}" ItemsSource="{Binding Children}">
                                                                 <TextBlock FontSize="12" Text="{Binding Name}" Foreground="{DynamicResource Graviton.Text.Colour}"/>

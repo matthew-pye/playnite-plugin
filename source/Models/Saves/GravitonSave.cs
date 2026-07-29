@@ -45,13 +45,16 @@ namespace Graviton.Models.Saves
         [ObservableProperty] private string? _slot = "Autosave";
 
         [ObservableProperty] private SaveStatus _status;
-        [ObservableProperty] private string? _contentHash;
-        [ObservableProperty] private string? _serverHash;
-        [ObservableProperty] private long _fileSize;
         [ObservableProperty] private DateTime _lastSyncedAt;
+        [ObservableProperty] private string? _contentHash;
+        [ObservableProperty] private long _fileSize;
+
+        [ObservableProperty] private string? _lastSyncedContentHash;
+
+        [ObservableProperty] private string? _serverHash;
         [ObservableProperty] private DateTime? _serverLastUpdatedAt;
 
-        [ObservableProperty] private bool _isTempRestored = true;
+        [ObservableProperty] private bool _isTempRestored = false;
 
         #region UI Only
         [JsonIgnore] public string GameName { get; set; } = string.Empty;

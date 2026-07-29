@@ -10,7 +10,7 @@ namespace Graviton.Models.RomM.Saves
         no_op
     }
 
-    internal class RomMSave
+    public class RomMSave
     {
         [JsonPropertyName("id")]
         public int ID { get; set; }
@@ -49,5 +49,7 @@ namespace Graviton.Models.RomM.Saves
         public string? UpdatedAt { get; set; }
 
         [JsonIgnore] public List<RomMSave> HistoricSaves = new();
+        [JsonIgnore] public string? ROMName { get; set; }
+
     }
 }

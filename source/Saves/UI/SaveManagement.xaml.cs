@@ -6,6 +6,7 @@ using Graviton.Models.Saves;
 
 using Playnite;
 
+using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -259,98 +260,149 @@ namespace Graviton.Saves
 
         }
 
-        List<GravitonSave> TestSaves()
+        private async void AddFileToSave_Click(object sender, RoutedEventArgs e)
         {
-            return new()
+            var save = ((FrameworkElement)sender).DataContext as GravitonSave;
+            if (save == null)
             {
-                new()
-                {
-                    GameName = "Super Mario Bros.",
-                    Slot = "Autosave",
-                    Status = SaveStatus.ServerOnly,
-                    FileSize = 10424
-                },
-                new()
-                {
-                    GameName = "Xenoblade Chronicles",
-                    Slot = "Autosave",
-                    Status = SaveStatus.LocalNewer,
-                    FileSize = 32464354,
-                    LastSyncedAt = (DateTime.Now).AddSeconds(-46),
-                    HistoricSaves = new()
-                    {
-                        new()
-                        {
-                             GameName = "Xenoblade Chronicles",
-                             Slot = "Autosave",
-                             LastSyncedAt = ((DateTime.Now).AddHours(-10)).AddMinutes(-11),
-                             FileSize = 32424254,
-                        },
-                        new()
-                        {
-                             GameName = "Xenoblade Chronicles",
-                             Slot = "Autosave",
-                             LastSyncedAt = ((DateTime.Now).AddHours(-15)).AddMinutes(-50),
-                             FileSize = 32361354,
-                        },
-                        new()
-                        {
-                             GameName = "Xenoblade Chronicles",
-                             Slot = "Autosave",
-                             LastSyncedAt = ((DateTime.Now).AddHours(-25)).AddMinutes(-23),
-                             FileSize = 32228354,
-                        },
-                        new()
-                        {
-                             GameName = "Xenoblade Chronicles",
-                             Slot = "Autosave",
-                             LastSyncedAt = ((DateTime.Now).AddHours(-40)).AddMinutes(-2),
-                             FileSize = 32121354,
-                        },
-                        new()
-                        {
-                             GameName = "Xenoblade Chronicles",
-                             Slot = "Autosave",
-                             LastSyncedAt = ((DateTime.Now).AddHours(-86)).AddMinutes(-44),
-                             FileSize = 28881354,
-                        }
-                    }
+                GravitonNotify.Add(new GravitonNotification("graviton.save.null", "Save is null, skipping", GravitonSeverity.Error));
+                e.Handled = true;
+                return;
+            }
 
-                },
-                new()
-                {
-                    GameName = "Pokemon Red.",
-                    Slot = "Auto",
-                    Status = SaveStatus.RemoteNewer,
-                    LastSyncedAt = ((DateTime.Now).AddHours(-2)).AddMinutes(-31),
-                    FileSize = 64354,
-                },
-                new()
-                {
-                    GameName = "Metroid",
-                    Slot = "Test",
-                    Status = SaveStatus.Conflicted,
-                    LastSyncedAt = (DateTime.Now).AddMinutes(-52),
-                    FileSize = 324,
-                },
-                new()
-                {
-                    GameName = "Kingdom Hearts: Final Mix",
-                    Slot = "Autosave",
-                    Status = SaveStatus.ServerOnly,
-                    FileSize = 9146574,
-                },
-                new()
-                {
-                    GameName = "The Legend Of Zelda: Link to the Past",
-                    Slot = "Autosave",
-                    Status = SaveStatus.Synced,
-                    LastSyncedAt = (DateTime.Now).AddHours(-26),
-                    FileSize = 43633,
-                },
-            };
+            var response = await GravitonPlugin.PlayniteApi.Dialogs.SelectFileAsync(allowMultiple: true);
+            if(response != null)
+            {
+                save.SourceFilePaths.AddRange(response);
+                await SaveManager.Upload(save);
+            }
+
+            e.Handled = true;
+            return;
         }
 
-        
+        private async void AddFolderToSave_Click(object sender, RoutedEventArgs e)
+        {
+            var save = ((FrameworkElement)sender).DataContext as GravitonSave;
+            if (save == null)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.save.null", "Save is null, skipping", GravitonSeverity.Error));
+                e.Handled = true;
+                return;
+            }
+
+            var response = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync(allowMultiple: true);
+            if (response != null)
+            {
+                save.SourceFilePaths.AddRange(response);
+                await SaveManager.Upload(save);
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        private async void CreateNewSave_Click(object sender, RoutedEventArgs e)
+        {
+            var window = GravitonPlugin.PlayniteApi.CreateWindow(new WindowCreationOptions
+            {
+                ShowMinimizeButton = false,
+                ShowMaximizeButton = false,
+                ShowCloseButton = true,
+                DefaultWidth = 1280,
+                DefaultHeight = 720
+            });
+
+            CreateSaveSelector saveSelector;
+
+            if (ROMs != null)
+            {
+                saveSelector = new CreateSaveSelector(ROMs);
+            }
+            else if (Mapping != null)
+            {
+                var roms = _plugin.ImportedGames!.Where(x => x.Value.MappingID == Mapping.MappingId);
+                if (roms == null)
+                {
+                    GravitonNotify.Add(new GravitonNotification("graviton.roms.null", "No ROMs found for this mapping, cannot create new save", GravitonSeverity.Error));
+                    e.Handled = true;
+                    return;
+                }
+
+                saveSelector = new CreateSaveSelector(roms.Select(x => x.Value).ToList());
+            }
+            else
+            {
+                saveSelector = new CreateSaveSelector();
+            }
+
+            window.Title = "Create New Save";
+            window.Content = saveSelector;
+            window.Owner = GravitonPlugin.PlayniteApi.GetLastActiveWindow();
+            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            window.ShowDialog();
+
+            if (saveSelector.WasConfirmed)
+            {
+                GravitonSave newsave = new()
+                {
+                    ROMID = saveSelector.SelectedROM!.Id,
+                    GameName = saveSelector.SelectedROM!.Name!,
+                    Filename = saveSelector.SelectedSourcePaths!.Count > 1 || !File.Exists(saveSelector.SelectedSourcePaths[0]) ? $"{saveSelector.SelectedROM.Name}.rommsave.zip" : Path.GetFileName(saveSelector.SelectedSourcePaths[0]),
+                    SourceFilePaths = saveSelector.SelectedSourcePaths!.Select(x => x.Replace(saveSelector.SelectedMapping!.SavePath, EmulatorMapping.MappingPathToken)).ToList(),
+                    Status = SaveStatus.LocalNewer
+                };
+
+                newsave = await SaveManager.TrackNewLocalSave(newsave);
+                Saves.Add(newsave);
+            }
+
+            e.Handled = true;
+        }
+
+        private void TrackArchivedSave_Click(object sender, RoutedEventArgs e)
+        {
+            var window = GravitonPlugin.PlayniteApi.CreateWindow(new WindowCreationOptions
+            {
+                ShowMinimizeButton = false,
+                ShowMaximizeButton = false,
+                ShowCloseButton = true,
+                DefaultWidth = 1280,
+                DefaultHeight = 720
+            });
+
+            ArchiveSaveSelector trackArchiveSave;
+
+            if (ROMs != null)
+            {
+                trackArchiveSave = new ArchiveSaveSelector(ROMs);
+            }
+            else if (Mapping != null)
+            {
+                trackArchiveSave = new ArchiveSaveSelector(Mapping);
+            }
+            else
+            {
+                trackArchiveSave = new ArchiveSaveSelector();
+            }
+
+            window.Title = "Track Archive Save";
+            window.Content = trackArchiveSave;
+            window.Owner = GravitonPlugin.PlayniteApi.GetLastActiveWindow();
+            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            window.ShowDialog();
+
+            if(trackArchiveSave.NewSave != null)
+            {
+                var oldsave = Saves.FirstOrDefault(x => x.ROMID == trackArchiveSave.NewSave.ROMID);
+                if(oldsave != null)
+                    Saves.Remove(oldsave);
+
+                Saves.Add(trackArchiveSave.NewSave);
+                SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase));
+            }
+
+            e.Handled = true;
+        }
     }
 }

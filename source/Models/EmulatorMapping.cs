@@ -198,6 +198,12 @@ namespace Graviton.Models
             }
         }
 
+        [JsonIgnore]
+        public string DisplayName
+        {
+            get => $"Emulator Name - Profile Name - {RomMPlatform?.DisplayName}";
+        }
+
         //[JsonIgnore] public string EmulatorBasePath => Emulator?.InstallDir;
 
         //[JsonIgnore]

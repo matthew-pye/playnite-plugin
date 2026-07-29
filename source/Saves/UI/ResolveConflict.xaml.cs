@@ -24,19 +24,19 @@ namespace Graviton.Saves
 
         private void Skip_Click(object sender, RoutedEventArgs e)
         {
-            ((Window)Parent).Close();
+            Window.GetWindow(this)?.Close();
         }
 
         private void KeepLocal_Click(object sender, RoutedEventArgs e)
         {
             Status = SaveSyncStatus.upload;
-            ((Window)Parent).Close();
+            Window.GetWindow(this)?.Close();
         }
 
         private void KeepRemote_Click(object sender, RoutedEventArgs e)
         {
             Status = SaveSyncStatus.download;
-            ((Window)Parent).Close();
+            Window.GetWindow(this)?.Close();
         }
     }
 }

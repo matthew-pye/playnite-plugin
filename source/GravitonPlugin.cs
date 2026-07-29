@@ -350,7 +350,7 @@ namespace Graviton
                     }
                 }
 
-                _ = Task.Run(async () => await StatusController?.StartActivityHeartbeat(args.Game.LibraryGameId)!);
+                _ = StatusController?.StartActivityHeartbeat(args.Game.LibraryGameId);
             }
 
             await base.OnGameStartingAsync(args);
@@ -364,7 +364,7 @@ namespace Graviton
             if(args.StartingArgs.Game.LibraryId == Id)
             { 
                 StatusController?.StopActivityHeartbeat();
-                StatusController?.PushPlaySession(args.StartingArgs.Game.LibraryGameId!, stoppedTime, args.StoppedArgs.SessionLength*1000);
+                await StatusController!.PushPlaySession(args.StartingArgs.Game.LibraryGameId!, stoppedTime, args.StoppedArgs.SessionLength*1000);
 
                 if (Settings.SaveSyncEnabled && Settings.UploadSaveOnFinished)
                 {
