@@ -508,9 +508,6 @@ namespace RomM
                     Logger.Error($"{args.Game.Name} GameID is malformed or json file is corrupted!");
                 }
 
-                if (mapping == null)
-                    yield return null;
-
                 yield return new RomMUninstallController(args.Game, this, mapping);
             }
         }

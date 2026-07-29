@@ -20,27 +20,30 @@ namespace RomM.Games
 
         public override void Uninstall(UninstallActionArgs args)
         {
-            if(_mapping.InstallFlat)
+            if (_mapping != null)
             {
-                foreach (var RomFile in Game.Roms)
+                if (_mapping.InstallFlat)
                 {
-                    if(File.Exists(RomFile.Path))
-                        File.Delete(RomFile.Path);
-                }
-            }
-            else
-            {
-                if (new DirectoryInfo(Game.InstallDirectory).Exists)
-                {
-                    Directory.Delete(Game.InstallDirectory, true);
+                    foreach (var RomFile in Game.Roms)
+                    {
+                        if (File.Exists(RomFile.Path))
+                            File.Delete(RomFile.Path);
+                    }
                 }
                 else
                 {
-                    _romM.Playnite.Dialogs.ShowMessage($"\"{Game.Name}\" folder could not be found. Marking as uninstalled.", "Game not found", MessageBoxButton.OK);
+                    if (new DirectoryInfo(Game.InstallDirectory).Exists)
+                    {
+                        Directory.Delete(Game.InstallDirectory, true);
+                    }
+                    else
+                    {
+                        _romM.Playnite.Dialogs.ShowMessage($"\"{Game.Name}\" folder could not be found. Marking as uninstalled.", "Game not found", MessageBoxButton.OK);
+                    }
                 }
             }
 
-                Game.Roms.Clear();
+            Game.Roms.Clear();
             InvokeOnUninstalled(new GameUninstalledEventArgs());
         }
     }
