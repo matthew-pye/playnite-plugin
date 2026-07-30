@@ -261,29 +261,32 @@ namespace Graviton.Saves
                 var result = await SaveManager.Download(save, true);
                 result = await SaveManager.Upload(save);
                 Saves.Add(parentROM.Value.LocalSave);
+
             }
 
             if(response == RestoreLocally)
             {
                 Saves.Remove(parentROM.Value.LocalSave);
                 var result = await SaveManager.Download(save, true);
-
-                if (parentROM.Value.LocalSave.HistoricSaves == null)
-                    parentROM.Value.LocalSave.HistoricSaves = new();
-
-                var savecopy = JsonSerializer.Deserialize<GravitonSave>(JsonSerializer.Serialize(parentROM.Value.LocalSave));
-                if (savecopy != null)
+                if(result.Status == SaveStatus.Synced)
                 {
-                    savecopy.IsCurrent = false;
-                    savecopy.HistoricSaves = null;
-                    parentROM.Value.LocalSave.HistoricSaves.Add(savecopy);
-                }
+                    if (parentROM.Value.LocalSave.HistoricSaves == null)
+                        parentROM.Value.LocalSave.HistoricSaves = new();
 
-                result.HistoricSaves = parentROM.Value.LocalSave.HistoricSaves.OrderByDescending(x => x.LastSyncedAt).ToObservableCollection();
-                result.IsCurrent = true;
-                result.IsTempRestored = true;
-                parentROM.Value.LocalSave = result;
-                parentROM.Value.Save();
+                    var savecopy = JsonSerializer.Deserialize<GravitonSave>(JsonSerializer.Serialize(parentROM.Value.LocalSave));
+                    if (savecopy != null)
+                    {
+                        savecopy.IsCurrent = false;
+                        savecopy.HistoricSaves = null;
+                        parentROM.Value.LocalSave.HistoricSaves.Add(savecopy);
+                    }
+
+                    result.HistoricSaves = parentROM.Value.LocalSave.HistoricSaves.OrderByDescending(x => x.LastSyncedAt).ToObservableCollection();
+                    result.IsCurrent = true;
+                    result.IsTempRestored = true;
+                    parentROM.Value.LocalSave = result;
+                    parentROM.Value.Save();
+                }
 
                 Saves.Add(parentROM.Value.LocalSave);
             }

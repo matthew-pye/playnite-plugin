@@ -425,7 +425,6 @@ namespace Graviton.Saves
 
         public static async Task CheckRestoredSaveNeedUploading(RomMRomLocal rom)
         {
-            string? prevContentHash = rom.LocalSave.ContentHash;
             var negotiate = SaveNegotiator.BuildNegotiate(new() { rom });
             if (negotiate.Saves.Count <= 0) // Nothing to sync
             {
@@ -433,9 +432,19 @@ namespace Graviton.Saves
                 return;
             }
 
-            if (prevContentHash != negotiate.Saves[0].ContentHash)
+            if (rom.LocalSave.LastSyncedContentHash != negotiate.Saves[0].ContentHash)
             {
-                await SaveNegotiator.NegotiateSave(rom);
+                var result = await Upload(rom.LocalSave);
+                if(result.Status == SaveStatus.Synced)
+                {
+                    rom.LocalSave.IsTempRestored = false;
+                    rom.Save();
+                }
+            }
+            else
+            {
+                rom.LocalSave.IsTempRestored = false;
+                rom.Save();
             }
         }
 
