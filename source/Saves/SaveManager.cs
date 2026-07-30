@@ -28,6 +28,12 @@ namespace Graviton.Saves
  
         public static async Task<GravitonSave> Upload(GravitonSave save, bool overwrite = false)
         {
+            if (_plugin.IsAGameRunning)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", "Cannot do save sync operations as a game is currently running!", GravitonSeverity.Info));
+                return save;
+            }
+
             var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
             if(rom == null)
             {
@@ -69,10 +75,16 @@ namespace Graviton.Saves
                 return save;
             }
 
+            var savebytes = File.ReadAllBytes(savePath);
+            if (savebytes.Length < 1)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.save.zerobytes", $"The save file for {rom.Name} has 0 bytes, skipping sync", GravitonSeverity.Error));
+                return save;
+            }
+
             if (save.SaveID != -1)
                 await UntrackSave(rom.LocalSave.SaveID);
 
-            var savebytes = File.ReadAllBytes(savePath);
             var content = new MultipartFormDataContent();
             
             var savecontent = new ByteArrayContent(savebytes);
@@ -144,9 +156,6 @@ namespace Graviton.Saves
                 rom.LocalSave = save;
                 rom.Save();
 
-                var deviceid = new { device_id = _plugin.Settings.AccountState.DeviceID };
-                await HttpClientSingleton.RomMPostJsonAsync($"/api/saves/{save.SaveID}/track", deviceid);
-
                 GravitonNotify.Add(new GravitonNotification("graviton.upload.success", $"{rom.Name} save backed up ({save.FileSizeString})", GravitonSeverity.Success));
                 return save;
             }
@@ -159,6 +168,12 @@ namespace Graviton.Saves
 
         public static async Task<GravitonSave> Download(GravitonSave save, bool SkipSavingROM = false)
         {
+            if (_plugin.IsAGameRunning)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", "Cannot do save sync operations as a game is currently running!", GravitonSeverity.Info));
+                return save;
+            }
+
             var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
             if (rom == null)
             {
@@ -228,6 +243,12 @@ namespace Graviton.Saves
 
         public static async Task<GravitonSave> TrackNewRemoteSave(GravitonSave save)
         {
+            if (_plugin.IsAGameRunning)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", "Cannot do save sync operations as a game is currently running!", GravitonSeverity.Info));
+                return save;
+            }
+
             var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
             if (rom == null)
             {

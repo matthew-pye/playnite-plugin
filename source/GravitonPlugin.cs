@@ -43,6 +43,8 @@ namespace Graviton
 
         internal ConcurrentDictionary<string, RomMRomLocal>? ImportedGames { get; private set; }
 
+        internal bool IsAGameRunning { get; private set; } = false;
+
         internal GravitonPluginSettings Settings 
         { 
             get
@@ -341,7 +343,7 @@ namespace Graviton
         {
             if (args.Game.LibraryId == Id && args.Game.LibraryGameId != null)
             {
-                if(Settings.SaveSyncEnabled && Settings.DownloadSaveOnLaunch)
+                if (Settings.SaveSyncEnabled && Settings.DownloadSaveOnLaunch)
                 {
                     var rom = ImportedGames!.FirstOrDefault(x => x.Key == args.Game.LibraryGameId);
                     if(rom.Value != null && !rom.Value.LocalSave.IsTempRestored)
@@ -350,6 +352,7 @@ namespace Graviton
                     }
                 }
 
+                IsAGameRunning = true;
                 _ = StatusController?.StartActivityHeartbeat(args.Game.LibraryGameId);
             }
 
@@ -361,8 +364,10 @@ namespace Graviton
         {
             var stoppedTime = DateTime.UtcNow;
 
-            if(args.StartingArgs.Game.LibraryId == Id)
-            { 
+            if (args.StartingArgs.Game.LibraryId == Id)
+            {
+                IsAGameRunning = false;
+
                 StatusController?.StopActivityHeartbeat();
                 await StatusController!.PushPlaySession(args.StartingArgs.Game.LibraryGameId!, stoppedTime, args.StoppedArgs.SessionLength*1000);
 

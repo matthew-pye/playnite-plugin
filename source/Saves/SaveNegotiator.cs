@@ -90,6 +90,12 @@ namespace Graviton.Saves
 
         public static async Task NegotiateSave(RomMRomLocal rom)
         {
+            if (_plugin.IsAGameRunning)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", "Cannot do save sync operations as a game is currently running!", GravitonSeverity.Info));
+                return;
+            }
+
             var negotiate = BuildNegotiate(new() { rom });
             if (negotiate.Saves.Count <= 0) // Nothing to sync
             {
@@ -181,8 +187,7 @@ namespace Graviton.Saves
         }
 
         public static async Task<RomMNegotiateResponse?> Negotiate(RomMNegotiate negotiate)
-        {
-            
+        { 
             var response = await HttpClientSingleton.RomMPostJsonAsync("/api/sync/negotiate", negotiate);
             if (response == null)
                 return null;
@@ -239,17 +244,22 @@ namespace Graviton.Saves
 
                 if (rom.LocalSave.SourceFilePaths.Count == 1 && File.Exists(path))
                 {
+                    negotiateSave.FileSize = new FileInfo(path).Length;
+                    if (negotiateSave.FileSize == 0)
+                    {
+                        GravitonNotify.Add(new GravitonNotification("graviton.save.zerobytes", $"The save file for {rom.Name} has 0 bytes, skipping sync", GravitonSeverity.Error));
+                        continue;
+                    }
+
                     negotiateSave.ContentHash = SaveManager.ComputeFileContentHash(path);
                     if (negotiateSave.ContentHash == null)
                     {
                         continue;
                     }
 
-                    rom.LocalSave.ContentHash = negotiateSave.ContentHash;
-
-                    negotiateSave.FileSize = new FileInfo(path).Length;
                     rom.LocalSave.FileSize = negotiateSave.FileSize;
-
+                    rom.LocalSave.ContentHash = negotiateSave.ContentHash;
+                   
                     negotiateSave.FileName = rom.LocalSave.Filename;
                     negotiateSave.UpdatedAt = new FileInfo(path).LastWriteTimeUtc.ToString("O");
                 }
@@ -267,15 +277,21 @@ namespace Graviton.Saves
                         continue;
                     }
 
+                    negotiateSave.FileSize = new FileInfo(packedsavepath).Length;
+                    if (negotiateSave.FileSize == 0)
+                    {
+                        GravitonNotify.Add(new GravitonNotification("graviton.save.zerobytes", $"The save file for {rom.Name} has 0 bytes, skipping sync", GravitonSeverity.Error));
+                        continue;
+                    }
+
                     negotiateSave.ContentHash = SaveManager.ComputePackedContentHash(packedsavepath);
                     if (negotiateSave.ContentHash == null)
                     {
                         continue;
                     }
-                    rom.LocalSave.ContentHash = negotiateSave.ContentHash;
 
-                    negotiateSave.FileSize = new FileInfo(packedsavepath).Length;
                     rom.LocalSave.FileSize = negotiateSave.FileSize;
+                    rom.LocalSave.ContentHash = negotiateSave.ContentHash;     
 
                     List<DateTime> saveWritetimes = new List<DateTime>();
                     foreach (var savepath in rom.LocalSave.SourceFilePaths)
