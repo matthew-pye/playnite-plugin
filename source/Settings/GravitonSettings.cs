@@ -4,6 +4,7 @@ using Graviton.Models;
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Platform;
 using Graviton.Models.Saves;
+using Graviton.Saves;
 
 using Playnite;
 
@@ -59,12 +60,17 @@ namespace Graviton.Settings
 
 
         [ObservableProperty] private bool _saveSyncEnabled = true;      
-        [ObservableProperty] private bool _saveStateSyncEnabled = false;      
         [ObservableProperty] private bool _downloadSaveOnLaunch = true;      
         [ObservableProperty] private bool _uploadSaveOnFinished = true;      
         [ObservableProperty] private SaveConflictResolve _saveConflictStyle = SaveConflictResolve.Ask;
         [ObservableProperty] private bool _autoCleanupSaves = true;
         [ObservableProperty] private int _autoCleanupSavesLimit = 10;
+
+        [ObservableProperty] private bool _captureScreenshots = true;
+        [ObservableProperty] private int _secondsBeforeSave = 15;
+        [ObservableProperty] private ScreenshotResolution _screenshotResolution = ScreenshotResolution.P1080;
+
+        [ObservableProperty] private bool _saveStateSyncEnabled = false;
 
         [ObservableProperty] private ObservableCollection<EmulatorMapping> _mappings = new ObservableCollection<EmulatorMapping>();
 
