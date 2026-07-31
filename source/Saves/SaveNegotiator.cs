@@ -88,7 +88,7 @@ namespace Graviton.Saves
             return roms;
         }
 
-        public static async Task NegotiateSave(RomMRomLocal rom)
+        public static async Task NegotiateSave(RomMRomLocal rom, byte[]? screenshot = null)
         {
             if (_plugin.IsAGameRunning)
             {
@@ -142,7 +142,7 @@ namespace Graviton.Saves
                     {
                         case "upload":
                             var saveID = rom.LocalSave.SaveID;
-                            var result = await SaveManager.Upload(rom.LocalSave);
+                            var result = await SaveManager.Upload(rom.LocalSave, false, screenshot);
 
                             if(saveID == result.SaveID)
                             {

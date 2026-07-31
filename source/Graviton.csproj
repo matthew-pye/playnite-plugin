@@ -73,4 +73,15 @@
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
   </ItemGroup>
+  
+  <ItemGroup>
+	<None Remove="WinRT.Runtime.dll" />
+	<None Remove="Microsoft.Windows.SDK.NET.dll" />
+  </ItemGroup>
+
+  <Target Name="RemoveHostAssemblies" AfterTargets="Build">
+	<Delete Files="$(OutDir)WinRT.Runtime.dll" />
+	<Delete Files="$(OutDir)Microsoft.Windows.SDK.NET.dll" />
+  </Target>
+  
 </Project>

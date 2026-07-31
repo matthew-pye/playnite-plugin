@@ -25,8 +25,74 @@ namespace Graviton.Saves
     {
         private static GravitonPlugin _plugin => GravitonPlugin.Instance;
         private static IPlayniteApi PlayniteAPI => GravitonPlugin.PlayniteApi;
- 
-        public static async Task<GravitonSave> Upload(GravitonSave save, bool overwrite = false)
+
+        private static ScreenshotService? ScreenshotCapture = new();
+        private static SaveWatcher? SaveWatcher = new(ScreenshotCapture);
+        private static string GameID = "";
+
+        public static async Task GameStarting(string gameID)
+        {
+            if (_plugin.Settings.SaveSyncEnabled && _plugin.Settings.DownloadSaveOnLaunch)
+            {
+                var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Key == gameID);
+                if (rom.Value != null && !rom.Value.LocalSave.IsTempRestored)
+                {
+                    GameID = rom.Key;
+                    await SaveNegotiator.NegotiateSave(rom.Value);
+                }
+            }
+        }
+
+        public static async Task GameStarted(int processID)
+        {
+            if(_plugin.IsAGameRunning)
+            {
+                var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Key == GameID);
+                if (rom.Value != null && rom.Value.LocalSave.SourceFilePaths.Count > 0)
+                {
+                    var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.Value.MappingID);
+
+                    if(_plugin.Settings.CaptureScreenshots && mapping != null)
+                    {
+                        var paths = rom.Value.LocalSave.SourceFilePaths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken)).ToList();
+
+                        SaveWatcher!.Setup(paths);
+                        await ScreenshotCapture!.Setup(processID, _plugin.Settings.SecondsBeforeSave);
+
+                        await ScreenshotCapture.Start();
+                        await SaveWatcher.Start();
+                    }
+                    
+                }  
+            }
+        }
+
+        public static async Task GameStopped()
+        {
+            if (_plugin.Settings.SaveSyncEnabled && _plugin.Settings.UploadSaveOnFinished)
+            {
+                var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Key == GameID);
+                if (rom.Value != null)
+                {
+                    if (_plugin.Settings.CaptureScreenshots)
+                    {
+                        _ = SaveWatcher!.Stop();
+                        await ScreenshotCapture!.Stop();
+                    }
+
+                    if (rom.Value.LocalSave.IsTempRestored)
+                    {
+                        await SaveManager.CheckRestoredSaveNeedUploading(rom.Value, SaveWatcher?.NewestSaveScreenshot);
+                    }
+                    else
+                    {
+                        await SaveNegotiator.NegotiateSave(rom.Value, SaveWatcher?.NewestSaveScreenshot);
+                    }
+                }
+            }
+        }
+
+        public static async Task<GravitonSave> Upload(GravitonSave save, bool overwrite = false, byte[]? screenshot = null)
         {
             if (_plugin.IsAGameRunning)
             {
@@ -127,6 +193,18 @@ namespace Graviton.Saves
                 var result = JsonSerializer.Deserialize<RomMSave>(stringresponse.ReadToEnd());
                 if (result == null)
                     throw new Exception();
+
+                if(screenshot != null)
+                {
+                    content = new MultipartFormDataContent();
+
+                    savecontent = new ByteArrayContent(screenshot);
+                    savecontent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                    content.Add(savecontent, "screenshotFile", Path.GetFileName(result.FileName!));
+
+                    _ = await HttpClientSingleton.RomMPutContentAsync($"/api/saves/{rom.Id}&device_id={_plugin.Settings.AccountState.DeviceID}", content);
+
+                }
 
                 if (save.HistoricSaves == null)
                     save.HistoricSaves = new();
@@ -423,7 +501,7 @@ namespace Graviton.Saves
             return await TrackNewLocalSave(newsave);
         }
 
-        public static async Task CheckRestoredSaveNeedUploading(RomMRomLocal rom)
+        public static async Task CheckRestoredSaveNeedUploading(RomMRomLocal rom, byte[]? screenshot = null)
         {
             var negotiate = SaveNegotiator.BuildNegotiate(new() { rom });
             if (negotiate.Saves.Count <= 0) // Nothing to sync
@@ -434,7 +512,7 @@ namespace Graviton.Saves
 
             if (rom.LocalSave.LastSyncedContentHash != negotiate.Saves[0].ContentHash)
             {
-                var result = await Upload(rom.LocalSave);
+                var result = await Upload(rom.LocalSave, false, screenshot);
                 if(result.Status == SaveStatus.Synced)
                 {
                     rom.LocalSave.IsTempRestored = false;

@@ -1,5 +1,6 @@
 ﻿using Graviton.Models.Notifications;
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -14,19 +15,13 @@ using Windows.Graphics.Capture;
 using Windows.Graphics.DirectX;
 using Windows.Graphics.DirectX.Direct3D11;
 
+using WinRT;
+
 namespace Graviton.Saves
 {
     record BufferedFrame(DateTime Timestamp, byte[] Screenshot);
 
-    public enum ScreenshotResolution
-    {
-        P720 = 720,
-        P1080 = 1080,
-        P1440 = 1440,
-        UHD4K = 2160
-    }
-
-    internal class ScreenshotService
+    public class ScreenshotService
     {
         #region COM Imports
         [ComImport]
@@ -57,22 +52,28 @@ namespace Graviton.Saves
         };
 
         private bool IsSetup = false;
-        private int MaxFrames => GravitonPlugin.Instance.Settings.SecondsBeforeSave;
+        private int MaxFrames;
+        private int FrameCaptureInterval;
 
         private GraphicsCaptureItem? Window;
         private ID3D11Device? D3D11Device;
         private Direct3D11CaptureFramePool? FramePool;
         private GraphicsCaptureSession? Session;
-        private Queue<BufferedFrame> Frames = new();
+        private ConcurrentQueue<BufferedFrame> Frames = new();
 
         private DateTime NextFrameCapturedTime;
 
-        public async Task Setup(int processID)
+        public ScreenshotService()
+        {
+
+        }
+
+        public async Task<bool> Setup(int processID, int maxFramesCaptured, int intervalBetweenFrameCaptures = 1000)
         {
             if (!GraphicsCaptureSession.IsSupported())
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.screencap.notsupported", "Cannot setup screenshot capture as this device doesn't support it!", GravitonSeverity.Warn));
-                return;
+                return false;
             }
                 
             // Wait for emulator to start before trying to setup capture
@@ -82,15 +83,14 @@ namespace Graviton.Saves
             {
                 var windowHandle = await FindWindow(processID);
                 if (windowHandle == IntPtr.Zero)
-                {
-                    
-                    return;
-                }
+                    throw new Exception($"Failed to find window handle");
 
                 var interop = GraphicsCaptureItem.As<IGraphicsCaptureItemInterop>();
                 var ptr = interop.CreateForWindow(windowHandle, GraphicsCaptureItemGuid);
 
-                Window = GraphicsCaptureItem.FromAbi(ptr);
+                Window = GraphicsCaptureItem.FromAbi(ptr) ?? null;
+                if (Window == null)
+                    throw new Exception($"Failed to get window");
 
                 D3D11Device = D3D11.D3D11CreateDevice(driverType: DriverType.Hardware, flags: DeviceCreationFlags.BgraSupport | DeviceCreationFlags.VideoSupport, FeatureLevel.Level_11_0);
                 if (D3D11Device == null) 
@@ -108,12 +108,15 @@ namespace Graviton.Saves
                 FramePool = Direct3D11CaptureFramePool.CreateFreeThreaded(device, DirectXPixelFormat.B8G8R8A8UIntNormalized, 3, Window.Size);
                 Session = FramePool.CreateCaptureSession(Window);
 
+                MaxFrames = maxFramesCaptured;
+                FrameCaptureInterval = intervalBetweenFrameCaptures;
                 IsSetup = true;
+                return true;
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.screencap.setupfailed", "Failed to setup window capture!", GravitonSeverity.Warn, ex));
-                return;
+                 GravitonPlugin.Logger.Error($"Failed to setup window capture!\n{ex}");
+                return false;
             }
         }
 
@@ -134,6 +137,36 @@ namespace Graviton.Saves
         {
             Session?.Dispose();
             FramePool?.FrameArrived -= ProcessNewFrame;
+        }
+
+        public byte[]? GetScreenshotFromSecondsAgo(int seconds)
+        {
+            var target = DateTime.UtcNow.AddSeconds(-seconds);
+            BufferedFrame? closestFrame = null;
+            var minDifference = TimeSpan.MaxValue;
+
+            foreach (var frame in Frames)
+            {
+                var diff = (frame.Timestamp - target).Duration();
+                if (diff > TimeSpan.FromMilliseconds(FrameCaptureInterval) || diff < TimeSpan.FromMilliseconds(-FrameCaptureInterval))
+                    continue;
+
+                if (diff < minDifference)
+                {
+                    minDifference = diff;
+                    closestFrame = frame;
+                }
+            }
+
+            if (closestFrame == null)
+            {
+                GravitonPlugin.Logger.Error("Failed to find screenshot close to the requested time");
+                return null;
+            }
+            else
+            {
+                return closestFrame.Screenshot;
+            }   
         }
 
         private async Task<IntPtr> FindWindow(int processID)
@@ -157,9 +190,9 @@ namespace Graviton.Saves
 
             if (now >= NextFrameCapturedTime)
             {
-                NextFrameCapturedTime = now.AddSeconds(1);
+                NextFrameCapturedTime = now.AddMilliseconds(FrameCaptureInterval);
 
-                var access = (IDirect3DDxgiInterfaceAccess)(object)frame.Surface;
+                var access = frame.Surface.As<IDirect3DDxgiInterfaceAccess>();
                 var iid = typeof(ID3D11Texture2D).GUID;
                 var texturePtr = access.GetInterface(ref iid);
 
@@ -230,7 +263,7 @@ namespace Graviton.Saves
                 }
 
                 while (Frames.Count > MaxFrames)
-                    Frames.Dequeue();
+                    Frames.TryDequeue(out _);
             }
         }
 

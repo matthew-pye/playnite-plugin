@@ -8,7 +8,7 @@
              xmlns:models="clr-namespace:Graviton.Models.Saves"
              xmlns:psdk="clr-namespace:Playnite.Desktop;assembly=Playnite.SDK"
              mc:Ignorable="d"
-             d:DesignHeight="900" d:DesignWidth="750">
+             d:DesignHeight="2000" d:DesignWidth="750">
 
     <UserControl.Resources>
         <ResourceDictionary>
@@ -19,6 +19,11 @@
             <ObjectDataProvider x:Key="SaveConflictResolveValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
                 <ObjectDataProvider.MethodParameters>
                     <x:Type TypeName="models:SaveConflictResolve"/>
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+            <ObjectDataProvider x:Key="ScreenshotResolutionValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="models:ScreenshotResolution"/>
                 </ObjectDataProvider.MethodParameters>
             </ObjectDataProvider>
         </ResourceDictionary>
@@ -135,6 +140,28 @@
                         <TextBlock Name="AutoCleanupSavesText" Text="Auto Cleanup Saves" Margin="5,0,5,0" VerticalAlignment="Center"/>
                         <psdk:NumericUpDown Value="{Binding AutoCleanupSavesLimit, Mode=TwoWay}" Minimum="1" Maximum="100" Width="70" IsEnabled="{Binding AutoCleanupSaves}"/>
                     </StackPanel>
+
+                    <Separator Background="{DynamicResource Graviton.TransparentBackground.Colour}" Margin="15, 10"/>
+
+                    <TextBlock Name="ScreenshotTitle" Text="Screenshots" FontWeight="Bold" FontSize="16" Margin="10,0,10,15" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+
+                    <CheckBox IsChecked="{Binding CaptureScreenshots, Mode=TwoWay}" Margin="5" IsEnabled="{Binding SaveSyncEnabled}">
+                        <TextBlock Name="ScreenCapText" Text="Enable In-game screenshot capture for saves" TextWrapping="Wrap"/>
+                    </CheckBox>
+
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <TextBlock Name="MaxResolutionBox" Text="Max Screenshot Resolution" MinWidth="180" VerticalAlignment="Center"/>
+                        <ComboBox MinWidth="180" ItemsSource="{Binding Source={StaticResource ScreenshotResolutionValues}}" SelectedItem="{Binding ScreenshotResolution, Mode=TwoWay}" IsEnabled="{Binding CaptureScreenshots}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <TextBlock Name="SecondsBeforeTitle" Margin="5,5,5,0" Text="Use screenshot from N seconds before save write occurs" Foreground="{DynamicResource Graviton.Text.Colour}"/>
+                    <Slider Name="ScreenshotMaxCapture" Grid.Column="0" Margin="10,5,15,5" Value="{Binding SecondsBeforeSave}" VerticalAlignment="Center" Minimum="5" Maximum="60" TickPlacement="BottomRight" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="{Binding CaptureScreenshots}"/>
                 </StackPanel>
             </Border>
 

@@ -43,7 +43,7 @@ namespace Graviton
 
         internal ConcurrentDictionary<string, RomMRomLocal>? ImportedGames { get; private set; }
 
-        internal bool IsAGameRunning { get; private set; } = false;
+        public bool IsAGameRunning = false;
 
         internal GravitonPluginSettings Settings 
         { 
@@ -343,20 +343,23 @@ namespace Graviton
         {
             if (args.Game.LibraryId == Id && args.Game.LibraryGameId != null)
             {
-                if (Settings.SaveSyncEnabled && Settings.DownloadSaveOnLaunch)
-                {
-                    var rom = ImportedGames!.FirstOrDefault(x => x.Key == args.Game.LibraryGameId);
-                    if(rom.Value != null && !rom.Value.LocalSave.IsTempRestored)
-                    {
-                        await SaveNegotiator.NegotiateSave(rom.Value);
-                    }
-                }
-
-                IsAGameRunning = true;
+                await SaveManager.GameStarting(args.Game.LibraryGameId);
                 _ = StatusController?.StartActivityHeartbeat(args.Game.LibraryGameId);
+                IsAGameRunning = true;
             }
 
             await base.OnGameStartingAsync(args);
+            return;
+        }
+
+        public override async Task OnGameStartedAsync(OnGameStartedEventArgs args)
+        {
+            if (args.StartingArgs.Game.LibraryId == Id && args.StartingArgs.Game.LibraryGameId != null)
+            {
+                _ = SaveManager.GameStarted(args.StartedArgs.StartedProcessId);
+            }
+
+            await base.OnGameStartedAsync(args);
             return;
         }
 
@@ -367,25 +370,9 @@ namespace Graviton
             if (args.StartingArgs.Game.LibraryId == Id)
             {
                 IsAGameRunning = false;
-
+                _ = SaveManager.GameStopped();
                 StatusController?.StopActivityHeartbeat();
                 await StatusController!.PushPlaySession(args.StartingArgs.Game.LibraryGameId!, stoppedTime, args.StoppedArgs.SessionLength*1000);
-
-                if (Settings.SaveSyncEnabled && Settings.UploadSaveOnFinished)
-                {
-                    var rom = ImportedGames!.FirstOrDefault(x => x.Key == args.StartingArgs.Game.LibraryGameId);
-                    if (rom.Value != null)
-                    {
-                        if(rom.Value.LocalSave.IsTempRestored)
-                        {
-                            await SaveManager.CheckRestoredSaveNeedUploading(rom.Value);
-                        }
-                        else
-                        {
-                            await SaveNegotiator.NegotiateSave(rom.Value);
-                        }
-                    }
-                }
             }
             await base.OnGameStoppedAsync(args);
             return;

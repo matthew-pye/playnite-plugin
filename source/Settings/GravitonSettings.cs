@@ -4,7 +4,6 @@ using Graviton.Models;
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Platform;
 using Graviton.Models.Saves;
-using Graviton.Saves;
 
 using Playnite;
 
@@ -171,6 +170,10 @@ namespace Graviton.Settings
                 SaveConflictStyle = this.SaveConflictStyle,
                 AutoCleanupSaves = this.AutoCleanupSaves,
                 AutoCleanupSavesLimit = this.AutoCleanupSavesLimit,
+
+                CaptureScreenshots = this.CaptureScreenshots,
+                ScreenshotResolution = this.ScreenshotResolution,
+                SecondsBeforeSave = this.SecondsBeforeSave,
 
                 Mappings = new(this.Mappings),
 
