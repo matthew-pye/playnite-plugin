@@ -1,0 +1,1960 @@
+﻿using Graviton.Models.Notifications;
+
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Runtime.InteropServices;
+
+using Vortice.Direct3D;
+using Vortice.Direct3D11;
+using Vortice.DXGI;
+
+using Windows.Graphics.Capture;
+using Windows.Graphics.DirectX;
+using Windows.Graphics.DirectX.Direct3D11;
+
+using WinRT;
+
+namespace Graviton.Saves
+{
+    record BufferedFrame(DateTime Timestamp, byte[] Screenshot);
+
+    public class ScreenshotService
+    {
+        #region COM Imports
+        [ComImport]
+        [Guid("3628E81B-3CAC-4C60-B7F4-23CE0E0C3356")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IGraphicsCaptureItemInterop
+        {
+            IntPtr CreateForWindow([In] IntPtr window, [In] ref Guid iid);
+            IntPtr CreateForMonitor([In] IntPtr monitor, [In] ref Guid iid);
+        }
+
+        private Guid GraphicsCaptureItemGuid = new("79C3F95B-31F7-4EC2-A464-632EF5D30760");
+
+        [DllImport("d3d11.dll", CallingConvention = CallingConvention.Winapi)]
+        private static extern uint CreateDirect3D11DeviceFromDXGIDevice(IntPtr dxgiDevice, out IntPtr graphicsDevice);
+
+        [ComImport]
+        [Guid("A9B3D012-3DF2-4EE3-B8D1-8695F457D3C1")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IDirect3DDxgiInterfaceAccess { IntPtr GetInterface([In] ref Guid iid); }
+        #endregion
+
+        private static readonly ImageCodecInfo JpegEncoder = ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == ImageFormat.Jpeg.Guid);
+
+        private static readonly EncoderParameters JpegEncoderParams = new(1)
+        {
+            Param = { [0] = new EncoderParameter(Encoder.Quality, 85L) }
+        };
+
+        private bool IsSetup = false;
+        private int MaxFrames;
+        private int FrameCaptureInterval;
+
+        private GraphicsCaptureItem? Window;
+        private ID3D11Device? D3D11Device;
+        private IDirect3DDevice? Direct3DDevice;
+        private Direct3D11CaptureFramePool? FramePool;
+        private GraphicsCaptureSession? Session;
+        private ConcurrentQueue<BufferedFrame> Frames = new();
+        private Windows.Graphics.SizeInt32 LastFrameSize;
+
+        private DateTime NextFrameCapturedTime;
+
+        public ScreenshotService()
+        {
+
+        }
+
+        public async Task<bool> Setup(int processID, int maxFramesCaptured, int intervalBetweenFrameCaptures = 1000)
+        {
+            if (!GraphicsCaptureSession.IsSupported())
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.screencap.notsupported", "Cannot setup screenshot capture as this device doesn't support it!", GravitonSeverity.Warn));
+                return false;
+            }
+                
+            // Wait for emulator to start before trying to setup capture
+            await Task.Delay(2000);
+
+            try
+            {
+                var windowHandle = await FindWindow(processID);
+                if (windowHandle == IntPtr.Zero)
+                    throw new Exception($"Failed to find window handle");
+
+                var interop = GraphicsCaptureItem.As<IGraphicsCaptureItemInterop>();
+                var ptr = interop.CreateForWindow(windowHandle, GraphicsCaptureItemGuid);
+
+                Window = GraphicsCaptureItem.FromAbi(ptr) ?? null;
+                if (Window == null)
+                    throw new Exception($"Failed to get window");
+
+                D3D11Device = D3D11.D3D11CreateDevice(driverType: DriverType.Hardware, flags: DeviceCreationFlags.BgraSupport | DeviceCreationFlags.VideoSupport, FeatureLevel.Level_11_0);
+                if (D3D11Device == null) 
+                    throw new InvalidOperationException("Failed to create D3D11 device");
+
+                var dxgiDevice = D3D11Device.QueryInterface<IDXGIDevice>();
+
+                uint hr = CreateDirect3D11DeviceFromDXGIDevice(dxgiDevice.NativePointer, out var graphicsDevice);
+                if (hr != 0)
+                    throw new Exception($"CreateDirect3D11DeviceFromDXGIDevice failed. HRESULT: {hr:X}");
+
+                Direct3DDevice = WinRT.MarshalInterface<IDirect3DDevice>.FromAbi(graphicsDevice);
+                Marshal.Release(graphicsDevice);
+
+                FramePool = Direct3D11CaptureFramePool.Create(Direct3DDevice, DirectXPixelFormat.B8G8R8A8UIntNormalized, 3, Window.Size);
+                Session = FramePool.CreateCaptureSession(Window);
+                LastFrameSize = Window.Size;
+
+                Window.Closed += (_, _) => _ = Stop();
+
+                MaxFrames = maxFramesCaptured;
+                FrameCaptureInterval = intervalBetweenFrameCaptures;
+                IsSetup = true;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                 GravitonPlugin.Logger.Error($"Failed to setup window capture!\n{ex}");
+                return false;
+            }
+        }
+
+        public async Task Start()
+        {
+            if (!IsSetup || Window == null)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.screencap.notsetup", "Cannot start screenshot capture as setup wasn't completed!", GravitonSeverity.Warn));
+                return;
+            }
+
+            FramePool?.FrameArrived += ProcessNewFrame;
+            Session!.StartCapture();
+
+        }
+
+        public async Task Stop()
+        {
+            IsSetup = false;
+            Session?.Dispose();
+            FramePool?.FrameArrived -= ProcessNewFrame;
+        }
+
+        public byte[]? GetScreenshotFromSecondsAgo(int seconds)
+        {
+            var target = DateTime.UtcNow.AddSeconds(-seconds);
+            BufferedFrame? closestFrame = null;
+            var minDifference = TimeSpan.MaxValue;
+
+            foreach (var frame in Frames)
+            {
+                var diff = (frame.Timestamp - target).Duration();
+                if (diff > TimeSpan.FromMilliseconds(FrameCaptureInterval) || diff < TimeSpan.FromMilliseconds(-FrameCaptureInterval))
+                    continue;
+
+                if (diff < minDifference)
+                {
+                    minDifference = diff;
+                    closestFrame = frame;
+                }
+            }
+
+            if (closestFrame == null)
+            {
+                GravitonPlugin.Logger.Error("Failed to find screenshot close to the requested time");
+                return null;
+            }
+            else
+            {
+                return closestFrame.Screenshot;
+            }   
+        }
+
+        private async Task<IntPtr> FindWindow(int processID)
+        {
+            // This may need changing to enumerating the processes top-level windows
+            // As some emulators may not set the main window correctly
+            Process process = Process.GetProcessById(processID);
+            process.WaitForInputIdle();
+            process.Refresh();
+
+            return process.MainWindowHandle;
+        }
+
+        private void ProcessNewFrame(Direct3D11CaptureFramePool sender, object args)
+        {
+            try
+            {
+                if (!IsSetup)
+                    return;
+
+                using var frame = sender.TryGetNextFrame();
+                if (frame == null)
+                    return;
+
+                if (frame.ContentSize.Width != LastFrameSize.Width || frame.ContentSize.Height != LastFrameSize.Height)
+                {
+                    if (frame.ContentSize.Width <= 0 || frame.ContentSize.Height <= 0)
+                    {
+                        GravitonPlugin.Logger.Warn("Capture target reported an invalid size; stopping capture.");
+                        _ = Stop();
+                        return;
+                    }
+
+                    FramePool!.Recreate(Direct3DDevice, DirectXPixelFormat.B8G8R8A8UIntNormalized, 3, frame.ContentSize);
+                    LastFrameSize = frame.ContentSize;
+                    return;
+                }
+
+                var now = DateTime.UtcNow;
+
+                if (now >= NextFrameCapturedTime)
+                {
+                    NextFrameCapturedTime = now.AddMilliseconds(FrameCaptureInterval);
+
+                    var access = frame.Surface.As<IDirect3DDxgiInterfaceAccess>();
+                    var iid = typeof(ID3D11Texture2D).GUID;
+                    var texturePtr = access.GetInterface(ref iid);
+
+                    using var sourceTexture = new ID3D11Texture2D(texturePtr);
+                    Marshal.Release(texturePtr);
+                    var desc = sourceTexture.Description with
+                    {
+                        Usage = ResourceUsage.Staging,
+                        BindFlags = BindFlags.None,
+                        CPUAccessFlags = CpuAccessFlags.Read,
+                        MiscFlags = ResourceOptionFlags.None
+                    };
+                    using var copy = D3D11Device!.CreateTexture2D(desc);
+                    D3D11Device.ImmediateContext.CopyResource(copy, sourceTexture);
+
+                    var mapped = D3D11Device.ImmediateContext.Map(copy, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+                    try
+                    {
+                        using var fullResView = new Bitmap((int)desc.Width, (int)desc.Height, (int)mapped.RowPitch, PixelFormat.Format32bppRgb, mapped.DataPointer);
+
+                        int targetHeight;
+                        int targetWidth;
+                        bool skipShrink = false;
+
+                        if (desc.Width < desc.Height)
+                        {
+                            targetWidth = (int)Math.Min((int)GravitonPlugin.Instance.Settings.ScreenshotResolution, desc.Width);
+                            targetHeight = (int)Math.Round(desc.Height * (targetWidth / (double)desc.Width));
+
+                            if (targetWidth == desc.Width)
+                            {
+                                skipShrink = true;
+                            }
+                        }
+                        else
+                        {
+                            targetHeight = (int)Math.Min((int)GravitonPlugin.Instance.Settings.ScreenshotResolution, desc.Height);
+                            targetWidth = (int)Math.Round(desc.Width * (targetHeight / (double)desc.Height));
+
+                            if (targetHeight == desc.Height)
+                            {
+                                skipShrink = true;
+                            }
+                        }
+
+                        using var ms = new MemoryStream();
+
+                        if (skipShrink)
+                        {
+                            fullResView.Save(ms, JpegEncoder, JpegEncoderParams);
+                        }
+                        else
+                        {
+                            using var small = new Bitmap(targetWidth, targetHeight, PixelFormat.Format32bppRgb);
+                            using (var g = Graphics.FromImage(small))
+                            {
+                                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
+                                g.DrawImage(fullResView, 0, 0, targetWidth, targetHeight);
+                            }
+                            small.Save(ms, JpegEncoder, JpegEncoderParams);
+                        }
+
+                        Frames.Enqueue(new(now, ms.ToArray()));
+                    }
+                    finally
+                    {
+                        D3D11Device.ImmediateContext.Unmap(copy, 0);
+                    }
+
+                    while (Frames.Count > MaxFrames)
+                        Frames.TryDequeue(out _);
+                }
+            }
+            catch (Exception ex)
+            {
+                GravitonPlugin.Logger.Error($"Failed to process captured frame!\n{ex}");
+            }
+        }
+
+    }
+}
+
+
+/*
+
+************* Preparing the environment for Debugger Extensions Gallery repositories **************
+   ExtensionRepository : Implicit
+   UseExperimentalFeatureForNugetShare : true
+   AllowNugetExeUpdate : true
+   NonInteractiveNuget : true
+   AllowNugetMSCredentialProviderInstall : true
+   AllowParallelInitializationOfLocalRepositories : true
+
+   -- Configuring repositories
+      ----> Repository : LocalInstalled, Enabled: true
+      ----> Repository : UserExtensions, Enabled: true
+
+>>>>>>>>>>>>> Preparing the environment for Debugger Extensions Gallery repositories completed, duration 0.000 seconds
+
+************* Waiting for Debugger Extensions Gallery to Initialize **************
+
+>>>>>>>>>>>>> Waiting for Debugger Extensions Gallery to Initialize completed, duration 0.297 seconds
+   ----> Repository : UserExtensions, Enabled: true, Packages count: 0
+   ----> Repository : LocalInstalled, Enabled: true, Packages count: 46
+
+Microsoft (R) Windows Debugger Version 10.0.29617.1000 AMD64
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+
+Loading Dump File [C:\Users\Matt\Documents\Programming\Playnite 11\Playnite11.Desktop.exe_260731_194040.dmp]
+User Mini Dump File with Full Memory : Only application data is available
+
+Comment: '
+*** procdump  -e -ma Playnite11.Desktop.exe
+*** Unhandled exception: E06D7363.?AUhresult_no_interface@winrt@@'
+Symbol search path is: srv*
+Executable search path is: 
+Windows 10 Version 19044 MP (16 procs) Free x64
+Product: WinNt, suite: SingleUserTS
+Edition build lab: 19041.1.amd64fre.vb_release.191206-1406
+Debug session time: Fri Jul 31 19:40:40.000 2026 (UTC + 1:00)
+System Uptime: 1 days 9:27:38.376
+Process Uptime: 0 days 0:00:27.000
+................................................................
+................................................................
+................................................................
+................................................................
+................................................................
+...................................
+Loading unloaded module list
+.................
+This dump file has an exception of interest stored in it.
+The stored exception information can be accessed via .ecxr
+(212c.5d68): C++ EH exception - code e06d7363 (first/second chance not available)
+
++------------------------------------------------------------------------+
+| This target supports Hardware-enforced Stack Protection. A HW based    |
+| "Shadow Stack" may be available to assist in debugging and analysis.   |
+| See aka.ms/userhsp for more info.                                      |
+|                                                                        |
+| dps @ssp                                                               |
+|                                                                        |
++------------------------------------------------------------------------+
+
+For analysis of this file, run !analyze -v
+KERNELBASE!RaiseException+0x69:
+00007ffc`ea6f5369 0f1f440000      nop     dword ptr [rax+rax]
+0:101> !analyze -v
+................................................................
+................................................................
+................................................................
+................................................................
+................................................................
+................................................................
+................................................................
+..........................................
+Loading unloaded module list
+.................
+ClrmaManagedAnalysis::AssociateClient
+Loading extension C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\winext\sos\extensions\Microsoft.Diagnostics.DataContractReader.dll
+Loading extension C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\winext\sos\extensions\Microsoft.Diagnostics.DataContractReader.Extension.dll
+Loading extension C:\Program Files\WindowsApps\Microsoft.WinDbg_1.2606.22001.0_x64__8wekyb3d8bbwe\amd64\winext\sos\extensions\Microsoft.Diagnostics.DebuggerCommands.dll
+AssociateClient trying managed CLRMA
+AssociateClient got managed CLRMA service
+AssociateClient trying DAC CLRMA
+*******************************************************************************
+*                                                                             *
+*                        Exception Analysis                                   *
+*                                                                             *
+*******************************************************************************
+
+ClrmaManagedAnalysis::GetThread 5d68
+ClrmaThread::Initialize 5d68
+~ClrmaThread
+ClrmaManagedAnalysis::get_ProviderName
+ClrmaManagedAnalysis::GetThread ffffffff
+ClrmaThread::Initialize 5d68
+ClrmaThread::get_CurrentException
+ClrmaThread::get_NestedExceptionCount
+~ClrmaThread
+
+KEY_VALUES_STRING: 1
+
+    Key  : Analysis.CPU.mSec
+    Value: 1031
+
+    Key  : Analysis.Elapsed.mSec
+    Value: 7032
+
+    Key  : Analysis.IO.Other.Mb
+    Value: 49
+
+    Key  : Analysis.IO.Read.Mb
+    Value: 2
+
+    Key  : Analysis.IO.Write.Mb
+    Value: 214
+
+    Key  : Analysis.Init.CPU.mSec
+    Value: 1671
+
+    Key  : Analysis.Init.Elapsed.mSec
+    Value: 51934
+
+    Key  : Analysis.Memory.CommitPeak.Mb
+    Value: 401
+
+    Key  : Analysis.Version.DbgEng
+    Value: 10.0.29617.1000
+
+    Key  : Analysis.Version.Description
+    Value: 10.2604.29.1 amd64fre
+
+    Key  : Analysis.Version.Ext
+    Value: 1.2604.29.1
+
+    Key  : CLR.Engine
+    Value: CORECLR
+
+    Key  : CLR.Version
+    Value: 10.0.1026.32716
+
+    Key  : Failure.Bucket
+    Value: CPP_EXCEPTION_e06d7363_ucrtbase.dll!CxxThrowException
+
+    Key  : Failure.Exception.Code
+    Value: 0xe06d7363
+
+    Key  : Failure.Exception.IP.Address
+    Value: 0x7ffcea6f5369
+
+    Key  : Failure.Exception.IP.Module
+    Value: KERNELBASE
+
+    Key  : Failure.Exception.IP.Offset
+    Value: 0x25369
+
+    Key  : Failure.Hash
+    Value: {38db02d4-dfbf-e3e6-4730-266279b4809c}
+
+    Key  : Failure.ProblemClass.Primary
+    Value: CPP_EXCEPTION
+
+    Key  : Faulting.IP.Type
+    Value: Paged
+
+    Key  : Timeline.OS.Boot.DeltaSec
+    Value: 120458
+
+    Key  : Timeline.Process.Start.DeltaSec
+    Value: 27
+
+    Key  : WER.OS.Branch
+    Value: vb_release
+
+    Key  : WER.OS.Version
+    Value: 10.0.19041.1
+
+    Key  : WER.Process.Version
+    Value: 1.0.0.0
+
+
+FILE_IN_CAB:  Playnite11.Desktop.exe_260731_194040.dmp
+
+COMMENT:  
+*** procdump  -e -ma Playnite11.Desktop.exe
+*** Unhandled exception: E06D7363.?AUhresult_no_interface@winrt@@
+
+NTGLOBALFLAG:  0
+
+APPLICATION_VERIFIER_FLAGS:  0
+
+EXCEPTION_RECORD:  (.exr -1)
+ExceptionAddress: 00007ffcea6f5369 (KERNELBASE!RaiseException+0x0000000000000069)
+   ExceptionCode: e06d7363 (C++ EH exception)
+  ExceptionFlags: 00000001
+NumberParameters: 4
+   Parameter[0]: 0000000019930520
+   Parameter[1]: 00000088b4aff9f0
+   Parameter[2]: 00007ffb731ce4f0
+   Parameter[3]: 00007ffb731b0000
+
+PROCESS_NAME:  Playnite11.Desktop.dll
+
+ERROR_CODE: (NTSTATUS) 0xe06d7363 - <Unable to get error code text>
+
+EXCEPTION_CODE_STR:  e06d7363
+
+EXCEPTION_PARAMETER1:  0000000019930520
+
+EXCEPTION_PARAMETER2:  00000088b4aff9f0
+
+EXCEPTION_PARAMETER3:  00007ffb731ce4f0
+
+EXCEPTION_PARAMETER4: 7ffb731b0000
+
+STACK_TEXT:  
+00000088`b4aff880 00007ffc`eaa3da1d     : 00000088`b4affa10 00007ffb`731b3f92 00000000`00000000 00000000`00000000 : KERNELBASE!RaiseException+0x69
+00000088`b4aff960 00007ffb`731b4102     : 00007ffb`731b0000 00000118`75ba7691 00000088`b4affb10 00000000`00000050 : ucrtbase!CxxThrowException+0xad
+00000088`b4aff9d0 00007ffb`731c0de5     : 00000118`75ba7691 00000088`b4affb10 000001d3`0b1d9e20 000001d3`0b1d9e20 : GraphicsCapture!winrt::throw_hresult+0xf6
+00000088`b4affa20 00007ffb`731c08ae     : 00000000`00000000 00000000`00000000 00000000`00989680 00000438`00000780 : GraphicsCapture!winrt::Windows::Graphics::Capture::implementation::Direct3D11CaptureFramePool::EnqueueCaptureFrame+0x1d5
+00000088`b4affab0 00007ffc`e67f7b59     : 000001d3`1b84e0a0 000001d3`1c20d410 00000000`00000000 00000000`00000001 : GraphicsCapture!winrt::Windows::Graphics::Capture::implementation::Direct3D11CaptureFramePool::ContentUpdated+0xe
+00000088`b4affaf0 00007ffc`e67f77e4     : 00000000`00000000 000001d3`1c15d8f8 000001d3`1b84e0a0 00007ffc`e66c4568 : dcomp!Flip::CFlipConsumer::ProcessUpdateContent+0x8d
+00000088`b4affb40 00007ffc`e67f6ea8     : 00000000`00000000 000001d3`1c15d8f8 00000000`00000000 00000000`00000000 : dcomp!Flip::CFlipConsumer::ProcessPresent+0xb8
+00000088`b4affbc0 00007ffb`731c10a7     : 00000000`00000000 00000000`00000000 000001d3`1c15d8d0 000001d3`1b63b118 : dcomp!Flip::CFlipConsumer::DispatchPresent+0x198
+00000088`b4affcf0 00007ffc`eb047374     : 000001d3`1b63b118 000001d3`1c15d8d0 000001d3`1c15d980 00000000`00000000 : GraphicsCapture!winrt::Windows::Graphics::Capture::implementation::Direct3D11CaptureFramePool::PresentThread+0xd7
+00000088`b4affd50 00007ffc`ecc5cc91     : 00000000`00000000 00000000`00000000 00000000`00000000 00000000`00000000 : kernel32!BaseThreadInitThunk+0x14
+00000088`b4affd80 00000000`00000000     : 00000000`00000000 00000000`00000000 00000000`00000000 00000000`00000000 : ntdll!RtlUserThreadStart+0x21
+
+
+IP_IN_PAGED_CODE: 
+KERNELBASE!RaiseException+69
+00007ffc`ea6f5369 0f1f440000      nop     dword ptr [rax+rax]
+
+SYMBOL_NAME:  ucrtbase!CxxThrowException+ad
+
+MODULE_NAME: ucrtbase
+
+IMAGE_NAME:  ucrtbase.dll
+
+STACK_COMMAND: ~101s; .ecxr ; kb
+
+FAILURE_BUCKET_ID:  CPP_EXCEPTION_e06d7363_ucrtbase.dll!CxxThrowException
+
+OS_VERSION:  10.0.19041.1
+
+BUILDLAB_STR:  vb_release
+
+OSPLATFORM_TYPE:  x64
+
+OSNAME:  Windows 10
+
+IMAGE_VERSION:  6.2.19041.7548
+
+FAILURE_ID_HASH:  {38db02d4-dfbf-e3e6-4730-266279b4809c}
+
+Followup:     MachineOwner
+---------
+
+CLRMAReleaseInstance
+~ClrmaManagedAnalysis
+0:101> ~*k
+
+   0  Id: 212c.521c Suspend: 0 Teb: 00000088`a5760000 Unfrozen
+*** WARNING: Unable to verify checksum for Playnite11.Desktop.dll
+ # Child-SP          RetAddr               Call Site
+00 00000088`a597e0c8 00007ffc`ec05210e     win32u!NtUserGetMessage+0x14
+01 00000088`a597e0d0 00007ffb`4e3437fd     user32!GetMessageW+0x2e
+02 00000088`a597e130 00007ffb`509ad5ea     DirectWriteForwarder!ILStubClass.IL_STUB_PInvoke(System.Windows.Interop.MSG ByRef, System.Runtime.InteropServices.HandleRef, Int32, Int32)+0x8d
+03 00000088`a597e1f0 00007ffb`b5711e81     WindowsBase!System.Windows.Threading.Dispatcher.GetMessage+0x6a [/_/src/wpf/src/Microsoft.DotNet.Wpf/src/WindowsBase/System/Windows/Threading/Dispatcher.cs @ 2111] 
+04 00000088`a597e280 00007ffb`8b6297b5     WindowsBase!System.Windows.Threading.Dispatcher.PushFrameImpl+0x81 [/_/src/wpf/src/Microsoft.DotNet.Wpf/src/WindowsBase/System/Windows/Threading/Dispatcher.cs @ 2064] 
+05 00000088`a597e300 00007ffb`8b6281b3     PresentationFramework!System.Windows.Application.RunDispatcher+0x25 [/_/src/wpf/src/Microsoft.DotNet.Wpf/src/PresentationFramework/System/Windows/Application.cs @ 2401] 
+06 00000088`a597e340 00007ffb`4db226ca     PresentationFramework!System.Windows.Application.RunInternal+0x143 [/_/src/wpf/src/Microsoft.DotNet.Wpf/src/PresentationFramework/System/Windows/Application.cs @ 1723] 
+07 00000088`a597e3a0 00007ffb`4db219c5     Playnite11_Desktop!Playnite.Desktop.Program.<Main>d__0.MoveNext+0x26a
+08 00000088`a597e4c0 00007ffb`4db2194c     System_Private_CoreLib!System.Runtime.CompilerServices.AsyncMethodBuilderCore.Start<<Main>d__0>+0x55 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/AsyncMethodBuilderCore.cs @ 38] 
+09 00000088`a597e530 00007ffb`4db218fe     System_Private_CoreLib!System.Runtime.CompilerServices.AsyncTaskMethodBuilder<int>.Start<<Main>d__0>+0x1c [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/AsyncTaskMethodBuilderT.cs @ 35] 
+0a 00000088`a597e560 00007ffb`4db2187e     Playnite11_Desktop!Playnite.Desktop.Program.Main+0x3e
+0b 00000088`a597e5b0 00007ffb`ad753b03     Playnite11_Desktop!Playnite.Desktop.Program.<Main>+0x1e
+0c 00000088`a597e5f0 00007ffb`ad612d28     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+0d (Inline Function) --------`--------     coreclr!CallDescrWorkerWithHandler+0x5b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 59] 
+0e 00000088`a597e630 00007ffb`ad6ffb34     coreclr!MethodDescCallSite::CallTargetWorker+0x414 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 555] 
+0f (Inline Function) --------`--------     coreclr!MethodDescCallSite::Call_RetArgSlot+0xf [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.h @ 446] 
+10 00000088`a597e7d0 00007ffb`ad6a811e     coreclr!RunMainInternal+0x124 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\assembly.cpp @ 1214] 
+11 00000088`a597e8f0 00007ffb`ad6a7adf     coreclr!RunMain+0x112 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\assembly.cpp @ 1279] 
+12 00000088`a597e990 00007ffb`ad6a8e95     coreclr!Assembly::ExecuteMainMethod+0x1b7 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\assembly.cpp @ 1407] 
+13 00000088`a597ec60 00007ffb`ad6f8287     coreclr!CorHost2::ExecuteAssembly+0x235 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\corhost.cpp @ 350] 
+14 00000088`a597ed70 00007ffc`306bdd0a     coreclr!coreclr_execute_assembly+0xd7 [D:\a\_work\1\s\src\runtime\src\coreclr\dlls\mscoree\exports.cpp @ 491] 
+15 (Inline Function) --------`--------     hostpolicy!coreclr_t::execute_assembly+0x29 [D:\a\_work\1\s\src\runtime\src\native\corehost\hostpolicy\coreclr.cpp @ 108] 
+16 00000088`a597ee10 00007ffc`306bdfac     hostpolicy!run_app_for_context+0x5ea [D:\a\_work\1\s\src\runtime\src\native\corehost\hostpolicy\hostpolicy.cpp @ 256] 
+17 00000088`a597ef40 00007ffc`306bef21     hostpolicy!run_app+0x3c [D:\a\_work\1\s\src\runtime\src\native\corehost\hostpolicy\hostpolicy.cpp @ 285] 
+18 00000088`a597ef80 00007ffc`c3bbd56b     hostpolicy!corehost_main+0x171 [D:\a\_work\1\s\src\runtime\src\native\corehost\hostpolicy\hostpolicy.cpp @ 426] 
+19 00000088`a597f080 00007ffc`c3bc029c     hostfxr!execute_app+0x2bb [D:\a\_work\1\s\src\runtime\src\native\corehost\fxr\fx_muxer.cpp @ 146] 
+1a 00000088`a597f110 00007ffc`c3bc2676     hostfxr!`anonymous namespace'::read_config_and_execute+0xac [D:\a\_work\1\s\src\runtime\src\native\corehost\fxr\fx_muxer.cpp @ 533] 
+1b 00000088`a597f210 00007ffc`c3bc079d     hostfxr!fx_muxer_t::handle_exec_host_command+0x1d6 [D:\a\_work\1\s\src\runtime\src\native\corehost\fxr\fx_muxer.cpp @ 1008] 
+1c 00000088`a597f2c0 00007ffc`c3bb8998     hostfxr!fx_muxer_t::execute+0x2ad [D:\a\_work\1\s\src\runtime\src\native\corehost\fxr\fx_muxer.cpp @ 579] 
+1d 00000088`a597f3f0 00007ff6`b5082f48     hostfxr!hostfxr_main_startupinfo+0xa8 [D:\a\_work\1\s\src\runtime\src\native\corehost\fxr\hostfxr.cpp @ 63] 
+1e 00000088`a597f4f0 00007ff6`b50833c6     Playnite11_Desktop_exe!exe_start+0xaa8 [D:\a\_work\1\s\src\runtime\src\native\corehost\corehost.cpp @ 264] 
+1f 00000088`a597f6a0 00007ff6`b5093b28     Playnite11_Desktop_exe!wmain+0x156 [D:\a\_work\1\s\src\runtime\src\native\corehost\corehost.cpp @ 335] 
+20 (Inline Function) --------`--------     Playnite11_Desktop_exe!invoke_main+0x22 [D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl @ 90] 
+21 00000088`a597f720 00007ffc`eb047374     Playnite11_Desktop_exe!__scrt_common_main_seh+0x10c [D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl @ 288] 
+22 00000088`a597f760 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+23 00000088`a597f790 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+   1  Id: 212c.3700 Suspend: 0 Teb: 00000088`a5762000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`a5c7fad8 00007ffc`ecc5d407     ntdll!NtWaitForWorkViaWorkerFactory+0x14
+01 00000088`a5c7fae0 00007ffc`eb047374     ntdll!TppWorkerThread+0x2f7
+02 00000088`a5c7fde0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+03 00000088`a5c7fe10 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+   2  Id: 212c.636c Suspend: 0 Teb: 00000088`a5764000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`a5f7f4e8 00007ffc`ecc5d407     ntdll!NtWaitForWorkViaWorkerFactory+0x14
+01 00000088`a5f7f4f0 00007ffc`eb047374     ntdll!TppWorkerThread+0x2f7
+02 00000088`a5f7f7f0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+03 00000088`a5f7f820 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+   3  Id: 212c.75d8 Suspend: 0 Teb: 00000088`a5766000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`a627f6c8 00007ffc`ecc5d407     ntdll!NtWaitForWorkViaWorkerFactory+0x14
+01 00000088`a627f6d0 00007ffc`eb047374     ntdll!TppWorkerThread+0x2f7
+02 00000088`a627f9d0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+03 00000088`a627fa00 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+   4  Id: 212c.e08 Suspend: 0 Teb: 00000088`a5768000 Unfrozen ".NET EventPipe"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a657f3c8 00007ffc`ea720d10     ntdll!NtWaitForMultipleObjects+0x14
+01 00000088`a657f3d0 00007ffc`ea720c0e     KERNELBASE!WaitForMultipleObjectsEx+0xf0
+02 00000088`a657f6c0 00007ffb`ad71d64f     KERNELBASE!WaitForMultipleObjects+0xe
+03 00000088`a657f700 00007ffb`ad71d5b1     coreclr!ds_ipc_poll+0x7f [D:\a\_work\1\s\src\runtime\src\native\eventpipe\ds-ipc-pal-namedpipe.c @ 263] 
+04 00000088`a657f980 00007ffb`ad71d354     coreclr!ds_ipc_stream_factory_get_next_available_stream+0x105 [D:\a\_work\1\s\src\runtime\src\native\eventpipe\ds-ipc.c @ 424] 
+05 00000088`a657fa50 00007ffb`ad71d313     coreclr!server_loop_tick+0x34 [D:\a\_work\1\s\src\runtime\src\native\eventpipe\ds-server.c @ 118] 
+06 00000088`a657fac0 00007ffc`eb047374     coreclr!server_thread+0x33 [D:\a\_work\1\s\src\runtime\src\native\eventpipe\ds-server.c @ 185] 
+07 00000088`a657faf0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`a657fb20 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+   5  Id: 212c.2670 Suspend: 0 Teb: 00000088`a576a000 Unfrozen ".NET Debugger"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a687f678 00007ffc`ea720d10     ntdll!NtWaitForMultipleObjects+0x14
+01 00000088`a687f680 00007ffb`ad7305d1     KERNELBASE!WaitForMultipleObjectsEx+0xf0
+02 00000088`a687f970 00007ffb`ad72f5f2     coreclr!DebuggerRCThread::MainLoop+0x109 [D:\a\_work\1\s\src\runtime\src\coreclr\debug\ee\rcthread.cpp @ 928] 
+03 00000088`a687fa30 00007ffb`ad72f38b     coreclr!DebuggerRCThread::ThreadProc+0x1ae [D:\a\_work\1\s\src\runtime\src\coreclr\debug\ee\rcthread.cpp @ 731] 
+04 00000088`a687fa80 00007ffc`eb047374     coreclr!DebuggerRCThread::ThreadProcStatic+0x5b [D:\a\_work\1\s\src\runtime\src\coreclr\debug\ee\rcthread.cpp @ 1322] 
+05 00000088`a687fab0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`a687fae0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+   6  Id: 212c.7528 Suspend: 0 Teb: 00000088`a576c000 Unfrozen ".NET Finalizer"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a6b7f428 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`a6b7f430 00007ffb`ad73f3da     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 (Inline Function) --------`--------     coreclr!CLREventWaitHelper2+0x6 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\synch.cpp @ 372] 
+03 00000088`a6b7f4d0 00007ffb`ad6fedac     coreclr!CLREventWaitHelper+0x12 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\synch.cpp @ 397] 
+04 00000088`a6b7f520 00007ffb`ad6fe8cf     coreclr!FinalizerThread::WaitForFinalizerEvent+0x24 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\finalizerthread.cpp @ 268] 
+05 00000088`a6b7f560 00007ffb`ad674b4e     coreclr!FinalizerThread::FinalizerThreadWorker+0x4f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\finalizerthread.cpp @ 396] 
+06 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+07 00000088`a6b7f7b0 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+08 00000088`a6b7f850 00007ffb`ad6ff8d8     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+09 (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+0a 00000088`a6b7f8c0 00007ffc`eb047374     coreclr!FinalizerThread::FinalizerThreadStart+0xc8 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\finalizerthread.cpp @ 522] 
+0b 00000088`a6b7f9c0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0c 00000088`a6b7f9f0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+   7  Id: 212c.6440 Suspend: 0 Teb: 00000088`a576e000 Unfrozen ".NET Tiered Compilation Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a6e7f818 00007ffc`ea7162de     ntdll!NtDelayExecution+0x14
+01 00000088`a6e7f820 00007ffb`ad71c0aa     KERNELBASE!SleepEx+0x9e
+02 (Inline Function) --------`--------     coreclr!ClrSleepEx+0xa [D:\a\_work\1\s\src\runtime\src\coreclr\vm\hosting.cpp @ 216] 
+03 00000088`a6e7f8c0 00007ffb`ad71bfcd     coreclr!TieredCompilationManager::BackgroundWorkerStart+0x96 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\tieredcompilation.cpp @ 519] 
+04 00000088`a6e7f910 00007ffb`ad674b4e     coreclr!TieredCompilationManager::BackgroundWorkerBootstrapper1+0x5d [D:\a\_work\1\s\src\runtime\src\coreclr\vm\tieredcompilation.cpp @ 483] 
+05 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+06 00000088`a6e7f950 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+07 00000088`a6e7f9f0 00007ffb`ad7340b6     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+08 (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+09 00000088`a6e7fa60 00007ffc`eb047374     coreclr!TieredCompilationManager::BackgroundWorkerBootstrapper0+0x56 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\tieredcompilation.cpp @ 466] 
+0a 00000088`a6e7faa0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0b 00000088`a6e7fad0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+   8  Id: 212c.734 Suspend: 0 Teb: 00000088`a5772000 Unfrozen ".NET TP Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a717f1e8 00007ffc`ea743516     ntdll!NtFsControlFile+0x14
+01 00000088`a717f1f0 00007ffb`ad517942     KERNELBASE!ConnectNamedPipe+0x76
+02 00000088`a717f260 00007ffb`ad51c05b     System_IO_Pipes!Interop.Kernel32.ConnectNamedPipe+0x92 [/_/src/runtime/artifacts/obj/System.IO.Pipes/Release/net10.0-windows/Microsoft.Interop.LibraryImportGenerator/Microsoft.Interop.LibraryImportGenerator/LibraryImports.g.cs @ 273] 
+03 00000088`a717f340 00007ffb`ad5200c3     System_IO_Pipes!System.IO.Pipes.NamedPipeServerStream.WaitForConnection+0x3b [/_/src/runtime/src/libraries/System.IO.Pipes/src/System/IO/Pipes/NamedPipeServerStream.Windows.cs @ 179] 
+04 00000088`a717f390 00007ffb`4e9324bd     System_IO_Pipes!System.Threading.AsyncOverSyncWithIoCancellation.<InvokeAsync>d__7<System.IO.Pipes.NamedPipeServerStream>.MoveNext+0x103 [/_/src/runtime/src/libraries/Common/src/System/Threading/AsyncOverSyncWithIoCancellation.cs @ 97] 
+05 00000088`a717f430 00007ffb`ac57d9b4     System_Private_CoreLib!System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<System.Threading.Tasks.VoidTaskResult>.StateMachineBox<<InvokeAsync>d__7<System.IO.Pipes.NamedPipeServerStream>>.ExecutionContextCallback+0x7d [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/PoolingAsyncValueTaskMethodBuilderT.cs @ 393] 
+06 00000088`a717f490 00007ffb`4e932420     System_Private_CoreLib!System.Threading.ExecutionContext.RunInternal+0x64 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/ExecutionContext.cs @ 179] 
+07 00000088`a717f500 00007ffb`4e932288     System_Private_CoreLib!System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<System.Threading.Tasks.VoidTaskResult>.StateMachineBox<<InvokeAsync>d__7<System.IO.Pipes.NamedPipeServerStream>>.MoveNext+0xc0 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/PoolingAsyncValueTaskMethodBuilderT.cs @ 415] 
+08 00000088`a717f570 00007ffb`ac5890a1     System_Private_CoreLib!System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<System.Threading.Tasks.VoidTaskResult>.StateMachineBox<<InvokeAsync>d__7<System.__Canon>>.System.Threading.IThreadPoolWorkItem.Execute+0x18 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/PoolingAsyncValueTaskMethodBuilderT.cs @ 399] 
+09 00000088`a717f5a0 00007ffb`ac596cf9     System_Private_CoreLib!System.Threading.ThreadPoolWorkQueue.Dispatch+0x181
+0a 00000088`a717f620 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart+0xf9 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WorkerThread.cs @ 118] 
+0b 00000088`a717f720 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+0c 00000088`a717f760 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+0d 00000088`a717f7a0 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+0e 00000088`a717f830 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+0f (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+10 00000088`a717f890 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+11 00000088`a717f930 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+12 (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+13 00000088`a717f9a0 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+14 00000088`a717f9e0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+15 00000088`a717fa10 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+   9  Id: 212c.a04 Suspend: 0 Teb: 00000088`a5774000 Unfrozen ".NET TP Gate"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a733eed8 00007ffc`ea720d10     ntdll!NtWaitForMultipleObjects+0x14
+01 00000088`a733eee0 00007ffb`ad73e3b7     KERNELBASE!WaitForMultipleObjectsEx+0xf0
+02 00000088`a733f1d0 00007ffb`ad767db8     coreclr!Thread::DoAppropriateAptStateWait+0x5b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3176] 
+03 00000088`a733f210 00007ffb`ad767973     coreclr!Thread::DoAppropriateWaitWorker+0x348 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3355] 
+04 00000088`a733f2e0 00007ffb`ad76a1fe     coreclr!Thread::DoAppropriateWait+0xb3 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3070] 
+05 00000088`a733f380 00007ffb`50995769     coreclr!WaitHandle_WaitOneCore+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comwaithandle.cpp @ 29] 
+06 00000088`a733f3f0 00007ffb`ac594035     System_Private_CoreLib!System.Threading.WaitHandle.WaitOneNoCheck+0x129 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/WaitHandle.cs @ 183] 
+07 00000088`a733f4b0 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.GateThread.GateThreadStart+0x1a5 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.GateThread.cs @ 70] 
+08 00000088`a733f5f0 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+09 00000088`a733f630 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+0a 00000088`a733f670 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+0b 00000088`a733f700 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+0c (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+0d 00000088`a733f760 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+0e 00000088`a733f800 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0f (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+10 00000088`a733f870 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+11 00000088`a733f8b0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+12 00000088`a733f8e0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  10  Id: 212c.20fc Suspend: 0 Teb: 00000088`a5776000 Unfrozen ".NET TP Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a74ff0c8 00007ffc`ea743516     ntdll!NtFsControlFile+0x14
+01 00000088`a74ff0d0 00007ffb`ad517942     KERNELBASE!ConnectNamedPipe+0x76
+02 00000088`a74ff140 00007ffb`ad51c05b     System_IO_Pipes!Interop.Kernel32.ConnectNamedPipe+0x92 [/_/src/runtime/artifacts/obj/System.IO.Pipes/Release/net10.0-windows/Microsoft.Interop.LibraryImportGenerator/Microsoft.Interop.LibraryImportGenerator/LibraryImports.g.cs @ 273] 
+03 00000088`a74ff220 00007ffb`ad5200c3     System_IO_Pipes!System.IO.Pipes.NamedPipeServerStream.WaitForConnection+0x3b [/_/src/runtime/src/libraries/System.IO.Pipes/src/System/IO/Pipes/NamedPipeServerStream.Windows.cs @ 179] 
+04 00000088`a74ff270 00007ffb`4e9324bd     System_IO_Pipes!System.Threading.AsyncOverSyncWithIoCancellation.<InvokeAsync>d__7<System.IO.Pipes.NamedPipeServerStream>.MoveNext+0x103 [/_/src/runtime/src/libraries/Common/src/System/Threading/AsyncOverSyncWithIoCancellation.cs @ 97] 
+05 00000088`a74ff310 00007ffb`ac57d9b4     System_Private_CoreLib!System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<System.Threading.Tasks.VoidTaskResult>.StateMachineBox<<InvokeAsync>d__7<System.IO.Pipes.NamedPipeServerStream>>.ExecutionContextCallback+0x7d [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/PoolingAsyncValueTaskMethodBuilderT.cs @ 393] 
+06 00000088`a74ff370 00007ffb`4e932420     System_Private_CoreLib!System.Threading.ExecutionContext.RunInternal+0x64 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/ExecutionContext.cs @ 179] 
+07 00000088`a74ff3e0 00007ffb`4e932288     System_Private_CoreLib!System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<System.Threading.Tasks.VoidTaskResult>.StateMachineBox<<InvokeAsync>d__7<System.IO.Pipes.NamedPipeServerStream>>.MoveNext+0xc0 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/PoolingAsyncValueTaskMethodBuilderT.cs @ 415] 
+08 00000088`a74ff450 00007ffb`ac5890a1     System_Private_CoreLib!System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<System.Threading.Tasks.VoidTaskResult>.StateMachineBox<<InvokeAsync>d__7<System.__Canon>>.System.Threading.IThreadPoolWorkItem.Execute+0x18 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/PoolingAsyncValueTaskMethodBuilderT.cs @ 399] 
+09 00000088`a74ff480 00007ffb`ac596cf9     System_Private_CoreLib!System.Threading.ThreadPoolWorkQueue.Dispatch+0x181
+0a 00000088`a74ff500 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart+0xf9 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WorkerThread.cs @ 118] 
+0b 00000088`a74ff600 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+0c 00000088`a74ff640 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+0d 00000088`a74ff680 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+0e 00000088`a74ff710 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+0f (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+10 00000088`a74ff770 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+11 00000088`a74ff810 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+12 (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+13 00000088`a74ff880 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+14 00000088`a74ff8c0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+15 00000088`a74ff8f0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  11  Id: 212c.360c Suspend: 0 Teb: 00000088`a5778000 Unfrozen ".NET TP Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a77ff1d8 00007ffc`ea743516     ntdll!NtFsControlFile+0x14
+01 00000088`a77ff1e0 00007ffb`ad517942     KERNELBASE!ConnectNamedPipe+0x76
+02 00000088`a77ff250 00007ffb`ad51c05b     System_IO_Pipes!Interop.Kernel32.ConnectNamedPipe+0x92 [/_/src/runtime/artifacts/obj/System.IO.Pipes/Release/net10.0-windows/Microsoft.Interop.LibraryImportGenerator/Microsoft.Interop.LibraryImportGenerator/LibraryImports.g.cs @ 273] 
+03 00000088`a77ff330 00007ffb`ad5200c3     System_IO_Pipes!System.IO.Pipes.NamedPipeServerStream.WaitForConnection+0x3b [/_/src/runtime/src/libraries/System.IO.Pipes/src/System/IO/Pipes/NamedPipeServerStream.Windows.cs @ 179] 
+04 00000088`a77ff380 00007ffb`4e9324bd     System_IO_Pipes!System.Threading.AsyncOverSyncWithIoCancellation.<InvokeAsync>d__7<System.IO.Pipes.NamedPipeServerStream>.MoveNext+0x103 [/_/src/runtime/src/libraries/Common/src/System/Threading/AsyncOverSyncWithIoCancellation.cs @ 97] 
+05 00000088`a77ff420 00007ffb`ac57d9b4     System_Private_CoreLib!System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<System.Threading.Tasks.VoidTaskResult>.StateMachineBox<<InvokeAsync>d__7<System.IO.Pipes.NamedPipeServerStream>>.ExecutionContextCallback+0x7d [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/PoolingAsyncValueTaskMethodBuilderT.cs @ 393] 
+06 00000088`a77ff480 00007ffb`4e932420     System_Private_CoreLib!System.Threading.ExecutionContext.RunInternal+0x64 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/ExecutionContext.cs @ 179] 
+07 00000088`a77ff4f0 00007ffb`4e932288     System_Private_CoreLib!System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<System.Threading.Tasks.VoidTaskResult>.StateMachineBox<<InvokeAsync>d__7<System.IO.Pipes.NamedPipeServerStream>>.MoveNext+0xc0 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/PoolingAsyncValueTaskMethodBuilderT.cs @ 415] 
+08 00000088`a77ff560 00007ffb`ac5890a1     System_Private_CoreLib!System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<System.Threading.Tasks.VoidTaskResult>.StateMachineBox<<InvokeAsync>d__7<System.__Canon>>.System.Threading.IThreadPoolWorkItem.Execute+0x18 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/PoolingAsyncValueTaskMethodBuilderT.cs @ 399] 
+09 00000088`a77ff590 00007ffb`ac596cf9     System_Private_CoreLib!System.Threading.ThreadPoolWorkQueue.Dispatch+0x181
+0a 00000088`a77ff610 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart+0xf9 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WorkerThread.cs @ 118] 
+0b 00000088`a77ff710 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+0c 00000088`a77ff750 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+0d 00000088`a77ff790 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+0e 00000088`a77ff820 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+0f (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+10 00000088`a77ff880 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+11 00000088`a77ff920 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+12 (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+13 00000088`a77ff990 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+14 00000088`a77ff9d0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+15 00000088`a77ffa00 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  12  Id: 212c.7c8 Suspend: 0 Teb: 00000088`a577a000 Unfrozen ".NET TP Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a7aff018 00007ffc`ea743516     ntdll!NtFsControlFile+0x14
+01 00000088`a7aff020 00007ffb`ad517942     KERNELBASE!ConnectNamedPipe+0x76
+02 00000088`a7aff090 00007ffb`ad51c05b     System_IO_Pipes!Interop.Kernel32.ConnectNamedPipe+0x92 [/_/src/runtime/artifacts/obj/System.IO.Pipes/Release/net10.0-windows/Microsoft.Interop.LibraryImportGenerator/Microsoft.Interop.LibraryImportGenerator/LibraryImports.g.cs @ 273] 
+03 00000088`a7aff170 00007ffb`ad5200c3     System_IO_Pipes!System.IO.Pipes.NamedPipeServerStream.WaitForConnection+0x3b [/_/src/runtime/src/libraries/System.IO.Pipes/src/System/IO/Pipes/NamedPipeServerStream.Windows.cs @ 179] 
+04 00000088`a7aff1c0 00007ffb`4e9324bd     System_IO_Pipes!System.Threading.AsyncOverSyncWithIoCancellation.<InvokeAsync>d__7<System.IO.Pipes.NamedPipeServerStream>.MoveNext+0x103 [/_/src/runtime/src/libraries/Common/src/System/Threading/AsyncOverSyncWithIoCancellation.cs @ 97] 
+05 00000088`a7aff260 00007ffb`ac57d9b4     System_Private_CoreLib!System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<System.Threading.Tasks.VoidTaskResult>.StateMachineBox<<InvokeAsync>d__7<System.IO.Pipes.NamedPipeServerStream>>.ExecutionContextCallback+0x7d [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/PoolingAsyncValueTaskMethodBuilderT.cs @ 393] 
+06 00000088`a7aff2c0 00007ffb`4e932420     System_Private_CoreLib!System.Threading.ExecutionContext.RunInternal+0x64 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/ExecutionContext.cs @ 179] 
+07 00000088`a7aff330 00007ffb`4e932288     System_Private_CoreLib!System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<System.Threading.Tasks.VoidTaskResult>.StateMachineBox<<InvokeAsync>d__7<System.IO.Pipes.NamedPipeServerStream>>.MoveNext+0xc0 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/PoolingAsyncValueTaskMethodBuilderT.cs @ 415] 
+08 00000088`a7aff3a0 00007ffb`ac5890a1     System_Private_CoreLib!System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<System.Threading.Tasks.VoidTaskResult>.StateMachineBox<<InvokeAsync>d__7<System.__Canon>>.System.Threading.IThreadPoolWorkItem.Execute+0x18 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/PoolingAsyncValueTaskMethodBuilderT.cs @ 399] 
+09 00000088`a7aff3d0 00007ffb`ac596cf9     System_Private_CoreLib!System.Threading.ThreadPoolWorkQueue.Dispatch+0x181
+0a 00000088`a7aff450 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart+0xf9 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WorkerThread.cs @ 118] 
+0b 00000088`a7aff550 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+0c 00000088`a7aff590 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+0d 00000088`a7aff5d0 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+0e 00000088`a7aff660 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+0f (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+10 00000088`a7aff6c0 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+11 00000088`a7aff760 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+12 (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+13 00000088`a7aff7d0 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+14 00000088`a7aff810 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+15 00000088`a7aff840 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  13  Id: 212c.28ac Suspend: 0 Teb: 00000088`a577c000 Unfrozen ".NET TP Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a7dff8e8 00007ffc`ea72fe4f     ntdll!NtRemoveIoCompletion+0x14
+01 00000088`a7dff8f0 00007ffb`5096b24c     KERNELBASE!GetQueuedCompletionStatus+0x4f
+02 00000088`a7dff950 00007ffb`5096a949     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.WaitForSignal+0x10c [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 160] 
+03 00000088`a7dffa20 00007ffb`ac596d40     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.Wait+0x129 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 85] 
+04 00000088`a7dffad0 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart+0x140 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WorkerThread.cs @ 116] 
+05 00000088`a7dffbd0 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+06 00000088`a7dffc10 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+07 00000088`a7dffc50 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+08 00000088`a7dffce0 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+09 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+0a 00000088`a7dffd40 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+0b 00000088`a7dffde0 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0c (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+0d 00000088`a7dffe50 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+0e 00000088`a7dffe90 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0f 00000088`a7dffec0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  14  Id: 212c.6f7c Suspend: 0 Teb: 00000088`a577e000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`a80ffac8 00007ffc`ec050c8e     win32u!NtUserMsgWaitForMultipleObjectsEx+0x14
+01 00000088`a80ffad0 00007ffc`d74f93f0     user32!RealMsgWaitForMultipleObjectsEx+0x1e
+02 00000088`a80ffb10 00007ffc`d74f934f     GdiPlus!BackgroundThreadProc+0x70
+03 00000088`a80ffb80 00007ffc`eb047374     GdiPlus!DllRefCountSafeThreadThunk+0x1f
+04 00000088`a80ffbb0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+05 00000088`a80ffbe0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  15  Id: 212c.5c4 Suspend: 0 Teb: 00000088`a5780000 Unfrozen "LoaderLockSampler"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a83ff308 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`a83ff310 00007ffb`7b393836     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`a83ff3b0 00007ffb`7b3a5877     libcef!GetHandleVerifier+0x2057706
+03 00000088`a83ff430 00007ffb`7b549f9a     libcef!GetHandleVerifier+0x2069747
+04 00000088`a83ff4e0 00007ffb`7934c4c5     libcef!GetHandleVerifier+0x220de6a
+05 00000088`a83ff5b0 00007ffb`78c2f03c     libcef!GetHandleVerifier+0x10395
+06 00000088`a83ff630 00007ffb`78c1de24     libcef!cef_time_from_basetime+0x142480c
+07 00000088`a83ff700 00007ffb`78c1dfe6     libcef!cef_time_from_basetime+0x14135f4
+08 00000088`a83ff760 00007ffb`78bfb217     libcef!cef_time_from_basetime+0x14137b6
+09 00000088`a83ff7f0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+0a 00000088`a83ff880 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0b 00000088`a83ff8b0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  16  Id: 212c.6ec0 Suspend: 0 Teb: 00000088`a5782000 Unfrozen "CrBrowserMain"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a86ff4c8 00007ffc`ec050c8e     win32u!NtUserMsgWaitForMultipleObjectsEx+0x14
+01 00000088`a86ff4d0 00007ffb`7b394bcf     user32!RealMsgWaitForMultipleObjectsEx+0x1e
+02 00000088`a86ff510 00007ffb`7b3949f8     libcef!GetHandleVerifier+0x2058a9f
+03 00000088`a86ff5e0 00007ffb`78c016c2     libcef!GetHandleVerifier+0x20588c8
+04 00000088`a86ff680 00007ffb`7934c4c5     libcef!cef_time_from_basetime+0x13f6e92
+05 00000088`a86ff6f0 00007ffb`78c2f03c     libcef!GetHandleVerifier+0x10395
+06 00000088`a86ff770 00007ffb`777556e6     libcef!cef_time_from_basetime+0x142480c
+07 00000088`a86ff840 00007ffb`777c075e     libcef!cef_zip_reader_create+0x5bd66
+08 00000088`a86ff8f0 00007ffb`78bfb217     libcef!cef_zip_reader_create+0xc6dde
+09 00000088`a86ff950 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+0a 00000088`a86ff9e0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0b 00000088`a86ffa10 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  17  Id: 212c.2f60 Suspend: 0 Teb: 00000088`a5784000 Unfrozen "StackSamplingProfiler"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a89ff3a8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`a89ff3b0 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`a89ff450 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`a89ff4d0 00007ffb`7b549f58     libcef!GetHandleVerifier+0x20698ae
+04 00000088`a89ff590 00007ffb`7934c4c5     libcef!GetHandleVerifier+0x220de28
+05 00000088`a89ff660 00007ffb`78c2f03c     libcef!GetHandleVerifier+0x10395
+06 00000088`a89ff6e0 00007ffb`78c1de24     libcef!cef_time_from_basetime+0x142480c
+07 00000088`a89ff7b0 00007ffb`78c1dfe6     libcef!cef_time_from_basetime+0x14135f4
+08 00000088`a89ff810 00007ffb`78bfb217     libcef!cef_time_from_basetime+0x14137b6
+09 00000088`a89ff8a0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+0a 00000088`a89ff930 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0b 00000088`a89ff960 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  18  Id: 212c.5368 Suspend: 0 Teb: 00000088`a5786000 Unfrozen "PerfettoTrace"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a8cff268 00007ffc`ea72fe4f     ntdll!NtRemoveIoCompletion+0x14
+01 00000088`a8cff270 00007ffb`7b39560a     KERNELBASE!GetQueuedCompletionStatus+0x4f
+02 00000088`a8cff2d0 00007ffb`7b395163     libcef!GetHandleVerifier+0x20594da
+03 00000088`a8cff380 00007ffb`78c016c2     libcef!GetHandleVerifier+0x2059033
+04 00000088`a8cff490 00007ffb`7934c4c5     libcef!cef_time_from_basetime+0x13f6e92
+05 00000088`a8cff500 00007ffb`78c2f03c     libcef!GetHandleVerifier+0x10395
+06 00000088`a8cff580 00007ffb`78c1de24     libcef!cef_time_from_basetime+0x142480c
+07 00000088`a8cff650 00007ffb`78c1dfe6     libcef!cef_time_from_basetime+0x14135f4
+08 00000088`a8cff6b0 00007ffb`78bfb217     libcef!cef_time_from_basetime+0x14137b6
+09 00000088`a8cff740 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+0a 00000088`a8cff7d0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0b 00000088`a8cff800 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  19  Id: 212c.19e4 Suspend: 0 Teb: 00000088`a5788000 Unfrozen "ThreadPoolServiceThread"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a8fff438 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`a8fff440 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`a8fff4e0 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`a8fff560 00007ffb`7b549f58     libcef!GetHandleVerifier+0x20698ae
+04 00000088`a8fff620 00007ffb`7934c4c5     libcef!GetHandleVerifier+0x220de28
+05 00000088`a8fff6f0 00007ffb`78c2f03c     libcef!GetHandleVerifier+0x10395
+06 00000088`a8fff770 00007ffb`78c1de24     libcef!cef_time_from_basetime+0x142480c
+07 00000088`a8fff840 00007ffb`79975988     libcef!cef_time_from_basetime+0x14135f4
+08 00000088`a8fff8a0 00007ffb`78c1dfe6     libcef!GetHandleVerifier+0x639858
+09 00000088`a8fff8e0 00007ffb`78bfb217     libcef!cef_time_from_basetime+0x14137b6
+0a 00000088`a8fff970 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+0b 00000088`a8fffa00 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0c 00000088`a8fffa30 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  20  Id: 212c.687c Suspend: 0 Teb: 00000088`a578a000 Unfrozen "ThreadPoolSingleThreadCOMSTASharedForegroundBlocking0"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a92ff5b8 00007ffc`ec050c8e     win32u!NtUserMsgWaitForMultipleObjectsEx+0x14
+01 00000088`a92ff5c0 00007ffb`79978c29     user32!RealMsgWaitForMultipleObjectsEx+0x1e
+02 00000088`a92ff600 00007ffb`7b9877c2     libcef!GetHandleVerifier+0x63caf9
+03 00000088`a92ff660 00007ffb`79f592f8     libcef!GetHandleVerifier+0x264b692
+04 00000088`a92ff7a0 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d1c8
+05 00000088`a92ff7e0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+06 00000088`a92ff870 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+07 00000088`a92ff8a0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  21  Id: 212c.6d64 Suspend: 0 Teb: 00000088`a578c000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a95ff828 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`a95ff830 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`a95ff8d0 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`a95ff950 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`a95ffa10 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`a95ffb50 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`a95ffb90 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`a95ffc20 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`a95ffc50 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  22  Id: 212c.4868 Suspend: 0 Teb: 00000088`a578e000 Unfrozen "ThreadPoolBackgroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a98ff428 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`a98ff430 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`a98ff4d0 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`a98ff550 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`a98ff610 00007ffb`79f59118     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`a98ff750 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1cfe8
+06 00000088`a98ff790 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`a98ff820 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`a98ff850 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  23  Id: 212c.2200 Suspend: 0 Teb: 00000088`a5790000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a9bff8f8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`a9bff900 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`a9bff9a0 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`a9bffa20 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`a9bffae0 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`a9bffc20 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`a9bffc60 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`a9bffcf0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`a9bffd20 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  24  Id: 212c.3818 Suspend: 0 Teb: 00000088`a5792000 Unfrozen "Chrome_IOThread"
+ # Child-SP          RetAddr               Call Site
+00 00000088`a9eff5c8 00007ffc`ea72fe4f     ntdll!NtRemoveIoCompletion+0x14
+01 00000088`a9eff5d0 00007ffb`7b39560a     KERNELBASE!GetQueuedCompletionStatus+0x4f
+02 00000088`a9eff630 00007ffb`7b395163     libcef!GetHandleVerifier+0x20594da
+03 00000088`a9eff6e0 00007ffb`78c016c2     libcef!GetHandleVerifier+0x2059033
+04 00000088`a9eff7f0 00007ffb`7934c4c5     libcef!cef_time_from_basetime+0x13f6e92
+05 00000088`a9eff860 00007ffb`78c2f03c     libcef!GetHandleVerifier+0x10395
+06 00000088`a9eff8e0 00007ffb`78c1de24     libcef!cef_time_from_basetime+0x142480c
+07 00000088`a9eff9b0 00007ffb`7830d471     libcef!cef_time_from_basetime+0x14135f4
+08 00000088`a9effa10 00007ffb`78c1dfe6     libcef!cef_time_from_basetime+0xb02c41
+09 00000088`a9effa70 00007ffb`78bfb217     libcef!cef_time_from_basetime+0x14137b6
+0a 00000088`a9effb00 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+0b 00000088`a9effb90 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0c 00000088`a9effbc0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  25  Id: 212c.60f0 Suspend: 0 Teb: 00000088`a5794000 Unfrozen "MemoryInfra"
+ # Child-SP          RetAddr               Call Site
+00 00000088`aa1ff4c8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`aa1ff4d0 00007ffb`7b393836     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`aa1ff570 00007ffb`7b3a5877     libcef!GetHandleVerifier+0x2057706
+03 00000088`aa1ff5f0 00007ffb`7b549f9a     libcef!GetHandleVerifier+0x2069747
+04 00000088`aa1ff6a0 00007ffb`7934c4c5     libcef!GetHandleVerifier+0x220de6a
+05 00000088`aa1ff770 00007ffb`78c2f03c     libcef!GetHandleVerifier+0x10395
+06 00000088`aa1ff7f0 00007ffb`78c1de24     libcef!cef_time_from_basetime+0x142480c
+07 00000088`aa1ff8c0 00007ffb`78c1dfe6     libcef!cef_time_from_basetime+0x14135f4
+08 00000088`aa1ff920 00007ffb`78bfb217     libcef!cef_time_from_basetime+0x14137b6
+09 00000088`aa1ff9b0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+0a 00000088`aa1ffa40 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0b 00000088`aa1ffa70 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  26  Id: 212c.adc Suspend: 0 Teb: 00000088`a5798000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`aa7ff198 00007ffc`ec050c8e     win32u!NtUserMsgWaitForMultipleObjectsEx+0x14
+01 00000088`aa7ff1a0 00007ffc`ec4b76e1     user32!RealMsgWaitForMultipleObjectsEx+0x1e
+02 00000088`aa7ff1e0 00007ffc`ec4b6bcc     SHCore!WorkThreadManager::CThread::ThreadProc+0xae1
+03 00000088`aa7ff470 00007ffc`ec4b92c9     SHCore!WorkThreadManager::CThread::s_ExecuteThreadProc+0x18
+04 00000088`aa7ff4a0 00007ffc`ecc81d39     SHCore!<lambda_142c425290ac4fbd4d5aee2fc3f7d711>::<lambda_invoker_cdecl>+0x29
+05 00000088`aa7ff4d0 00007ffc`ecc5d79a     ntdll!TppSimplepExecuteCallback+0x99
+06 00000088`aa7ff520 00007ffc`eb047374     ntdll!TppWorkerThread+0x68a
+07 00000088`aa7ff820 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`aa7ff850 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  27  Id: 212c.2eb0 Suspend: 0 Teb: 00000088`a579a000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`aaaff6e8 00007ffc`ecc5d407     ntdll!NtWaitForWorkViaWorkerFactory+0x14
+01 00000088`aaaff6f0 00007ffc`eb047374     ntdll!TppWorkerThread+0x2f7
+02 00000088`aaaff9f0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+03 00000088`aaaffa20 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  28  Id: 212c.71ec Suspend: 0 Teb: 00000088`a579c000 Unfrozen "ThreadPoolSingleThreadCOMSTASharedBackgroundBlocking1"
+ # Child-SP          RetAddr               Call Site
+00 00000088`aa4ff8e8 00007ffc`ec050c8e     win32u!NtUserMsgWaitForMultipleObjectsEx+0x14
+01 00000088`aa4ff8f0 00007ffb`79978c29     user32!RealMsgWaitForMultipleObjectsEx+0x1e
+02 00000088`aa4ff930 00007ffb`7b9877c2     libcef!GetHandleVerifier+0x63caf9
+03 00000088`aa4ff990 00007ffb`79f591b8     libcef!GetHandleVerifier+0x264b692
+04 00000088`aa4ffad0 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d088
+05 00000088`aa4ffb10 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+06 00000088`aa4ffba0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+07 00000088`aa4ffbd0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  29  Id: 212c.32e4 Suspend: 0 Teb: 00000088`a579e000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`aadff648 00007ffc`ecc5d407     ntdll!NtWaitForWorkViaWorkerFactory+0x14
+01 00000088`aadff650 00007ffc`eb047374     ntdll!TppWorkerThread+0x2f7
+02 00000088`aadff950 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+03 00000088`aadff980 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  30  Id: 212c.6a84 Suspend: 0 Teb: 00000088`a57a0000 Unfrozen "ThreadPoolSingleThreadCOMSTASharedForeground2"
+ # Child-SP          RetAddr               Call Site
+00 00000088`ab0ff8b8 00007ffc`ec050c8e     win32u!NtUserMsgWaitForMultipleObjectsEx+0x14
+01 00000088`ab0ff8c0 00007ffb`79978c29     user32!RealMsgWaitForMultipleObjectsEx+0x1e
+02 00000088`ab0ff900 00007ffb`7b9877c2     libcef!GetHandleVerifier+0x63caf9
+03 00000088`ab0ff960 00007ffb`79f592f8     libcef!GetHandleVerifier+0x264b692
+04 00000088`ab0ffaa0 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d1c8
+05 00000088`ab0ffae0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+06 00000088`ab0ffb70 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+07 00000088`ab0ffba0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  31  Id: 212c.3db0 Suspend: 0 Teb: 00000088`a57a2000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`ab3ff178 00007ffc`ea720d10     ntdll!NtWaitForMultipleObjects+0x14
+01 00000088`ab3ff180 00007ffc`ebc40bf6     KERNELBASE!WaitForMultipleObjectsEx+0xf0
+02 00000088`ab3ff470 00007ffc`ebc40a70     combase!WaitCoalesced+0xa6 [onecore\com\published\comutils\coalescedwait.cxx @ 70] 
+03 00000088`ab3ff700 00007ffc`ebc40880     combase!CROIDTable::WorkerThreadLoop+0x50 [onecore\com\combase\dcomrem\refcache.cxx @ 1682] 
+04 00000088`ab3ff750 00007ffc`ebc40809     combase!CRpcThread::WorkerLoop+0x4c [onecore\com\combase\dcomrem\threads.cxx @ 283] 
+05 00000088`ab3ff7b0 00007ffc`eb047374     combase!CRpcThreadCache::RpcWorkerThreadEntry+0x29 [onecore\com\combase\dcomrem\threads.cxx @ 77] 
+06 00000088`ab3ff7e0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+07 00000088`ab3ff810 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  32  Id: 212c.2a54 Suspend: 0 Teb: 00000088`a57a4000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`ab6ff508 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`ab6ff510 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`ab6ff5b0 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`ab6ff630 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`ab6ff6f0 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`ab6ff830 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`ab6ff870 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`ab6ff900 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`ab6ff930 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  33  Id: 212c.38ac Suspend: 0 Teb: 00000088`a57a6000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`ab9ff828 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`ab9ff830 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`ab9ff8d0 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`ab9ff950 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`ab9ffa10 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`ab9ffb50 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`ab9ffb90 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`ab9ffc20 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`ab9ffc50 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  34  Id: 212c.1f6c Suspend: 0 Teb: 00000088`a57a8000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`abcff968 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`abcff970 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`abcffa10 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`abcffa90 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`abcffb50 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`abcffc90 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`abcffcd0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`abcffd60 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`abcffd90 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  35  Id: 212c.266c Suspend: 0 Teb: 00000088`a57aa000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`abfff668 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`abfff670 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`abfff710 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`abfff790 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`abfff850 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`abfff990 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`abfff9d0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`abfffa60 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`abfffa90 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  36  Id: 212c.5bf0 Suspend: 0 Teb: 00000088`a57ac000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`ac2ff568 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`ac2ff570 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`ac2ff610 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`ac2ff690 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`ac2ff750 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`ac2ff890 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`ac2ff8d0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`ac2ff960 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`ac2ff990 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  37  Id: 212c.6d68 Suspend: 0 Teb: 00000088`a57ae000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`ac5ff9c8 00007ffc`ea72fe4f     ntdll!NtRemoveIoCompletion+0x14
+01 00000088`ac5ff9d0 00007ffb`7f6e61c7     KERNELBASE!GetQueuedCompletionStatus+0x4f
+02 00000088`ac5ffa30 00007ffb`78bfb217     libcef!CrashForExceptionInNonABICompliantCodeRange+0x27f79d7
+03 00000088`ac5ffb30 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+04 00000088`ac5ffbc0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+05 00000088`ac5ffbf0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  38  Id: 212c.13b8 Suspend: 0 Teb: 00000088`a57b0000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`ac8ff918 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`ac8ff920 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`ac8ff9c0 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`ac8ffa40 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`ac8ffb00 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`ac8ffc40 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`ac8ffc80 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`ac8ffd10 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`ac8ffd40 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  39  Id: 212c.77b4 Suspend: 0 Teb: 00000088`a57b2000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`acbffa08 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`acbffa10 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`acbffab0 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`acbffb30 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`acbffbf0 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`acbffd30 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`acbffd70 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`acbffe00 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`acbffe30 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  40  Id: 212c.2e4c Suspend: 0 Teb: 00000088`a57b4000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`aceff738 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`aceff740 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`aceff7e0 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`aceff860 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`aceff920 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`aceffa60 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`aceffaa0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`aceffb30 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`aceffb60 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  41  Id: 212c.22e0 Suspend: 0 Teb: 00000088`a57b6000 Unfrozen "CompositorTileWorker1"
+ # Child-SP          RetAddr               Call Site
+00 00000088`ad1ffbd8 00007ffc`ecc75621     ntdll!NtWaitForAlertByThreadId+0x14
+01 00000088`ad1ffbe0 00007ffc`ea73ee89     ntdll!RtlSleepConditionVariableSRW+0x131
+02 00000088`ad1ffc60 00007ffb`7b393b08     KERNELBASE!SleepConditionVariableSRW+0x29
+03 00000088`ad1ffca0 00007ffb`7b4bdc9a     libcef!GetHandleVerifier+0x20579d8
+04 00000088`ad1ffd30 00007ffb`78c1e5f4     libcef!GetHandleVerifier+0x2181b6a
+05 00000088`ad1ffdc0 00007ffb`78bfb217     libcef!cef_time_from_basetime+0x1413dc4
+06 00000088`ad1ffe10 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`ad1ffea0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`ad1ffed0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  42  Id: 212c.378c Suspend: 0 Teb: 00000088`a57b8000 Unfrozen "ThreadPoolSingleThreadForegroundBlocking3"
+ # Child-SP          RetAddr               Call Site
+00 00000088`ad4ffa88 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`ad4ffa90 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`ad4ffb30 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`ad4ffbb0 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`ad4ffc70 00007ffb`79f592a8     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`ad4ffdb0 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d178
+06 00000088`ad4ffdf0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`ad4ffe80 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`ad4ffeb0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  43  Id: 212c.3f70 Suspend: 0 Teb: 00000088`a57ba000 Unfrozen "VideoCaptureThread"
+ # Child-SP          RetAddr               Call Site
+00 00000088`ad7ff548 00007ffc`ec050c8e     win32u!NtUserMsgWaitForMultipleObjectsEx+0x14
+01 00000088`ad7ff550 00007ffb`7b394bcf     user32!RealMsgWaitForMultipleObjectsEx+0x1e
+02 00000088`ad7ff590 00007ffb`7b3949f8     libcef!GetHandleVerifier+0x2058a9f
+03 00000088`ad7ff660 00007ffb`78c016c2     libcef!GetHandleVerifier+0x20588c8
+04 00000088`ad7ff700 00007ffb`7934c4c5     libcef!cef_time_from_basetime+0x13f6e92
+05 00000088`ad7ff770 00007ffb`78c2f03c     libcef!GetHandleVerifier+0x10395
+06 00000088`ad7ff7f0 00007ffb`78c1de24     libcef!cef_time_from_basetime+0x142480c
+07 00000088`ad7ff8c0 00007ffb`78c1dfe6     libcef!cef_time_from_basetime+0x14135f4
+08 00000088`ad7ff920 00007ffb`78bfb217     libcef!cef_time_from_basetime+0x14137b6
+09 00000088`ad7ff9b0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+0a 00000088`ad7ffa40 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0b 00000088`ad7ffa70 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  44  Id: 212c.24d8 Suspend: 0 Teb: 00000088`a57bc000 Unfrozen "ThreadPoolSingleThreadSharedBackgroundBlocking4"
+ # Child-SP          RetAddr               Call Site
+00 00000088`adaffa68 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`adaffa70 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`adaffb10 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`adaffb90 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`adaffc50 00007ffb`79f59168     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`adaffd90 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d038
+06 00000088`adaffdd0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`adaffe60 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`adaffe90 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  45  Id: 212c.2cf0 Suspend: 0 Teb: 00000088`a57be000 Unfrozen "ThreadPoolSingleThreadForegroundBlocking5"
+ # Child-SP          RetAddr               Call Site
+00 00000088`addff978 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`addff980 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`addffa20 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`addffaa0 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`addffb60 00007ffb`79f592a8     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`addffca0 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d178
+06 00000088`addffce0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`addffd70 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`addffda0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  46  Id: 212c.7058 Suspend: 0 Teb: 00000088`a57c0000 Unfrozen "ThreadPoolSingleThreadSharedForeground6"
+ # Child-SP          RetAddr               Call Site
+00 00000088`ae0ff8d8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`ae0ff8e0 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`ae0ff980 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`ae0ffa00 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`ae0ffac0 00007ffb`79f59258     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`ae0ffc00 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d128
+06 00000088`ae0ffc40 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`ae0ffcd0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`ae0ffd00 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  47  Id: 212c.580 Suspend: 0 Teb: 00000088`a57c2000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`ae3ff9a8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`ae3ff9b0 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`ae3ffa50 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`ae3ffad0 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`ae3ffb90 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`ae3ffcd0 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`ae3ffd10 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`ae3ffda0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`ae3ffdd0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  48  Id: 212c.12c8 Suspend: 0 Teb: 00000088`a57c4000 Unfrozen "ThreadPoolSingleThreadCOMSTASharedForegroundBlocking7"
+ # Child-SP          RetAddr               Call Site
+00 00000088`ae6ff9c8 00007ffc`ec050c8e     win32u!NtUserMsgWaitForMultipleObjectsEx+0x14
+01 00000088`ae6ff9d0 00007ffb`79978c29     user32!RealMsgWaitForMultipleObjectsEx+0x1e
+02 00000088`ae6ffa10 00007ffb`7b9877c2     libcef!GetHandleVerifier+0x63caf9
+03 00000088`ae6ffa70 00007ffb`79f592f8     libcef!GetHandleVerifier+0x264b692
+04 00000088`ae6ffbb0 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d1c8
+05 00000088`ae6ffbf0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+06 00000088`ae6ffc80 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+07 00000088`ae6ffcb0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  49  Id: 212c.74b8 Suspend: 0 Teb: 00000088`a57c6000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`ae9ff9c8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`ae9ff9d0 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`ae9ffa70 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`ae9ffaf0 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`ae9ffbb0 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`ae9ffcf0 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`ae9ffd30 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`ae9ffdc0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`ae9ffdf0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  50  Id: 212c.6f0c Suspend: 0 Teb: 00000088`a57c8000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`aecff7c8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`aecff7d0 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`aecff870 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`aecff8f0 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`aecff9b0 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`aecffaf0 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`aecffb30 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`aecffbc0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`aecffbf0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  51  Id: 212c.6c14 Suspend: 0 Teb: 00000088`a57ca000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`aefff6a8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`aefff6b0 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`aefff750 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`aefff7d0 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`aefff890 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`aefff9d0 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`aefffa10 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`aefffaa0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`aefffad0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  52  Id: 212c.12d8 Suspend: 0 Teb: 00000088`a57cc000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`af17f578 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`af17f580 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`af17f620 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`af17f6a0 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`af17f760 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`af17f8a0 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`af17f8e0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`af17f970 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`af17f9a0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  53  Id: 212c.36ac Suspend: 0 Teb: 00000088`a57ce000 Unfrozen "ThreadPoolForegroundWorker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`af5ff658 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`af5ff660 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`af5ff700 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`af5ff780 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`af5ff840 00007ffb`79f59208     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`af5ff980 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d0d8
+06 00000088`af5ff9c0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`af5ffa50 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`af5ffa80 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  54  Id: 212c.2f7c Suspend: 0 Teb: 00000088`a57d0000 Unfrozen "ThreadPoolSingleThreadCOMSTASharedBackgroundBlocking8"
+ # Child-SP          RetAddr               Call Site
+00 00000088`af8ffa48 00007ffc`ec050c8e     win32u!NtUserMsgWaitForMultipleObjectsEx+0x14
+01 00000088`af8ffa50 00007ffb`79978c29     user32!RealMsgWaitForMultipleObjectsEx+0x1e
+02 00000088`af8ffa90 00007ffb`7b9877c2     libcef!GetHandleVerifier+0x63caf9
+03 00000088`af8ffaf0 00007ffb`79f591b8     libcef!GetHandleVerifier+0x264b692
+04 00000088`af8ffc30 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d088
+05 00000088`af8ffc70 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+06 00000088`af8ffd00 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+07 00000088`af8ffd30 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  55  Id: 212c.381c Suspend: 0 Teb: 00000088`a57d2000 Unfrozen "ThreadPoolSingleThreadSharedForegroundBlocking9"
+ # Child-SP          RetAddr               Call Site
+00 00000088`afbff658 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`afbff660 00007ffb`7b393769     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`afbff700 00007ffb`7b3a59de     libcef!GetHandleVerifier+0x2057639
+03 00000088`afbff780 00007ffb`7b987507     libcef!GetHandleVerifier+0x20698ae
+04 00000088`afbff840 00007ffb`79f59258     libcef!GetHandleVerifier+0x264b3d7
+05 00000088`afbff980 00007ffb`78bfb217     libcef!GetHandleVerifier+0xc1d128
+06 00000088`afbff9c0 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+07 00000088`afbffa50 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`afbffa80 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  56  Id: 212c.1ea0 Suspend: 0 Teb: 00000088`a57d4000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`afeff7a8 00007ffc`ecc5d407     ntdll!NtWaitForWorkViaWorkerFactory+0x14
+01 00000088`afeff7b0 00007ffc`eb047374     ntdll!TppWorkerThread+0x2f7
+02 00000088`afeffab0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+03 00000088`afeffae0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  57  Id: 212c.5dfc Suspend: 0 Teb: 00000088`a57d6000 Unfrozen "CacheThread_BlockFile"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b01ff868 00007ffc`ea72fe4f     ntdll!NtRemoveIoCompletion+0x14
+01 00000088`b01ff870 00007ffb`7b39560a     KERNELBASE!GetQueuedCompletionStatus+0x4f
+02 00000088`b01ff8d0 00007ffb`7b395163     libcef!GetHandleVerifier+0x20594da
+03 00000088`b01ff980 00007ffb`78c016c2     libcef!GetHandleVerifier+0x2059033
+04 00000088`b01ffa90 00007ffb`7934c4c5     libcef!cef_time_from_basetime+0x13f6e92
+05 00000088`b01ffb00 00007ffb`78c2f03c     libcef!GetHandleVerifier+0x10395
+06 00000088`b01ffb80 00007ffb`78c1de24     libcef!cef_time_from_basetime+0x142480c
+07 00000088`b01ffc50 00007ffb`78c1dfe6     libcef!cef_time_from_basetime+0x14135f4
+08 00000088`b01ffcb0 00007ffb`78bfb217     libcef!cef_time_from_basetime+0x14137b6
+09 00000088`b01ffd40 00007ffc`eb047374     libcef!cef_time_from_basetime+0x13f09e7
+0a 00000088`b01ffdd0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0b 00000088`b01ffe00 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  58  Id: 212c.39b0 Suspend: 0 Teb: 00000088`a57d8000 Unfrozen ".NET TP Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b04ff228 00007ffc`ea72fe4f     ntdll!NtRemoveIoCompletion+0x14
+01 00000088`b04ff230 00007ffb`5096b24c     KERNELBASE!GetQueuedCompletionStatus+0x4f
+02 00000088`b04ff290 00007ffb`5096a949     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.WaitForSignal+0x10c [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 160] 
+03 00000088`b04ff360 00007ffb`ac596d40     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.Wait+0x129 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 85] 
+04 00000088`b04ff410 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart+0x140 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WorkerThread.cs @ 116] 
+05 00000088`b04ff510 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+06 00000088`b04ff550 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+07 00000088`b04ff590 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+08 00000088`b04ff620 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+09 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+0a 00000088`b04ff680 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+0b 00000088`b04ff720 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0c (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+0d 00000088`b04ff790 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+0e 00000088`b04ff7d0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0f 00000088`b04ff800 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  59  Id: 212c.715c Suspend: 0 Teb: 00000088`a57dc000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b0aff898 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b0aff8a0 00007ffb`8875fdcc     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b0aff940 00007ffb`88760293     wpfgfx_cor3!CPartitionManager::GetWork+0x17c [D:\a\_work\1\s\src\wpf\src\Microsoft.DotNet.Wpf\src\WpfGfx\core\uce\partitionmanager.cpp @ 993] 
+03 00000088`b0aff990 00007ffb`8875fff3     wpfgfx_cor3!CPartitionThread::Run+0x23 [D:\a\_work\1\s\src\wpf\src\Microsoft.DotNet.Wpf\src\WpfGfx\core\uce\partitionthread.cpp @ 231] 
+04 00000088`b0aff9c0 00007ffc`eb047374     wpfgfx_cor3!CPartitionThread::ThreadMain+0x23 [D:\a\_work\1\s\src\wpf\src\Microsoft.DotNet.Wpf\src\WpfGfx\core\uce\partitionthread.cpp @ 51] 
+05 00000088`b0aff9f0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b0affa20 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  60  Id: 212c.3650 Suspend: 0 Teb: 00000088`a57de000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b0dffbf8 00007ffc`ea720d10     ntdll!NtWaitForMultipleObjects+0x14
+01 00000088`b0dffc00 00007ffc`ea5bb7b7     KERNELBASE!WaitForMultipleObjectsEx+0xf0
+02 00000088`b0dffef0 00007ffc`eb047374     crypt32!ILS_WaitForThreadProc+0x37
+03 00000088`b0dfff30 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+04 00000088`b0dfff60 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  61  Id: 212c.6b54 Suspend: 0 Teb: 00000088`a57e2000 Unfrozen "DeviceHotplugThread"
+*** WARNING: Unable to verify checksum for SDL3.dll
+ # Child-SP          RetAddr               Call Site
+00 00000088`b10ff648 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b10ff650 00007ffb`880d5faf     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b10ff6f0 00007ffb`8804de20     SDL3!SDL_wcstol+0x1254ef
+03 00000088`b10ff720 00007ffb`880f171f     SDL3!SDL_wcstol+0x9d360
+04 00000088`b10ff750 00007ffc`eaa21bb2     SDL3!SDL_wcstol+0x140c5f
+05 00000088`b10ff780 00007ffc`eb047374     ucrtbase!thread_start<unsigned int (__cdecl*)(void *),1>+0x42
+06 00000088`b10ff7b0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+07 00000088`b10ff7e0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  62  Id: 212c.20f4 Suspend: 0 Teb: 00000088`a57e4000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b13ff058 00007ffc`ea720d10     ntdll!NtWaitForMultipleObjects+0x14
+01 00000088`b13ff060 00007ffc`e71e7ebf     KERNELBASE!WaitForMultipleObjectsEx+0xf0
+02 00000088`b13ff350 00007ffc`e71e7ba9     CoreMessaging!Microsoft::CoreUI::Dispatch::WaitAdapter::Callback_WaitAny+0x1cf
+03 00000088`b13ff4a0 00007ffc`e71e7331     CoreMessaging!Microsoft::CoreUI::Dispatch::WaitController::Callback_DoWait+0x139
+04 00000088`b13ff570 00007ffc`e71e65b4     CoreMessaging!Microsoft::CoreUI::Dispatch::WaitController::Callback_DoGeneralWait+0x211
+05 00000088`b13ff6f0 00007ffc`e71e9d34     CoreMessaging!Microsoft::CoreUI::Dispatch::WaitController::Callback_OnDispatch+0x454
+06 00000088`b13ff820 00007ffc`e71e6a98     CoreMessaging!Microsoft::CoreUI::Dispatch::EventLoop::Callback_RunCoreLoop+0xc04
+07 00000088`b13ff940 00007ffc`e721e475     CoreMessaging!Microsoft::CoreUI::Dispatch::EventLoop::Callback_Run+0xb8
+08 00000088`b13ff9c0 00007ffc`e721d2fb     CoreMessaging!Microsoft::CoreUI::Messaging::MessageSessionCommon$R::Microsoft__CoreUI__IExportMessageSession_Impl::Run+0x35
+09 00000088`b13ffa00 00007ffc`df5925da     CoreMessaging!Microsoft::CoreUI::IExportMessageSession$X__ExportAdapter::Run+0x4b
+0a 00000088`b13ffaa0 00007ffc`df596829     InputHost!MessagingThread::ThreadProc+0x11a
+0b 00000088`b13ffb00 00007ffc`eb047374     InputHost!<lambda_1a34f8f1f48e0e6568a1db7e86863949>::<lambda_invoker_cdecl>+0x9
+0c 00000088`b13ffb30 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0d 00000088`b13ffb60 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  63  Id: 212c.3130 Suspend: 0 Teb: 00000088`a57e6000 Unfrozen "SDL_joystick"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b16ff6f8 00007ffc`ec05210e     win32u!NtUserGetMessage+0x14
+01 00000088`b16ff700 00007ffb`88126e91     user32!GetMessageW+0x2e
+02 00000088`b16ff760 00007ffb`8804de20     SDL3!SDL_wcstol+0x1763d1
+03 00000088`b16ff7f0 00007ffb`880f171f     SDL3!SDL_wcstol+0x9d360
+04 00000088`b16ff820 00007ffc`eaa21bb2     SDL3!SDL_wcstol+0x140c5f
+05 00000088`b16ff850 00007ffc`eb047374     ucrtbase!thread_start<unsigned int (__cdecl*)(void *),1>+0x42
+06 00000088`b16ff880 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+07 00000088`b16ff8b0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  64  Id: 212c.70e0 Suspend: 0 Teb: 00000088`a57e8000 Unfrozen ".NET Timer"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b19fef98 00007ffc`ea720d10     ntdll!NtWaitForMultipleObjects+0x14
+01 00000088`b19fefa0 00007ffb`ad73e3b7     KERNELBASE!WaitForMultipleObjectsEx+0xf0
+02 00000088`b19ff290 00007ffb`ad767db8     coreclr!Thread::DoAppropriateAptStateWait+0x5b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3176] 
+03 00000088`b19ff2d0 00007ffb`ad767973     coreclr!Thread::DoAppropriateWaitWorker+0x348 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3355] 
+04 00000088`b19ff3a0 00007ffb`ad76a1fe     coreclr!Thread::DoAppropriateWait+0xb3 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3070] 
+05 00000088`b19ff440 00007ffb`50995769     coreclr!WaitHandle_WaitOneCore+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comwaithandle.cpp @ 29] 
+06 00000088`b19ff4b0 00007ffb`ac58d0d0     System_Private_CoreLib!System.Threading.WaitHandle.WaitOneNoCheck+0x129 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/WaitHandle.cs @ 183] 
+07 00000088`b19ff570 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.TimerQueue.TimerThread+0x80 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/TimerQueue.Portable.cs @ 95] 
+08 00000088`b19ff610 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+09 00000088`b19ff650 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+0a 00000088`b19ff690 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+0b 00000088`b19ff720 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+0c (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+0d 00000088`b19ff780 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+0e 00000088`b19ff820 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0f (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+10 00000088`b19ff890 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+11 00000088`b19ff8d0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+12 00000088`b19ff900 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  65  Id: 212c.67f8 Suspend: 0 Teb: 00000088`a57ea000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b1b8f4d8 00007ffc`ea720d10     ntdll!NtWaitForMultipleObjects+0x14
+01 00000088`b1b8f4e0 00007ffc`ea720c0e     KERNELBASE!WaitForMultipleObjectsEx+0xf0
+02 00000088`b1b8f7d0 00007ffc`91087fa9     KERNELBASE!WaitForMultipleObjects+0xe
+03 00000088`b1b8f810 00007ffc`90f210ed     nvd3dumx!SetDependencyInfo+0xa2c29
+04 00000088`b1b8f8f0 00007ffc`912d03fa     nvd3dumx+0x1910ed
+05 00000088`b1b8f920 00007ffc`eb047374     nvd3dumx!SetDependencyInfo+0x2eb07a
+06 00000088`b1b8f950 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+07 00000088`b1b8f980 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  66  Id: 212c.66c0 Suspend: 0 Teb: 00000088`a57ec000 Unfrozen ".NET TP Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b1d1f928 00007ffc`ea72fe4f     ntdll!NtRemoveIoCompletion+0x14
+01 00000088`b1d1f930 00007ffb`5096b24c     KERNELBASE!GetQueuedCompletionStatus+0x4f
+02 00000088`b1d1f990 00007ffb`5096a949     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.WaitForSignal+0x10c [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 160] 
+03 00000088`b1d1fa60 00007ffb`ac596d40     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.Wait+0x129 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 85] 
+04 00000088`b1d1fb10 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart+0x140 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WorkerThread.cs @ 116] 
+05 00000088`b1d1fc10 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+06 00000088`b1d1fc50 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+07 00000088`b1d1fc90 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+08 00000088`b1d1fd20 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+09 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+0a 00000088`b1d1fd80 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+0b 00000088`b1d1fe20 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0c (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+0d 00000088`b1d1fe90 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+0e 00000088`b1d1fed0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0f 00000088`b1d1ff00 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  67  Id: 212c.1f50 Suspend: 0 Teb: 00000088`a57ee000 Unfrozen ".NET TP Wait"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b1edf488 00007ffc`ea720d10     ntdll!NtWaitForMultipleObjects+0x14
+01 00000088`b1edf490 00007ffb`ad73e3b7     KERNELBASE!WaitForMultipleObjectsEx+0xf0
+02 00000088`b1edf780 00007ffb`ad767db8     coreclr!Thread::DoAppropriateAptStateWait+0x5b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3176] 
+03 00000088`b1edf7c0 00007ffb`ad767973     coreclr!Thread::DoAppropriateWaitWorker+0x348 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3355] 
+04 00000088`b1edf890 00007ffb`ad76a0f7     coreclr!Thread::DoAppropriateWait+0xb3 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3070] 
+05 00000088`b1edf930 00007ffb`ac57875a     coreclr!WaitHandle_WaitMultipleIgnoringSyncContext+0x87 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comwaithandle.cpp @ 53] 
+06 00000088`b1edf9a0 00007ffb`ac596522     System_Private_CoreLib!System.Threading.WaitHandle.WaitAnyMultiple+0x10a [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/WaitHandle.cs @ 393] 
+07 00000088`b1edfaa0 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WaitThread.WaitThreadStart+0xb2 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WaitThread.cs @ 246] 
+08 00000088`b1edfb00 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+09 00000088`b1edfb40 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+0a 00000088`b1edfb80 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+0b 00000088`b1edfc10 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+0c (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+0d 00000088`b1edfc70 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+0e 00000088`b1edfd10 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0f (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+10 00000088`b1edfd80 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+11 00000088`b1edfdc0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+12 00000088`b1edfdf0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  68  Id: 212c.6764 Suspend: 0 Teb: 00000088`a57f0000 Unfrozen ".NET ThreadPool IO"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b1f5f808 00007ffc`ea7f83a4     ntdll!NtRemoveIoCompletionEx+0x14
+01 00000088`b1f5f810 00007ffb`ac595f84     KERNELBASE!GetQueuedCompletionStatusEx+0xc4
+02 00000088`b1f5f8b0 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.IOCompletionPoller.Poll+0x134 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.IO.Windows.cs @ 242] 
+03 00000088`b1f5f9c0 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+04 00000088`b1f5fa00 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+05 00000088`b1f5fa40 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+06 00000088`b1f5fad0 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+07 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+08 00000088`b1f5fb30 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+09 00000088`b1f5fbd0 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0a (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+0b 00000088`b1f5fc40 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+0c 00000088`b1f5fc80 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0d 00000088`b1f5fcb0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  69  Id: 212c.6664 Suspend: 0 Teb: 00000088`a57f2000 Unfrozen ".NET ThreadPool IO"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b1fdf718 00007ffc`ea7f83a4     ntdll!NtRemoveIoCompletionEx+0x14
+01 00000088`b1fdf720 00007ffb`ac595f84     KERNELBASE!GetQueuedCompletionStatusEx+0xc4
+02 00000088`b1fdf7c0 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.IOCompletionPoller.Poll+0x134 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.IO.Windows.cs @ 242] 
+03 00000088`b1fdf8d0 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+04 00000088`b1fdf910 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+05 00000088`b1fdf950 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+06 00000088`b1fdf9e0 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+07 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+08 00000088`b1fdfa40 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+09 00000088`b1fdfae0 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0a (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+0b 00000088`b1fdfb50 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+0c 00000088`b1fdfb90 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0d 00000088`b1fdfbc0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  70  Id: 212c.702c Suspend: 0 Teb: 00000088`a57f6000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b219f448 00007ffc`ea7162de     ntdll!NtDelayExecution+0x14
+01 00000088`b219f450 00007ffb`ad768bc3     KERNELBASE!SleepEx+0x9e
+02 (Inline Function) --------`--------     coreclr!ClrSleepEx+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\hosting.cpp @ 216] 
+03 00000088`b219f4f0 00007ffb`ad769e86     coreclr!Thread::UserSleep+0xb3 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3973] 
+04 00000088`b219f540 00007ffb`ac575b42     coreclr!ThreadNative_Sleep+0x36 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 840] 
+05 00000088`b219f580 00007ffb`50a16cad     System_Private_CoreLib!System.Threading.Thread.Sleep+0x42 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/Thread.cs @ 381] 
+06 00000088`b219f650 00007ffb`ac57647b     Nanook_GrindCore!Nanook.GrindCore.BufferPool.cleanupStaleBuffers+0x7d
+07 00000088`b219f760 00007ffb`5096ac5d     System_Private_CoreLib!System.Threading.Thread.StartHelper.Callback+0x5b [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/Thread.cs @ 44] 
+08 00000088`b219f7a0 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.ExecutionContext.RunInternal+0xdd
+09 00000088`b219f810 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+0a 00000088`b219f850 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+0b 00000088`b219f8e0 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+0c (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+0d 00000088`b219f940 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+0e 00000088`b219f9e0 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0f (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+10 00000088`b219fa50 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+11 00000088`b219fa90 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+12 00000088`b219fac0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  71  Id: 212c.6798 Suspend: 0 Teb: 00000088`a57f8000 Unfrozen ".NET TP Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b249f1a8 00007ffc`ea72fe4f     ntdll!NtRemoveIoCompletion+0x14
+01 00000088`b249f1b0 00007ffb`5096b24c     KERNELBASE!GetQueuedCompletionStatus+0x4f
+02 00000088`b249f210 00007ffb`5096a949     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.WaitForSignal+0x10c [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 160] 
+03 00000088`b249f2e0 00007ffb`ac596d40     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.Wait+0x129 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 85] 
+04 00000088`b249f390 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart+0x140 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WorkerThread.cs @ 116] 
+05 00000088`b249f490 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+06 00000088`b249f4d0 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+07 00000088`b249f510 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+08 00000088`b249f5a0 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+09 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+0a 00000088`b249f600 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+0b 00000088`b249f6a0 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0c (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+0d 00000088`b249f710 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+0e 00000088`b249f750 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0f 00000088`b249f780 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  72  Id: 212c.24cc Suspend: 0 Teb: 00000088`a57fa000 Unfrozen "IPC Listener Thread"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b279ec48 00007ffc`ea720d10     ntdll!NtWaitForMultipleObjects+0x14
+01 00000088`b279ec50 00007ffb`ad73e3b7     KERNELBASE!WaitForMultipleObjectsEx+0xf0
+02 00000088`b279ef40 00007ffb`ad767db8     coreclr!Thread::DoAppropriateAptStateWait+0x5b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3176] 
+03 00000088`b279ef80 00007ffb`ad767973     coreclr!Thread::DoAppropriateWaitWorker+0x348 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3355] 
+04 00000088`b279f050 00007ffb`ad76ddcb     coreclr!Thread::DoAppropriateWait+0xb3 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3070] 
+05 (Inline Function) --------`--------     coreclr!CLREventBase::WaitEx+0x55 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\synch.cpp @ 459] 
+06 00000088`b279f0f0 00007ffb`ad767659     coreclr!CLREventBase::Wait+0x5b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\synch.cpp @ 413] 
+07 (Inline Function) --------`--------     coreclr!Thread::Wait+0x24 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3739] 
+08 (Inline Function) --------`--------     coreclr!Thread::Block+0x24 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 3696] 
+09 00000088`b279f140 00007ffb`ad75e959     coreclr!SyncBlock::Wait+0x1c9 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\syncblk.cpp @ 2833] 
+0a 00000088`b279f250 00007ffb`ac574091     coreclr!Monitor_Wait+0x49 [D:\a\_work\1\s\src\runtime\src\coreclr\classlibnative\bcltype\objectnative.cpp @ 116] 
+0b 00000088`b279f2a0 00007ffb`ac581414     System_Private_CoreLib!System.Threading.Monitor.Wait+0x61 [/_/src/runtime/src/coreclr/System.Private.CoreLib/src/System/Threading/Monitor.CoreCLR.cs @ 312] 
+0c 00000088`b279f370 00007ffb`ac59c6df     System_Private_CoreLib!System.Threading.ManualResetEventSlim.Wait+0x224 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/ManualResetEventSlim.cs @ 587] 
+0d 00000088`b279f400 00007ffb`ac59c427     System_Private_CoreLib!System.Threading.Tasks.Task.SpinThenBlockingWait+0x10f [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/Tasks/Task.cs @ 3090] 
+0e 00000088`b279f470 00007ffb`ac59c366     System_Private_CoreLib!System.Threading.Tasks.Task.InternalWaitCore+0xb7
+0f 00000088`b279f4f0 00007ffb`ac5fdbe5     System_Private_CoreLib!System.Threading.Tasks.Task.InternalWait+0x26 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/Tasks/Task.cs @ 2965] 
+10 00000088`b279f520 00007ffb`ad51c0be     System_Private_CoreLib!System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification+0x25 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Runtime/CompilerServices/TaskAwaiter.cs @ 111] 
+11 00000088`b279f560 00007ffb`50fb9593     System_IO_Pipes!System.IO.Pipes.NamedPipeServerStream.WaitForConnection+0x9e [/_/src/runtime/src/libraries/System.IO.Pipes/src/System/IO/Pipes/NamedPipeServerStream.Windows.cs @ 200] 
+12 00000088`b279f5b0 00007ffb`50fb846e     System_Management_Automation!System.Management.Automation.Remoting.RemoteSessionNamedPipeServer.WaitForConnection+0x23
+13 00000088`b279f5e0 00007ffb`ac576472     System_Management_Automation!System.Management.Automation.Remoting.RemoteSessionNamedPipeServer.ProcessListeningThread+0x1ae
+14 00000088`b279f850 00007ffb`5096ac5d     System_Private_CoreLib!System.Threading.Thread.StartHelper.Callback+0x52 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/Thread.cs @ 44] 
+15 00000088`b279f890 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.ExecutionContext.RunInternal+0xdd
+16 00000088`b279f900 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+17 00000088`b279f940 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+18 00000088`b279f9d0 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+19 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+1a 00000088`b279fa30 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+1b 00000088`b279fad0 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+1c (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+1d 00000088`b279fb40 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+1e 00000088`b279fb80 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+1f 00000088`b279fbb0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  73  Id: 212c.6570 Suspend: 0 Teb: 00000088`a57fc000 Unfrozen ".NET TP Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b2a9f808 00007ffc`ea72fe4f     ntdll!NtRemoveIoCompletion+0x14
+01 00000088`b2a9f810 00007ffb`5096b24c     KERNELBASE!GetQueuedCompletionStatus+0x4f
+02 00000088`b2a9f870 00007ffb`5096a949     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.WaitForSignal+0x10c [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 160] 
+03 00000088`b2a9f940 00007ffb`ac596d40     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.Wait+0x129 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 85] 
+04 00000088`b2a9f9f0 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart+0x140 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WorkerThread.cs @ 116] 
+05 00000088`b2a9faf0 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+06 00000088`b2a9fb30 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+07 00000088`b2a9fb70 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+08 00000088`b2a9fc00 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+09 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+0a 00000088`b2a9fc60 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+0b 00000088`b2a9fd00 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0c (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+0d 00000088`b2a9fd70 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+0e 00000088`b2a9fdb0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0f 00000088`b2a9fde0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  74  Id: 212c.7638 Suspend: 0 Teb: 00000088`a57fe000 Unfrozen ".NET TP Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b2d9f698 00007ffc`ea72fe4f     ntdll!NtRemoveIoCompletion+0x14
+01 00000088`b2d9f6a0 00007ffb`5096b24c     KERNELBASE!GetQueuedCompletionStatus+0x4f
+02 00000088`b2d9f700 00007ffb`5096a949     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.WaitForSignal+0x10c [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 160] 
+03 00000088`b2d9f7d0 00007ffb`ac596d40     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.Wait+0x129 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 85] 
+04 00000088`b2d9f880 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart+0x140 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WorkerThread.cs @ 116] 
+05 00000088`b2d9f980 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+06 00000088`b2d9f9c0 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+07 00000088`b2d9fa00 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+08 00000088`b2d9fa90 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+09 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+0a 00000088`b2d9faf0 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+0b 00000088`b2d9fb90 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0c (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+0d 00000088`b2d9fc00 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+0e 00000088`b2d9fc40 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0f 00000088`b2d9fc70 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  75  Id: 212c.73e4 Suspend: 0 Teb: 00000088`a5600000 Unfrozen ".NET TP Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b309f278 00007ffc`ea72fe4f     ntdll!NtRemoveIoCompletion+0x14
+01 00000088`b309f280 00007ffb`5096b24c     KERNELBASE!GetQueuedCompletionStatus+0x4f
+02 00000088`b309f2e0 00007ffb`5096a949     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.WaitForSignal+0x10c [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 160] 
+03 00000088`b309f3b0 00007ffb`ac596d40     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.Wait+0x129 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 85] 
+04 00000088`b309f460 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart+0x140 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WorkerThread.cs @ 116] 
+05 00000088`b309f560 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+06 00000088`b309f5a0 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+07 00000088`b309f5e0 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+08 00000088`b309f670 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+09 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+0a 00000088`b309f6d0 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+0b 00000088`b309f770 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0c (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+0d 00000088`b309f7e0 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+0e 00000088`b309f820 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0f 00000088`b309f850 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  76  Id: 212c.6068 Suspend: 0 Teb: 00000088`a5602000 Unfrozen ".NET TP Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b339f328 00007ffc`ea72fe4f     ntdll!NtRemoveIoCompletion+0x14
+01 00000088`b339f330 00007ffb`5096b24c     KERNELBASE!GetQueuedCompletionStatus+0x4f
+02 00000088`b339f390 00007ffb`5096a949     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.WaitForSignal+0x10c [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 160] 
+03 00000088`b339f460 00007ffb`ac596d40     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.Wait+0x129 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 85] 
+04 00000088`b339f510 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart+0x140 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WorkerThread.cs @ 116] 
+05 00000088`b339f610 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+06 00000088`b339f650 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+07 00000088`b339f690 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+08 00000088`b339f720 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+09 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+0a 00000088`b339f780 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+0b 00000088`b339f820 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0c (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+0d 00000088`b339f890 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+0e 00000088`b339f8d0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0f 00000088`b339f900 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  77  Id: 212c.568c Suspend: 0 Teb: 00000088`a5604000 Unfrozen ".NET TP Worker"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b369f5f8 00007ffc`ea72fe4f     ntdll!NtRemoveIoCompletion+0x14
+01 00000088`b369f600 00007ffb`5096b24c     KERNELBASE!GetQueuedCompletionStatus+0x4f
+02 00000088`b369f660 00007ffb`5096a949     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.WaitForSignal+0x10c [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 160] 
+03 00000088`b369f730 00007ffb`ac596d40     System_Private_CoreLib!System.Threading.LowLevelLifoSemaphore.Wait+0x129 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/LowLevelLifoSemaphore.cs @ 85] 
+04 00000088`b369f7e0 00007ffb`ac57484b     System_Private_CoreLib!System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart+0x140 [/_/src/runtime/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.WorkerThread.cs @ 116] 
+05 00000088`b369f8e0 00007ffb`ad753b03     System_Private_CoreLib!System.Threading.Thread.StartCallback+0x8b
+06 00000088`b369f920 00007ffb`ad5e25a2     coreclr!CallDescrWorkerInternal+0x83 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\amd64\CallDescrWorkerAMD64.asm @ 74] 
+07 00000088`b369f960 00007ffb`ad73f30f     coreclr!DispatchCallSimple+0x66 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\callhelpers.cpp @ 242] 
+08 00000088`b369f9f0 00007ffb`ad674b4e     coreclr!KickOffThread_Worker+0x5f [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 138] 
+09 (Inline Function) --------`--------     coreclr!ManagedThreadBase_DispatchInner+0xd [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6862] 
+0a 00000088`b369fa50 00007ffb`ad674a6b     coreclr!ManagedThreadBase_DispatchMiddle+0x5e [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 6906] 
+0b 00000088`b369faf0 00007ffb`ad674c30     coreclr!ManagedThreadBase_DispatchOuter+0x7b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7065] 
+0c (Inline Function) --------`--------     coreclr!ManagedThreadBase::KickOff+0x1b [D:\a\_work\1\s\src\runtime\src\coreclr\vm\threads.cpp @ 7104] 
+0d 00000088`b369fb60 00007ffc`eb047374     coreclr!KickOffThread+0xc0 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\comsynchronizable.cpp @ 206] 
+0e 00000088`b369fba0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0f 00000088`b369fbd0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  78  Id: 212c.69a8 Suspend: 0 Teb: 00000088`a5606000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b399f4a8 00007ffc`ec050c8e     win32u!NtUserMsgWaitForMultipleObjectsEx+0x14
+01 00000088`b399f4b0 00007ffc`ec4b7570     user32!RealMsgWaitForMultipleObjectsEx+0x1e
+02 00000088`b399f4f0 00007ffc`ec4b6bcc     SHCore!WorkThreadManager::CThread::ThreadProc+0x970
+03 00000088`b399f780 00007ffc`ec4b53c1     SHCore!WorkThreadManager::CThread::s_ExecuteThreadProc+0x18
+04 00000088`b399f7b0 00007ffc`eb047374     SHCore!<lambda_9844335fc14345151eefcc3593dd6895>::<lambda_invoker_cdecl>+0x11
+05 00000088`b399f7e0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b399f810 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  79  Id: 212c.2184 Suspend: 0 Teb: 00000088`a5608000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b3c9fa68 00007ffc`ec05210e     win32u!NtUserGetMessage+0x14
+01 00000088`b3c9fa70 00007ffc`ebc1ff88     user32!GetMessageW+0x2e
+02 00000088`b3c9fad0 00007ffc`ebc1fec0     combase!CDllHost::STAWorkerLoop+0x64 [onecore\com\combase\objact\dllhost.cxx @ 1282] 
+03 00000088`b3c9fb50 00007ffc`ebc40880     combase!CDllHost::WorkerThread+0xd4 [onecore\com\combase\objact\dllhost.cxx @ 1211] 
+04 00000088`b3c9fb90 00007ffc`ebc40809     combase!CRpcThread::WorkerLoop+0x4c [onecore\com\combase\dcomrem\threads.cxx @ 283] 
+05 00000088`b3c9fbf0 00007ffc`eb047374     combase!CRpcThreadCache::RpcWorkerThreadEntry+0x29 [onecore\com\combase\dcomrem\threads.cxx @ 77] 
+06 00000088`b3c9fc20 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+07 00000088`b3c9fc50 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  80  Id: 212c.7728 Suspend: 0 Teb: 00000088`a560c000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b3f9f738 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b3f9f740 00007ffc`d2137a86     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b3f9f7e0 00007ffc`d2717526     nvwgf2umx!NVDEV_Thunk+0x23416
+03 00000088`b3f9f820 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+04 00000088`b3f9f850 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+05 00000088`b3f9f880 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  81  Id: 212c.2510 Suspend: 0 Teb: 00000088`a560e000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b429fb08 00007ffc`ea720d10     ntdll!NtWaitForMultipleObjects+0x14
+01 00000088`b429fb10 00007ffc`ea720c0e     KERNELBASE!WaitForMultipleObjectsEx+0xf0
+02 00000088`b429fe00 00007ffc`d192be76     KERNELBASE!WaitForMultipleObjects+0xe
+03 00000088`b429fe40 00007ffc`d2717526     nvwgf2umx!NVAPI_DirectMethods+0x2ea56
+04 00000088`b429fed0 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b429ff00 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b429ff30 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  82  Id: 212c.60a0 Suspend: 0 Teb: 00000088`a5610000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b459fc68 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b459fc70 00007ffc`d219b8bf     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b459fd10 00007ffc`d2717526     nvwgf2umx!NVDEV_Thunk+0x8724f
+03 00000088`b459fe70 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+04 00000088`b459fea0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+05 00000088`b459fed0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  83  Id: 212c.2fdc Suspend: 0 Teb: 00000088`a5612000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b472fd68 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b472fd70 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b472fe10 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b472fe70 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b472fea0 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b472fed0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b472ff00 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  84  Id: 212c.694c Suspend: 0 Teb: 00000088`a5614000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b474fb58 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b474fb60 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b474fc00 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b474fc60 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b474fc90 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b474fcc0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b474fcf0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  85  Id: 212c.4f0 Suspend: 0 Teb: 00000088`a5616000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b476fc08 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b476fc10 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b476fcb0 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b476fd10 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b476fd40 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b476fd70 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b476fda0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  86  Id: 212c.ea8 Suspend: 0 Teb: 00000088`a5618000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b478fdc8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b478fdd0 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b478fe70 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b478fed0 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b478ff00 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b478ff30 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b478ff60 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  87  Id: 212c.63e0 Suspend: 0 Teb: 00000088`a561a000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b47afa08 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b47afa10 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b47afab0 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b47afb10 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b47afb40 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b47afb70 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b47afba0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  88  Id: 212c.1888 Suspend: 0 Teb: 00000088`a561c000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b47cfbb8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b47cfbc0 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b47cfc60 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b47cfcc0 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b47cfcf0 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b47cfd20 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b47cfd50 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  89  Id: 212c.5c60 Suspend: 0 Teb: 00000088`a561e000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b47ef878 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b47ef880 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b47ef920 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b47ef980 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b47ef9b0 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b47ef9e0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b47efa10 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  90  Id: 212c.2a7c Suspend: 0 Teb: 00000088`a5620000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b480f6b8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b480f6c0 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b480f760 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b480f7c0 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b480f7f0 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b480f820 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b480f850 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  91  Id: 212c.17c Suspend: 0 Teb: 00000088`a5622000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b482f7c8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b482f7d0 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b482f870 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b482f8d0 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b482f900 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b482f930 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b482f960 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  92  Id: 212c.4ab0 Suspend: 0 Teb: 00000088`a5624000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b484f708 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b484f710 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b484f7b0 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b484f810 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b484f840 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b484f870 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b484f8a0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  93  Id: 212c.72a0 Suspend: 0 Teb: 00000088`a5626000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b486f928 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b486f930 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b486f9d0 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b486fa30 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b486fa60 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b486fa90 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b486fac0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  94  Id: 212c.749c Suspend: 0 Teb: 00000088`a5628000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b488f9b8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b488f9c0 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b488fa60 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b488fac0 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b488faf0 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b488fb20 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b488fb50 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  95  Id: 212c.27d0 Suspend: 0 Teb: 00000088`a562a000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b48afb88 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b48afb90 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b48afc30 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b48afc90 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b48afcc0 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b48afcf0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b48afd20 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  96  Id: 212c.36ec Suspend: 0 Teb: 00000088`a562c000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b48cfd48 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b48cfd50 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b48cfdf0 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b48cfe50 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b48cfe80 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b48cfeb0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b48cfee0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  97  Id: 212c.72e4 Suspend: 0 Teb: 00000088`a562e000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b48efd38 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b48efd40 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b48efde0 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b48efe40 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b48efe70 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b48efea0 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b48efed0 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  98  Id: 212c.40f0 Suspend: 0 Teb: 00000088`a5630000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b490fcf8 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b490fd00 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b490fda0 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b490fe00 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b490fe30 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b490fe60 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b490fe90 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+  99  Id: 212c.279c Suspend: 0 Teb: 00000088`a5632000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b493f688 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b493f690 00007ffc`d1d8c85e     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b493f730 00007ffc`d1d8c1d5     nvwgf2umx!SetDependencyInfo+0x69ace
+03 00000088`b493fa10 00007ffc`d1d80f4d     nvwgf2umx!SetDependencyInfo+0x69445
+04 00000088`b493fa90 00007ffc`d226ef4a     nvwgf2umx!SetDependencyInfo+0x5e1bd
+05 00000088`b493fac0 00007ffc`d2717526     nvwgf2umx!NVDEV_Thunk+0x15a8da
+06 00000088`b493faf0 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+07 00000088`b493fb20 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+08 00000088`b493fb50 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+ 100  Id: 212c.6e20 Suspend: 0 Teb: 00000088`a5634000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b496fc98 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b496fca0 00007ffc`d21141a8     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 00000088`b496fd40 00007ffc`d21140cf     nvwgf2umx!OpenAdapter12+0x147fd8
+03 00000088`b496fda0 00007ffc`d2717526     nvwgf2umx!OpenAdapter12+0x147eff
+04 00000088`b496fdd0 00007ffc`eb047374     nvwgf2umx!NVDEV_Thunk+0x602eb6
+05 00000088`b496fe00 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+06 00000088`b496fe30 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+#101  Id: 212c.5d68 Suspend: 0 Teb: 00000088`a5636000 Unfrozen
+ # Child-SP          RetAddr               Call Site
+00 00000088`b4aff880 00007ffc`eaa3da1d     KERNELBASE!RaiseException+0x69
+01 00000088`b4aff960 00007ffb`731b4102     ucrtbase!CxxThrowException+0xad
+02 00000088`b4aff9d0 00007ffb`731c0de5     GraphicsCapture!winrt::throw_hresult+0xf6
+03 00000088`b4affa20 00007ffb`731c08ae     GraphicsCapture!winrt::Windows::Graphics::Capture::implementation::Direct3D11CaptureFramePool::EnqueueCaptureFrame+0x1d5
+04 00000088`b4affab0 00007ffc`e67f7b59     GraphicsCapture!winrt::Windows::Graphics::Capture::implementation::Direct3D11CaptureFramePool::ContentUpdated+0xe
+05 00000088`b4affaf0 00007ffc`e67f77e4     dcomp!Flip::CFlipConsumer::ProcessUpdateContent+0x8d
+06 00000088`b4affb40 00007ffc`e67f6ea8     dcomp!Flip::CFlipConsumer::ProcessPresent+0xb8
+07 00000088`b4affbc0 00007ffb`731c10a7     dcomp!Flip::CFlipConsumer::DispatchPresent+0x198
+08 00000088`b4affcf0 00007ffc`eb047374     GraphicsCapture!winrt::Windows::Graphics::Capture::implementation::Direct3D11CaptureFramePool::PresentThread+0xd7
+09 00000088`b4affd50 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+0a 00000088`b4affd80 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+
+ 102  Id: 212c.5d18 Suspend: 0 Teb: 00000088`a5638000 Unfrozen ".NET BGC"
+ # Child-SP          RetAddr               Call Site
+00 00000088`b07ff708 00007ffc`ea6eb6ae     ntdll!NtWaitForSingleObject+0x14
+01 00000088`b07ff710 00007ffb`ad66f886     KERNELBASE!WaitForSingleObjectEx+0x8e
+02 (Inline Function) --------`--------     coreclr!GCEvent::Impl::Wait+0x15 [D:\a\_work\1\s\src\runtime\src\coreclr\gc\windows\gcenv.windows.cpp @ 1356] 
+03 (Inline Function) --------`--------     coreclr!GCEvent::Wait+0x15 [D:\a\_work\1\s\src\runtime\src\coreclr\gc\windows\gcenv.windows.cpp @ 1406] 
+04 00000088`b07ff7b0 00007ffb`ad76b0c1     coreclr!WKS::gc_heap::bgc_thread_function+0x46 [D:\a\_work\1\s\src\runtime\src\coreclr\gc\gc.cpp @ 40292] 
+05 00000088`b07ff7e0 00007ffc`eb047374     coreclr!<lambda_c0721ccac2279c33e985d72866793e08>::operator()+0xa1 [D:\a\_work\1\s\src\runtime\src\coreclr\vm\gcenv.ee.cpp @ 1527] 
+06 00000088`b07ff810 00007ffc`ecc5cc91     kernel32!BaseThreadInitThunk+0x14
+07 00000088`b07ff840 00000000`00000000     ntdll!RtlUserThreadStart+0x21
+*/

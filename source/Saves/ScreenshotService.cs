@@ -7,41 +7,69 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 
-using Vortice.Direct3D;
-using Vortice.Direct3D11;
-using Vortice.DXGI;
-
-using Windows.Graphics.Capture;
-using Windows.Graphics.DirectX;
-using Windows.Graphics.DirectX.Direct3D11;
-
-using WinRT;
-
 namespace Graviton.Saves
 {
     record BufferedFrame(DateTime Timestamp, byte[] Screenshot);
 
+
+    /*  
+     *  Spent 6 hours trying to figure out why WGC keeps crashing the application
+     *  So I have replaced the window capture with PrintWindow instead as this actaully works
+     *  
+     *  I have copied the old ScreenshotService into the ScreenshotService.cs.old file along with the output from WinDbg 
+     *  hopefully I can find a fix later 
+    */
+
+
     public class ScreenshotService
     {
-        #region COM Imports
-        [ComImport]
-        [Guid("3628E81B-3CAC-4C60-B7F4-23CE0E0C3356")]
-        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        private interface IGraphicsCaptureItemInterop
+        #region Win32 Imports
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool PrintWindow(IntPtr hWnd, IntPtr hdcBlt, uint nFlags);
+
+        private const uint PW_CLIENTONLY = 0x00000001;
+        private const uint PW_RENDERFULLCONTENT = 0x00000002;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool IsWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool IsIconic(IntPtr hWnd);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int nWidth, int nHeight);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern IntPtr SelectObject(IntPtr hdc, IntPtr hObject);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern bool DeleteObject(IntPtr hObject);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern bool DeleteDC(IntPtr hdc);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
         {
-            IntPtr CreateForWindow([In] IntPtr window, [In] ref Guid iid);
-            IntPtr CreateForMonitor([In] IntPtr monitor, [In] ref Guid iid);
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+            public readonly int Width => Right - Left;
+            public readonly int Height => Bottom - Top;
         }
-
-        private Guid GraphicsCaptureItemGuid = new("79C3F95B-31F7-4EC2-A464-632EF5D30760");
-
-        [DllImport("d3d11.dll", CallingConvention = CallingConvention.Winapi)]
-        private static extern uint CreateDirect3D11DeviceFromDXGIDevice(IntPtr dxgiDevice, out IntPtr graphicsDevice);
-
-        [ComImport]
-        [Guid("A9B3D012-3DF2-4EE3-B8D1-8695F457D3C1")]
-        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        private interface IDirect3DDxgiInterfaceAccess { IntPtr GetInterface([In] ref Guid iid); }
         #endregion
 
         private static readonly ImageCodecInfo JpegEncoder = ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == ImageFormat.Jpeg.Guid);
@@ -55,27 +83,13 @@ namespace Graviton.Saves
         private int MaxFrames;
         private int FrameCaptureInterval;
 
-        private GraphicsCaptureItem? Window;
-        private ID3D11Device? D3D11Device;
-        private Direct3D11CaptureFramePool? FramePool;
-        private GraphicsCaptureSession? Session;
+        private IntPtr WindowHandle;
         private ConcurrentQueue<BufferedFrame> Frames = new();
-
-        private DateTime NextFrameCapturedTime;
-
-        public ScreenshotService()
-        {
-
-        }
+        private readonly object CaptureLock = new();
+        private Timer? CaptureTimer;
 
         public async Task<bool> Setup(int processID, int maxFramesCaptured, int intervalBetweenFrameCaptures = 1000)
         {
-            if (!GraphicsCaptureSession.IsSupported())
-            {
-                GravitonNotify.Add(new GravitonNotification("graviton.screencap.notsupported", "Cannot setup screenshot capture as this device doesn't support it!", GravitonSeverity.Warn));
-                return false;
-            }
-                
             // Wait for emulator to start before trying to setup capture
             await Task.Delay(2000);
 
@@ -85,29 +99,7 @@ namespace Graviton.Saves
                 if (windowHandle == IntPtr.Zero)
                     throw new Exception($"Failed to find window handle");
 
-                var interop = GraphicsCaptureItem.As<IGraphicsCaptureItemInterop>();
-                var ptr = interop.CreateForWindow(windowHandle, GraphicsCaptureItemGuid);
-
-                Window = GraphicsCaptureItem.FromAbi(ptr) ?? null;
-                if (Window == null)
-                    throw new Exception($"Failed to get window");
-
-                D3D11Device = D3D11.D3D11CreateDevice(driverType: DriverType.Hardware, flags: DeviceCreationFlags.BgraSupport | DeviceCreationFlags.VideoSupport, FeatureLevel.Level_11_0);
-                if (D3D11Device == null) 
-                    throw new InvalidOperationException("Failed to create D3D11 device");
-
-                var dxgiDevice = D3D11Device.QueryInterface<IDXGIDevice>();
-
-                uint hr = CreateDirect3D11DeviceFromDXGIDevice(dxgiDevice.NativePointer, out var graphicsDevice);
-                if (hr != 0)
-                    throw new Exception($"CreateDirect3D11DeviceFromDXGIDevice failed. HRESULT: {hr:X}");
-
-                var device = WinRT.MarshalInterface<IDirect3DDevice>.FromAbi(graphicsDevice);
-                Marshal.Release(graphicsDevice);
-
-                FramePool = Direct3D11CaptureFramePool.CreateFreeThreaded(device, DirectXPixelFormat.B8G8R8A8UIntNormalized, 3, Window.Size);
-                Session = FramePool.CreateCaptureSession(Window);
-
+                WindowHandle = windowHandle;
                 MaxFrames = maxFramesCaptured;
                 FrameCaptureInterval = intervalBetweenFrameCaptures;
                 IsSetup = true;
@@ -115,28 +107,29 @@ namespace Graviton.Saves
             }
             catch (Exception ex)
             {
-                 GravitonPlugin.Logger.Error($"Failed to setup window capture!\n{ex}");
+                GravitonPlugin.Logger.Error($"Failed to setup window capture!\n{ex}");
                 return false;
             }
         }
 
-        public async Task Start()
+        public Task Start()
         {
-            if (!IsSetup || Window == null)
+            if (!IsSetup || WindowHandle == IntPtr.Zero)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.screencap.notsetup", "Cannot start screenshot capture as setup wasn't completed!", GravitonSeverity.Warn));
-                return;
+                return Task.CompletedTask;
             }
 
-            FramePool?.FrameArrived += ProcessNewFrame;
-            Session!.StartCapture();
-
+            CaptureTimer = new Timer(Tick, null, FrameCaptureInterval, Timeout.Infinite);
+            return Task.CompletedTask;
         }
 
-        public async Task Stop()
+        public Task Stop()
         {
-            Session?.Dispose();
-            FramePool?.FrameArrived -= ProcessNewFrame;
+            IsSetup = false;
+            CaptureTimer?.Dispose();
+            CaptureTimer = null;
+            return Task.CompletedTask;
         }
 
         public byte[]? GetScreenshotFromSecondsAgo(int seconds)
@@ -166,7 +159,7 @@ namespace Graviton.Saves
             else
             {
                 return closestFrame.Screenshot;
-            }   
+            }
         }
 
         private async Task<IntPtr> FindWindow(int processID)
@@ -180,92 +173,137 @@ namespace Graviton.Saves
             return process.MainWindowHandle;
         }
 
-        private void ProcessNewFrame(Direct3D11CaptureFramePool sender, object args)
+        private void Tick(object? state)
         {
-            using var frame = sender.TryGetNextFrame();
-            if (frame == null) 
+            try
+            {
+                lock (CaptureLock)
+                {
+                    CaptureFrame();
+                }
+            }
+            catch (Exception ex)
+            {
+                GravitonPlugin.Logger.Error($"Failed to process captured frame!\n{ex}");
+            }
+            finally
+            {
+                
+                try
+                {
+                    CaptureTimer?.Change(FrameCaptureInterval, Timeout.Infinite);
+                }
+                catch (Exception){}
+                
+            }
+        }
+
+        private void CaptureFrame()
+        {
+            if (!IsWindow(WindowHandle))
+            {
+                GravitonPlugin.Logger.Warn("Capture target window no longer exists; stopping capture.");
+                _ = Stop();
+                return;
+            }
+
+            // Check if window is minimized
+            if (IsIconic(WindowHandle))
+                return;
+            
+            if (!GetClientRect(WindowHandle, out var rect) || rect.Width <= 0 || rect.Height <= 0)
                 return;
 
             var now = DateTime.UtcNow;
 
-            if (now >= NextFrameCapturedTime)
+            var screenContext = GetDC(IntPtr.Zero);
+            if (screenContext == IntPtr.Zero)
+                return;
+
+            var memoryContext = IntPtr.Zero;
+            var bitmap = IntPtr.Zero;
+            var oldBitmap = IntPtr.Zero;
+
+            try
             {
-                NextFrameCapturedTime = now.AddMilliseconds(FrameCaptureInterval);
+                memoryContext = CreateCompatibleDC(screenContext);
+                if (memoryContext == IntPtr.Zero)
+                    return;
 
-                var access = frame.Surface.As<IDirect3DDxgiInterfaceAccess>();
-                var iid = typeof(ID3D11Texture2D).GUID;
-                var texturePtr = access.GetInterface(ref iid);
+                bitmap = CreateCompatibleBitmap(screenContext, rect.Width, rect.Height);
+                if (bitmap == IntPtr.Zero)
+                    return;
 
-                using var sourceTexture = new ID3D11Texture2D(texturePtr);
-                Marshal.Release(texturePtr);
-                var desc = sourceTexture.Description with
+                oldBitmap = SelectObject(memoryContext, bitmap);
+
+                // Get image from window
+                if (!PrintWindow(WindowHandle, memoryContext, PW_CLIENTONLY | PW_RENDERFULLCONTENT))
+                    return;
+
+                using var captured = Image.FromHbitmap(bitmap);
+
+                int targetHeight;
+                int targetWidth;
+                bool skipShrink = false;
+
+                // Resize image to selected max resolution
+                if (rect.Width < rect.Height)
                 {
-                    Usage = ResourceUsage.Staging,
-                    BindFlags = BindFlags.None,
-                    CPUAccessFlags = CpuAccessFlags.Read,
-                    MiscFlags = ResourceOptionFlags.None
-                };
-                using var copy = D3D11Device!.CreateTexture2D(desc);
-                D3D11Device.ImmediateContext.CopyResource(copy, sourceTexture);
+                    targetWidth = Math.Min((int)GravitonPlugin.Instance.Settings.ScreenshotResolution, rect.Width);
+                    targetHeight = (int)Math.Round(rect.Height * (targetWidth / (double)rect.Width));
 
-                var mapped = D3D11Device.ImmediateContext.Map(copy, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
-                try
-                {
-                    using var fullResView = new Bitmap((int)desc.Width, (int)desc.Height, (int)mapped.RowPitch, PixelFormat.Format32bppRgb, mapped.DataPointer);
-
-                    int targetHeight;
-                    int targetWidth;
-                    bool skipShrink = false;
-
-                    if (desc.Width < desc.Height)
+                    if (targetWidth == rect.Width)
                     {
-                        targetWidth = (int)Math.Min((int)GravitonPlugin.Instance.Settings.ScreenshotResolution, desc.Width);
-                        targetHeight = (int)Math.Round(desc.Height * (targetWidth / (double)desc.Width));
-
-                        if (targetWidth == desc.Width)
-                        {
-                            skipShrink = true;
-                        }
+                        skipShrink = true;
                     }
-                    else
-                    {
-                        targetHeight = (int)Math.Min((int)GravitonPlugin.Instance.Settings.ScreenshotResolution, desc.Height);
-                        targetWidth = (int)Math.Round(desc.Width * (targetHeight / (double)desc.Height));
-
-                        if (targetHeight == desc.Height)
-                        {
-                            skipShrink = true;
-                        }
-                    }
-
-                    using var ms = new MemoryStream();
-
-                    if (skipShrink)
-                    {
-                        fullResView.Save(ms, JpegEncoder, JpegEncoderParams);
-                    }
-                    else
-                    {
-                        using var small = new Bitmap(targetWidth, targetHeight, PixelFormat.Format32bppRgb);
-                        using (var g = Graphics.FromImage(small))
-                        {
-                            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
-                            g.DrawImage(fullResView, 0, 0, targetWidth, targetHeight);
-                        }
-                        small.Save(ms, JpegEncoder, JpegEncoderParams);
-                    }
-
-                    Frames.Enqueue(new(now, ms.ToArray()));
                 }
-                finally
+                else
                 {
-                    D3D11Device.ImmediateContext.Unmap(copy, 0);
+                    targetHeight = Math.Min((int)GravitonPlugin.Instance.Settings.ScreenshotResolution, rect.Height);
+                    targetWidth = (int)Math.Round(rect.Width * (targetHeight / (double)rect.Height));
+
+                    if (targetHeight == rect.Height)
+                    {
+                        skipShrink = true;
+                    }
                 }
+
+                using var ms = new MemoryStream();
+
+                // Skip shrink if image is already lower res than max resolution
+                if (skipShrink)
+                {
+                    captured.Save(ms, JpegEncoder, JpegEncoderParams);
+                }
+                else
+                {
+                    using var small = new Bitmap(targetWidth, targetHeight, PixelFormat.Format32bppRgb);
+                    using (var g = Graphics.FromImage(small))
+                    {
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
+                        g.DrawImage(captured, 0, 0, targetWidth, targetHeight);
+                    }
+                    small.Save(ms, JpegEncoder, JpegEncoderParams);
+                }
+
+                Frames.Enqueue(new(now, ms.ToArray()));
 
                 while (Frames.Count > MaxFrames)
                     Frames.TryDequeue(out _);
             }
-        }
+            finally
+            {
+                if (memoryContext != IntPtr.Zero && oldBitmap != IntPtr.Zero)
+                    SelectObject(memoryContext, oldBitmap);
 
+                if (bitmap != IntPtr.Zero)
+                    DeleteObject(bitmap);
+
+                if (memoryContext != IntPtr.Zero)
+                    DeleteDC(memoryContext);
+
+                ReleaseDC(IntPtr.Zero, screenContext);
+            }
+        }
     }
 }
