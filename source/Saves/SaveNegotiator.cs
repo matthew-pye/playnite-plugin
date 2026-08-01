@@ -32,7 +32,10 @@ namespace Graviton.Saves
 
             foreach (var rom in roms)
             {
-                if(response == null)
+                if (rom.LocalSave == null)
+                    continue;
+
+                if (response == null)
                 {
                     rom.LocalSave.Status = SaveStatus.Unknown;
                     rom.LocalSave.ServerHash = null;
@@ -90,11 +93,14 @@ namespace Graviton.Saves
 
         public static async Task NegotiateSave(RomMRomLocal rom, byte[]? screenshot = null)
         {
-            if (_plugin.IsAGameRunning)
+            if (GameSessionHandler.IsAGameRunning)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", "Cannot do save sync operations as a game is currently running!", GravitonSeverity.Info));
                 return;
             }
+
+            if (rom.LocalSave == null)
+                return;
 
             var negotiate = BuildNegotiate(new() { rom });
             if (negotiate.Saves.Count <= 0) // Nothing to sync
@@ -135,14 +141,14 @@ namespace Graviton.Saves
 
                     if (operation.Action == "conflict")
                     {
-                        action = ResolveConflict(rom.LocalSave).ToString();
+                        action = ResolveConflict(rom.LocalSave!).ToString();
                     }
 
                     switch (action)
                     {
                         case "upload":
                             var saveID = rom.LocalSave.SaveID;
-                            var result = await SaveManager.Upload(rom.LocalSave, false, screenshot);
+                            var result = await SaveManager.Upload(rom.LocalSave!, false, screenshot);
 
                             if(saveID == result.SaveID)
                             {
@@ -163,6 +169,7 @@ namespace Graviton.Saves
                         case "no_op":
                             rom.LocalSave.Status = SaveStatus.Synced;
                             rom.LocalSave.IsTempRestored = false;
+                            GravitonNotify.Add(new GravitonNotification("graviton.sync.noop", $"No sync need for {rom.Name}", GravitonSeverity.Info));
                             operationCompleted++;
                             break;
 
@@ -210,6 +217,9 @@ namespace Graviton.Saves
 
             foreach (var rom in roms)
             {
+                if (rom.LocalSave == null)
+                    continue;
+
                 var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
                 if (mapping == null)
                     continue;
@@ -304,7 +314,9 @@ namespace Graviton.Saves
                         }
                         else if (Directory.Exists(path))
                         {
-                            saveWritetimes.Add(new DirectoryInfo(path).LastWriteTimeUtc);
+                            var dirInfo = new DirectoryInfo(path);
+                            var writeTimes = dirInfo.GetFiles("*", SearchOption.AllDirectories).Select(x => x.LastWriteTimeUtc).ToList();
+                            saveWritetimes.AddRange(writeTimes);
                         }
                         else
                         {

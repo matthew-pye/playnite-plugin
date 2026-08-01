@@ -23,7 +23,7 @@ namespace Graviton.Saves
 
             foreach (var path in sourcePaths)
             {
-                if(File.Exists(path))
+                if (File.Exists(path))
                 {
                     var dir = Path.GetDirectoryName(path);
                     if (dir == null)
@@ -56,7 +56,7 @@ namespace Graviton.Saves
                 }
             }
 
-            if(FileWatchers.Count > 0)
+            if (FileWatchers.Count > 0)
             {
                 return true;
             }
@@ -66,7 +66,7 @@ namespace Graviton.Saves
 
         public async Task Start()
         {
-            foreach(var watcher in FileWatchers)
+            foreach (var watcher in FileWatchers)
                 watcher.EnableRaisingEvents = true;
         }
 
@@ -87,7 +87,7 @@ namespace Graviton.Saves
                 if ((now - LastFileUpdate) > TimeSpan.FromMilliseconds(500))
                 {
                     var image = ScreenCapture.GetScreenshotFromSecondsAgo(GravitonPlugin.Instance.Settings.SecondsBeforeSave);
-                    if(image != null)
+                    if (image != null)
                     {
                         NewestSaveScreenshot = image;
                         File.WriteAllBytes($"{GravitonPlugin.Instance.PluginDataPath}/temp/{index++}.jpg", image);

@@ -65,16 +65,17 @@ namespace Graviton.Models.Saves
 
         [ObservableProperty] [property:JsonIgnore] private bool _isExpanded = false;
         [ObservableProperty] [property:JsonIgnore] private bool _isCurrent = false;
+        [ObservableProperty] [property:JsonIgnore] private bool _isHistoric = false;
 
         [JsonIgnore]
-        public string LastSyncedString
+        public string LastSyncedUI
         { 
             get
             {
-                if (Status == SaveStatus.ServerOnly)
+                if (Status == SaveStatus.ServerOnly && !IsHistoric)
                     return "Never synced";
 
-                if (Status == SaveStatus.UntrackedLocal)
+                if (Status == SaveStatus.UntrackedLocal && !IsHistoric)
                     return "Found on disk";
 
                 var difference = DateTime.Now - LastSyncedAt;

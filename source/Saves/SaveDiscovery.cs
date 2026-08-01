@@ -70,11 +70,11 @@ namespace Graviton.Saves
                         continue;
                     }
 
-                    var matchinglocal = localroms.FirstOrDefault(x => x.Id == remotesave.ROMID && x.LocalSave.Slot == remotesave.Slot);
-                    if(matchinglocal != null)
+                    var matchinglocal = localroms.FirstOrDefault(x => x.Id == remotesave.ROMID && x.LocalSave?.Slot == remotesave.Slot);
+                    if(matchinglocal != null && matchinglocal.LocalSave != null)
                     {
                         // Remove exact save match
-                        if(matchinglocal.LocalSave.SaveID == remotesave.ID)
+                        if(matchinglocal.LocalSave?.SaveID == remotesave.ID)
                         {
                             remotesaves.Remove(remotesave);
                             continue;
@@ -83,7 +83,7 @@ namespace Graviton.Saves
                         {
                             // Add to historic saves list for that ROM
                             remotesaves.Remove(remotesave);
-                            if (matchinglocal.LocalSave.HistoricSaves == null)
+                            if (matchinglocal.LocalSave!.HistoricSaves == null)
                                 matchinglocal.LocalSave.HistoricSaves = new();
 
                             matchinglocal.LocalSave.HistoricSaves.Add(new()
@@ -185,6 +185,9 @@ namespace Graviton.Saves
             // Process local saves
             foreach (var localrom in localroms)
             {
+                if (localrom.LocalSave == null)
+                    continue;
+
                 var mapping = _plugin.Settings.Mappings.FirstOrDefault( x => x.MappingId == localrom.MappingID);
                 if (mapping == null)
                 {
@@ -232,17 +235,17 @@ namespace Graviton.Saves
             }
             else if(Mapping != null)
             {
-                roms = _plugin.ImportedGames!.Where(x => x.Value.MappingID == Mapping.MappingId).Where(x => x.Value.LocalSave != null && x.Value.LocalSave.Enabled).Select(x => x.Value).ToList();
+                roms = _plugin.ImportedGames.Where(x => x.Value.MappingID == Mapping.MappingId).Where(x => x.Value.LocalSave != null && x.Value.LocalSave.Enabled).Select(x => x.Value).ToList();
             }
             else
             {
-                roms = _plugin.ImportedGames!.Where(x => x.Value.LocalSave != null && x.Value.LocalSave.Enabled).Select(x => x.Value).ToList();
+                roms = _plugin.ImportedGames.Where(x => x.Value.LocalSave != null && x.Value.LocalSave.Enabled).Select(x => x.Value).ToList();
             }
 
             if (roms == null || roms.Count < 1)
                 return new();
 
-            roms = await SaveNegotiator.SoftNegotiateSaves(roms.Where(x => x.LocalSave.Enabled).ToList());
+            roms = await SaveNegotiator.SoftNegotiateSaves(roms.Where(x => x.LocalSave!.Enabled).ToList());
             if (roms == null)
                 return null;
 
@@ -318,7 +321,7 @@ namespace Graviton.Saves
 
             foreach (var save in saves)
             {
-                var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Value.Id == save.ROMID);
+                var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.Id == save.ROMID);
                 if(rom.Value != null)
                 {
                     save.ROMName = rom.Value.Name;
@@ -330,7 +333,7 @@ namespace Graviton.Saves
         public static async Task<List<RomMSave>?> GetArchivedSaves(EmulatorMapping mapping)
         {
             var saves = await GetRemoteSaves();
-            var roms = _plugin.ImportedGames!.Where(x => x.Value.MappingID == mapping.MappingId);
+            var roms = _plugin.ImportedGames.Where(x => x.Value.MappingID == mapping.MappingId);
             if (saves == null)
                 return null;
 
@@ -380,11 +383,11 @@ namespace Graviton.Saves
                 if (Mapping.FindSaveLayout == SaveLayoutStyle.Disabled)
                     return new();
 
-                roms = _plugin.ImportedGames!.Where(x => x.Value.MappingID == Mapping.MappingId).Select(y => y.Value).ToList();
+                roms = _plugin.ImportedGames.Where(x => x.Value.MappingID == Mapping.MappingId).Select(y => y.Value).ToList();
             }
             else
             {
-                roms = _plugin.ImportedGames!.Select(y => y.Value).ToList();
+                roms = _plugin.ImportedGames.Select(y => y.Value).ToList();
             }
 
 

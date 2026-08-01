@@ -34,7 +34,7 @@ namespace Graviton.Models.RomM.Rom
 
         public int PatchFileId { get; set; } = -1;
 
-        public GravitonSave LocalSave { get; set; } = new();
+        public GravitonSave? LocalSave { get; set; }
         public LocalSaveState SaveStates { get; set; } = new();
 
         public static RomMRomLocal? Build(Guid MappingID, RomMRom ROM, string PlayniteID = "")
@@ -46,7 +46,7 @@ namespace Graviton.Models.RomM.Rom
             toSave.Name = ROM.Name;
             toSave.SHA1 = ROM.SHA1;
             toSave.HasMultipleFiles = ROM.HasMultipleFiles;
-            toSave.PlayniteID = string.IsNullOrEmpty(PlayniteID) ? GravitonPlugin.Instance.ImportedGames![$"{ROM.Id}:{ROM.SHA1}"].PlayniteID : PlayniteID;
+            toSave.PlayniteID = string.IsNullOrEmpty(PlayniteID) ? GravitonPlugin.Instance.ImportedGames[$"{ROM.Id}:{ROM.SHA1}"].PlayniteID : PlayniteID;
 
             if (!ROM.HasMultipleFiles)
             {
@@ -77,10 +77,10 @@ namespace Graviton.Models.RomM.Rom
             {
                 // Write data to file
                 File.WriteAllText($"{GravitonPlugin.Instance.PluginDataPath}/Games/{SHA1}.json", JsonSerializer.Serialize(this));
-                if (GravitonPlugin.Instance.ImportedGames!.ContainsKey($"{Id}:{SHA1}"))
-                    GravitonPlugin.Instance.ImportedGames![$"{Id}:{SHA1}"] = this;       
+                if (GravitonPlugin.Instance.ImportedGames.ContainsKey($"{Id}:{SHA1}"))
+                    GravitonPlugin.Instance.ImportedGames[$"{Id}:{SHA1}"] = this;       
                 else
-                    GravitonPlugin.Instance.ImportedGames!.TryAdd($"{Id}:{SHA1}", this);
+                    GravitonPlugin.Instance.ImportedGames.TryAdd($"{Id}:{SHA1}", this);
 
             }
             catch (Exception ex)

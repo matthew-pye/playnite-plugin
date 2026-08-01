@@ -184,7 +184,7 @@ namespace Graviton.Import
                 }
             }
 
-            if (_plugin.ImportedGames!.ContainsKey(gameID) && !string.IsNullOrEmpty(_plugin.ImportedGames[gameID].PlayniteID)) // Skip full import if ROM has already been imported 
+            if (_plugin.ImportedGames.ContainsKey(gameID) && !string.IsNullOrEmpty(_plugin.ImportedGames[gameID].PlayniteID)) // Skip full import if ROM has already been imported 
             {
                 var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames[gameID].PlayniteID!)!;
 
@@ -342,7 +342,7 @@ namespace Graviton.Import
         private async Task<bool> UpdatedDeletedGame(RomMRom ROM)
         {
             // Check to see if a game already exists with an old romMId
-            var oldgame = _plugin.ImportedGames!.FirstOrDefault(g =>
+            var oldgame = _plugin.ImportedGames.FirstOrDefault(g =>
             {
                 var splitID = g.Key?.Split(':');
                 return splitID?.Length == 2 && splitID[1] == ROM.SHA1;
@@ -356,7 +356,7 @@ namespace Graviton.Import
                 oldgame.Value.Id = ROM.Id;
                 await _playniteAPI.Library.Games.UpdateAsync(game);
 
-                _plugin.ImportedGames!.TryRemove(oldgame.Key, out _);
+                _plugin.ImportedGames.TryRemove(oldgame.Key, out _);
                 oldgame.Value.Save();
 
                 return true;

@@ -19,6 +19,11 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
+//TODO List
+// Remove save tree from in save dropdown and replace with list of sourcepaths
+// Add delete button to sourcepaths list
+// Add game select manage saves menu
+
 namespace Graviton.Saves
 {
     internal static class SaveManager
@@ -26,81 +31,15 @@ namespace Graviton.Saves
         private static GravitonPlugin _plugin => GravitonPlugin.Instance;
         private static IPlayniteApi PlayniteAPI => GravitonPlugin.PlayniteApi;
 
-        private static ScreenshotService? ScreenshotCapture = new();
-        private static SaveWatcher? SaveWatcher = new(ScreenshotCapture);
-        private static string GameID = "";
-
-        public static async Task GameStarting(string gameID)
-        {
-            if (_plugin.Settings.SaveSyncEnabled && _plugin.Settings.DownloadSaveOnLaunch)
-            {
-                var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Key == gameID);
-                if (rom.Value != null && !rom.Value.LocalSave.IsTempRestored)
-                {
-                    GameID = rom.Key;
-                    await SaveNegotiator.NegotiateSave(rom.Value);
-                }
-            }
-        }
-
-        public static async Task GameStarted(int processID)
-        {
-            if(_plugin.IsAGameRunning)
-            {
-                var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Key == GameID);
-                if (rom.Value != null && rom.Value.LocalSave.SourceFilePaths.Count > 0)
-                {
-                    var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.Value.MappingID);
-
-                    if(_plugin.Settings.CaptureScreenshots && mapping != null)
-                    {
-                        var paths = rom.Value.LocalSave.SourceFilePaths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken)).ToList();
-
-                        SaveWatcher!.Setup(paths);
-                        await ScreenshotCapture!.Setup(processID, _plugin.Settings.SecondsBeforeSave);
-
-                        await ScreenshotCapture.Start();
-                        await SaveWatcher.Start();
-                    }
-                    
-                }  
-            }
-        }
-
-        public static async Task GameStopped()
-        {
-            if (_plugin.Settings.SaveSyncEnabled && _plugin.Settings.UploadSaveOnFinished)
-            {
-                var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Key == GameID);
-                if (rom.Value != null)
-                {
-                    if (_plugin.Settings.CaptureScreenshots)
-                    {
-                        _ = SaveWatcher!.Stop();
-                        await ScreenshotCapture!.Stop();
-                    }
-
-                    if (rom.Value.LocalSave.IsTempRestored)
-                    {
-                        await SaveManager.CheckRestoredSaveNeedUploading(rom.Value, SaveWatcher?.NewestSaveScreenshot);
-                    }
-                    else
-                    {
-                        await SaveNegotiator.NegotiateSave(rom.Value, SaveWatcher?.NewestSaveScreenshot);
-                    }
-                }
-            }
-        }
-
         public static async Task<GravitonSave> Upload(GravitonSave save, bool overwrite = false, byte[]? screenshot = null)
         {
-            if (_plugin.IsAGameRunning)
+            if (GameSessionHandler.IsAGameRunning)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", "Cannot do save sync operations as a game is currently running!", GravitonSeverity.Info));
                 return save;
             }
 
-            var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
+            var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
             if(rom == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.upload.failed", "Failed to find ROM that matches save, skipping upload", GravitonSeverity.Error));
@@ -149,7 +88,7 @@ namespace Graviton.Saves
             }
 
             if (save.SaveID != -1)
-                await UntrackSave(rom.LocalSave.SaveID);
+                await UntrackSave(save.SaveID);
 
             var content = new MultipartFormDataContent();
             
@@ -200,9 +139,9 @@ namespace Graviton.Saves
 
                     savecontent = new ByteArrayContent(screenshot);
                     savecontent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-                    content.Add(savecontent, "screenshotFile", Path.GetFileName(result.FileName!));
+                    content.Add(savecontent, "screenshotFile", (Path.GetFileNameWithoutExtension(result.FileName!) + ".jpg"));
 
-                    _ = await HttpClientSingleton.RomMPutContentAsync($"/api/saves/{rom.Id}&device_id={_plugin.Settings.AccountState.DeviceID}", content);
+                    _ = await HttpClientSingleton.RomMPutContentAsync($"/api/saves/{result.ID}?device_id={_plugin.Settings.AccountState.DeviceID}", content);
 
                 }
 
@@ -213,6 +152,7 @@ namespace Graviton.Saves
                 if(savecopy != null)
                 {
                     savecopy.IsCurrent = false;
+                    savecopy.IsHistoric = true;
                     save.HistoricSaves.Add(savecopy);
                 }
                     
@@ -246,13 +186,13 @@ namespace Graviton.Saves
 
         public static async Task<GravitonSave> Download(GravitonSave save, bool SkipSavingROM = false)
         {
-            if (_plugin.IsAGameRunning)
+            if (GameSessionHandler.IsAGameRunning)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", "Cannot do save sync operations as a game is currently running!", GravitonSeverity.Info));
                 return save;
             }
 
-            var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
+            var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
             if (rom == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.download.failed", "Failed to find ROM that matches save, skipping download", GravitonSeverity.Error));
@@ -321,13 +261,13 @@ namespace Graviton.Saves
 
         public static async Task<GravitonSave> TrackNewRemoteSave(GravitonSave save)
         {
-            if (_plugin.IsAGameRunning)
+            if (GameSessionHandler.IsAGameRunning)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", "Cannot do save sync operations as a game is currently running!", GravitonSeverity.Info));
                 return save;
             }
 
-            var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
+            var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
             if (rom == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.download.failed", "Failed to find ROM that matches save, Skipping download", GravitonSeverity.Error));
@@ -341,16 +281,16 @@ namespace Graviton.Saves
                 return save;
             }
 
-            if(rom.LocalSave.SaveID != -1)
+            if(save.SaveID != -1)
             {
-                var result = await PlayniteAPI.Dialogs.ShowMessageAsync($"A save is already being tracked for this game, Do you want to replace the save being tracked?\n\nSlot:{rom.LocalSave.Slot}\nFilename:{rom.LocalSave.Filename}", "Existing Save!", MessageBoxButtons.YesNo, MessageBoxSeverity.Warning);
+                var result = await PlayniteAPI.Dialogs.ShowMessageAsync($"A save is already being tracked for this game, Do you want to replace the save being tracked?\n\nSlot:{save.Slot}\nFilename:{save.Filename}", "Existing Save!", MessageBoxButtons.YesNo, MessageBoxSeverity.Warning);
                 if(result == Playnite.MessageBoxResult.No)
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.download.failed", "A save is already being tracked, Skipping download", GravitonSeverity.Info));
                     return save;
                 }
 
-                await UntrackSave(rom.LocalSave.SaveID);
+                await UntrackSave(save.SaveID);
             }
 
             var savedata = await HttpClientSingleton.RomMRawGetAsync($"/api/saves/{save.SaveID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
@@ -426,14 +366,14 @@ namespace Graviton.Saves
 
         public static async Task<GravitonSave?> DownloadArchivedSave(RomMSave save)
         {
-            var rom = _plugin.ImportedGames!.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
+            var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
             if (rom == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.download.failed", "Failed to find ROM that matches save, skipping download", GravitonSeverity.Error));
                 return null;
             }
 
-            if(rom.LocalSave.SaveID != -1)
+            if(rom.LocalSave != null)
             {
                 var result = await PlayniteAPI.Dialogs.ShowMessageAsync($"{rom.Name} already has a save being tracked do you want to replace it?", "Replace save", MessageBoxButtons.YesNo);
                 if(result == Playnite.MessageBoxResult.No)
@@ -503,6 +443,9 @@ namespace Graviton.Saves
 
         public static async Task CheckRestoredSaveNeedUploading(RomMRomLocal rom, byte[]? screenshot = null)
         {
+            if (rom.LocalSave == null)
+                return;
+
             var negotiate = SaveNegotiator.BuildNegotiate(new() { rom });
             if (negotiate.Saves.Count <= 0) // Nothing to sync
             {

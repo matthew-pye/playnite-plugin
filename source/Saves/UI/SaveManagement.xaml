@@ -159,7 +159,7 @@
                 </Grid>
                     <!-- #endregion -->
 
-                <!--#region Saves -->
+                <!--#region SaveList -->
                 <Border Grid.Row="1" Margin="5" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                     <StackPanel>
                         <Grid Margin="5,5,5,0">
@@ -179,7 +179,8 @@
 
                         <TextBlock Name="NoSavesText" Text="No saves" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource Graviton.SubSubText.Colour}" Visibility="Collapsed"/>
                         <ProgressBar Name="LoadingBar" Margin="10" Width="Auto" Height="4" IsIndeterminate="True" Visibility="Collapsed"/>
-
+                        
+                        <!--#region Saves -->
                         <ItemsControl Name="SavesItemControl">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -255,6 +256,7 @@
                                                 <TextBlock Text="Slot: " Margin="24,0,0,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                                                 <TextBlock Text="{Binding Slot}" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                                             </StackPanel>
+                                            <TextBlock Text="{Binding FileSizeString}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}" HorizontalAlignment="Right"/>
                                         </StackPanel>
 
                                         <!--#region Save Status -->
@@ -338,8 +340,8 @@
 
                                         <StackPanel Grid.Row="0" Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right">
                                             <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
-                                                <TextBlock Text="{Binding LastSyncedString}" Foreground="{DynamicResource Graviton.Text.Colour}" HorizontalAlignment="Right"/>
-                                                <TextBlock Text="{Binding FileSizeString}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}" HorizontalAlignment="Right"/>
+                                                <TextBlock Text="{Binding LastSyncedUI}" Foreground="{DynamicResource Graviton.Text.Colour}" HorizontalAlignment="Right"/>
+                                                <TextBlock Text="{Binding LastSyncedAt}" Foreground="{DynamicResource Graviton.SubSubText.Colour}" HorizontalAlignment="Right"/>
                                             </StackPanel>
                                             <Button Margin="5" Click="SyncSave_Click" VerticalAlignment="Center" HorizontalAlignment="Right" IsEnabled="{Binding Enabled}">
                                                 <TextBlock FontSize="18" Padding="3,2" TextAlignment="Center"  TextWrapping="Wrap">
@@ -387,6 +389,9 @@
                                                     </TextBlock.Style>
                                                 </TextBlock>
                                             </Button>
+                                            <Button Click="DeleteSave_Click" Margin="5" HorizontalAlignment="Right">
+                                                <TextBlock Name="DeleteSaveIcon" FontSize="18" Text="&#xf05e8;" Foreground="{DynamicResource Graviton.Error.Colour}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Button>
                                         </StackPanel>
 
                                         <!-- #region Expanded View-->
@@ -403,7 +408,7 @@
 
                                                 <StackPanel Grid.Column="0" Grid.Row="0" Margin="10">
                                                     <Grid>
-                                                        <TextBlock Text="Files" FontSize="12" Margin="0,0,0,6" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                                                        <TextBlock Text="File Paths" FontSize="12" Margin="0,0,0,6" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                                             <Button Margin="3" Click="AddFileToSave_Click">
                                                                 <TextBlock Text="Add file" FontSize="12" Padding="3,2" VerticalAlignment="Center" HorizontalAlignment="Right"/>
@@ -413,14 +418,8 @@
                                                             </Button>
                                                         </StackPanel>
                                                     </Grid>
-                                                    
-                                                     <TreeView VerticalAlignment="Top" HorizontalAlignment="Left" Margin="-6,0,0,0" ItemsSource="{Binding SaveDirectoryTrees}">
-                                                        <TreeView.Resources>
-                                                            <HierarchicalDataTemplate DataType="{x:Type msav:SaveDirectoryTree}" ItemsSource="{Binding Children}">
-                                                                <TextBlock FontSize="12" Text="{Binding Name}" Foreground="{DynamicResource Graviton.Text.Colour}"/>
-                                                            </HierarchicalDataTemplate>
-                                                        </TreeView.Resources>
-                                                    </TreeView>
+
+                                                    <ListBox Name="SourcePaths" ItemsSource="{Binding SourceFilePaths}"/>
                                                 </StackPanel>
 
                                                 <StackPanel Grid.Column="1" Grid.Row="0" Margin="10">
@@ -514,7 +513,8 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-
+                        <!-- #endregion -->
+                        
                     </StackPanel>
                 </Border>
                 <!-- #endregion -->

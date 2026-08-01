@@ -41,9 +41,7 @@ namespace Graviton
         internal StatusController? StatusController { get; private set; }
         internal DownloadQueueController? DownloadQueueController { get; private set; }
 
-        internal ConcurrentDictionary<string, RomMRomLocal>? ImportedGames { get; private set; }
-
-        public bool IsAGameRunning = false;
+        internal ConcurrentDictionary<string, RomMRomLocal> ImportedGames { get; private set; } = new();
 
         internal GravitonPluginSettings Settings 
         { 
@@ -250,10 +248,6 @@ namespace Graviton
                 
                 foreach (var updatedGame in args.UpdatedItems.Where(x => x.OldData.LibraryId == Id))
                 {
-                    foreach (var prop in updatedGame.ChangedProperties)
-                    {
-                        Logger.Info($"Game: {updatedGame.OldData.Name} | Prop: {prop}");
-                    }
 
                     if (Settings.KeepStatusSynced && updatedGame.ChangedProperties.Contains(nameof(Game.CompletionStatusId)))
                     {
@@ -287,7 +281,7 @@ namespace Graviton
             {
                 foreach (var removed in args.RemovedItems)
                 {
-                    ImportedGames!.TryRemove(removed.LibraryGameId!, out _);
+                    ImportedGames.TryRemove(removed.LibraryGameId!, out _);
                     if (File.Exists($"{PluginDataPath}/Games/{removed.LibraryGameId!.Split(':')[1]}.json"))
                         File.Delete($"{PluginDataPath}/Games/{removed.LibraryGameId!.Split(':')[1]}.json");
                 }
@@ -343,45 +337,28 @@ namespace Graviton
         {
             if (args.Game.LibraryId == Id && args.Game.LibraryGameId != null)
             {
-                await SaveManager.GameStarting(args.Game.LibraryGameId);
-                _ = StatusController?.StartActivityHeartbeat(args.Game.LibraryGameId);
-                IsAGameRunning = true;
+                await GameSessionHandler.GameStarting(args.Game.LibraryGameId);
             }
-
-            await base.OnGameStartingAsync(args);
-            return;
         }
 
         public override async Task OnGameStartedAsync(OnGameStartedEventArgs args)
         {
             if (args.StartingArgs.Game.LibraryId == Id && args.StartingArgs.Game.LibraryGameId != null)
             {
-                _ = SaveManager.GameStarted(args.StartedArgs.StartedProcessId);
+                _ = GameSessionHandler.GameStarted(args.StartedArgs.StartedProcessId, args.StartingArgs.Game.LibraryGameId);
             }
-
-            await base.OnGameStartedAsync(args);
-            return;
         }
 
         public override async Task OnGameStoppedAsync(OnGameStoppedEventArgs args)
         {
-            var stoppedTime = DateTime.UtcNow;
-
             if (args.StartingArgs.Game.LibraryId == Id)
             {
-                IsAGameRunning = false;
-                _ = SaveManager.GameStopped();
-                StatusController?.StopActivityHeartbeat();
-                await StatusController!.PushPlaySession(args.StartingArgs.Game.LibraryGameId!, stoppedTime, args.StoppedArgs.SessionLength*1000);
+                _ = GameSessionHandler.GameStopped(args.StartingArgs.Game.LibraryGameId, args.StoppedArgs.SessionLength);
             }
-            await base.OnGameStoppedAsync(args);
-            return;
         }
 
         public override Task OnGamepadButtonStateChangedAsync(OnGamepadButtonStateChangedArgs args)
         {
-            Logger.Info($"Button: {args.Button.ToString()} | State: {args.State.ToString()}");
-
             return Task.CompletedTask;
         }
 

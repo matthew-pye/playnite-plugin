@@ -53,6 +53,7 @@ namespace Graviton.Settings
         [ObservableProperty] private string _pathTo7z = "";      
 
         [ObservableProperty] private bool _keepStatusSynced = false;      
+        [ObservableProperty] private bool _syncPlaySession = true;      
         [ObservableProperty] private bool _keepFavouritesSynced = false;      
         [ObservableProperty] private bool _keepPrivateNotesSynced = false;      
         [ObservableProperty] private bool _keepPublicNotesSynced = false;      

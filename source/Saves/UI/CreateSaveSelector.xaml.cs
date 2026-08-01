@@ -27,7 +27,7 @@ namespace Graviton.Saves
         {
             InitializeComponent();
 
-            ROMs = GravitonPlugin.Instance.ImportedGames!.Select(x => x.Value).ToList();
+            ROMs = GravitonPlugin.Instance.ImportedGames.Select(x => x.Value).ToList();
             Mappings = GravitonPlugin.Instance.Settings.Mappings.ToList();
 
             MainGrid.DataContext = this;
@@ -118,7 +118,7 @@ namespace Graviton.Saves
             }
 
             Playnite.MessageBoxResult result;
-            if(SelectedROM.LocalSave.SaveID != -1)
+            if(SelectedROM.LocalSave != null)
             {
                 result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{SelectedROM.Name} already has a tracked save, do you want to overwrite it?", "File Paths", Playnite.MessageBoxButtons.YesNo);
                 if(result == Playnite.MessageBoxResult.No)

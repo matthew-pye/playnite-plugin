@@ -188,7 +188,11 @@ namespace Graviton.Status
 
         }
 
-        public void StopActivityHeartbeat() => _heartbeatCts?.Cancel();
+        public async Task StopActivityHeartbeat(string GameID, DateTime StopTime, uint SessionLength)
+        {
+            _heartbeatCts?.Cancel();
+            await PushPlaySession(GameID, StopTime, SessionLength);
+        }
 
     }
 }

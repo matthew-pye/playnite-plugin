@@ -225,7 +225,7 @@ namespace Graviton.Import
 
             _logger.Info($"[Importer] Starting to remove not found games.");
 
-            foreach (var game in _plugin.ImportedGames!.ToList())
+            foreach (var game in _plugin.ImportedGames.ToList())
             {
                 if (ImportedGames.Contains(game.Key))
                     continue;
@@ -267,7 +267,7 @@ namespace Graviton.Import
                 }
 
                 await _playniteAPI.Library.Games.RemoveAsync(game.Value.PlayniteID!);
-                _plugin.ImportedGames!.TryRemove(game.Key, out _);
+                _plugin.ImportedGames.TryRemove(game.Key, out _);
                 
                 File.Delete($"{_plugin.PluginDataPath}/Games/{splitID[1]}.json");
 
