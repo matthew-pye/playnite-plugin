@@ -21,6 +21,8 @@ namespace Graviton.Settings
         {
             InitializeComponent();
 
+            OptionsPanel.IsEnabled = !GameSessionHandler.IsAGameRunning;
+
             LibraryScanningText.Text = Loc.GetString("LibraryScanning");
             MergeROMText.Text = Loc.GetString("MergeROMs");
             KeepDeleteText.Text = Loc.GetString("KeepDeleted");
@@ -34,7 +36,6 @@ namespace Graviton.Settings
             KeepFavouritesSyncedText.Text = Loc.GetString("KeepFavouritesSynced");
             KeepPrivateNotesSyncedText.Text = Loc.GetString("KeepPrivateNotesSynced");
             KeepPublicNotesSyncedText.Text = Loc.GetString("KeepPublicNotesSynced");
-            ExcludeGenresPlaceholderText.Text = Loc.GetString("ExcludeGenresPlaceholder");
 
             SaveSyncTitle.Text = Loc.GetString("SaveSync");
             SaveSyncEnabledText.Text = Loc.GetString("EnableSaveSyncing");

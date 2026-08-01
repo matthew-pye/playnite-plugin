@@ -10,6 +10,7 @@ using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace Graviton.Saves
 {
@@ -106,7 +107,7 @@ namespace Graviton.Saves
             {
                 LoadingBar.Visibility = Visibility.Collapsed;
                 Saves = saves;
-                SavesItemControl.ItemsSource = Saves;
+                SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
 
                 SyncedSavesCount.Text = saves.Where(x => x.Status == SaveStatus.Synced).Count().ToString();
                 LocalNewerSavesCount.Text = saves.Where(x => x.Status == SaveStatus.LocalNewer).Count().ToString();
@@ -119,9 +120,10 @@ namespace Graviton.Saves
 
         }
 
+        #region TopBar Controls
         private void SaveFilterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase));
+            SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
         }
 
         private void Refresh_Click(object sender, RoutedEventArgs e)
@@ -129,7 +131,112 @@ namespace Graviton.Saves
             _ = Load();
         }
 
-        private void Click_ShowSaveDetails(object sender, RoutedEventArgs e)
+        private async void CreateNewSave_Click(object sender, RoutedEventArgs e)
+        {
+            var window = GravitonPlugin.PlayniteApi.CreateWindow(new WindowCreationOptions
+            {
+                ShowMinimizeButton = false,
+                ShowMaximizeButton = false,
+                ShowCloseButton = true,
+                DefaultWidth = 1280,
+                DefaultHeight = 720
+            });
+
+            CreateSaveSelector saveSelector;
+
+            if (ROMs != null)
+            {
+                saveSelector = new CreateSaveSelector(ROMs);
+            }
+            else if (Mapping != null)
+            {
+                var roms = _plugin.ImportedGames.Where(x => x.Value.MappingID == Mapping.MappingId);
+                if (roms == null)
+                {
+                    GravitonNotify.Add(new GravitonNotification("graviton.roms.null", "No ROMs found for this mapping, cannot create new save", GravitonSeverity.Error));
+                    e.Handled = true;
+                    return;
+                }
+
+                saveSelector = new CreateSaveSelector(roms.Select(x => x.Value).ToList());
+            }
+            else
+            {
+                saveSelector = new CreateSaveSelector();
+            }
+
+            window.Title = "Create New Save";
+            window.Content = saveSelector;
+            window.Owner = GravitonPlugin.PlayniteApi.GetLastActiveWindow();
+            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            window.ShowDialog();
+
+            if (saveSelector.WasConfirmed)
+            {
+                GravitonSave newsave = new()
+                {
+                    ROMID = saveSelector.SelectedROM!.Id,
+                    GameName = saveSelector.SelectedROM!.Name!,
+                    Filename = saveSelector.SelectedSourcePaths!.Count > 1 || !File.Exists(saveSelector.SelectedSourcePaths[0]) ? $"{saveSelector.SelectedROM.Name}.zip" : Path.GetFileName(saveSelector.SelectedSourcePaths[0]),
+                    SourceFilePaths = saveSelector.SelectedSourcePaths!.Select(x => x.Replace(saveSelector.SelectedMapping!.SavePath, EmulatorMapping.MappingPathToken)).ToObservableCollection(),
+                    Status = SaveStatus.LocalNewer
+                };
+
+                newsave = await SaveManager.TrackNewLocalSave(newsave);
+                Saves.Add(newsave);
+            }
+
+            e.Handled = true;
+        }
+
+        private void TrackArchivedSave_Click(object sender, RoutedEventArgs e)
+        {
+            var window = GravitonPlugin.PlayniteApi.CreateWindow(new WindowCreationOptions
+            {
+                ShowMinimizeButton = false,
+                ShowMaximizeButton = false,
+                ShowCloseButton = true,
+                DefaultWidth = 1280,
+                DefaultHeight = 720
+            });
+
+            ArchiveSaveSelector trackArchiveSave;
+
+            if (ROMs != null)
+            {
+                trackArchiveSave = new ArchiveSaveSelector(ROMs);
+            }
+            else if (Mapping != null)
+            {
+                trackArchiveSave = new ArchiveSaveSelector(Mapping);
+            }
+            else
+            {
+                trackArchiveSave = new ArchiveSaveSelector();
+            }
+
+            window.Title = "Track Archive Save";
+            window.Content = trackArchiveSave;
+            window.Owner = GravitonPlugin.PlayniteApi.GetLastActiveWindow();
+            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            window.ShowDialog();
+
+            if (trackArchiveSave.NewSave != null)
+            {
+                var oldsave = Saves.FirstOrDefault(x => x.ROMID == trackArchiveSave.NewSave.ROMID);
+                if (oldsave != null)
+                    Saves.Remove(oldsave);
+
+                Saves.Add(trackArchiveSave.NewSave);
+                SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
+            }
+
+            e.Handled = true;
+        }
+        #endregion
+
+        #region Per-save Controls
+        private void SaveRow_Click(object sender, MouseButtonEventArgs e)
         {
             if (sender is FrameworkElement fe && fe.DataContext is GravitonSave save)
             {
@@ -182,28 +289,28 @@ namespace Graviton.Saves
                 case SaveStatus.LocalNewer:
                     save = await SaveManager.Upload(save);
                     Saves[saveindex] = save;
-                    SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase));
+                    SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
                     e.Handled = true;
                     return;
 
                 case SaveStatus.RemoteNewer:
                     save = await SaveManager.Download(save);
                     Saves[saveindex] = save;
-                    SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase));
+                    SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
                     e.Handled = true;
                     return;
 
                 case SaveStatus.ServerOnly:
                     save = await SaveManager.TrackNewRemoteSave(save);
                     Saves[saveindex] = save;
-                    SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase));
+                    SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
                     e.Handled = true;
                     return;
 
                 case SaveStatus.UntrackedLocal:
                     save = await SaveManager.TrackNewLocalSave(save);
                     Saves[saveindex] = save;
-                    SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase));
+                    SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
                     e.Handled = true;
                     return;
 
@@ -243,6 +350,49 @@ namespace Graviton.Saves
             }
         }
 
+        private async void DeleteSave_Click(object sender, RoutedEventArgs e)
+        {
+            var save = ((FrameworkElement)sender).DataContext as GravitonSave;
+            if (save == null)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.save.null", "Save is null, skipping", GravitonSeverity.Error));
+                e.Handled = true;
+                return;
+            }
+
+            var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.LocalSave?.LocalID == save.LocalID).Value;
+            if (rom == null)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.rom.notfound", "Failed to find ROM for this save, skipping", GravitonSeverity.Error));
+                e.Handled = true;
+                return;
+            }
+
+
+            var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync("How do you want to delete the save?", "Delete Save", MessageBoxSeverity.Question, new List<MessageBoxResponse> { UntrackSave, DeleteSaveLocal, DeleteSaveTotally, Cancel }, new List<MessageBoxOption>());
+
+            if (response == UntrackSave)
+            {
+                Saves.Remove(save);
+                await SaveManager.UntrackSave(save.SaveID);
+                rom.LocalSave = null;
+                rom.Save();
+            }
+
+            if (response == DeleteSaveLocal)
+            {
+                // TODO - Add Deleting
+            }
+
+            if (response == DeleteSaveTotally)
+            {
+                // TODO - Add Deleting
+            }
+
+        }
+        #endregion
+
+        #region Per-Save Expanded Controls
         private async void RevertToHistoricSave_Click(object sender, RoutedEventArgs e)
         {
             var historicSave = ((FrameworkElement)sender).DataContext as GravitonSave;
@@ -314,20 +464,7 @@ namespace Graviton.Saves
         private async void AddFileToSave_Click(object sender, RoutedEventArgs e)
         {
             var save = ((FrameworkElement)sender).DataContext as GravitonSave;
-            if (save == null)
-            {
-                GravitonNotify.Add(new GravitonNotification("graviton.save.null", "Save is null, skipping", GravitonSeverity.Error));
-                e.Handled = true;
-                return;
-            }
-
-            var response = await GravitonPlugin.PlayniteApi.Dialogs.SelectFileAsync(allowMultiple: true);
-            if(response != null)
-            {
-                save.SourceFilePaths.AddRange(response);
-                await SaveManager.Upload(save);
-            }
-
+            await AddFilesFoldersToSave(save);
             e.Handled = true;
             return;
         }
@@ -335,166 +472,83 @@ namespace Graviton.Saves
         private async void AddFolderToSave_Click(object sender, RoutedEventArgs e)
         {
             var save = ((FrameworkElement)sender).DataContext as GravitonSave;
-            if (save == null)
-            {
-                GravitonNotify.Add(new GravitonNotification("graviton.save.null", "Save is null, skipping", GravitonSeverity.Error));
-                e.Handled = true;
-                return;
-            }
-
-            var response = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync(allowMultiple: true);
-            if (response != null)
-            {
-                save.SourceFilePaths.AddRange(response);
-                await SaveManager.Upload(save);
-            }
-
+            await AddFilesFoldersToSave(save, true);
             e.Handled = true;
             return;
         }
 
-        private async void CreateNewSave_Click(object sender, RoutedEventArgs e)
+        private async Task AddFilesFoldersToSave(GravitonSave? save, bool folderSelect = false)
         {
-            var window = GravitonPlugin.PlayniteApi.CreateWindow(new WindowCreationOptions
-            {
-                ShowMinimizeButton = false,
-                ShowMaximizeButton = false,
-                ShowCloseButton = true,
-                DefaultWidth = 1280,
-                DefaultHeight = 720
-            });
-
-            CreateSaveSelector saveSelector;
-
-            if (ROMs != null)
-            {
-                saveSelector = new CreateSaveSelector(ROMs);
-            }
-            else if (Mapping != null)
-            {
-                var roms = _plugin.ImportedGames.Where(x => x.Value.MappingID == Mapping.MappingId);
-                if (roms == null)
-                {
-                    GravitonNotify.Add(new GravitonNotification("graviton.roms.null", "No ROMs found for this mapping, cannot create new save", GravitonSeverity.Error));
-                    e.Handled = true;
-                    return;
-                }
-
-                saveSelector = new CreateSaveSelector(roms.Select(x => x.Value).ToList());
-            }
-            else
-            {
-                saveSelector = new CreateSaveSelector();
-            }
-
-            window.Title = "Create New Save";
-            window.Content = saveSelector;
-            window.Owner = GravitonPlugin.PlayniteApi.GetLastActiveWindow();
-            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            window.ShowDialog();
-
-            if (saveSelector.WasConfirmed)
-            {
-                GravitonSave newsave = new()
-                {
-                    ROMID = saveSelector.SelectedROM!.Id,
-                    GameName = saveSelector.SelectedROM!.Name!,
-                    Filename = saveSelector.SelectedSourcePaths!.Count > 1 || !File.Exists(saveSelector.SelectedSourcePaths[0]) ? $"{saveSelector.SelectedROM.Name}.rommsave.zip" : Path.GetFileName(saveSelector.SelectedSourcePaths[0]),
-                    SourceFilePaths = saveSelector.SelectedSourcePaths!.Select(x => x.Replace(saveSelector.SelectedMapping!.SavePath, EmulatorMapping.MappingPathToken)).ToList(),
-                    Status = SaveStatus.LocalNewer
-                };
-
-                newsave = await SaveManager.TrackNewLocalSave(newsave);
-                Saves.Add(newsave);
-            }
-
-            e.Handled = true;
-        }
-
-        private void TrackArchivedSave_Click(object sender, RoutedEventArgs e)
-        {
-            var window = GravitonPlugin.PlayniteApi.CreateWindow(new WindowCreationOptions
-            {
-                ShowMinimizeButton = false,
-                ShowMaximizeButton = false,
-                ShowCloseButton = true,
-                DefaultWidth = 1280,
-                DefaultHeight = 720
-            });
-
-            ArchiveSaveSelector trackArchiveSave;
-
-            if (ROMs != null)
-            {
-                trackArchiveSave = new ArchiveSaveSelector(ROMs);
-            }
-            else if (Mapping != null)
-            {
-                trackArchiveSave = new ArchiveSaveSelector(Mapping);
-            }
-            else
-            {
-                trackArchiveSave = new ArchiveSaveSelector();
-            }
-
-            window.Title = "Track Archive Save";
-            window.Content = trackArchiveSave;
-            window.Owner = GravitonPlugin.PlayniteApi.GetLastActiveWindow();
-            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            window.ShowDialog();
-
-            if(trackArchiveSave.NewSave != null)
-            {
-                var oldsave = Saves.FirstOrDefault(x => x.ROMID == trackArchiveSave.NewSave.ROMID);
-                if(oldsave != null)
-                    Saves.Remove(oldsave);
-
-                Saves.Add(trackArchiveSave.NewSave);
-                SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase));
-            }
-
-            e.Handled = true;
-        }
-
-        private async void DeleteSave_Click(object sender, RoutedEventArgs e)
-        {
-            var save = ((FrameworkElement)sender).DataContext as GravitonSave;
             if (save == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.save.null", "Save is null, skipping", GravitonSeverity.Error));
-                e.Handled = true;
                 return;
             }
 
             var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.LocalSave?.LocalID == save.LocalID).Value;
-            if(rom == null)
+            if (rom.LocalSave == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.rom.notfound", "Failed to find ROM for this save, skipping", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.rom.null", "Couldn't find Game with this save, skipping", GravitonSeverity.Error));
+                return;
+            }
+
+            var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
+            if (mapping == null)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.mapping.null", "Couldn't find mapping that goes with this game, skipping", GravitonSeverity.Error));
+                return;
+            }
+
+            List<string>? response;
+
+            if(folderSelect)
+                response = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync(mapping.SavePath, true);
+            else
+                response = await GravitonPlugin.PlayniteApi.Dialogs.SelectFileAsync(initialDir: mapping.SavePath, allowMultiple: true);
+
+            if (response != null)
+            {
+                bool needsUpload = false;
+                foreach (var path in response)
+                {
+                    if (path.StartsWith(mapping.SavePath))
+                    {
+                        rom.LocalSave.SourceFilePaths.Add(path.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken));
+                        needsUpload = true;
+                    }
+                }
+
+                if (needsUpload)
+                    await SaveNegotiator.NegotiateSave(rom);
+
+
+                if (response.Any(x => !x.StartsWith(mapping.SavePath)))
+                    GravitonNotify.Add(new GravitonNotification("graviton.skipped.add", "One or more files/folders were not in the mapping save directory they have been skipped", GravitonSeverity.Error));
+
+                SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
+            }
+        }
+        private void RemoveSourcePath_Click(object sender, RoutedEventArgs e)
+        {
+
+            if (sender is not FrameworkElement fe)
+            {
                 e.Handled = true;
                 return;
             }
 
+            var save = fe.Tag as GravitonSave;
+            var path = fe.DataContext as string;
 
-            var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync("How do you want to delete the save?", "Delete Save", MessageBoxSeverity.Question, new List<MessageBoxResponse> { UntrackSave, DeleteSaveLocal, DeleteSaveTotally, Cancel }, new List<MessageBoxOption>());
-
-            if (response == UntrackSave)
+            if (save == null || path == null)
             {
-                Saves.Remove(save);
-                await SaveManager.UntrackSave(save.SaveID);
-                rom.LocalSave = null;
-                rom.Save();
+                e.Handled = true;
+                return;
             }
 
-            if (response == DeleteSaveLocal)
-            {
-                // TODO - Add Deleting
-            }
-
-            if (response == DeleteSaveTotally)
-            {
-                // TODO - Add Deleting
-            }
-
+            save.SourceFilePaths.Remove(path);
+            e.Handled = true;
         }
+        #endregion
     }
 }

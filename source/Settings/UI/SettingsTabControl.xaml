@@ -43,7 +43,14 @@
     </UserControl.Resources>
 
     <Grid>
-        <TabControl Name="SettingsTabs" FontSize="14" FontFamily="{StaticResource NerdFont}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <TextBlock Name="GameIsRunningText" Grid.Row="0" Text="&#xea6c; Cannot change settings while a game is running" Foreground="{DynamicResource Graviton.Error.Colour}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Right" Margin="5" Visibility="Collapsed"/>
+
+        <TabControl Name="SettingsTabs" Grid.Row="1" FontFamily="{StaticResource NerdFont}">
 
             <!-- Authentication -->
             <TabItem Name="AuthItem" Header="&#xf0004; Authentication">

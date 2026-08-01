@@ -96,6 +96,7 @@ namespace Graviton.Saves
                                 ServerLastUpdatedAt = DateTime.TryParse(remotesave.UpdatedAt, out DateTime ServerUpdatedAt) ? ServerUpdatedAt : null,
                                 Filename = remotesave.FileName != null ? ServerTimestampTagPattern.Replace(remotesave.FileName, "") : "",
                                 SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{remotesave.FileName}" },
+                                IsHistoric = true,
                             });
                             continue;
                         }
@@ -147,6 +148,7 @@ namespace Graviton.Saves
                                 ServerLastUpdatedAt = DateTime.TryParse(historicSave.UpdatedAt, out DateTime HistoricServerUpdatedAt) ? HistoricServerUpdatedAt : null,
                                 Filename = historicSave.FileName != null ? ServerTimestampTagPattern.Replace(historicSave.FileName, "") : "",
                                 SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{historicSave.FileName}" },
+                                IsHistoric = true
                             });
                         }
                     }
@@ -158,11 +160,12 @@ namespace Graviton.Saves
                         SaveID = remotesave.ID,
                         Slot = remotesave.Slot,
                         Status = SaveStatus.ServerOnly,
+                        FileSize = remotesave.FileSize ?? 0,
                         ServerHash = remotesave.ContentHash,
                         ServerLastUpdatedAt = DateTime.TryParse(remotesave.UpdatedAt, out DateTime ServerUpdatedAt) ? ServerUpdatedAt : null,
                         Filename = remotesave.FileName != null ? ServerTimestampTagPattern.Replace(remotesave.FileName, "") : "",
                         SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{remotesave.FileName}" },
-                        HistoricSaves = historicSaves ?? null,
+                        HistoricSaves = historicSaves?.OrderByDescending(x => x.LastSyncedAt).ToObservableCollection() ?? null,
                         IsCurrent = true
                     };
 
@@ -196,15 +199,15 @@ namespace Graviton.Saves
                 }
 
                 localrom.LocalSave.GameName = localrom.Name!;
-                localrom.LocalSave.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, localrom.LocalSave.SourceFilePaths);
+                localrom.LocalSave.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, localrom.LocalSave.SourceFilePaths.ToList());
+                localrom.LocalSave.IsCurrent = true;
 
                 // Add newest save to historic saves list for historic selection
                 if (localrom.LocalSave.HistoricSaves != null)
                 {
                     localrom.LocalSave.HistoricSaves.Add(localrom.LocalSave);
-                    localrom.LocalSave.HistoricSaves = localrom.LocalSave.HistoricSaves.OrderByDescending(x => x.ServerLastUpdatedAt).ToObservableCollection();
+                    localrom.LocalSave.HistoricSaves = localrom.LocalSave.HistoricSaves.OrderByDescending(x => x.LastSyncedAt).ToObservableCollection();
                 }
-                    
 
                 saves.Add(localrom.LocalSave);
             }
@@ -253,7 +256,6 @@ namespace Graviton.Saves
 
             return roms;
         }
-
 
         private static async Task<List<RomMSave>?> GetRemoteSaves()
         {
@@ -455,15 +457,22 @@ namespace Graviton.Saves
                     if (!saveDir.EndsWith('/') && !saveDir.EndsWith('\\'))
                         saveDir += "\\";
 
+                    long totalSize = 0;
+                    var info = new DirectoryInfo(dir);
+                    if(info != null)
+                        totalSize = info.EnumerateFiles("*", SearchOption.AllDirectories).Sum(file => file.Length);
+
+
                     var save = new GravitonSave
                     {
-                        Status = SaveStatus.UntrackedLocal,
-                        SourceFilePaths = new() { saveDir },
-                        Filename = $"{Path.GetFileNameWithoutExtension(matchingROM.FileName)}.rommsave.zip",
+                        ROMID = matchingROM.Id,
                         GameName = matchingROM.Name!,
-                        ROMID = matchingROM.Id
+                        Status = SaveStatus.UntrackedLocal,
+                        Filename = $"{Path.GetFileNameWithoutExtension(matchingROM.FileName)}.zip",
+                        SourceFilePaths = new() { saveDir },
+                        FileSize = totalSize
                     };
-                    save.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, save.SourceFilePaths);
+                    save.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, save.SourceFilePaths.ToList());
 
                     saves.Add(save);
                     continue;
@@ -504,13 +513,14 @@ namespace Graviton.Saves
 
                         var save = new GravitonSave
                         {
+                            ROMID = rom.Id,
+                            GameName = rom.Name!,
                             Status = SaveStatus.UntrackedLocal,
                             SourceFilePaths = new() { filePath },
                             Filename = Path.GetFileName(filePath),
-                            GameName = rom.Name!,
-                            ROMID = rom.Id
+                            FileSize = new FileInfo(file).Length,
                         };
-                        save.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, save.SourceFilePaths);
+                        save.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, save.SourceFilePaths.ToList());
 
                         saves.Add(save);
 
@@ -521,21 +531,25 @@ namespace Graviton.Saves
                     if (saves == null)
                         saves = new();
 
+                    long totalSize = 0;
+
                     List<string> savePaths = new();
                     foreach (var file in files)
                     {
+                        totalSize += new FileInfo(file).Length;
                         savePaths.Add(file.Replace(mapping.SavePath, "{MappingSavePath}"));
                     }
 
                     var save = new GravitonSave
                     {
-                        Status = SaveStatus.UntrackedLocal,
-                        SourceFilePaths = savePaths,
-                        Filename = savePaths.Count > 1 ? $"{Path.GetFileNameWithoutExtension(rom.FileName)}.rommsave.zip" : Path.GetFileName(savePaths[0]),
+                        ROMID = rom.Id,
                         GameName = rom.Name!,
-                        ROMID = rom.Id
+                        Status = SaveStatus.UntrackedLocal,
+                        SourceFilePaths = savePaths.ToObservableCollection(),
+                        Filename = savePaths.Count > 1 ? $"{Path.GetFileNameWithoutExtension(rom.FileName)}.zip" : Path.GetFileName(savePaths[0]),
+                        FileSize = totalSize,
                     };
-                    save.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, save.SourceFilePaths);
+                    save.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, save.SourceFilePaths.ToList());
 
                     saves.Add(save);
 
@@ -544,7 +558,6 @@ namespace Graviton.Saves
 
             return saves;
         }
-
 
         private static bool IsAlreadyTracked(string rootPath, string file, string sourcePath)
         {

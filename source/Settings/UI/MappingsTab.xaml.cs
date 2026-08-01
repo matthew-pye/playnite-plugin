@@ -46,6 +46,8 @@ namespace Graviton.Settings
         {
             InitializeComponent();
 
+            MappingPanel.IsEnabled = !GameSessionHandler.IsAGameRunning;
+
             SyncPlatformsText.Text = $"\uf46a {Loc.GetString("SyncPlatforms")}";
             AddMappingText.Text = $"\uea60 {Loc.GetString("NewMapping")}";
 

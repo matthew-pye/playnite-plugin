@@ -20,7 +20,7 @@
 
     <Canvas Name="SettingsCanvas" DataContext="{Binding Settings}" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=UserControl}}" Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=UserControl}}">
 
-        <s:NotificationsView Panel.ZIndex="9999" Canvas.Left="0" Canvas.Top="0" Width="{Binding ActualWidth, ElementName=SettingsCanvas}"/>
+        <s:NotificationsView Panel.ZIndex="9999" Canvas.Left="0" Canvas.Top="0" Width="{Binding ActualWidth, ElementName=SettingsCanvas}" Margin="5"/>
         <sav:SaveManagementView x:Name="SaveManagementContent" Canvas.Left="0" Canvas.Top="0" Width="{Binding ActualWidth, ElementName=SettingsCanvas}" Height="{Binding ActualHeight, ElementName=SettingsCanvas}" />
 
     </Canvas>

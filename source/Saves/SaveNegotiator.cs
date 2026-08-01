@@ -83,7 +83,7 @@ namespace Graviton.Saves
 
                 var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
                 if (mapping != null)
-                    rom.LocalSave.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, rom.LocalSave.SourceFilePaths);
+                    rom.LocalSave.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, rom.LocalSave.SourceFilePaths.ToList());
 
                 rom.Save();
             }
@@ -182,7 +182,7 @@ namespace Graviton.Saves
 
                 var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
                 if (mapping != null)
-                    rom.LocalSave.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, rom.LocalSave.SourceFilePaths);
+                    rom.LocalSave.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, rom.LocalSave.SourceFilePaths.ToList());
 
             }
 
@@ -261,7 +261,7 @@ namespace Graviton.Saves
                         continue;
                     }
 
-                    negotiateSave.ContentHash = SaveManager.ComputeFileContentHash(path);
+                    negotiateSave.ContentHash = SaveHelpers.ComputeFileContentHash(path);
                     if (negotiateSave.ContentHash == null)
                     {
                         continue;
@@ -276,7 +276,7 @@ namespace Graviton.Saves
                 else if(rom.LocalSave.SourceFilePaths.Count > 1 || Directory.Exists(path))
                 {
                     var packedsavepath = $"{_plugin.PluginDataPath}/temp/{rom.LocalSave.Filename}";
-                    if (!SaveManager.PackSave(rom.LocalSave.SourceFilePaths, mapping.SavePath, packedsavepath, out var skippedPaths))
+                    if (!SaveHelpers.PackSave(rom.LocalSave.SourceFilePaths, mapping.SavePath, packedsavepath, out var skippedPaths))
                         continue;
 
                     if (skippedPaths.Count > 0)
@@ -294,7 +294,7 @@ namespace Graviton.Saves
                         continue;
                     }
 
-                    negotiateSave.ContentHash = SaveManager.ComputePackedContentHash(packedsavepath);
+                    negotiateSave.ContentHash = SaveHelpers.ComputePackedContentHash(packedsavepath);
                     if (negotiateSave.ContentHash == null)
                     {
                         continue;
@@ -367,7 +367,7 @@ namespace Graviton.Saves
                 DefaultHeight = 315
             });
 
-            var resolveConflictView = new ResolveConflictView(save.ServerLastUpdatedAt.Value, save.LastSyncedAt);
+            var resolveConflictView = new ResolveConflictView(save.ServerLastUpdatedAt.Value, save.LastSyncedAt!.Value);
 
             window.Title = "Save Conflict";
             window.Content = resolveConflictView;

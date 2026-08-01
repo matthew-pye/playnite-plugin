@@ -37,6 +37,8 @@ namespace Graviton.Settings
         {
             InitializeComponent();
 
+            AuthPanel.IsEnabled = !GameSessionHandler.IsAGameRunning;
+
             AuthButtonText.Text = Loc.GetString("AuthButton");
 
             UseBasicAuthText.Text = Loc.GetString("UseBasicAuth");

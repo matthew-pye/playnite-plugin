@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Graviton.Settings.OptionsTab"
+<UserControl x:Class="Graviton.Settings.OptionsTab"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -8,7 +8,7 @@
              xmlns:models="clr-namespace:Graviton.Models.Saves"
              xmlns:psdk="clr-namespace:Playnite.Desktop;assembly=Playnite.SDK"
              mc:Ignorable="d"
-             d:DesignHeight="2000" d:DesignWidth="750">
+             d:DesignHeight="900" d:DesignWidth="1600">
 
     <UserControl.Resources>
         <ResourceDictionary>
@@ -30,29 +30,47 @@
     </UserControl.Resources>
 
     <ScrollViewer>
-        <StackPanel>
+        <StackPanel Name="OptionsPanel" Margin="10">
 
-            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" Background="Transparent">
+            <!--#region Scanning -->
+            <Border Style="{StaticResource Graviton.SettingsCard}">
                 <StackPanel>
-                    <TextBlock Name="LibraryScanningText" Text="Library scanning" FontSize="20" FontWeight="Bold" Margin="10,10,10,15" />
+                    <TextBlock Name="LibraryScanningText" Text="Library scanning" Style="{StaticResource Graviton.SettingsSectionHeader}" />
 
-                    <CheckBox IsChecked="{Binding MergeRevisions, Mode=TwoWay}" Margin="5">
-                        <TextBlock Name="MergeROMText" Text="Merge ROM revisions" TextWrapping="Wrap"/>
-                    </CheckBox>
-                    <CheckBox IsChecked="{Binding KeepDeletedGames, Mode=TwoWay}" Margin="5">
-                        <TextBlock Name="KeepDeleteText" Text="Keep games deleted from RomM server" TextWrapping="Wrap"/>
-                    </CheckBox>
-                    <CheckBox IsChecked="{Binding SkipMissingFiles, Mode=TwoWay}" Margin="5">
-                        <TextBlock Name="SkipDeletedText" Text="Skip importing ROMs that are missing from RomM servers filesystem" TextWrapping="Wrap"/>
-                    </CheckBox>
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="MergeROMText" Text="Merge ROM revisions" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding MergeRevisions, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </Grid>
 
-                    <Grid Margin="5">
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="KeepDeleteText" Text="Keep games deleted from RomM server" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding KeepDeletedGames, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="SkipDeletedText" Text="Skip importing ROMs that are missing from RomM servers filesystem" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding SkipMissingFiles, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,12,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="ExcludeGenresText" Text="Exclude Genres" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5"/>
-                        <Grid Grid.Column="1" Margin="5">
+                        <TextBlock Grid.Column="0" Name="ExcludeGenresText" Text="Exclude Genres" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,15,0"/>
+                        <Grid Grid.Column="1">
                             <TextBox x:Name="ExcludeGenresBox" Text="{Binding ExcludeGenres, Mode=TwoWay}"/>
                             <TextBlock x:Name="ExcludeGenresPlaceholderText" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="{DynamicResource Graviton.SubText.Colour}">
                                 <TextBlock.Style>
@@ -70,109 +88,191 @@
                     </Grid>
                 </StackPanel>
             </Border>
+            <!--#endregion-->
 
-            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" Background="Transparent">
+            <!--#region Installation -->
+            <Border Style="{StaticResource Graviton.SettingsCard}">
                 <StackPanel>
-                    <TextBlock Name="InstallationText" Text="Installation" FontSize="20" FontWeight="Bold" Margin="10,10,10,15" />
+                    <TextBlock Name="InstallationText" Text="Installation" Style="{StaticResource Graviton.SettingsSectionHeader}" />
 
-                    <Grid Margin="10">
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <CheckBox Grid.Column="0" IsChecked="{Binding Use7z, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Name="Use7zText" Text="Use 7z for archive extraction" TextWrapping="Wrap"/>
-                        </CheckBox>
-                        <TextBox Margin="5,0,5,0" Grid.Column="1" x:Name="PathTo7zText" Text="{Binding PathTo7z, Mode=TwoWay}" />
-                        <Button  Grid.Column="2" Click="Browse7zPath_Click">
+                        <TextBlock Grid.Column="0" Name="Use7zText" Text="Use 7z for archive extraction" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding Use7z, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,3,0,0" IsEnabled="{Binding Use7z}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" x:Name="PathTo7zText" Text="{Binding PathTo7z, Mode=TwoWay}" Margin="0,0,10,0" VerticalContentAlignment="Center"/>
+                        <Button Grid.Column="1" Click="Browse7zPath_Click">
                             <TextBlock Name="Browse7zText" Text="Browse" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
                     </Grid>
                 </StackPanel>
             </Border>
+            <!--#endregion-->
 
-            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" Background="Transparent">
+            <!--#region Status Sync -->
+            <Border Style="{StaticResource Graviton.SettingsCard}">
                 <StackPanel>
-                    <TextBlock Name="StatusTitle" Text="Status Sync" FontWeight="Bold" FontSize="20" Margin="10,10,10,15" />
-                    <CheckBox IsChecked="{Binding KeepStatusSynced, Mode=TwoWay}" Margin="5">
-                        <TextBlock Name="KeepStatusSyncedText" Text="Keep completion status in sync with RomM" TextWrapping="Wrap"/>
-                    </CheckBox>
-                    <CheckBox IsChecked="{Binding KeepFavouritesSynced, Mode=TwoWay}" Margin="5">
-                        <TextBlock Name="KeepFavouritesSyncedText" Text="Keep favourites in sync with RomM" TextWrapping="Wrap"/>
-                    </CheckBox>
-                    <CheckBox IsChecked="{Binding KeepPrivateNotesSynced, Mode=TwoWay}" Margin="5" IsEnabled="False">
-                        <TextBlock Name="KeepPrivateNotesSyncedText" Text="Keep private notes in sync with RomM" TextWrapping="Wrap"/>
-                    </CheckBox>
-                    <CheckBox IsChecked="{Binding KeepPublicNotesSynced, Mode=TwoWay}" Margin="5" IsEnabled="False">
-                        <TextBlock Name="KeepPublicNotesSyncedText" Text="Keep public notes in sync with RomM" TextWrapping="Wrap"/>
-                    </CheckBox>
+                    <TextBlock Name="StatusTitle" Text="Status Sync" Style="{StaticResource Graviton.SettingsSectionHeader}" />
+
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="KeepStatusSyncedText" Text="Keep completion status in sync with RomM" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding KeepStatusSynced, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="KeepFavouritesSyncedText" Text="Keep favourites in sync with RomM" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding KeepFavouritesSynced, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="KeepPrivateNotesSyncedText" Text="Keep private notes in sync with RomM" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding KeepPrivateNotesSynced, Mode=TwoWay}" IsEnabled="False" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="KeepPublicNotesSyncedText" Text="Keep public notes in sync with RomM" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding KeepPublicNotesSynced, Mode=TwoWay}" IsEnabled="False" VerticalAlignment="Center"/>
+                    </Grid>
                 </StackPanel>
             </Border>
+            <!--#endregion-->
 
-            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" Background="Transparent">
+            <!--#region Save Syncing -->
+            <Border Style="{StaticResource Graviton.SettingsCard}">
                 <StackPanel>
-                    <TextBlock Name="SaveSyncTitle" FontWeight="Bold" FontSize="20" Margin="10,10,10,15" />
+                    <TextBlock Name="SaveSyncTitle" Style="{StaticResource Graviton.SettingsSectionHeader}" />
 
-                    <CheckBox IsChecked="{Binding SaveSyncEnabled, Mode=TwoWay}" Margin="5">
-                        <TextBlock Name="SaveSyncEnabledText" Text="Enable Save Syncing" TextWrapping="Wrap"/>
-                    </CheckBox>
-                    <CheckBox IsChecked="{Binding DownloadSaveOnLaunch, Mode=TwoWay}" Margin="5" IsEnabled="{Binding SaveSyncEnabled}">
-                        <TextBlock Name="DownloadSaveOnLaunchText" Text="Download saves on game launch" TextWrapping="Wrap"/>
-                    </CheckBox>
-                    <CheckBox IsChecked="{Binding UploadSaveOnFinished, Mode=TwoWay}" Margin="5" IsEnabled="{Binding SaveSyncEnabled}">
-                        <TextBlock Name="UploadSaveOnFinishedText" Text="Upload saves on game exit" TextWrapping="Wrap"/>
-                    </CheckBox>
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="SaveSyncEnabledText" Text="Enable save syncing" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding SaveSyncEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </Grid>
 
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Name="ConflictStyleText" Text="Conflict style" MinWidth="120" VerticalAlignment="Center"/>
-                        <ComboBox MinWidth="180" ItemsSource="{Binding Source={StaticResource SaveConflictResolveValues}}" SelectedItem="{Binding SaveConflictStyle, Mode=TwoWay}" IsEnabled="{Binding SaveSyncEnabled}">
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}" IsEnabled="{Binding SaveSyncEnabled}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="DownloadSaveOnLaunchText" Text="Sync save before game launch" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding DownloadSaveOnLaunch, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}" IsEnabled="{Binding SaveSyncEnabled}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="UploadSaveOnFinishedText" Text="Sync save after game quit" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding UploadSaveOnFinished, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}" IsEnabled="{Binding SaveSyncEnabled}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="ConflictStyleText" Text="Conflict style" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ComboBox Grid.Column="1" MinWidth="200" ItemsSource="{Binding Source={StaticResource SaveConflictResolveValues}}" SelectedItem="{Binding SaveConflictStyle, Mode=TwoWay}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}"/>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                    </StackPanel>
+                    </Grid>
 
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <CheckBox IsChecked="{Binding AutoCleanupSaves, Mode=TwoWay}" VerticalAlignment="Center" IsEnabled="{Binding SaveSyncEnabled}"/>
-                        <TextBlock Name="AutoCleanupSavesText" Text="Auto Cleanup Saves" Margin="5,0,5,0" VerticalAlignment="Center"/>
-                        <psdk:NumericUpDown Value="{Binding AutoCleanupSavesLimit, Mode=TwoWay}" Minimum="1" Maximum="100" Width="70" IsEnabled="{Binding AutoCleanupSaves}"/>
-                    </StackPanel>
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}" IsEnabled="{Binding SaveSyncEnabled}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="AutoCleanupSavesText" Text="Auto Cleanup Saves" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <psdk:NumericUpDown Grid.Column="1" Value="{Binding AutoCleanupSavesLimit, Mode=TwoWay}" Minimum="1" Maximum="100" Width="70" Margin="0,0,15,0" VerticalAlignment="Center" IsEnabled="{Binding AutoCleanupSaves}"/>
+                        <ToggleButton Grid.Column="2" IsChecked="{Binding AutoCleanupSaves, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </Grid>
 
-                    <Separator Background="{DynamicResource Graviton.TransparentBackground.Colour}" Margin="15, 10"/>
+                    <Separator Background="{DynamicResource Graviton.TransparentBackground.Colour}" Margin="0,12"/>
 
-                    <TextBlock Name="ScreenshotTitle" Text="Screenshots" FontWeight="Bold" FontSize="16" Margin="10,0,10,15" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                    <TextBlock Name="ScreenshotTitle" Text="Screenshots" Style="{StaticResource Graviton.SettingsSubHeader}"/>
 
-                    <CheckBox IsChecked="{Binding CaptureScreenshots, Mode=TwoWay}" Margin="5" IsEnabled="{Binding SaveSyncEnabled}">
-                        <TextBlock Name="ScreenCapText" Text="Enable In-game screenshot capture for saves" TextWrapping="Wrap"/>
-                    </CheckBox>
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}" IsEnabled="{Binding SaveSyncEnabled}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="ScreenCapText" Text="Enable in-game screenshot capture for saves" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding CaptureScreenshots, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </Grid>
 
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Name="MaxResolutionBox" Text="Max Screenshot Resolution" MinWidth="180" VerticalAlignment="Center"/>
-                        <ComboBox MinWidth="180" ItemsSource="{Binding Source={StaticResource ScreenshotResolutionValues}}" SelectedItem="{Binding ScreenshotResolution, Mode=TwoWay}" IsEnabled="{Binding CaptureScreenshots}">
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}" IsEnabled="{Binding CaptureScreenshots}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="MaxResolutionBox" Text="Max screenshot resolution" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ComboBox Grid.Column="1" MinWidth="200" ItemsSource="{Binding Source={StaticResource ScreenshotResolutionValues}}" SelectedItem="{Binding ScreenshotResolution, Mode=TwoWay}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}"/>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
+                    </Grid>
+
+                    <StackPanel Margin="0,10,0,0" IsEnabled="{Binding CaptureScreenshots}">
+                        <TextBlock Name="SecondsBeforeTitle" Text="Screenshot timing" Foreground="{DynamicResource Graviton.Text.Colour}"/>
+                        <TextBlock Name="SecondsBeforeSubTitle" Text="Grabs a screenshot X seconds before you save, so the shot doesn't catch a save-in-progress overlay" Style="{StaticResource Graviton.SettingsHelperText}"/>
+                        <Slider Name="ScreenshotMaxCapture" Margin="0,0,10,0" Value="{Binding SecondsBeforeSave}" VerticalAlignment="Center" Minimum="5" Maximum="60" TickPlacement="BottomRight" TickFrequency="1" IsSnapToTickEnabled="True"/>
                     </StackPanel>
-
-                    <TextBlock Name="SecondsBeforeTitle" Margin="5,5,5,0" Text="Use screenshot from N seconds before save write occurs" Foreground="{DynamicResource Graviton.Text.Colour}"/>
-                    <Slider Name="ScreenshotMaxCapture" Grid.Column="0" Margin="10,5,15,5" Value="{Binding SecondsBeforeSave}" VerticalAlignment="Center" Minimum="5" Maximum="60" TickPlacement="BottomRight" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="{Binding CaptureScreenshots}"/>
                 </StackPanel>
             </Border>
+            <!--#endregion-->
 
-            <Border Margin="10" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" Background="Transparent">
+            <!--#region Save State Syncing -->
+            <Border Style="{StaticResource Graviton.SettingsCard}">
                 <StackPanel>
-                    <TextBlock Name="SaveStateSyncTitle" FontWeight="Bold" FontSize="20" Margin="10,10,10,15" />
-                    <CheckBox IsChecked="{Binding SaveStateSyncEnabled, Mode=TwoWay}" Margin="5">
-                        <TextBlock Name="SaveStateSyncEnabledText" TextWrapping="Wrap"/>
-                    </CheckBox>
+                    <TextBlock Name="SaveStateSyncTitle" Style="{StaticResource Graviton.SettingsSectionHeader}" />
+
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="SaveStateSyncEnabledText" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding SaveStateSyncEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </Grid>
                 </StackPanel>
             </Border>
+            <!--#endregion-->
 
         </StackPanel>
     </ScrollViewer>

@@ -8,6 +8,9 @@
     <local:ImageCacheConverter x:Key="imageCacheConverter" />
     <local:EnumDescriptionConverter x:Key="EnumDescConverter"/>
 
+    <SolidColorBrush x:Key="Graviton.RomM.Colour" Color="#372968"/>
+    <SolidColorBrush x:Key="Graviton.RomMAccent.Colour" Color="#b9a6ce"/>
+    
     <SolidColorBrush x:Key="Graviton.Success.Colour" Color="#4ade80"/>
     <SolidColorBrush x:Key="Graviton.SuccessAccent.Colour" Color="#4ade80"/>
     <SolidColorBrush x:Key="Graviton.SuccessBackground.Colour" Color="#1a3e2e"/>
@@ -169,6 +172,57 @@
     </Style>
     <!-- #endregion -->
 
+    <!-- #region ToggleButton -->
+    <Style TargetType="{x:Type ToggleButton}">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid x:Name="Root" Width="44" Height="24">
+                        <Border x:Name="TrackOff" CornerRadius="12" Background="{DynamicResource Graviton.TransparentMouseOverBackground.Colour}" BorderBrush="Transparent" BorderThickness="1" SnapsToDevicePixels="True" />
+                        <Border x:Name="TrackOn" CornerRadius="12" Background="{DynamicResource Graviton.RomM.Colour}" Opacity="0" SnapsToDevicePixels="True" />
+                        <Ellipse x:Name="Thumb" Width="20" Height="20" Fill="White" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0" SnapsToDevicePixels="True">
+                            <Ellipse.Effect>
+                                <DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.35" Direction="270" Color="Black" />
+                            </Ellipse.Effect>
+                            <Ellipse.RenderTransform>
+                                <TranslateTransform x:Name="ThumbTransform" X="0" />
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="TrackOn" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.15" />
+                                        <DoubleAnimation Storyboard.TargetName="ThumbTransform" Storyboard.TargetProperty="X" To="20" Duration="0:0:0.15" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="TrackOn" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.15" />
+                                        <DoubleAnimation Storyboard.TargetName="ThumbTransform" Storyboard.TargetProperty="X" To="0" Duration="0:0:0.15" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="TrackOff" Property="BorderBrush" Value="{DynamicResource Graviton.Text.Colour}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- #endregion -->
+
     <!-- #region ComboBox -->
     <Style TargetType="{x:Type ComboBoxItem}">
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
@@ -236,6 +290,56 @@
                         <Trigger Property="SelectedIndex" Value="-1">
                             <Setter TargetName="Placeholder" Property="Visibility" Value="Visible" />
                         </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- #endregion -->
+
+    <!-- #region ListBox -->
+    <Style TargetType="{x:Type ListBoxItem}">
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                    <Border x:Name="Border" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource Graviton.TransparentMouseOverBackground.Colour}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource Graviton.TransparentMouseOverBackground.Colour}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type ListBox}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.TransparentBackground.Colour}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListBox}">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" SnapsToDevicePixels="True">
+                        <ScrollViewer Focusable="False" Padding="{TemplateBinding Padding}">
+                            <ItemsPresenter SnapsToDevicePixels="True" />
+                        </ScrollViewer>
+                    </Border>
+                    <ControlTemplate.Triggers>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.5" />
                         </Trigger>
@@ -318,14 +422,25 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Thumb}">
-                    <Ellipse x:Name="Ellipse" Fill="{DynamicResource Graviton.Text.Colour}" Stroke="{DynamicResource Graviton.DarkBackground.Colour}" StrokeThickness="1" SnapsToDevicePixels="True" />
+                    <Grid>
+                        <!-- Value bubble: floats above the thumb, hidden until hover/drag/click -->
+                        <Border x:Name="ValueBubble" Background="{DynamicResource Graviton.DarkBackground.Colour}" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-28,0,0" Visibility="Collapsed" SnapsToDevicePixels="True" IsHitTestVisible="False">
+                            <TextBlock Text="{Binding Value, RelativeSource={RelativeSource AncestorType={x:Type Slider}}, StringFormat={}{0:0.##}}" Foreground="{DynamicResource Graviton.Text.Colour}" FontSize="11" FontWeight="SemiBold" />
+                        </Border>
+                        <Ellipse x:Name="Ellipse" Fill="{DynamicResource Graviton.Text.Colour}" Stroke="{DynamicResource Graviton.DarkBackground.Colour}" StrokeThickness="1" SnapsToDevicePixels="True" />
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Ellipse" Property="StrokeThickness" Value="2" />
+                            <Setter TargetName="ValueBubble" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsDragging" Value="True">
                             <Setter TargetName="Ellipse" Property="Opacity" Value="0.8" />
+                            <Setter TargetName="ValueBubble" Property="Visibility" Value="Visible" />
                         </Trigger>
+                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType={x:Type Slider}}}" Value="True">
+                            <Setter TargetName="ValueBubble" Property="Visibility" Value="Visible" />
+                        </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -335,26 +450,66 @@
     <Style TargetType="{x:Type Slider}">
         <Setter Property="Background" Value="{DynamicResource Graviton.TransparentBackground.Colour}" />
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
-        <Setter Property="Height" Value="24" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Slider}">
-                    <Grid Background="Transparent" VerticalAlignment="Center">
-                        <Border Height="6" Background="{TemplateBinding Background}" CornerRadius="3" VerticalAlignment="Center" SnapsToDevicePixels="True" />
-                        <Track x:Name="PART_Track">
-                            <Track.DecreaseRepeatButton>
-                                <RepeatButton Style="{StaticResource Graviton.SliderFillRepeatButton}" />
-                            </Track.DecreaseRepeatButton>
-                            <Track.IncreaseRepeatButton>
-                                <RepeatButton Style="{StaticResource Graviton.SliderRepeatButton}" />
-                            </Track.IncreaseRepeatButton>
-                            <Track.Thumb>
-                                <Thumb Style="{StaticResource Graviton.SliderThumb}" />
-                            </Track.Thumb>
-                        </Track>
+                    <Grid Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TickBar x:Name="TopTick" Grid.Row="0" Grid.Column="1" Placement="Top" Height="8" Margin="8,0" Opacity="0.5"
+                             Fill="{TemplateBinding Foreground}" Visibility="Collapsed" SnapsToDevicePixels="True"
+                             Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" TickFrequency="{TemplateBinding TickFrequency}"
+                             IsDirectionReversed="{TemplateBinding IsDirectionReversed}" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Margin="0,0,8,0"
+                             Foreground="{DynamicResource Graviton.SubText.Colour}"
+                             Text="{Binding Minimum, RelativeSource={RelativeSource TemplatedParent}, StringFormat={}{0:0.##}}" />
+
+                        <Grid Grid.Row="1" Grid.Column="1" Height="24" VerticalAlignment="Center">
+                            <Border Height="6" Background="{TemplateBinding Background}" CornerRadius="3" VerticalAlignment="Center" SnapsToDevicePixels="True" />
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Style="{StaticResource Graviton.SliderFillRepeatButton}" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Style="{StaticResource Graviton.SliderRepeatButton}" />
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource Graviton.SliderThumb}" />
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+
+                        <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" FontSize="12" Margin="8,0,0,0"
+                             Foreground="{DynamicResource Graviton.SubText.Colour}"
+                             Text="{Binding Maximum, RelativeSource={RelativeSource TemplatedParent}, StringFormat={}{0:0.##}}" />
+
+                        <TickBar x:Name="BottomTick" Grid.Row="2" Grid.Column="1" Placement="Bottom" Height="8" Margin="8,0" Opacity="0.5"
+                             Fill="{TemplateBinding Foreground}" Visibility="Collapsed" SnapsToDevicePixels="True"
+                             Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" TickFrequency="{TemplateBinding TickFrequency}"
+                             IsDirectionReversed="{TemplateBinding IsDirectionReversed}" />
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="TickPlacement" Value="TopLeft">
+                            <Setter TargetName="TopTick" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="TickPlacement" Value="BottomRight">
+                            <Setter TargetName="BottomTick" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="TickPlacement" Value="Both">
+                            <Setter TargetName="TopTick" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="BottomTick" Property="Visibility" Value="Visible" />
+                        </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.5" />
                         </Trigger>
@@ -362,6 +517,64 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+    <!-- #endregion -->
+
+    <!-- #region Settings layout helpers -->
+    <Style x:Key="Graviton.SettingsCard" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{DynamicResource Graviton.DarkTransparentBackground.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.TransparentBackground.Colour}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="20" />
+        <Setter Property="Margin" Value="0,0,0,15" />
+    </Style>
+
+    <Style x:Key="Graviton.SettingsSectionHeader" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+        <Setter Property="Margin" Value="0,0,0,14" />
+    </Style>
+
+    <Style x:Key="Graviton.SettingsSubHeader" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.SubText.Colour}" />
+        <Setter Property="Margin" Value="0,10,0,10" />
+    </Style>
+
+    <Style x:Key="Graviton.SettingsHelperText" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.SubSubText.Colour}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,2,0,8" />
+    </Style>
+
+    <Style x:Key="Graviton.SettingsToggleRow" TargetType="{x:Type Grid}">
+        <Setter Property="Margin" Value="0,7" />
+    </Style>
+    <!-- #endregion -->
+
+    <!-- #region Icon Button -->
+    <Style x:Key="Graviton.IconButton" TargetType="{x:Type Button}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.SubText.Colour}" />
+        <Setter Property="Opacity" Value="0.6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Opacity" Value="1" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
     <!-- #endregion -->
 

@@ -93,7 +93,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid Margin="5,10,5,5">
+    <Grid Margin="5,10,5,5" Name="MappingPanel">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*"/>
             <ColumnDefinition Width="5*"/>
@@ -150,7 +150,7 @@
                 </StackPanel>
 
                 <Button Click="DeleteMapping_Click" Grid.Column="3" Margin="5" HorizontalAlignment="Right" Width="40" Height="40">
-                    <TextBlock Name="DeleteMappingIcon" FontSize="24" Text="&#xf05e8;" Foreground="{DynamicResource Graviton.ErrorBackground.Colour}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <TextBlock Name="DeleteMappingIcon" FontSize="24" Text="&#xf05e8;" Foreground="{DynamicResource Graviton.Error.Colour}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Button>
             </Grid>
             <!-- #endregion -->

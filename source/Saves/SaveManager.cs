@@ -4,19 +4,14 @@ using Graviton.Models.RomM.Rom;
 using Graviton.Models.RomM.Saves;
 using Graviton.Models.Saves;
 
-using Nanook.GrindCore.MD;
-
 using Playnite;
 
 using SharpCompress.Archives;
-using SharpCompress.Archives.Zip;
-using SharpCompress.Common;
 
 using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 
 //TODO List
@@ -62,7 +57,7 @@ namespace Graviton.Saves
                 isPacked = true;
 
                 List<string>? skippedPaths = null;
-                if (!PackSave(save.SourceFilePaths, mapping.SavePath, savePath, out skippedPaths))
+                if (!SaveHelpers.PackSave(save.SourceFilePaths, mapping.SavePath, savePath, out skippedPaths))
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.upload.failed", "Failed to pack save, skipping upload", GravitonSeverity.Error));
                     return save;
@@ -224,7 +219,7 @@ namespace Graviton.Saves
 
             if (ArchiveFactory.IsArchive(tempDir, out _))
             {
-                var paths = UnpackSave(tempDir, mapping.SavePath);
+                var paths = SaveHelpers.UnpackSave(tempDir, mapping.SavePath);
                 if(paths == null)
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.download.failed", "Failed to unpack save data, skipping download", GravitonSeverity.Error));
@@ -232,7 +227,7 @@ namespace Graviton.Saves
                 }
 
                 save.SourceFilePaths = paths;
-                save.SourceFilePaths= save.SourceFilePaths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken)).ToList();
+                save.SourceFilePaths = save.SourceFilePaths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken)).ToObservableCollection();
             }
             else
             {
@@ -328,14 +323,14 @@ namespace Graviton.Saves
                     }
                 }
 
-                var paths = UnpackSave(tempDir, savepath);
+                var paths = SaveHelpers.UnpackSave(tempDir, savepath);
                 if (paths == null)
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.download.failed", "Failed to unpack save data, skipping download", GravitonSeverity.Error));
                     return save;
                 }
 
-                save.SourceFilePaths = paths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken)).ToList();
+                save.SourceFilePaths = paths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken)).ToObservableCollection();
             }
             else
             {
@@ -411,7 +406,7 @@ namespace Graviton.Saves
 
             if (ArchiveFactory.IsArchive(tempDir, out _))
             {
-                var paths = UnpackSave(tempDir, mapping.SavePath);
+                var paths = SaveHelpers.UnpackSave(tempDir, mapping.SavePath);
                 if (paths == null)
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.download.failed", "Failed to unpack save data, skipping download", GravitonSeverity.Error));
@@ -419,7 +414,7 @@ namespace Graviton.Saves
                 }
 
                 newsave.SourceFilePaths = paths;
-                newsave.SourceFilePaths = newsave.SourceFilePaths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken)).ToList();
+                newsave.SourceFilePaths = newsave.SourceFilePaths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken)).ToObservableCollection();
             }
             else
             {
@@ -478,7 +473,7 @@ namespace Graviton.Saves
         private static async Task<SaveSyncStatus> AutoConflictResolve(GravitonSave save, RomMRomLocal rom, string localFilePath, bool isPacked)
         {
             string? localHash = null;
-            localHash = isPacked ? ComputePackedContentHash(localFilePath) : ComputeFileContentHash(localFilePath);
+            localHash = isPacked ? SaveHelpers.ComputePackedContentHash(localFilePath) : SaveHelpers.ComputeFileContentHash(localFilePath);
 
             if (localHash == null)
             {
@@ -513,197 +508,6 @@ namespace Graviton.Saves
 
             return SaveSyncStatus.conflict;
         }
-
-
-        #region Helper Functions
-        public static List<string>? UnpackSave(string tempSaveLocation, string destinationPath)
-        {
-            if (!File.Exists(tempSaveLocation))
-            {
-                GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", Loc.GetString("SaveArchiveNotFound", ("SaveLoc", tempSaveLocation)), GravitonSeverity.Error));
-                return null;
-            }
-
-            try
-            {
-                Directory.CreateDirectory(destinationPath);
-
-                using var archive = ArchiveFactory.OpenArchive(tempSaveLocation);
-
-                var destinationFull = Path.GetFullPath(destinationPath);
-                var fileEntries = archive.Entries.Where(e => !e.IsDirectory).ToList();
-
-                var resolvedPaths = new List<string>(fileEntries.Count);
-                foreach (var entry in fileEntries)
-                {
-                    var resolvedPath = Path.GetFullPath(Path.Combine(destinationFull, entry.Key!));
-                    if (!resolvedPath.StartsWith(destinationFull, StringComparison.OrdinalIgnoreCase))
-                    {
-                        GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", Loc.GetString("ArchiveResolvesOutside", ("Entry", entry.Key!)), GravitonSeverity.Error));
-                        return null;
-                    }
-                    resolvedPaths.Add(resolvedPath);
-                }
-
-                archive.WriteToDirectory(destinationPath, new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
-
-                if (fileEntries.Count > 0 && !Directory.EnumerateFileSystemEntries(destinationPath).Any())
-                {
-                    GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", Loc.GetString("ExtractionEmpty"), GravitonSeverity.Error));
-                    return null;
-                }
-
-                var sourcePaths = resolvedPaths.Where(File.Exists).ToList();
-
-                try
-                {
-                    File.Delete(tempSaveLocation);
-                }
-                catch (Exception ex)
-                {
-                    GravitonPlugin.Logger.Warn(ex, $"Extraction succeeded but failed to delete temp file {tempSaveLocation}");
-                }
-
-                return sourcePaths;
-            }
-            catch (Exception ex)
-            {
-                GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", Loc.GetString("FailedUnpack", ("SaveLoc", tempSaveLocation)), GravitonSeverity.Error, ex));
-                return null;
-            }
-        }
-
-        public static bool PackSave(List<string> sourcePaths, string savePathRoot, string outputArchivePath, out List<string> skippedPaths)
-        {
-            bool missingfiles = false;
-
-            List<string> localSkippedpaths = new();
-
-            try
-            {
-                using var archive = ZipArchive.CreateArchive();
-
-                foreach (var path in sourcePaths)
-                {
-                    var processedpath = path.Replace(EmulatorMapping.MappingPathToken, savePathRoot);
-
-                    if (File.Exists(processedpath))
-                    {
-                        var relativeKey = Path.GetRelativePath(savePathRoot, processedpath).Replace('\\', '/');
-
-                        var stream = File.OpenRead(processedpath);
-                        var lastModified = File.GetLastWriteTimeUtc(processedpath);
-
-                        archive.AddEntry(relativeKey, stream, closeStream: true, size: stream.Length, modified: lastModified);
-                    }
-                    else if (Directory.Exists(processedpath))
-                    {
-                        foreach (var file in Directory.GetFiles(processedpath, "*", SearchOption.AllDirectories))
-                        {
-                            var relativeKey = Path.GetRelativePath(savePathRoot, file).Replace('\\', '/');
-
-                            var stream = File.OpenRead(file);
-                            var lastModified = File.GetLastWriteTimeUtc(file);
-
-                            archive.AddEntry(relativeKey, stream, closeStream: true, size: stream.Length, modified: lastModified);
-                        }
-                    }
-                    else
-                    {
-                        GravitonPlugin.Logger.Warn($"Selected save path no longer exists, skipping: {processedpath}");
-                        localSkippedpaths.Add(processedpath);
-                        missingfiles = true;
-                    }
-                }
-
-                archive.SaveTo(outputArchivePath, CompressionType.Deflate);
-            }
-            catch (Exception ex)
-            {
-                GravitonNotify.Add(new GravitonNotification("graviton.packsave.failed", $"Failed to pack save archive to {outputArchivePath}", GravitonSeverity.Error, ex));
-                skippedPaths = localSkippedpaths;
-                return false;
-            }
-
-            if (missingfiles)
-            {
-                GravitonNotify.Add(new GravitonNotification("graviton.packsave.missingfiles", $"One or more files/folders were skipped when packing save, see logs", GravitonSeverity.Warn));
-            }
-
-            skippedPaths = localSkippedpaths;
-            return true;
-        }
-
-        public static string? ComputePackedContentHash(string zipPath)
-        {
-            for (int i = 0; i < 3;)
-            {
-                try
-                {
-                    var entryHashes = new List<string>();
-
-                    using (var archive = ZipArchive.OpenArchive(zipPath))
-                    {
-                        if (!archive.Entries.Any())
-                        {
-                            GravitonNotify.Add(new GravitonNotification("graviton.archive.empty", $"Failed to compute hash for {zipPath} as the archive is empty, skipping", GravitonSeverity.Error));
-                            return null;
-                        }
-                        foreach (var entry in archive.Entries.Where(e => !e.IsDirectory).OrderBy(e => e.Key, StringComparer.Ordinal))
-                        {
-                            using (var md5 = MD5.Create())
-                            using (var entryStream = entry.OpenEntryStream())
-                            {
-                                var hash = md5.ComputeHash(entryStream);
-                                var hex = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-                                entryHashes.Add($"{entry.Key}:{hex}");
-                            }
-                        }
-                    }
-
-                    var combined = string.Join("\n", entryHashes);
-                    using (var md5 = MD5.Create())
-                    {
-                        var combinedHash = md5.ComputeHash(Encoding.UTF8.GetBytes(combined));
-                        
-                        return BitConverter.ToString(combinedHash).Replace("-", "").ToLowerInvariant();
-                    }
-                }
-                catch (Exception)
-                {
-                    GravitonPlugin.Logger.Error($"Failed to compute content hash for {zipPath}, retrying #{i++}");
-                    Task.Delay(100);
-                }
-            }
-
-            GravitonNotify.Add(new GravitonNotification("graviton.computehash.failed", $"Failed to compute hash for {zipPath}, skipping", GravitonSeverity.Error));
-            return null;
-        }
-
-        public static string? ComputeFileContentHash(string path)
-        {
-            for (int i = 0; i < 3;)
-            {
-                try
-                {
-                    using (var md5 = MD5.Create())
-                    using (var stream = File.OpenRead(path))
-                    {
-                        var hash = md5.ComputeHash(stream);
-                        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-                    }
-                }
-                catch (Exception)
-                {
-                    GravitonPlugin.Logger.Error($"Failed to compute content hash for {path}, retrying #{i++}");
-                    Task.Delay(100);
-                }
-            }
-
-            GravitonNotify.Add(new GravitonNotification("graviton.computehash.failed", $"Failed to compute hash for {path}, skipping", GravitonSeverity.Error));
-            return null;
-        }
-        #endregion
 
     }
 }

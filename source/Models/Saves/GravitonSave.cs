@@ -38,7 +38,7 @@ namespace Graviton.Models.Saves
     {
         [ObservableProperty] private bool _enabled = true;
         [ObservableProperty] private Guid _localID = Guid.NewGuid();
-        [ObservableProperty] private List<string> _sourceFilePaths = new();
+        [ObservableProperty] private ObservableCollection<string> _sourceFilePaths = new();
         [ObservableProperty] private string _filename = string.Empty;
 
         [ObservableProperty] private int _rOMID = -1;
@@ -46,7 +46,7 @@ namespace Graviton.Models.Saves
         [ObservableProperty] private string? _slot = "Autosave";
 
         [ObservableProperty] private SaveStatus _status;
-        [ObservableProperty] private DateTime _lastSyncedAt;
+        [JsonIgnore] private DateTime? _lastSyncedAt;
         [ObservableProperty] private string? _contentHash;
         [ObservableProperty] private long _fileSize;
 
@@ -57,6 +57,16 @@ namespace Graviton.Models.Saves
 
         [ObservableProperty] private bool _isTempRestored = false;
         [ObservableProperty] private List<string> _missingFiles = new();
+
+        public DateTime? LastSyncedAt
+        {
+            get => IsHistoric ? ServerLastUpdatedAt : _lastSyncedAt;
+            set
+            {
+                _lastSyncedAt = value;
+                OnPropertyChanged();
+            }
+        }
 
         #region UI Only
         [JsonIgnore] public string GameName { get; set; } = string.Empty;
@@ -78,7 +88,10 @@ namespace Graviton.Models.Saves
                 if (Status == SaveStatus.UntrackedLocal && !IsHistoric)
                     return "Found on disk";
 
-                var difference = DateTime.Now - LastSyncedAt;
+                if(LastSyncedAt == null)
+                    return "Unknown";
+
+                var difference = DateTime.Now - LastSyncedAt.Value;
 
                 if (difference.TotalSeconds < 60)
                     return $"{difference.TotalSeconds:F0}s ago";
@@ -86,13 +99,13 @@ namespace Graviton.Models.Saves
                 if (difference.TotalMinutes < 60)
                     return $"{difference.TotalMinutes:F0}m ago";
 
-                var daysAgo = (DateTime.Today - LastSyncedAt.Date).Days;
+                var daysAgo = (DateTime.Today - LastSyncedAt.Value.Date).Days;
 
                 if (daysAgo == 0)
                     return $"{difference.TotalHours:F0}h ago";
 
                 if (daysAgo == 1)
-                    return $"Yesterday, {LastSyncedAt.ToLocalTime():t}";
+                    return $"Yesterday, {LastSyncedAt.Value.ToLocalTime():t}";
 
                 return $"{daysAgo}d ago";
 
@@ -104,10 +117,10 @@ namespace Graviton.Models.Saves
         {
             get
             {
-                if (Status == SaveStatus.ServerOnly || Status == SaveStatus.UntrackedLocal)
-                    return "";
+                if (FileSize <= 0)
+                    return "Unknown";
 
-                if(FileSize < 1000)
+                if (FileSize < 1000)
                 {
                     return $"{FileSize} Bytes";
                 }
