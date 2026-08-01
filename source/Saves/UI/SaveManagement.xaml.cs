@@ -413,21 +413,7 @@ namespace Graviton.Saves
 
             var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync("How do you want to restore the historic save?", "Restore Historic Save", MessageBoxSeverity.Question, new List<MessageBoxResponse> { RestoreLocally, FullRestore, Cancel}, new List<MessageBoxOption>());
 
-            if(response == FullRestore)
-            {
-                Saves.Remove(parentROM.LocalSave!);
-                parentROM.LocalSave!.HistoricSaves?.Remove(historicSave);
-                var result = await SaveManager.Download(historicSave, true);
-
-                if (result.Status == SaveStatus.Synced) 
-                    await SaveManager.Upload(historicSave);
-                else
-                    parentROM.LocalSave!.HistoricSaves?.Add(historicSave);
-
-                Saves.Add(parentROM.LocalSave);
-            }
-
-            if(response == RestoreLocally)
+            if(response == RestoreLocally || response == FullRestore)
             {
                 Saves.Remove(parentROM.LocalSave!);
                 var result = await SaveManager.Download(historicSave, true);
@@ -449,9 +435,18 @@ namespace Graviton.Saves
 
                     result.HistoricSaves = parentROM.LocalSave.HistoricSaves.OrderByDescending(x => x.LastSyncedAt).ToObservableCollection();
                     result.IsCurrent = true;
-                    result.IsTempRestored = true;
+
+                    if(response == RestoreLocally)
+                    {
+                        result.IsTempRestored = true;
+                        result.Status = SaveStatus.TempRestored;
+                    }
+                        
                     parentROM.LocalSave = result;
                     parentROM.Save();
+
+                    if(response == FullRestore)
+                        await SaveManager.Upload(historicSave);
                 }
 
                 Saves.Add(parentROM.LocalSave!);

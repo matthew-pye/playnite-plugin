@@ -21,9 +21,9 @@ namespace Graviton
 
     public static class HttpClientSingleton
     {
-        public static HttpClient Instance => httpClient;
+        public static HttpClient Instance { get => httpClient; }
 
-        private static readonly HttpClient httpClient = new HttpClient();
+        private static HttpClient httpClient = new HttpClient();
 
         private static GravitonPlugin? _plugin;
         private static bool IsInitialized = false;
@@ -42,6 +42,14 @@ namespace Graviton
         {
             _plugin = plugin;
             IsInitialized = true;
+        }
+
+        internal static void UseHttpClientForTests(HttpMessageHandler handler)
+        {
+            httpClient = new HttpClient(handler);
+            httpClient.DefaultRequestHeaders.Accept.Clear();
+            httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            httpClient.Timeout = TimeSpan.FromSeconds(30);
         }
 
         public static void ConfigureBasicAuth(string username, string password)

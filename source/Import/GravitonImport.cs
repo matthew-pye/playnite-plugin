@@ -314,7 +314,7 @@ namespace Graviton.Import
             game.InstallDirectory = _mapping.DestinationPathResolved;
             if(!ROM.HasMultipleFiles)
             {
-                var relativeROMPath = ROM.FullPath!.Replace(ROM.FileSystemPath!, "");
+                var relativeROMPath = ROM.FullPath!.Replace(ROM.FilePath!, "");
                 game.InstallState = File.Exists($"{game.InstallDirectory}\\{relativeROMPath}") ? InstallState.Installed : InstallState.Uninstalled;
             }
 

@@ -93,7 +93,7 @@ namespace Graviton.Models.RomM.Rom
         public string? FileExtension { get; set; }
 
         [JsonPropertyName("fs_path")]
-        public string? FileSystemPath { get; set; }
+        public string? FilePath { get; set; }
 
         [JsonPropertyName("fs_size_bytes")]
         public ulong FileSizeBytes { get; set; }

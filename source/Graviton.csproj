@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
 	<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 	<GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
@@ -71,15 +71,5 @@
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
   </ItemGroup>
-  
-  <ItemGroup>
-	<None Remove="WinRT.Runtime.dll" />
-	<None Remove="Microsoft.Windows.SDK.NET.dll" />
-  </ItemGroup>
-
-  <Target Name="RemoveHostAssemblies" AfterTargets="Build">
-	<Delete Files="$(OutDir)WinRT.Runtime.dll" />
-	<Delete Files="$(OutDir)Microsoft.Windows.SDK.NET.dll" />
-  </Target>
   
 </Project>

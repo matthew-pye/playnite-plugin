@@ -60,7 +60,7 @@ namespace Graviton.Import
                 //    return null;
 
                 case BuiltInGameDataId.DesktopCover:
-                    return ROM.HasCover ? ROM.PathCoverL : null;
+                    return ROM?.PathCoverL;
 
                 case BuiltInGameDataId.Genres:
                     return ROM.Metadatum?.Genres?.Count > 0 ? ROM.Metadatum.Genres : null;

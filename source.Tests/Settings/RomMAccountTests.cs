@@ -209,9 +209,9 @@ namespace Graviton.Tests.Settings
         [InlineData("users//profile/avatar.png",                "empty username segment")]
         [InlineData("assets/alice/profile/avatar.png",          "wrong root segment")]
         [InlineData("users/alice/profile/avatar.png/../../etc", "path traversal attempt")]
-        public void IconPathRegex_InvalidPath_DoesNotMatch(string path, string _reason)
+        public void IconPathRegex_InvalidPath_DoesNotMatch(string path, string reason)
         {
-            Assert.DoesNotMatch(IconPathRegex.ToString(), path);
+            Assert.False(IconPathRegex.IsMatch(path), $"Expected \"{path}\" to not match ({reason})");
         }
 
         #endregion
