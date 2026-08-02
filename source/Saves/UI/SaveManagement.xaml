@@ -288,7 +288,7 @@
                                                                                 </DataTrigger>
                                                                                 <DataTrigger Binding="{Binding Status}" Value="UntrackedLocal">
                                                                                     <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}"/>
-                                                                                    <Setter Property="Text" Value="&#xf1276; New on Disk"/>
+                                                                                    <Setter Property="Text" Value="&#xf1276; Found on Disk"/>
                                                                                 </DataTrigger>
                                                                                 <DataTrigger Binding="{Binding Status}" Value="TempRestored">
                                                                                     <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}"/>

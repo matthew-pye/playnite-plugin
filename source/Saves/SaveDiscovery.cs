@@ -86,7 +86,7 @@ namespace Graviton.Saves
                             if (matchinglocal.LocalSave!.HistoricSaves == null)
                                 matchinglocal.LocalSave.HistoricSaves = new();
 
-                            matchinglocal.LocalSave.HistoricSaves.Add(new()
+                            GravitonSave historicSave = new()
                             {
                                 ROMID = remotesave.ROMID,
                                 SaveID = remotesave.ID,
@@ -97,7 +97,15 @@ namespace Graviton.Saves
                                 Filename = remotesave.FileName != null ? ServerTimestampTagPattern.Replace(remotesave.FileName, "") : "",
                                 SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{remotesave.FileName}" },
                                 IsHistoric = true,
-                            });
+                            };
+
+                            // Don't re-add historic save if the save is already in the historic list
+                            var existingHistoricSave = matchinglocal.LocalSave.HistoricSaves.FirstOrDefault(x => x.SaveID == remotesave.ID);
+                            if (existingHistoricSave == null)
+                                matchinglocal.LocalSave.HistoricSaves.Add(historicSave);
+                            else
+                                existingHistoricSave = historicSave;
+
                             continue;
                         }
                     }
@@ -205,7 +213,10 @@ namespace Graviton.Saves
                 // Add newest save to historic saves list for historic selection
                 if (localrom.LocalSave.HistoricSaves != null)
                 {
-                    localrom.LocalSave.HistoricSaves.Add(localrom.LocalSave);
+                    var exisitingHistoricSave = localrom.LocalSave.HistoricSaves.FirstOrDefault(x => x.SaveID == localrom.LocalSave.SaveID);
+                    if (exisitingHistoricSave == null)
+                        localrom.LocalSave.HistoricSaves.Add(localrom.LocalSave);
+
                     localrom.LocalSave.HistoricSaves = localrom.LocalSave.HistoricSaves.OrderByDescending(x => x.LastSyncedAt).ToObservableCollection();
                 }
 

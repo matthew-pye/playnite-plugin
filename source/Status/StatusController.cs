@@ -51,6 +51,47 @@ namespace Graviton.Status
 
         }
 
+        public async Task GameDataChanged(IEnumerable<CollectionItemUpdateData<Game>> updatedGames)
+        {
+            RomMCollection? favouriteCollection = null;
+            if (_plugin.Settings.KeepFavouritesSynced)
+            {
+                favouriteCollection = await PullFavourites();
+                if (favouriteCollection == null)
+                    return;
+            }
+
+            foreach (var updatedGame in updatedGames)
+            {
+
+                if (_plugin.Settings.KeepStatusSynced && updatedGame.ChangedProperties.Contains(nameof(Game.CompletionStatusId)))
+                {
+                    await UpdateStatus(updatedGame.NewData);
+                }
+
+                if (_plugin.Settings.KeepFavouritesSynced && favouriteCollection != null && updatedGame.ChangedProperties.Contains(nameof(Game.Favorite)))
+                {
+                    int romMID;
+                    if (!int.TryParse(updatedGame.OldData.LibraryGameId?.Split(':')[0], out romMID))
+                    {
+                        GravitonNotify.Add(new GravitonNotification($"graviton.{updatedGame.OldData.LibraryGameId}.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", updatedGame.OldData.LibraryGameId!.ToString())), GravitonSeverity.Error));
+                        continue;
+                    }
+
+                    if (updatedGame.NewData.Favorite)
+                        favouriteCollection.RomIDs.Add(romMID);
+                    else
+                        favouriteCollection.RomIDs.Remove(romMID);
+
+                    favouriteCollection.HasBeenUpdated = true;
+                }
+            }
+            if (_plugin.Settings.KeepFavouritesSynced && favouriteCollection != null && favouriteCollection.HasBeenUpdated)
+            {
+                await UpdateFavorites(favouriteCollection);
+            }
+        }
+
         // Favourites
         private async Task<RomMCollection?> CreateFavorites()
         {

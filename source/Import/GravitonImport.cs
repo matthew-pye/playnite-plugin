@@ -314,27 +314,27 @@ namespace Graviton.Import
             game.InstallDirectory = _mapping.DestinationPathResolved;
             if(!ROM.HasMultipleFiles)
             {
-                var relativeROMPath = ROM.FullPath!.Replace(ROM.FilePath!, "");
-                game.InstallState = File.Exists($"{game.InstallDirectory}\\{relativeROMPath}") ? InstallState.Installed : InstallState.Uninstalled;
+                var relativeROMPath = ROM.FullPath?.Replace(ROM.FilePath ?? "", "");
+                game.InstallState = File.Exists($"{_mapping.DestinationPathResolved}\\{relativeROMPath}") ? InstallState.Installed : InstallState.Uninstalled;
             }
 
             await _playniteAPI.Library.GameDescriptions.AddAsync(new GameDescription(game.Id, ROM.Summary, GameDescriptionFormat.Markdown));
 
-            if (ROM.Notes != null)
-            {
-                foreach (var note in ROM.Notes!)
-                {
-                    GameNote newNote = new GameNote()
-                    {
-                        Id = game.Id,
-                        Name = note.Title,
-                        Text = note.Note,
-                        Format = GameNoteFormat.Markdown
-                    };
-
-                    await _playniteAPI.Library.GameNotes.AddAsync(newNote);
-                }
-            }
+            //if (ROM.Notes != null)
+            //{
+            //    foreach (var note in ROM.Notes!)
+            //    {
+            //        GameNote newNote = new GameNote()
+            //        {
+            //            Id = game.Id,
+            //            Name = note.Title,
+            //            Text = note.Note,
+            //            Format = GameNoteFormat.Markdown
+            //        };
+            //
+            //        await _playniteAPI.Library.GameNotes.AddAsync(newNote);
+            //    }
+            //}
 
             return game;
         }

@@ -2,7 +2,6 @@
 using Graviton.Install;
 using Graviton.Install.Downloads;
 using Graviton.Models.Notifications;
-using Graviton.Models.RomM.Collection;
 using Graviton.Models.RomM.Rom;
 using Graviton.Saves;
 using Graviton.Settings;
@@ -238,43 +237,7 @@ namespace Graviton
 
             if (args.UpdatedItems?.Count > 0 && args.UpdatedItems.Any(x => x.OldData.LibraryId == Id))
             {
-                RomMCollection? favouriteCollection = null;
-                if (Settings.KeepFavouritesSynced)
-                {
-                    favouriteCollection = await StatusController!.PullFavourites();
-                    if (favouriteCollection == null)
-                        return;
-                }
-                
-                foreach (var updatedGame in args.UpdatedItems.Where(x => x.OldData.LibraryId == Id))
-                {
-
-                    if (Settings.KeepStatusSynced && updatedGame.ChangedProperties.Contains(nameof(Game.CompletionStatusId)))
-                    {
-                        await StatusController!.UpdateStatus(updatedGame.NewData);
-                    }
-
-                    if (Settings.KeepFavouritesSynced && favouriteCollection != null && updatedGame.ChangedProperties.Contains(nameof(Game.Favorite)))
-                    {
-                        int romMID;
-                        if (!int.TryParse(updatedGame.OldData.LibraryGameId?.Split(':')[0], out romMID))
-                        {
-                            GravitonNotify.Add(new GravitonNotification($"graviton.{updatedGame.OldData.LibraryGameId}.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", updatedGame.OldData.LibraryGameId!.ToString())), GravitonSeverity.Error));
-                            continue;
-                        }
-
-                        if (updatedGame.NewData.Favorite)
-                            favouriteCollection.RomIDs.Add(romMID);
-                        else
-                            favouriteCollection.RomIDs.Remove(romMID);
-
-                        favouriteCollection.HasBeenUpdated = true;
-                    }
-                }
-                if (Settings.KeepFavouritesSynced && favouriteCollection != null && favouriteCollection.HasBeenUpdated)
-                {
-                    await StatusController!.UpdateFavorites(favouriteCollection);
-                }
+                await StatusController!.GameDataChanged(args.UpdatedItems.Where(x => x.OldData.LibraryId == Id));
             }
 
             if(args.RemovedItems?.Count > 0 && args.RemovedItems.Any(x => x.LibraryId == Id))
@@ -392,7 +355,7 @@ namespace Graviton
             [
                 new MenuItemDescriptor($"graviton.open.web", Loc.GetString("OpenRomMLibrary")),
                 new MenuItemDescriptor($"graviton.open.account", Loc.GetString("OpenRomMProfile")),
-                new MenuItemDescriptor($"graviton.manage.saves", "Manage RomM Saves"),
+                new MenuItemDescriptor($"graviton.manage.saves", Loc.GetString("ManageSaves")),
                 new MenuItemDescriptor($"graviton.test.controller", "RomM Test Controller")
             ];
         }
@@ -402,7 +365,7 @@ namespace Graviton
             {
                 if (args.ItemId == "graviton.manage.saves")
                 {
-                    return [new MenuItemImpl("Manage RomM Saves", (_) => 
+                    return [new MenuItemImpl(Loc.GetString("ManageSaves"), (_) => 
                     {
 
                          var window = PlayniteApi.CreateWindow(new WindowCreationOptions
@@ -488,37 +451,42 @@ namespace Graviton
 
         public override ICollection<MenuItemImpl>? GetGameMenuItems(GetGameMenuItemsArgs args)
         {
-            if (args.Games.Count != 1 || args.Games[0].LibraryId != Id)
+            if (!args.Games.Any(x => x.LibraryId == Id))
                 return null;
 
             if (args.ItemId == "graviton.manage.saves")
             {
                 return [new MenuItemImpl(Loc.GetString("ManageSaves"), (_) =>
-                {
-                    var mappingID = args.Games[0].ExternalIdentifiers?.FirstOrDefault(y => y.TypeId == "gravitonmappingid");
-                    if(mappingID == null)
-                        return;
+                    {
+                        List<RomMRomLocal> roms = new();
+                        foreach (var game in args.Games.Where(x => x.LibraryId == Id))
+                        {
+                            if(game.LibraryGameId != null && ImportedGames.ContainsKey(game.LibraryGameId))
+                                roms.Add(ImportedGames[game.LibraryGameId]);
+	                    }
 
-                    var mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId.ToString() == mappingID.IdValue);
-                    if (mapping == null) 
-                        return;
+                         var window = PlayniteApi.CreateWindow(new WindowCreationOptions
+                         {
+                             ShowMinimizeButton = false,
+                             ShowMaximizeButton = true,
+                             ShowCloseButton = true,
+                             DefaultWidth = 1600,
+                             DefaultHeight = 900
+                         });
 
-                    //var tab = new Saves.SinglegameSaveTab();
-                    //tab.LoadForGame(args.Games[0], mapping);
-                    //SaveManagerWindow.Show(Loc.GetString("ManageSaves"), tab);
-                })];
+                        var manageSavesView = new SaveManagementWindow(roms);
+
+                        window.Title = "Save Management";
+                        window.Content = manageSavesView;
+                        window.Owner = PlayniteApi.GetLastActiveWindow();
+                        window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                        window.ShowDialog();
+
+                    })];
             }
 
             return null;
         }
-
-        //public override ICollection<MenuItemDescriptor> GetGameMenuItemDescriptors(GetGameMenuItemDescriptorsArgs args)
-        //{
-        //    //return
-        //    //[
-        //    //    new MenuItemDescriptor("graviton.open.manual", "Open RomM manual")
-        //    //];
-        //}
 
         #endregion
 

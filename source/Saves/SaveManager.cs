@@ -14,11 +14,6 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
-//TODO List
-// Remove save tree from in save dropdown and replace with list of sourcepaths
-// Add delete button to sourcepaths list
-// Add game select manage saves menu
-
 namespace Graviton.Saves
 {
     internal static class SaveManager
@@ -69,7 +64,7 @@ namespace Graviton.Saves
                     return save;
                 }
             }
-            else
+            else if(save.SourceFilePaths.Count == 1 && !File.Exists(savePath) && !Directory.Exists(savePath))
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.files.missing", "Save files are missing, skipping upload", GravitonSeverity.Error));
                 return save;
@@ -146,9 +141,14 @@ namespace Graviton.Saves
                 var savecopy = JsonSerializer.Deserialize<GravitonSave>(JsonSerializer.Serialize(save));
                 if(savecopy != null)
                 {
-                    savecopy.IsCurrent = false;
-                    savecopy.IsHistoric = true;
-                    save.HistoricSaves.Add(savecopy);
+                    // Dont add historic save if the historic save list already contains this save just update it
+                    var historicsave = save.HistoricSaves.FirstOrDefault(x => x.SaveID == savecopy.SaveID);
+                    if (historicsave == null)
+                    {
+                        savecopy.IsCurrent = false;
+                        savecopy.IsHistoric = true;
+                        save.HistoricSaves.Add(savecopy);
+                    }
                 }
                     
                 save.SaveID = result.ID;
