@@ -148,7 +148,7 @@
                         <Style TargetType="Button">
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="Foreground" Value="#888"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Graviton.SubSubText.Colour}"/>
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="Button">
@@ -175,8 +175,8 @@
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#33FFFFFF"/>
-                                                <Setter Property="Foreground" Value="White"/>
+                                                <Setter Property="Background" Value="{DynamicResource Graviton.TransparentMouseOverBackground.Colour}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -188,7 +188,7 @@
                 </Button>
             </Grid>
 
-            <Border Grid.Row="1" Background="#22FFFFFF" Height="4">
+            <Border Grid.Row="1" Background="{DynamicResource Graviton.TransparentBackground.Colour}" Height="4">
                 <Rectangle x:Name="ProgressBar" Height="4" HorizontalAlignment="Left">
                     <Rectangle.Style>
                         <Style TargetType="Rectangle">

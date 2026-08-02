@@ -51,7 +51,7 @@ namespace Graviton.Models.RomM
         public int ROMID { get; set; }
 
         [JsonPropertyName("save_id")]
-        public int? SaveID { get; set; }
+        public int SaveID { get; set; }
 
         [JsonPropertyName("file_name")]
         public string? FileName { get; set; }

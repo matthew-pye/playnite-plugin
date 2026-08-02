@@ -10,6 +10,12 @@
 
     <SolidColorBrush x:Key="Graviton.RomM.Colour" Color="#372968"/>
     <SolidColorBrush x:Key="Graviton.RomMAccent.Colour" Color="#b9a6ce"/>
+
+    <!-- Was hardcoded inline in SettingsTabControl.xaml for the active/inactive tab indicator.
+         Named here so it's a single source of truth, but note this is a different, brighter purple
+         than Graviton.RomM.Colour above - see chat for whether these should be consolidated. -->
+    <SolidColorBrush x:Key="Graviton.Accent.Colour" Color="#8b74e8"/>
+    <SolidColorBrush x:Key="Graviton.AccentMuted.Colour" Color="#524489"/>
     
     <SolidColorBrush x:Key="Graviton.Success.Colour" Color="#4ade80"/>
     <SolidColorBrush x:Key="Graviton.SuccessAccent.Colour" Color="#4ade80"/>
@@ -147,7 +153,10 @@
                 <ControlTemplate TargetType="CheckBox">
                     <StackPanel Orientation="Horizontal">
                         <Border x:Name="Border" Width="18" Height="18" Background="Transparent" BorderBrush="{DynamicResource Graviton.TransparentMouseOverBackground.Colour}" BorderThickness="1" CornerRadius="4" SnapsToDevicePixels="True">
-                            <Path x:Name="Check" Data="M 2,7 L 6,11 L 13,3" Stroke="{DynamicResource Graviton.Text.Colour}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"  StrokeLineJoin="Round" Visibility="Collapsed"/>
+                            <Grid>
+                                <Path x:Name="Check" Data="M 2,7 L 6,11 L 13,3" Stroke="{DynamicResource Graviton.Text.Colour}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"  StrokeLineJoin="Round" Visibility="Collapsed"/>
+                                <Rectangle x:Name="Indeterminate" Width="8" Height="8" RadiusX="1" RadiusY="1" Fill="{DynamicResource Graviton.Text.Colour}" Visibility="Collapsed"/>
+                            </Grid>
                         </Border>
                         <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True"/>
                     </StackPanel>
@@ -156,8 +165,7 @@
                             <Setter TargetName="Check" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="{x:Null}">
-                            <Setter TargetName="Check" Property="Data" Value="M 2,6 L 13,6" />
-                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Indeterminate" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource Graviton.Text.Colour}" />

@@ -56,7 +56,7 @@
             <TextBlock x:Name="ErrorNotificationText" Text="Test Error Notification"/>
         </Button>
 
-        <Border Grid.Column="0" Grid.RowSpan="100" BorderThickness="1" CornerRadius="3" BorderBrush="#41696969" Width="1" HorizontalAlignment="Right" Margin="0,0,-1,0"/>
+        <Border Grid.Column="0" Grid.RowSpan="100" BorderThickness="1" CornerRadius="3" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Width="1" HorizontalAlignment="Right" Margin="0,0,-1,0"/>
 
         <TextBlock x:Name="LoginTestsText" Text="Test Login statuses" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Margin="5,5,10,5"/>
         <Button Click="LoggedIn_Click" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
@@ -75,7 +75,7 @@
             <TextBlock x:Name="TestNotLoggedInText" Text="Test 'Not Logged In' status"/>
         </Button>
 
-        <Border Grid.Column="1" Grid.RowSpan="100" BorderThickness="1" CornerRadius="3" BorderBrush="#41696969" Width="1" HorizontalAlignment="Right" Margin="0,0,-1,0"/>
+        <Border Grid.Column="1" Grid.RowSpan="100" BorderThickness="1" CornerRadius="3" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Width="1" HorizontalAlignment="Right" Margin="0,0,-1,0"/>
 
     </Grid>
 

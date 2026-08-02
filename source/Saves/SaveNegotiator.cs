@@ -161,6 +161,22 @@ namespace Graviton.Saves
                             break;
 
                         case "download":
+
+                            if(rom.LocalSave.HistoricSaves == null)
+                                rom.LocalSave.HistoricSaves = new();
+
+                            var savecopy = JsonSerializer.Deserialize<GravitonSave>(JsonSerializer.Serialize(rom.LocalSave));
+                            if(savecopy != null)
+                            {
+                                savecopy.HistoricSaves = null;
+                                rom.LocalSave.HistoricSaves.Add(savecopy);
+                            }
+                            
+                            rom.LocalSave.SaveID = operation.SaveID;
+                            rom.LocalSave.Status = SaveStatus.RemoteNewer;
+                            rom.LocalSave.ServerHash = operation.ServerContentHash;
+                            rom.LocalSave.ServerLastUpdatedAt = DateTime.Parse(operation.ServerUpdatedAt!);
+
                             await SaveManager.Download(rom.LocalSave);
                             rom.LocalSave.IsTempRestored = false;
                             operationCompleted++;

@@ -276,7 +276,7 @@ namespace Graviton.Saves
                 return save;
             }
 
-            if(save.SaveID != -1)
+            if(rom.LocalSave != null && rom.LocalSave.SaveID != -1)
             {
                 var result = await PlayniteAPI.Dialogs.ShowMessageAsync($"A save is already being tracked for this game, Do you want to replace the save being tracked?\n\nSlot:{save.Slot}\nFilename:{save.Filename}", "Existing Save!", MessageBoxButtons.YesNo, MessageBoxSeverity.Warning);
                 if(result == Playnite.MessageBoxResult.No)
@@ -491,7 +491,7 @@ namespace Graviton.Saves
             if (operation != null)
             {
                 save.ServerHash = operation.ServerContentHash;
-                save.SaveID = operation.SaveID ?? save.SaveID;
+                save.SaveID = operation.SaveID;
                 if (DateTime.TryParse(operation.ServerUpdatedAt, out var updatedAt))
                     save.ServerLastUpdatedAt = updatedAt;
             }
