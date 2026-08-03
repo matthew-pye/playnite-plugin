@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
-	<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -23,29 +23,38 @@
     </None>
   </ItemGroup>
 
+  <!-- extension.toml is generated into the output directory during build.
+       Do not copy the source file directly. -->
   <ItemGroup>
     <None Update="extension.toml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
+
     <None Update="libraryicon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+
     <None Update="pluginicon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+
     <None Update="icon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+
     <None Update="pluginiconBW.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+
     <None Update="profile.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+
     <None Update="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+
     <None Update="readme.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -58,11 +67,11 @@
     <PackageReference Include="Svg" Version="3.4.8" />
   </ItemGroup>
 
-   <ItemGroup>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-			<_Parameter1>Graviton.Tests</_Parameter1>
-		</AssemblyAttribute>
-	</ItemGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Graviton.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Update="Properties\Settings.Designer.cs">
@@ -71,5 +80,80 @@
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
   </ItemGroup>
-  
+
+ <UsingTask
+    TaskName="UpdateExtensionVersion"
+    TaskFactory="CodeTaskFactory"
+    AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+
+  <ParameterGroup>
+    <SourceFile ParameterType="System.String" Required="true" />
+    <TemplateFile ParameterType="System.String" Required="true" />
+    <OutputFile ParameterType="System.String" Required="true" />
+  </ParameterGroup>
+
+  <Task>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+
+    <Using Namespace="System" />
+    <Using Namespace="System.IO" />
+    <Using Namespace="System.Text.RegularExpressions" />
+
+    <Code Type="Fragment" Language="cs"><![CDATA[
+      var source = File.ReadAllText(SourceFile);
+
+      var match = Regex.Match(
+          source,
+          @"new Version\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)");
+
+      if (!match.Success)
+      {
+          Log.LogError(
+              "Could not find 'new Version(x,y,z)' in " + SourceFile);
+          return false;
+      }
+
+      var version = string.Format(
+          "{0}.{1}.{2}",
+          match.Groups[1].Value,
+          match.Groups[2].Value,
+          match.Groups[3].Value);
+
+      var toml = File.ReadAllText(TemplateFile);
+
+      toml = Regex.Replace(
+          toml,
+          @"(?m)^version\s*=\s*[""'][^""']*[""']\s*$",
+          "version = \"" + version + "\"");
+
+      var directory = Path.GetDirectoryName(OutputFile);
+
+      if (!string.IsNullOrEmpty(directory))
+      {
+          Directory.CreateDirectory(directory);
+      }
+
+      File.WriteAllText(OutputFile, toml);
+
+      Log.LogMessage(
+          MessageImportance.High,
+          "Generated extension.toml with version " + version);
+
+      return true;
+    ]]></Code>
+  </Task>
+</UsingTask>
+
+<Target
+    Name="GenerateExtensionToml"
+    BeforeTargets="CopyFilesToOutputDirectory">
+
+  <UpdateExtensionVersion
+      SourceFile="$(MSBuildProjectDirectory)\GravitonPlugin.cs"
+      TemplateFile="$(MSBuildProjectDirectory)\extension.toml"
+      OutputFile="$(TargetDir)extension.toml" />
+
+</Target>
+
 </Project>
