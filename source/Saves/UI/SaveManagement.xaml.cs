@@ -45,13 +45,13 @@ namespace Graviton.Saves
         {
             InitializeComponent();
 
-            RestoreLocally = new("Restore Locally Only");
-            FullRestore = new("Restore & Sync", isDefault: true);
-            Cancel = new("Cancel", isCancel: true);
+            RestoreLocally = new(Loc.GetString("RestoreLocallyOnly"));
+            FullRestore = new(Loc.GetString("RestoreAndSync"), isDefault: true);
+            Cancel = new(Loc.GetString("Cancel"), isCancel: true);
 
-            UntrackSave = new("Untrack Save", isDefault: true);
-            DeleteSaveLocal = new("Delete Save (Local Only)");
-            DeleteSaveTotally = new("Delete Save");
+            UntrackSave = new(Loc.GetString("UntrackSaveButton"), isDefault: true);
+            DeleteSaveLocal = new(Loc.GetString("DeleteSaveLocal"));
+            DeleteSaveTotally = new(Loc.GetString("DeleteSaveBoth"));
 
             RefreshText.Text = $"\uf46a {Loc.GetString("Refresh")}";
             RefreshText.FontFamily = Playnite.Fonts.NerdFont;
@@ -153,7 +153,7 @@ namespace Graviton.Saves
                 var roms = _plugin.ImportedGames.Where(x => x.Value.MappingID == Mapping.MappingId);
                 if (roms == null)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.roms.null", "No ROMs found for this mapping, cannot create new save", GravitonSeverity.Error));
+                    GravitonNotify.Add(new GravitonNotification("graviton.roms.null", Loc.GetString("NoROMsForMapping"), GravitonSeverity.Error));
                     e.Handled = true;
                     return;
                 }
@@ -165,7 +165,7 @@ namespace Graviton.Saves
                 saveSelector = new CreateSaveSelector();
             }
 
-            window.Title = "Create New Save";
+            window.Title = Loc.GetString("CreateNewSave");
             window.Content = saveSelector;
             window.Owner = GravitonPlugin.PlayniteApi.GetLastActiveWindow();
             window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -215,7 +215,7 @@ namespace Graviton.Saves
                 trackArchiveSave = new ArchiveSaveSelector();
             }
 
-            window.Title = "Track Archive Save";
+            window.Title = Loc.GetString("TrackArchivedSave");
             window.Content = trackArchiveSave;
             window.Owner = GravitonPlugin.PlayniteApi.GetLastActiveWindow();
             window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -249,7 +249,7 @@ namespace Graviton.Saves
             var save = ((FrameworkElement)sender).DataContext as GravitonSave;
             if(save == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.save.null", "Save is null, skipping", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error));
                 e.Handled = true;
                 return;
             }
@@ -283,7 +283,7 @@ namespace Graviton.Saves
             switch (save.Status)
             {
                 case SaveStatus.Synced:
-                    GravitonNotify.Add(new GravitonNotification("graviton.save.alreadysynced", "Save is already in sync!", GravitonSeverity.Info));
+                    GravitonNotify.Add(new GravitonNotification("graviton.save.alreadysynced", Loc.GetString("SaveAlreadySynced"), GravitonSeverity.Info));
                     break;
 
                 case SaveStatus.LocalNewer:
@@ -315,7 +315,7 @@ namespace Graviton.Saves
                     return;
 
                 case SaveStatus.TempRestored:
-                    var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync("How do you want to upload restored save?", "Upload Restored Save", MessageBoxButtons.YesNoCancel);
+                    var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("UploadRestoredSaveConfirm"), Loc.GetString("UploadRestoredSaveTitle"), MessageBoxButtons.YesNoCancel);
 
                     if (response == Playnite.MessageBoxResult.Yes)
                     {
@@ -330,7 +330,7 @@ namespace Graviton.Saves
                     {
                         pathsString += $"\t{path}\n";
                     }
-                    var msresponse = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"Some files/folders were missing on last sync, Do you want to stop tracking these paths?{pathsString}", "Restore Historic Save", MessageBoxButtons.YesNoCancel);
+                    var msresponse = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("MissingFilesConfirm", ("Paths", pathsString)), Loc.GetString("RestoreHistoricSaveTitle"), MessageBoxButtons.YesNoCancel);
 
                     if(msresponse == Playnite.MessageBoxResult.Yes)
                     {
@@ -345,7 +345,7 @@ namespace Graviton.Saves
                     return;
 
                 default:
-                    GravitonNotify.Add(new GravitonNotification("graviton.save.unknown", "Save status is unknown!, skipping", GravitonSeverity.Warn));
+                    GravitonNotify.Add(new GravitonNotification("graviton.save.unknown", Loc.GetString("SaveStatusUnknownWarning"), GravitonSeverity.Warn));
                     break;
             }
         }
@@ -355,7 +355,7 @@ namespace Graviton.Saves
             var save = ((FrameworkElement)sender).DataContext as GravitonSave;
             if (save == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.save.null", "Save is null, skipping", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error));
                 e.Handled = true;
                 return;
             }
@@ -363,13 +363,13 @@ namespace Graviton.Saves
             var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.LocalSave?.LocalID == save.LocalID).Value;
             if (rom == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.rom.notfound", "Failed to find ROM for this save, skipping", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.rom.notfound", Loc.GetString("ROMNotFoundForSave"), GravitonSeverity.Error));
                 e.Handled = true;
                 return;
             }
 
 
-            var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync("How do you want to delete the save?", "Delete Save", MessageBoxSeverity.Question, new List<MessageBoxResponse> { UntrackSave, DeleteSaveLocal, DeleteSaveTotally, Cancel }, new List<MessageBoxOption>());
+            var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("DeleteSaveMessage"), Loc.GetString("DeleteSaveTitle"), MessageBoxSeverity.Question, new List<MessageBoxResponse> { UntrackSave, DeleteSaveLocal, DeleteSaveTotally, Cancel }, new List<MessageBoxOption>());
 
             if (response == UntrackSave)
             {
@@ -398,7 +398,7 @@ namespace Graviton.Saves
             var historicSave = ((FrameworkElement)sender).DataContext as GravitonSave;
             if (historicSave == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.save.null", "Save is null, skipping", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error));
                 e.Handled = true;
                 return;
             }
@@ -406,12 +406,12 @@ namespace Graviton.Saves
             var parentROM = _plugin.ImportedGames.FirstOrDefault(x => x.Value.LocalSave?.HistoricSaves != null && x.Value.LocalSave.HistoricSaves.Any(y => y.LocalID == historicSave.LocalID)).Value;
             if(parentROM == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.parentsave.null", "Failed to find parent save, skipping", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.parentsave.null", Loc.GetString("ParentSaveNotFound"), GravitonSeverity.Error));
                 e.Handled = true;
                 return;
             }
 
-            var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync("How do you want to restore the historic save?", "Restore Historic Save", MessageBoxSeverity.Question, new List<MessageBoxResponse> { RestoreLocally, FullRestore, Cancel}, new List<MessageBoxOption>());
+            var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("RestoreHistoricSaveConfirm"), Loc.GetString("RestoreHistoricSaveTitle"), MessageBoxSeverity.Question, new List<MessageBoxResponse> { RestoreLocally, FullRestore, Cancel}, new List<MessageBoxOption>());
 
             if(response == RestoreLocally || response == FullRestore)
             {
@@ -476,21 +476,21 @@ namespace Graviton.Saves
         {
             if (save == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.save.null", "Save is null, skipping", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error));
                 return;
             }
 
             var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.LocalSave?.LocalID == save.LocalID).Value;
             if (rom.LocalSave == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.rom.null", "Couldn't find Game with this save, skipping", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.rom.null", Loc.GetString("GameNotFoundForSave"), GravitonSeverity.Error));
                 return;
             }
 
             var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
             if (mapping == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.mapping.null", "Couldn't find mapping that goes with this game, skipping", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.mapping.null", Loc.GetString("MappingNotFoundForGame"), GravitonSeverity.Error));
                 return;
             }
 
@@ -518,7 +518,7 @@ namespace Graviton.Saves
 
 
                 if (response.Any(x => !x.StartsWith(mapping.SavePath)))
-                    GravitonNotify.Add(new GravitonNotification("graviton.skipped.add", "One or more files/folders were not in the mapping save directory they have been skipped", GravitonSeverity.Error));
+                    GravitonNotify.Add(new GravitonNotification("graviton.skipped.add", Loc.GetString("FilesOutsideMappingDir"), GravitonSeverity.Error));
 
                 SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
             }

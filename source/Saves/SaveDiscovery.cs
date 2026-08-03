@@ -95,7 +95,7 @@ namespace Graviton.Saves
                                 ServerHash = remotesave.ContentHash,
                                 ServerLastUpdatedAt = DateTime.TryParse(remotesave.UpdatedAt, out DateTime ServerUpdatedAt) ? ServerUpdatedAt : null,
                                 Filename = remotesave.FileName != null ? ServerTimestampTagPattern.Replace(remotesave.FileName, "") : "",
-                                SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{remotesave.FileName}" },
+                                SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{ServerTimestampTagPattern.Replace(remotesave.FileName!, "")}" },
                                 IsHistoric = true,
                             };
 
@@ -155,7 +155,7 @@ namespace Graviton.Saves
                                 ServerHash = historicSave.ContentHash,
                                 ServerLastUpdatedAt = DateTime.TryParse(historicSave.UpdatedAt, out DateTime HistoricServerUpdatedAt) ? HistoricServerUpdatedAt : null,
                                 Filename = historicSave.FileName != null ? ServerTimestampTagPattern.Replace(historicSave.FileName, "") : "",
-                                SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{historicSave.FileName}" },
+                                SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{ServerTimestampTagPattern.Replace(historicSave.FileName!, "")}" },
                                 IsHistoric = true
                             });
                         }
@@ -172,7 +172,7 @@ namespace Graviton.Saves
                         ServerHash = remotesave.ContentHash,
                         ServerLastUpdatedAt = DateTime.TryParse(remotesave.UpdatedAt, out DateTime ServerUpdatedAt) ? ServerUpdatedAt : null,
                         Filename = remotesave.FileName != null ? ServerTimestampTagPattern.Replace(remotesave.FileName, "") : "",
-                        SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{remotesave.FileName}" },
+                        SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{ServerTimestampTagPattern.Replace(remotesave.FileName!, "")}" },
                         HistoricSaves = historicSaves?.OrderByDescending(x => x.LastSyncedAt).ToObservableCollection() ?? null,
                         IsCurrent = true
                     };
@@ -228,7 +228,14 @@ namespace Graviton.Saves
             if(autoDetectedSaves != null)
             {
                 Logger.Debug($"Found {autoDetectedSaves.Count} potential saves!");
-                saves.AddRange(autoDetectedSaves);
+
+                foreach (var autosave in autoDetectedSaves)
+                {
+                    var localsourcepaths = localroms.Select(x => x.LocalSave).SelectMany(y => y!.SourceFilePaths);
+                    var exists = autosave.SourceFilePaths.Intersect(localsourcepaths);
+                    if (exists == null || exists.Count() < 1)
+                        saves.Add(autosave);
+                }
             }
             else
             {
@@ -433,7 +440,7 @@ namespace Graviton.Saves
 
                 if(noExtentions)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.autodetect.noextentions", $"One or more mappings have no auto detect extensions, they have been skipped!", GravitonSeverity.Warn));
+                    GravitonNotify.Add(new GravitonNotification("graviton.autodetect.noextentions", Loc.GetString("NoAutoDetectExtensions"), GravitonSeverity.Warn));
                 }
 
                 return saves;
@@ -462,11 +469,12 @@ namespace Graviton.Saves
 
                     // Saves need to start with {MappingSavePath} so they can be moved anywhere
                     var saveDir = dir.Replace(mapping.SavePath, "{MappingSavePath}");
+                    saveDir = saveDir.Replace("\\", "/");
 
                     // Directories need to add trailing slash so that we know they are directories
                     //      e.g. {MappingSavePath}\Mario.Backup is a directory but Path.HasExtension would think its a file so we need to add \ to the end to avoid that
                     if (!saveDir.EndsWith('/') && !saveDir.EndsWith('\\'))
-                        saveDir += "\\";
+                        saveDir += "/";
 
                     long totalSize = 0;
                     var info = new DirectoryInfo(dir);
@@ -521,6 +529,7 @@ namespace Graviton.Saves
                     foreach (var file in files)
                     {
                         var filePath = file.Replace(mapping.SavePath, "{MappingSavePath}");
+                        filePath = filePath.Replace("\\", "/");
 
                         var save = new GravitonSave
                         {
@@ -548,7 +557,7 @@ namespace Graviton.Saves
                     foreach (var file in files)
                     {
                         totalSize += new FileInfo(file).Length;
-                        savePaths.Add(file.Replace(mapping.SavePath, "{MappingSavePath}"));
+                        savePaths.Add((file.Replace(mapping.SavePath, "{MappingSavePath}")).Replace("\\", "/"));
                     }
 
                     var save = new GravitonSave

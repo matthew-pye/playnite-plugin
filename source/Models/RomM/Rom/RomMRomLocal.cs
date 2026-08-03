@@ -58,7 +58,7 @@ namespace Graviton.Models.RomM.Rom
                 }
 
                 toSave.FileName = Path.GetFileName(romfile.FileName);
-                toSave.DownloadURL = $"{GravitonPlugin.Instance.Settings.Host}/api/roms/{romfile.Id}/files/content/{romfile.FileName}";
+                toSave.DownloadURL = $"{GravitonPlugin.Instance.Settings.Host}/api/roms/{ROM.Id}/files/content/{romfile.FileName}";
             }
             else
             {
@@ -71,10 +71,41 @@ namespace Graviton.Models.RomM.Rom
             return toSave;
         }
 
+        public void Resync(RomMRom ROM)
+        {
+            Id = ROM.Id;
+            Name = ROM.Name;
+            SHA1 = ROM.SHA1;
+            HasMultipleFiles = ROM.HasMultipleFiles;
+            
+            if (!ROM.HasMultipleFiles)
+            {
+                var romfile = DetermineFile(ROM);
+                if (romfile == null)
+                {
+                    GravitonPlugin.Logger.Error("[Importer] Unable to save ROM data as there is no rom file!");
+                    return;
+                }
+
+               FileName = Path.GetFileName(romfile.FileName);
+               DownloadURL = $"{GravitonPlugin.Instance.Settings.Host}/api/roms/{ROM.Id}/files/content/{romfile.FileName}";
+            }
+            else
+            {
+                FileName = Path.GetFileName(ROM.FileName);
+                DownloadURL = $"{GravitonPlugin.Instance.Settings.Host}/api/roms/{ROM.Id}/content/{ROM.FileName}";
+            }
+
+            Save();
+        }
+
         public void Save()
         {
             try
             {
+                if (LocalSave != null)
+                    LocalSave.SourceFilePaths = LocalSave.SourceFilePaths.Select(x => x.Replace("\\", "/")).ToObservableCollection();
+
                 // Write data to file
                 File.WriteAllText($"{GravitonPlugin.Instance.PluginDataPath}/Games/{SHA1}.json", JsonSerializer.Serialize(this));
                 if (GravitonPlugin.Instance.ImportedGames.ContainsKey($"{Id}:{SHA1}"))

@@ -47,31 +47,6 @@ namespace Graviton.Settings
             InitializeComponent();
 
             MappingPanel.IsEnabled = !GameSessionHandler.IsAGameRunning;
-
-            SyncPlatformsText.Text = $"\uf46a {Loc.GetString("SyncPlatforms")}";
-            AddMappingText.Text = $"\uea60 {Loc.GetString("NewMapping")}";
-
-            EnabledText.Text = Loc.GetString("MappingEnabled");
-            EmulatorText.Text = Loc.GetString("Emulator");
-            ProfileText.Text = Loc.GetString("Profile");
-            PlatformText.Text = Loc.GetString("Platform");
-            ROMLocText.Text = Loc.GetString("ROMLoc");
-            BrowseROMLocationText.Text = Loc.GetString("Browse");
-           
-            OptionText.Text = Loc.GetString("Options");
-            ExtractArchiveROMsText.Text = Loc.GetString("AutoExtractROMs");
-            ExtractArchiveROMs.ToolTip = Loc.GetString("AutoExtractROMsTooltip");
-            Preferm3uText.Text = Loc.GetString("PreferM3U");
-            Preferm3u.ToolTip = Loc.GetString("PreferM3UTooltip");
-
-            SaveOptionText.Text = Loc.GetString("SaveOptions");
-            AutoDetectionStyleText.Text = Loc.GetString("AutoSaveDetection");
-            AutoDetectionStyleCombo.ToolTip = Loc.GetString("AutoSaveDetectionTooltip");
-            SaveExtensionsText.Text = Loc.GetString("SaveExtensions");
-            SaveLocText.Text = Loc.GetString("SaveLocation");
-            SaveLocButtonText.Text = Loc.GetString("Browse");
-            OpenSaveManagerText.Text = $"\uf019 {Loc.GetString("ManageSaves")}";
-            
         }
 
         private async void SyncPlatforms_Click(object sender, RoutedEventArgs e)

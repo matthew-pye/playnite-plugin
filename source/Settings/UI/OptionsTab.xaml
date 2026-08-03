@@ -6,6 +6,8 @@
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:s="clr-namespace:Graviton.Settings"
              xmlns:models="clr-namespace:Graviton.Models.Saves"
+             xmlns:local="clr-namespace:Graviton"
+             xmlns:loc="clr-namespace:Playnite"
              xmlns:psdk="clr-namespace:Playnite.Desktop;assembly=Playnite.SDK"
              mc:Ignorable="d"
              d:DesignHeight="900" d:DesignWidth="1600">
@@ -35,14 +37,14 @@
             <!--#region Scanning -->
             <Border Style="{StaticResource Graviton.SettingsCard}">
                 <StackPanel>
-                    <TextBlock Name="LibraryScanningText" Text="Library scanning" Style="{StaticResource Graviton.SettingsSectionHeader}" />
+                    <TextBlock Name="LibraryScanningText" Text="{loc:LocalizedString LibraryScanning}" Style="{StaticResource Graviton.SettingsSectionHeader}" />
 
                     <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="MergeROMText" Text="Merge ROM revisions" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="MergeROMText" Text="{loc:LocalizedString MergeROMs}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding MergeRevisions, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
@@ -51,7 +53,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="KeepDeleteText" Text="Keep games deleted from RomM server" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="KeepDeleteText" Text="{loc:LocalizedString KeepDeleted}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding KeepDeletedGames, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
@@ -60,7 +62,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="SkipDeletedText" Text="Skip importing ROMs that are missing from RomM servers filesystem" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="SkipDeletedText" Text="{loc:LocalizedString SkipDeleted}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding SkipMissingFiles, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
@@ -69,9 +71,9 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="ExcludeGenresText" Text="Exclude Genres" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="ExcludeGenresText" Text="{loc:LocalizedString ExcludeGenres}" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,15,0"/>
                         <Grid Grid.Column="1">
-                            <TextBox x:Name="ExcludeGenresBox" Text="{Binding ExcludeGenres, Mode=TwoWay}"/>
+                            <TextBox x:Name="ExcludeGenresBox" Text="{Binding ExcludeGenres, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString ExcludeGenresPlaceholder}"/>
                             <TextBlock x:Name="ExcludeGenresPlaceholderText" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="{DynamicResource Graviton.SubText.Colour}">
                                 <TextBlock.Style>
                                     <Style TargetType="{x:Type TextBlock}">
@@ -93,14 +95,14 @@
             <!--#region Installation -->
             <Border Style="{StaticResource Graviton.SettingsCard}">
                 <StackPanel>
-                    <TextBlock Name="InstallationText" Text="Installation" Style="{StaticResource Graviton.SettingsSectionHeader}" />
+                    <TextBlock Name="InstallationText" Text="{loc:LocalizedString Installation}" Style="{StaticResource Graviton.SettingsSectionHeader}" />
 
                     <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="Use7zText" Text="Use 7z for archive extraction" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="Use7zText" Text="{loc:LocalizedString Use7z}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding Use7z, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
@@ -109,9 +111,9 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" x:Name="PathTo7zText" Text="{Binding PathTo7z, Mode=TwoWay}" Margin="0,0,10,0" VerticalContentAlignment="Center"/>
+                        <TextBox Grid.Column="0" x:Name="PathTo7zText" Text="{Binding PathTo7z, Mode=TwoWay}" Margin="0,0,10,0" VerticalContentAlignment="Center" local:Placeholder.Text="{loc:LocalizedString NoExePlaceholder}"/>
                         <Button Grid.Column="1" Click="Browse7zPath_Click">
-                            <TextBlock Name="Browse7zText" Text="Browse" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <TextBlock Name="Browse7zText" Text="{loc:LocalizedString Browse}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
                     </Grid>
                 </StackPanel>
@@ -121,14 +123,14 @@
             <!--#region Status Sync -->
             <Border Style="{StaticResource Graviton.SettingsCard}">
                 <StackPanel>
-                    <TextBlock Name="StatusTitle" Text="Status Sync" Style="{StaticResource Graviton.SettingsSectionHeader}" />
+                    <TextBlock Name="StatusTitle" Text="{loc:LocalizedString StatusSync}" Style="{StaticResource Graviton.SettingsSectionHeader}" />
 
                     <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="KeepStatusSyncedText" Text="Keep completion status in sync with RomM" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="KeepStatusSyncedText" Text="{loc:LocalizedString KeepStatusSynced}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding KeepStatusSynced, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
@@ -137,7 +139,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="KeepFavouritesSyncedText" Text="Keep favourites in sync with RomM" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="KeepFavouritesSyncedText" Text="{loc:LocalizedString KeepFavouritesSynced}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding KeepFavouritesSynced, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
@@ -146,7 +148,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="KeepPrivateNotesSyncedText" Text="Keep private notes in sync with RomM" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="KeepPrivateNotesSyncedText" Text="{loc:LocalizedString KeepPrivateNotesSynced}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding KeepPrivateNotesSynced, Mode=TwoWay}" IsEnabled="False" VerticalAlignment="Center"/>
                     </Grid>
 
@@ -155,7 +157,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="KeepPublicNotesSyncedText" Text="Keep public notes in sync with RomM" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="KeepPublicNotesSyncedText" Text="{loc:LocalizedString KeepPublicNotesSynced}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding KeepPublicNotesSynced, Mode=TwoWay}" IsEnabled="False" VerticalAlignment="Center"/>
                     </Grid>
                 </StackPanel>
@@ -165,14 +167,14 @@
             <!--#region Save Syncing -->
             <Border Style="{StaticResource Graviton.SettingsCard}">
                 <StackPanel>
-                    <TextBlock Name="SaveSyncTitle" Style="{StaticResource Graviton.SettingsSectionHeader}" />
+                    <TextBlock Name="SaveSyncTitle" Text="{loc:LocalizedString SaveSync}" Style="{StaticResource Graviton.SettingsSectionHeader}" />
 
                     <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="SaveSyncEnabledText" Text="Enable save syncing" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="SaveSyncEnabledText" Text="{loc:LocalizedString EnableSaveSyncing}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding SaveSyncEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
@@ -181,7 +183,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="DownloadSaveOnLaunchText" Text="Sync save before game launch" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="DownloadSaveOnLaunchText" Text="{loc:LocalizedString DownloadSaveOnLaunch}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding DownloadSaveOnLaunch, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
@@ -190,7 +192,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="UploadSaveOnFinishedText" Text="Sync save after game quit" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="UploadSaveOnFinishedText" Text="{loc:LocalizedString UploadSaveOnFinished}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding UploadSaveOnFinished, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
@@ -199,7 +201,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="ConflictStyleText" Text="Conflict style" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="ConflictStyleText" Text="{loc:LocalizedString SaveConflictsLabel}" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ComboBox Grid.Column="1" MinWidth="200" ItemsSource="{Binding Source={StaticResource SaveConflictResolveValues}}" SelectedItem="{Binding SaveConflictStyle, Mode=TwoWay}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
@@ -215,21 +217,21 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="AutoCleanupSavesText" Text="Auto Cleanup Saves" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="AutoCleanupSavesText" Text="{loc:LocalizedString AutoCleanOldSaves}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <psdk:NumericUpDown Grid.Column="1" Value="{Binding AutoCleanupSavesLimit, Mode=TwoWay}" Minimum="1" Maximum="100" Width="70" Margin="0,0,15,0" VerticalAlignment="Center" IsEnabled="{Binding AutoCleanupSaves}"/>
                         <ToggleButton Grid.Column="2" IsChecked="{Binding AutoCleanupSaves, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
                     <Separator Background="{DynamicResource Graviton.TransparentBackground.Colour}" Margin="0,12"/>
 
-                    <TextBlock Name="ScreenshotTitle" Text="Screenshots" Style="{StaticResource Graviton.SettingsSubHeader}"/>
+                    <TextBlock Name="ScreenshotTitle" Text="{loc:LocalizedString ScreenshotTitle}" Style="{StaticResource Graviton.SettingsSubHeader}"/>
 
                     <Grid Style="{StaticResource Graviton.SettingsToggleRow}" IsEnabled="{Binding SaveSyncEnabled}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="ScreenCapText" Text="Enable in-game screenshot capture for saves" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="ScreenCapText" Text="{loc:LocalizedString EnableScreenshots}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding CaptureScreenshots, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
@@ -238,7 +240,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="MaxResolutionBox" Text="Max screenshot resolution" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="MaxResolutionBox" Text="{loc:LocalizedString MaxResolutionTitle}" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ComboBox Grid.Column="1" MinWidth="200" ItemsSource="{Binding Source={StaticResource ScreenshotResolutionValues}}" SelectedItem="{Binding ScreenshotResolution, Mode=TwoWay}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
@@ -249,8 +251,8 @@
                     </Grid>
 
                     <StackPanel Margin="0,10,0,0" IsEnabled="{Binding CaptureScreenshots}">
-                        <TextBlock Name="SecondsBeforeTitle" Text="Screenshot timing" Foreground="{DynamicResource Graviton.Text.Colour}"/>
-                        <TextBlock Name="SecondsBeforeSubTitle" Text="Grabs a screenshot X seconds before you save, so the shot doesn't catch a save-in-progress overlay" Style="{StaticResource Graviton.SettingsHelperText}"/>
+                        <TextBlock Name="SecondsBeforeTitle" Text="{loc:LocalizedString SecondsBeforeTitle}" Foreground="{DynamicResource Graviton.Text.Colour}"/>
+                        <TextBlock Name="SecondsBeforeSubTitle" Text="{loc:LocalizedString SecondsBeforeSubTitle}" Style="{StaticResource Graviton.SettingsHelperText}"/>
                         <Slider Name="ScreenshotMaxCapture" Margin="0,0,10,0" Value="{Binding SecondsBeforeSave}" VerticalAlignment="Center" Minimum="5" Maximum="60" TickPlacement="BottomRight" TickFrequency="1" IsSnapToTickEnabled="True"/>
                     </StackPanel>
                 </StackPanel>
@@ -260,14 +262,14 @@
             <!--#region Save State Syncing -->
             <Border Style="{StaticResource Graviton.SettingsCard}">
                 <StackPanel>
-                    <TextBlock Name="SaveStateSyncTitle" Style="{StaticResource Graviton.SettingsSectionHeader}" />
+                    <TextBlock Name="SaveStateSyncTitle" Text="{loc:LocalizedString SaveStateSync}" Style="{StaticResource Graviton.SettingsSectionHeader}" />
 
                     <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="SaveStateSyncEnabledText" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="SaveStateSyncEnabledText" Text="{loc:LocalizedString EnableSaveStateSyncing}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding SaveStateSyncEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
                 </StackPanel>

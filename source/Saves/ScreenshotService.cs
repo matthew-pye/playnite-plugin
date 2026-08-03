@@ -1,5 +1,7 @@
 ﻿using Graviton.Models.Notifications;
 
+using Playnite;
+
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Drawing;
@@ -10,16 +12,6 @@ using System.Runtime.InteropServices;
 namespace Graviton.Saves
 {
     record BufferedFrame(DateTime Timestamp, byte[] Screenshot);
-
-
-    /*  
-     *  Spent 6 hours trying to figure out why WGC keeps crashing the application
-     *  So I have replaced the window capture with PrintWindow instead as this actaully works
-     *  
-     *  I have copied the old ScreenshotService into the ScreenshotService.cs.old file along with the output from WinDbg 
-     *  hopefully I can find a fix later 
-    */
-
 
     public class ScreenshotService
     {
@@ -116,7 +108,7 @@ namespace Graviton.Saves
         {
             if (!IsSetup || WindowHandle == IntPtr.Zero)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.screencap.notsetup", "Cannot start screenshot capture as setup wasn't completed!", GravitonSeverity.Warn));
+                GravitonNotify.Add(new GravitonNotification("graviton.screencap.notsetup", Loc.GetString("ScreenCaptureNotSetup"), GravitonSeverity.Warn));
                 return Task.CompletedTask;
             }
 

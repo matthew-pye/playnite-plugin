@@ -135,7 +135,7 @@ namespace Graviton
                     var body = new StreamReader(content!, Encoding.UTF8).ReadToEnd();
                     var displayMessage = ExtractErrorResponse(body);
 
-                    GravitonNotify.Add(new GravitonNotification("graviton.request.4xx", $"Server responded: {displayMessage}", GravitonSeverity.Error));
+                    GravitonNotify.Add(new GravitonNotification("graviton.request.4xx", Loc.GetString("ServerResponded", ("Message", displayMessage)), GravitonSeverity.Error));
                     GravitonPlugin.Logger.Error($"Path: {apiPath}\nRaw Details: {body}");
                 }
                 else
@@ -196,7 +196,7 @@ namespace Graviton
                     var body = new StreamReader(content!, Encoding.UTF8).ReadToEnd();
                     var displayMessage = ExtractErrorResponse(body);
 
-                    GravitonNotify.Add(new GravitonNotification("graviton.request.4xx", $"Server responded: {displayMessage}", GravitonSeverity.Error));
+                    GravitonNotify.Add(new GravitonNotification("graviton.request.4xx", Loc.GetString("ServerResponded", ("Message", displayMessage)), GravitonSeverity.Error));
                     GravitonPlugin.Logger.Error($"Path: {apiPath}\nRaw Details: {body}");
                 }
                 else

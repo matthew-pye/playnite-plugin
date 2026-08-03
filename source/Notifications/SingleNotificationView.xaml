@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:s="clr-namespace:Graviton.Settings"
+             xmlns:loc="clr-namespace:Playnite"
              mc:Ignorable="d"
              d:DesignHeight="900" d:DesignWidth="750">
 
@@ -58,7 +59,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Border x:Name="RootBorder" CornerRadius="8" Margin="0,0,0,8" ClipToBounds="True" Opacity="0" SnapsToDevicePixels="True">
+    <Border x:Name="RootBorder" CornerRadius="8" Margin="5" ClipToBounds="True" Opacity="0" SnapsToDevicePixels="True">
         <Border.Effect>
             <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.45" Direction="270"/>
         </Border.Effect>
@@ -143,7 +144,7 @@
                     </TextBlock.Style>
                 </TextBlock>
 
-                <Button Grid.Column="2" x:Name="CloseButton" Click="CloseButton_Click" Width="16" Height="16" VerticalAlignment="Center" Margin="8,0,0,0" Cursor="Hand" >
+                <Button Grid.Column="2" x:Name="CloseButton" Click="CloseButton_Click" Width="16" Height="16" VerticalAlignment="Center" Margin="8,0,0,0" Cursor="Hand" ToolTip="{loc:LocalizedString Dismiss}">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Background" Value="Transparent"/>

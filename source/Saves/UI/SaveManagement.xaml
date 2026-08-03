@@ -45,7 +45,7 @@
 
         <!-- #region ToolBar -->
         <StackPanel Grid.Row="0">
-            <TextBlock Name="TitleText" FontSize="32" FontWeight="Bold" Margin="5" Text="Save Management"/>
+            <TextBlock Name="TitleText" FontSize="32" FontWeight="Bold" Margin="5" Text="{loc:LocalizedString SaveManagerTitle}"/>
             <Separator Margin="0,0,0,10"/>
 
             <Grid Margin="10,0,0,10">
@@ -56,10 +56,16 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" Grid.Column="0">
                     <Button Name="BackButton" Click="Back_Click" Margin="0,0,10,0" Visibility="Collapsed">
-                        <TextBlock Name="BackText" Text="&#xf030d; Back" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xf030d;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
+                            <TextBlock Name="BackText" Text="{loc:LocalizedString Back}"/>
+                        </StackPanel>
                     </Button>
                     <Button Name="RefreshButton" Click="Refresh_Click" Margin="0,0,10,0">
-                        <TextBlock Name="RefreshText" Text="&#xf46a; Refresh" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xf46a;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
+                            <TextBlock Name="RefreshText" Text="{loc:LocalizedString Refresh}"/>
+                        </StackPanel>
                     </Button>
 
                     <Grid>
@@ -81,11 +87,17 @@
 
                 <StackPanel Orientation="Horizontal" Grid.Column="2">
                     <Button Name="CreateNewSaveButton" Click="CreateNewSave_Click" Margin="0,0,10,0" HorizontalAlignment="Right">
-                        <TextBlock Name="CreateNewSaveText" Text="&#xea7f; Create New Save" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xea7f;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
+                            <TextBlock Name="CreateNewSaveText" Text="{loc:LocalizedString CreateNewSave}"/>
+                        </StackPanel>
                     </Button>
 
                     <Button Name="TrackArchivedSaveButton" Click="TrackArchivedSave_Click" Margin="0,0,10,0" HorizontalAlignment="Right">
-                        <TextBlock Name="TrackArchivedSaveText" Text="&#xf1763; Track Archived Save" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xf1763;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
+                            <TextBlock Name="TrackArchivedSaveText" Text="{loc:LocalizedString TrackArchivedSave}"/>
+                        </StackPanel>
                     </Button>
                 </StackPanel>
             </Grid>
@@ -116,42 +128,42 @@
 
                     <Border Grid.Row="0" Grid.Column="0" Margin="5" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                         <StackPanel Margin="5">
-                            <TextBlock Text="Synced" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                            <TextBlock Text="{loc:LocalizedString SaveStatusSynced}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                             <TextBlock Name="SyncedSavesCount" FontSize="28" Text="0" Foreground="{DynamicResource Graviton.Text.Colour}"/>
                         </StackPanel>
                     </Border>
 
                     <Border Grid.Row="0" Grid.Column="1" Margin="5" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                         <StackPanel Margin="5">
-                            <TextBlock Text="Needs Upload" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                            <TextBlock Text="{loc:LocalizedString SaveStatusLocalNewer}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                             <TextBlock Name="LocalNewerSavesCount" FontSize="28" Text="0" Foreground="{DynamicResource Graviton.Text.Colour}"/>
                         </StackPanel>
                     </Border>
 
                     <Border Grid.Row="0" Grid.Column="2" Margin="5" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                         <StackPanel Margin="5">
-                            <TextBlock Text="Needs Download" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                            <TextBlock Text="{loc:LocalizedString SaveStatusRemoteNewer}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                             <TextBlock Name="RemoteNewerSavesCount" FontSize="28" Text="0" Foreground="{DynamicResource Graviton.Text.Colour}"/>
                         </StackPanel>
                     </Border>
 
                     <Border Grid.Row="1" Grid.Column="0" Margin="5" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                         <StackPanel Margin="5">
-                            <TextBlock Text="Conflicts" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                            <TextBlock Text="{loc:LocalizedString StatConflicts}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                             <TextBlock Name="ConflictedSavesCount" FontSize="28" Text="0" Foreground="{DynamicResource Graviton.ErrorAccent.Colour}"/>
                         </StackPanel>
                     </Border>
 
                     <Border Grid.Row="1" Grid.Column="1" Margin="5" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                         <StackPanel Margin="5">
-                            <TextBlock Text="New on Server" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                            <TextBlock Text="{loc:LocalizedString SaveStatusServerOnly}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                             <TextBlock Name="ServerOnlySavesCount" FontSize="28" Text="0" Foreground="{DynamicResource Graviton.Text.Colour}"/>
                         </StackPanel>
                     </Border>
 
                     <Border Grid.Row="1" Grid.Column="2" Margin="5" CornerRadius="8" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
                         <StackPanel Margin="5">
-                            <TextBlock Text="New on Disk" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                            <TextBlock Text="{loc:LocalizedString SaveStatusUntrackedLocal}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                             <TextBlock Name="LocalOnlySavesCount" FontSize="28" Text="0" Foreground="{DynamicResource Graviton.Text.Colour}"/>
                         </StackPanel>
                     </Border>
@@ -163,7 +175,7 @@
                 <Border Grid.Row="1" Margin="5" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1" CornerRadius="8">
                     <StackPanel Margin="8">
 
-                        <TextBlock Name="NoSavesText" Text="No saves" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource Graviton.SubSubText.Colour}" Visibility="Collapsed" Margin="0,10"/>
+                        <TextBlock Name="NoSavesText" Text="{loc:LocalizedString NoSaves}" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource Graviton.SubSubText.Colour}" Visibility="Collapsed" Margin="0,10"/>
                         <ProgressBar Name="LoadingBar" Margin="10" Width="Auto" Height="4" IsIndeterminate="True" Visibility="Collapsed"/>
 
                         <!--#region Saves -->
@@ -223,7 +235,7 @@
                                                         <StackPanel Orientation="Horizontal">
                                                             <!-- Slot badge -->
                                                             <Border CornerRadius="10" Background="{DynamicResource Graviton.RomM.Colour}" Padding="8,2" Margin="0,0,6,0">
-                                                                <TextBlock FontSize="11" Foreground="{DynamicResource Graviton.Text.Colour}" Text="{Binding Slot, StringFormat='Slot: {0}'}"/>
+                                                                <TextBlock FontSize="11" Foreground="{DynamicResource Graviton.Text.Colour}"><Run Text="{loc:LocalizedString SlotLabel}"/><Run Text=": "/><Run Text="{Binding Slot}"/></TextBlock>
                                                             </Border>
 
                                                             <!-- Sync status badge -->
@@ -264,39 +276,39 @@
                                                                         <Style TargetType="TextBlock">
                                                                             <Setter Property="FontFamily" Value="{DynamicResource NerdFont}"/>
                                                                             <Setter Property="Foreground" Value="{DynamicResource Graviton.Trace.Colour}"/>
-                                                                            <Setter Property="Text" Value="Unknown"/>
+                                                                            <Setter Property="Text" Value="{loc:LocalizedString SaveStatusUnknown}"/>
                                                                             <Style.Triggers>
                                                                                 <DataTrigger Binding="{Binding Status}" Value="Synced">
                                                                                     <Setter Property="Foreground" Value="{DynamicResource Graviton.Success.Colour}"/>
-                                                                                    <Setter Property="Text" Value="Synced"/>
+                                                                                    <Setter Property="Text" Value="{loc:LocalizedString SaveStatusSynced}"/>
                                                                                 </DataTrigger>
                                                                                 <DataTrigger Binding="{Binding Status}" Value="LocalNewer">
                                                                                     <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}"/>
-                                                                                    <Setter Property="Text" Value="Needs Upload"/>
+                                                                                    <Setter Property="Text" Value="{loc:LocalizedString SaveStatusLocalNewer}"/>
                                                                                 </DataTrigger>
                                                                                 <DataTrigger Binding="{Binding Status}" Value="RemoteNewer">
                                                                                     <Setter Property="Foreground" Value="{DynamicResource Graviton.Warn.Colour}"/>
-                                                                                    <Setter Property="Text" Value="Needs Download"/>
+                                                                                    <Setter Property="Text" Value="{loc:LocalizedString SaveStatusRemoteNewer}"/>
                                                                                 </DataTrigger>
                                                                                 <DataTrigger Binding="{Binding Status}" Value="Conflicted">
                                                                                     <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
-                                                                                    <Setter Property="Text" Value="Conflicted"/>
+                                                                                    <Setter Property="Text" Value="{loc:LocalizedString SaveStatusConflict}"/>
                                                                                 </DataTrigger>
                                                                                 <DataTrigger Binding="{Binding Status}" Value="ServerOnly">
                                                                                     <Setter Property="Foreground" Value="{DynamicResource Graviton.Warn.Colour}"/>
-                                                                                    <Setter Property="Text" Value="&#xebaa; New on Server"/>
+                                                                                    <Setter Property="Text" Value="{loc:LocalizedString SaveStatusServerOnly}"/>
                                                                                 </DataTrigger>
                                                                                 <DataTrigger Binding="{Binding Status}" Value="UntrackedLocal">
                                                                                     <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}"/>
-                                                                                    <Setter Property="Text" Value="&#xf1276; Found on Disk"/>
+                                                                                    <Setter Property="Text" Value="{loc:LocalizedString SaveStatusUntrackedLocal}"/>
                                                                                 </DataTrigger>
                                                                                 <DataTrigger Binding="{Binding Status}" Value="TempRestored">
                                                                                     <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}"/>
-                                                                                    <Setter Property="Text" Value="Temp Restored"/>
+                                                                                    <Setter Property="Text" Value="{loc:LocalizedString SaveStatusTempRestored}"/>
                                                                                 </DataTrigger>
                                                                                 <DataTrigger Binding="{Binding Status}" Value="MissingFiles">
                                                                                     <Setter Property="Foreground" Value="{DynamicResource Graviton.Info.Colour}"/>
-                                                                                    <Setter Property="Text" Value="Missing Files"/>
+                                                                                    <Setter Property="Text" Value="{loc:LocalizedString SaveStatusMissingFiles}"/>
                                                                                 </DataTrigger>
                                                                             </Style.Triggers>
                                                                         </Style>
@@ -327,36 +339,36 @@
                                                                         <Style.Triggers>
                                                                             <DataTrigger Binding="{Binding Status}" Value="Synced">
                                                                                 <Setter Property="Text" Value="&#xf46a;"/>
-                                                                                <Setter Property="ToolTip" Value="Sync"/>
+                                                                                <Setter Property="ToolTip" Value="{loc:LocalizedString SyncTooltip}"/>
                                                                             </DataTrigger>
                                                                             <DataTrigger Binding="{Binding Status}" Value="LocalNewer">
                                                                                 <Setter Property="Text" Value="&#xf40a;"/>
-                                                                                <Setter Property="ToolTip" Value="Sync (Upload)"/>
+                                                                                <Setter Property="ToolTip" Value="{loc:LocalizedString SyncUploadTooltip}"/>
                                                                             </DataTrigger>
                                                                             <DataTrigger Binding="{Binding Status}" Value="RemoteNewer">
                                                                                 <Setter Property="Text" Value="&#xf409;"/>
-                                                                                <Setter Property="ToolTip" Value="Sync (Download)"/>
+                                                                                <Setter Property="ToolTip" Value="{loc:LocalizedString SyncDownloadTooltip}"/>
                                                                             </DataTrigger>
                                                                             <DataTrigger Binding="{Binding Status}" Value="Conflicted">
                                                                                 <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
                                                                                 <Setter Property="Text" Value="&#xea6c;"/>
-                                                                                <Setter Property="ToolTip" Value="Resolve Conflict"/>
+                                                                                <Setter Property="ToolTip" Value="{loc:LocalizedString ResolveConflictTooltip}"/>
                                                                             </DataTrigger>
                                                                             <DataTrigger Binding="{Binding Status}" Value="ServerOnly">
                                                                                 <Setter Property="Text" Value="&#xeac2;"/>
-                                                                                <Setter Property="ToolTip" Value="Start tracking (Download)"/>
+                                                                                <Setter Property="ToolTip" Value="{loc:LocalizedString StartTrackingDownloadTooltip}"/>
                                                                             </DataTrigger>
                                                                             <DataTrigger Binding="{Binding Status}" Value="UntrackedLocal">
                                                                                 <Setter Property="Text" Value="&#xf44c;"/>
-                                                                                <Setter Property="ToolTip" Value="Start tracking (Upload)"/>
+                                                                                <Setter Property="ToolTip" Value="{loc:LocalizedString StartTrackingUploadTooltip}"/>
                                                                             </DataTrigger>
                                                                             <DataTrigger Binding="{Binding Status}" Value="TempRestored">
                                                                                 <Setter Property="Text" Value="&#xf0031;"/>
-                                                                                <Setter Property="ToolTip" Value="Upload restored save"/>
+                                                                                <Setter Property="ToolTip" Value="{loc:LocalizedString UploadRestoredSaveTooltip}"/>
                                                                             </DataTrigger>
                                                                             <DataTrigger Binding="{Binding Status}" Value="MissingFiles">
                                                                                 <Setter Property="Text" Value="&#xf128;"/>
-                                                                                <Setter Property="ToolTip" Value="Resolve missing files"/>
+                                                                                <Setter Property="ToolTip" Value="{loc:LocalizedString ResolveMissingFilesTooltip}"/>
                                                                             </DataTrigger>
                                                                         </Style.Triggers>
                                                                     </Style>
@@ -401,13 +413,19 @@
 
                                                     <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,10,0">
                                                         <Grid Margin="0,0,0,8">
-                                                            <TextBlock Text="File Paths" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                                                            <TextBlock Text="{loc:LocalizedString FilePaths}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
                                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                                                <Button Margin="0,0,6,0" Click="AddFileToSave_Click" Style="{StaticResource Graviton.IconButton}" ToolTip="Add file">
-                                                                    <TextBlock FontFamily="{DynamicResource NerdFont}" FontSize="14" Text="&#xea7f; File"/>
+                                                                <Button Margin="0,0,6,0" Click="AddFileToSave_Click" Style="{StaticResource Graviton.IconButton}" ToolTip="{loc:LocalizedString AddFileTooltip}">
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <TextBlock FontFamily="{DynamicResource NerdFont}" FontSize="14" Text="&#xea7f;" Margin="0,0,4,0"/>
+                                                                        <TextBlock FontSize="14" Text="{loc:LocalizedString File}"/>
+                                                                    </StackPanel>
                                                                 </Button>
-                                                                <Button Click="AddFolderToSave_Click" Style="{StaticResource Graviton.IconButton}" ToolTip="Add folder">
-                                                                    <TextBlock FontFamily="{DynamicResource NerdFont}" FontSize="14" Text="&#xea7f; Folder"/>
+                                                                <Button Click="AddFolderToSave_Click" Style="{StaticResource Graviton.IconButton}" ToolTip="{loc:LocalizedString AddFolderTooltip}">
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <TextBlock FontFamily="{DynamicResource NerdFont}" FontSize="14" Text="&#xea7f;" Margin="0,0,4,0"/>
+                                                                        <TextBlock FontSize="14" Text="{loc:LocalizedString FolderLabel}"/>
+                                                                    </StackPanel>
                                                                 </Button>
                                                             </StackPanel>
                                                         </Grid>
@@ -421,7 +439,7 @@
                                                                             <ColumnDefinition Width="Auto"/>
                                                                         </Grid.ColumnDefinitions>
                                                                         <TextBlock Grid.Column="0" Text="{Binding}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
-                                                                        <Button Grid.Column="1" Click="RemoveSourcePath_Click" Tag="{Binding RelativeSource={RelativeSource AncestorType=ListBox}, Path=DataContext}" Style="{StaticResource Graviton.IconButton}" Padding="4,0" ToolTip="Remove">
+                                                                        <Button Grid.Column="1" Click="RemoveSourcePath_Click" Tag="{Binding RelativeSource={RelativeSource AncestorType=ListBox}, Path=DataContext}" Style="{StaticResource Graviton.IconButton}" Padding="4,0" ToolTip="{loc:LocalizedString RemoveTooltip}">
                                                                             <TextBlock FontFamily="{DynamicResource NerdFont}" FontSize="12" Text="&#xf05e8;" Foreground="{DynamicResource Graviton.Error.Colour}"/>
                                                                         </Button>
                                                                     </Grid>
@@ -433,7 +451,7 @@
                                                     <Separator Grid.Column="1" Grid.Row="0" Width="1" Background="{DynamicResource Graviton.TransparentBackground.Colour}" Margin="6,0"/>
 
                                                     <StackPanel Grid.Column="2" Grid.Row="0" Margin="10,0,0,0">
-                                                        <TextBlock Text="History" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                                                        <TextBlock Text="{loc:LocalizedString History}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
                                                         <ScrollViewer MaxHeight="150">
                                                             <ItemsControl ItemsSource="{Binding HistoricSaves}">
                                                                 <ItemsControl.ItemTemplate>
@@ -462,7 +480,10 @@
                                                                                             </Style.Triggers>
                                                                                         </Style>
                                                                                     </Border.Style>
-                                                                                    <TextBlock FontSize="11" Margin="6,3" Text="&#xf08d; Current" TextAlignment="Center" TextWrapping="Wrap" Foreground="{DynamicResource Graviton.Info.Colour}"/>
+                                                                                    <StackPanel Orientation="Horizontal" Margin="6,3">
+                                                                                        <TextBlock FontSize="11" Text="&#xf08d;" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.Info.Colour}" Margin="0,0,3,0"/>
+                                                                                        <TextBlock FontSize="11" Text="{loc:LocalizedString Current}" Foreground="{DynamicResource Graviton.Info.Colour}"/>
+                                                                                    </StackPanel>
                                                                                 </Border>
 
                                                                                 <Button Grid.Column="2" Click="RevertToHistoricSave_Click" VerticalAlignment="Center" HorizontalAlignment="Right">
@@ -476,7 +497,7 @@
                                                                                             </Style.Triggers>
                                                                                         </Style>
                                                                                     </Button.Style>
-                                                                                    <TextBlock Text="Switch to this" Padding="4,2" FontSize="12" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                                                                                    <TextBlock Text="{loc:LocalizedString SwitchToThis}" Padding="4,2" FontSize="12" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
                                                                                 </Button>
                                                                             </Grid>
                                                                             <Separator Margin="0,4" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
@@ -490,7 +511,7 @@
                                                             <TextBlock.Style>
                                                                 <Style TargetType="TextBlock">
                                                                     <Setter Property="Foreground" Value="{DynamicResource Graviton.SubSubText.Colour}"/>
-                                                                    <Setter Property="Text" Value="No save history"/>
+                                                                    <Setter Property="Text" Value="{loc:LocalizedString NoSaveHistory}"/>
                                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding HistoricSaves.Count}" Value="0">
@@ -508,16 +529,25 @@
                                                     <Separator Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1" VerticalAlignment="Top" Margin="0,10,0,0" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
 
                                                     <StackPanel Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1" VerticalAlignment="Bottom" Margin="0,14,0,4" Orientation="Horizontal" HorizontalAlignment="Right">
-                                                        <TextBlock Text="Manual sync:" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
-                                                        <Button Margin="4,0,0,0" ToolTip="Uploads the local save, overwriting whatever is on the server">
-                                                            <TextBlock FontSize="16" Text="&#xf40a; Force Upload" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.Warn.Colour}" Padding="4,2"/>
+                                                        <TextBlock Text="{loc:LocalizedString ManualSyncLabel}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                                                        <Button Margin="4,0,0,0" ToolTip="{loc:LocalizedString ForceUploadTooltip}">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock FontSize="16" Text="&#xf40a;" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.Warn.Colour}" Margin="4,2,4,2"/>
+                                                                <TextBlock FontSize="16" Text="{loc:LocalizedString ForceUpload}" Foreground="{DynamicResource Graviton.Warn.Colour}" Padding="0,2,4,2"/>
+                                                            </StackPanel>
                                                         </Button>
-                                                        <Button Margin="4,0,0,0" ToolTip="Downloads the server save, overwriting the local copy">
-                                                            <TextBlock FontSize="16" Text="&#xf409; Force Download" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.Warn.Colour}" Padding="4,2"/>
+                                                        <Button Margin="4,0,0,0" ToolTip="{loc:LocalizedString ForceDownloadTooltip}">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock FontSize="16" Text="&#xf409;" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.Warn.Colour}" Margin="4,2,4,2"/>
+                                                                <TextBlock FontSize="16" Text="{loc:LocalizedString ForceDownload}" Foreground="{DynamicResource Graviton.Warn.Colour}" Padding="0,2,4,2"/>
+                                                            </StackPanel>
                                                         </Button>
                                                         <Separator Width="1" Margin="10,0" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
-                                                        <Button Margin="0,0,0,0" ToolTip="Makes a permanent copy of the save that future syncs and auto-cleanup will never overwrite or delete">
-                                                            <TextBlock FontSize="16" Text="&#xebcc; Duplicate to archive" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.SubText.Colour}" Padding="4,2"/>
+                                                        <Button Margin="0,0,0,0" ToolTip="{loc:LocalizedString DuplicateToArchiveTooltip}">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock FontSize="16" Text="&#xebcc;" FontFamily="{DynamicResource NerdFont}" Foreground="{DynamicResource Graviton.SubText.Colour}" Margin="4,2,4,2"/>
+                                                                <TextBlock FontSize="16" Text="{loc:LocalizedString DuplicateToArchive}" Foreground="{DynamicResource Graviton.SubText.Colour}" Padding="0,2,4,2"/>
+                                                            </StackPanel>
                                                         </Button>
                                                     </StackPanel>
 

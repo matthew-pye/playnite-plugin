@@ -379,7 +379,7 @@ namespace Graviton
 
                         var manageSavesView = new SaveManagementWindow();
 
-                        window.Title = "Save Management";
+                        window.Title = Loc.GetString("SaveManagerTitle");
                         window.Content = manageSavesView;
                         window.Owner = PlayniteApi.GetLastActiveWindow();
                         window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -476,7 +476,7 @@ namespace Graviton
 
                         var manageSavesView = new SaveManagementWindow(roms);
 
-                        window.Title = "Save Management";
+                        window.Title = Loc.GetString("SaveManagerTitle");
                         window.Content = manageSavesView;
                         window.Owner = PlayniteApi.GetLastActiveWindow();
                         window.WindowStartupLocation = WindowStartupLocation.CenterOwner;

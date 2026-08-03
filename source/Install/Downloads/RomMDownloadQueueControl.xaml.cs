@@ -1,6 +1,4 @@
-﻿using Playnite;
-
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 
 namespace Graviton.Install.Downloads
@@ -12,8 +10,6 @@ namespace Graviton.Install.Downloads
         public RomMDownloadQueueControl(DownloadQueueController controller)
         {
             InitializeComponent();
-
-            DownloadsHeader.Text = Loc.GetString("DownloadViewTitle");
 
             this.controller = controller ?? throw new ArgumentNullException(nameof(controller));
             DataContext = controller.ViewModel;

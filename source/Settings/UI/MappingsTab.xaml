@@ -8,6 +8,7 @@
              xmlns:savmodels="clr-namespace:Graviton.Models.Saves"
              xmlns:models="clr-namespace:Graviton.Models"
              xmlns:local="clr-namespace:Graviton"
+             xmlns:loc="clr-namespace:Playnite"
              x:Name="Root"
              mc:Ignorable="d"
              d:DesignHeight="900" d:DesignWidth="1600">
@@ -66,15 +67,15 @@
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding Enabled}" Value="True">
                                         <Setter Property="Fill" Value="{DynamicResource Graviton.Success.Colour}"/>
-                                        <Setter Property="ToolTip" Value="Enabled"/>
+                                        <Setter Property="ToolTip" Value="{loc:LocalizedString Enabled}"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsSetup}" Value="False">
                                         <Setter Property="Fill" Value="{DynamicResource Graviton.Warn.Colour}"/>
-                                        <Setter Property="ToolTip" Value="Setup Incomplete"/>
+                                        <Setter Property="ToolTip" Value="{loc:LocalizedString SetupIncomplete}"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Enabled}" Value="False">
                                         <Setter Property="Fill" Value="{DynamicResource Graviton.Trace.Colour}"/>
-                                        <Setter Property="ToolTip" Value="Disabled"/>
+                                        <Setter Property="ToolTip" Value="{loc:LocalizedString Disabled}"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -108,15 +109,21 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Name="MappingsTitle" Grid.Column="0" Text="Mappings" FontSize="30" FontWeight="Bold" VerticalAlignment="Center"/>
+                <TextBlock Name="MappingsTitle" Grid.Column="0" Text="{loc:LocalizedString MappingsTitle}" FontSize="30" FontWeight="Bold" VerticalAlignment="Center"/>
                 <Button Name="SyncPlatformsButton" Click="SyncPlatforms_Click" Grid.Column="1" Margin="5" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock Name="SyncPlatformsText" Text="&#xf46a; Sync Platforms" Margin="2"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Name="SyncPlatformsIcon" Text="&#xf46a;" Margin="2" FontFamily="{DynamicResource NerdFont}"/>
+                        <TextBlock Name="SyncPlatformsText" Text="{loc:LocalizedString SyncPlatforms}" Margin="2"/>
+                    </StackPanel>
                 </Button>
             </Grid>
-            <TextBlock Name="MappingsSubtitle" Margin="5,5,0,0" Text="Setup emulators for game importing" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Graviton.SubText.Colour}" VerticalAlignment="Center"/>
+            <TextBlock Name="MappingsSubtitle" Margin="5,5,0,0" Text="{loc:LocalizedString MappingsSubTitle}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Graviton.SubText.Colour}" VerticalAlignment="Center"/>
 
             <Button Name="AddNewMappingButton" Margin="5,15,5,5" Click="AddMapping_Click">
-                <TextBlock Name="AddMappingText" Text="&#xea60; New Mapping" Margin="2" HorizontalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Name="AddMappingIcon" Text="&#xea60;" Margin="2"  FontFamily="{DynamicResource NerdFont}"/>
+                    <TextBlock Name="AddMappingText" Text="{loc:LocalizedString NewMapping}" Margin="2"/>
+                </StackPanel>
             </Button>
 
             <ListBox ItemsSource="{Binding Mappings}" SelectedItem="{Binding SelectedMapping, ElementName=Root, Mode=TwoWay}" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource MappingRowStyle}" ItemTemplate="{StaticResource MappingRowTemplate}"/>
@@ -181,30 +188,30 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Text="Configuration" Grid.Column="0" Grid.Row="0" Style="{StaticResource Graviton.SettingsSectionHeader}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{loc:LocalizedString Configuration}" Grid.Column="0" Grid.Row="0" Style="{StaticResource Graviton.SettingsSectionHeader}" TextTrimming="CharacterEllipsis"/>
 
                             <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,14">
-                                <TextBlock Name="EnabledText" Text="Enabled" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBlock Name="EnabledText" Text="{loc:LocalizedString Enabled}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
                                 <ToggleButton IsChecked="{Binding Enabled, Mode=TwoWay}" VerticalAlignment="Center"/>
                             </StackPanel>
 
-                            <TextBlock Name="EmulatorText" Text="Emulator" FontWeight="SemiBold" FontSize="14" Margin="0,10,10,0" Grid.Column="0" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
-                            <ComboBox Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="0,0,10,0" Grid.Column="0" Grid.Row="2" Tag="No Emulator Selected"/>
-                            <TextBlock Name="ProfileText" Text="Profile" FontWeight="SemiBold" FontSize="14" Margin="10,10,0,0" Grid.Column="1" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
-                            <ComboBox Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="10,0,0,0" Grid.Column="1" Grid.Row="2" Tag="No Profile Selected"/>
+                            <TextBlock Name="EmulatorText" Text="{loc:LocalizedString Emulator}" FontWeight="SemiBold" FontSize="14" Margin="0,10,10,0" Grid.Column="0" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <ComboBox Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="0,0,10,0" Grid.Column="0" Grid.Row="2" Tag="{loc:LocalizedString NoEmulator}"/>
+                            <TextBlock Name="ProfileText" Text="{loc:LocalizedString Profile}" FontWeight="SemiBold" FontSize="14" Margin="10,10,0,0" Grid.Column="1" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <ComboBox Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="10,0,0,0" Grid.Column="1" Grid.Row="2" Tag="{loc:LocalizedString NoProfile}"/>
 
-                            <TextBlock Name="PlatformText" Text="Platform" FontWeight="SemiBold" FontSize="14" Margin="0,10,0,0" Grid.Column="0" Grid.Row="3" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
-                            <ComboBox Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="0,0,0,0" Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2" Tag="No Platform Selected" ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="DisplayName" SelectedItem="{Binding RomMPlatform, Mode=TwoWay}"/>
+                            <TextBlock Name="PlatformText" Text="{loc:LocalizedString Platform}" FontWeight="SemiBold" FontSize="14" Margin="0,10,0,0" Grid.Column="0" Grid.Row="3" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <ComboBox Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="0,0,0,0" Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2" Tag="{loc:LocalizedString NoPlatform}" ItemsSource="{Binding AvailablePlatforms}" DisplayMemberPath="DisplayName" SelectedItem="{Binding RomMPlatform, Mode=TwoWay}"/>
 
-                            <TextBlock Name="ROMLocText" Text="ROM location" FontWeight="SemiBold" FontSize="14" Margin="0,10,0,0" Grid.Column="0" Grid.Row="5" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Name="ROMLocText" Text="{loc:LocalizedString ROMLoc}" FontWeight="SemiBold" FontSize="14" Margin="0,10,0,0" Grid.Column="0" Grid.Row="5" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
                             <Grid Grid.Column="0" Grid.Row="6" Grid.ColumnSpan="2" Margin="0,0,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBox x:Name="ROMLocation" Grid.Column="0" Height="36" Padding="3,0" VerticalContentAlignment="Center" Text="{Binding DestinationPath, Mode=TwoWay}" local:Placeholder.Text="No Folder Selected"/>
+                                <TextBox x:Name="ROMLocation" Grid.Column="0" Height="36" Padding="3,0" VerticalContentAlignment="Center" Text="{Binding DestinationPath, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString NoFolderPlaceholder}"/>
                                 <Button Click="BrowseROMLocation_Click" Height="36" Margin="5,0,0,0" Grid.Column="1" HorizontalAlignment="Right">
-                                    <TextBlock Name="BrowseROMLocationText" Text="Browse" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Name="BrowseROMLocationText" Text="{loc:LocalizedString Browse}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Button>
                             </Grid>
 
@@ -216,14 +223,14 @@
                     <!-- #region Options -->
                     <Border Grid.Row="1" Style="{StaticResource Graviton.SettingsCard}">
                         <StackPanel>
-                            <TextBlock Name="OptionText" Text="Options" Style="{StaticResource Graviton.SettingsSectionHeader}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Name="OptionText" Text="{loc:LocalizedString Options}" Style="{StaticResource Graviton.SettingsSectionHeader}" TextTrimming="CharacterEllipsis"/>
 
                             <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Name="ExtractArchiveROMsText" Text="Automatically extract archived ROMs" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                <TextBlock Grid.Column="0" Name="ExtractArchiveROMsText" Text="{loc:LocalizedString AutoExtractROMs}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0" ToolTip="{loc:LocalizedString AutoExtractROMsTooltip}"/>
                                 <ToggleButton Grid.Column="1" Name="ExtractArchiveROMs" IsChecked="{Binding AutoExtract, Mode=TwoWay}" VerticalAlignment="Center"/>
                             </Grid>
 
@@ -232,7 +239,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Name="Preferm3uText" Text="Prefer .m3u for launch actions" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                <TextBlock Grid.Column="0" Name="Preferm3uText" Text="{loc:LocalizedString PreferM3U}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0" ToolTip="{loc:LocalizedString PreferM3UTooltip}"/>
                                 <ToggleButton Grid.Column="1" Name="Preferm3u" IsChecked="{Binding UseM3U, Mode=TwoWay}" VerticalAlignment="Center"/>
                             </Grid>
                         </StackPanel>
@@ -256,26 +263,29 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Name="SaveOptionText" Text="Saves" Grid.Column="0" Grid.Row="0" Style="{StaticResource Graviton.SettingsSectionHeader}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Name="SaveOptionText" Text="{loc:LocalizedString Saves}" Grid.Column="0" Grid.Row="0" Style="{StaticResource Graviton.SettingsSectionHeader}" TextTrimming="CharacterEllipsis"/>
 
                             <Button Click="OpenSaveManager_Click" Grid.Column="1" Grid.Row="0" Margin="0,0,0,14" HorizontalAlignment="Right">
-                                <TextBlock Name="OpenSaveManagerText" Text="Manage Saves" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Button>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Name="OpenSaveManagerIcon" Text="&#xf019;" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2"/>
+                                    <TextBlock Name="OpenSaveManagerText" Text="{loc:LocalizedString ManageSaves}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2"/>
+                                </StackPanel>
+                              </Button>
 
-                            <TextBlock Name="AutoDetectionStyleText" Text="Auto Detection Style" FontWeight="SemiBold" FontSize="14" Margin="0,10,10,0" Grid.Column="0" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
-                            <ComboBox Name="AutoDetectionStyleCombo" Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="0,0,10,0" Grid.Column="0" Grid.Row="2" Tag="No Auto-Save Style Selected" ItemsSource="{Binding Source={StaticResource SaveLayoutStyleValues}}" SelectedItem="{Binding FindSaveLayout, Mode=TwoWay}"/>
-                            <TextBlock Name="SaveExtensionsText" Text="Auto Detection Extensions" FontWeight="SemiBold" FontSize="14" Margin="10,10,0,0" Grid.Column="1" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
-                            <TextBox Grid.Column="1" Grid.Row="2" Margin="10,0,0,0" VerticalAlignment="Center" Height="36" Padding="3,0" VerticalContentAlignment="Center" x:Name="SaveExtensionBox" Text="{Binding FindSaveFileExtensions, Mode=TwoWay}" local:Placeholder.Text="srm;sav;gci"/>
+                            <TextBlock Name="AutoDetectionStyleText" Text="{loc:LocalizedString AutoSaveDetection}" FontWeight="SemiBold" FontSize="14" Margin="0,10,10,0" Grid.Column="0" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <ComboBox Name="AutoDetectionStyleCombo" Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="0,0,10,0" Grid.Column="0" Grid.Row="2" Tag="{loc:LocalizedString AutoSaveStylePlaceholder}" ItemsSource="{Binding Source={StaticResource SaveLayoutStyleValues}}" SelectedItem="{Binding FindSaveLayout, Mode=TwoWay}" ToolTip="{loc:LocalizedString AutoSaveDetectionTooltip}"/>
+                            <TextBlock Name="SaveExtensionsText" Text="{loc:LocalizedString SaveExtensions}" FontWeight="SemiBold" FontSize="14" Margin="10,10,0,0" Grid.Column="1" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <TextBox Grid.Column="1" Grid.Row="2" Margin="10,0,0,0" VerticalAlignment="Center" Height="36" Padding="3,0" VerticalContentAlignment="Center" x:Name="SaveExtensionBox" Text="{Binding FindSaveFileExtensions, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString SaveExtensionsPlaceholder}"/>
 
-                            <TextBlock Name="SaveLocText" Text="Save Location" FontWeight="SemiBold" FontSize="14" Margin="0,10,0,0" Grid.Column="0" Grid.Row="3" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Name="SaveLocText" Text="{loc:LocalizedString SaveLocation}" FontWeight="SemiBold" FontSize="14" Margin="0,10,0,0" Grid.Column="0" Grid.Row="3" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
                             <Grid Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2" Margin="0,0,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBox Grid.Column="0" Name="SavePathBox" Text="{Binding SavePath, Mode=TwoWay}" Height="36" Padding="3,0" VerticalContentAlignment="Center" local:Placeholder.Text="No Folder Set"/>
+                                <TextBox Grid.Column="0" Name="SavePathBox" Text="{Binding SavePath, Mode=TwoWay}" Height="36" Padding="3,0" VerticalContentAlignment="Center" local:Placeholder.Text="{loc:LocalizedString NoFolderPlaceholder}"/>
                                 <Button Click="Click_BrowseSaveDestination" Grid.Column="1" Margin="5,0,0,0">
-                                    <TextBlock Name="SaveLocButtonText" Text="Browse" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Name="SaveLocButtonText" Text="{loc:LocalizedString Browse}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Button>
                             </Grid>
                         </Grid>

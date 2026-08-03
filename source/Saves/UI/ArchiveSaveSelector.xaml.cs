@@ -75,12 +75,12 @@ namespace Graviton.Saves
             var save = ((FrameworkElement)sender).DataContext as RomMSave;
             if (save == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.save.null", "Save is null, skipping", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error));
                 e.Handled = true;
                 return;
             }
 
-            var result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"Do you want to duplicate this save and start tracking it?", "Track Archived Save", MessageBoxButtons.YesNo);
+            var result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("TrackArchivedSaveConfirm"), Loc.GetString("TrackArchivedSave"), MessageBoxButtons.YesNo);
             if (result == Playnite.MessageBoxResult.Yes)
             {
                 NewSave = await SaveManager.DownloadArchivedSave(save);

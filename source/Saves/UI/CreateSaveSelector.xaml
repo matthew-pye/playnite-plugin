@@ -61,25 +61,25 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="Create New Save" FontSize="24" Margin="5" FontWeight="Bold" Foreground="{DynamicResource Graviton.Text.Colour}"/>
+                <TextBlock Grid.Row="0" Text="{loc:LocalizedString CreateNewSave}" FontSize="24" Margin="5" FontWeight="Bold" Foreground="{DynamicResource Graviton.Text.Colour}"/>
 
                 <Separator Grid.Row="1" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
 
                 <StackPanel Grid.Row="2" Orientation="Horizontal">
                     <StackPanel Margin="5">
-                        <TextBlock Text="Mapping"  FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
-                        <ComboBox Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="5" Width="350" Tag="No Mapping Selected" ItemsSource="{Binding Mappings}" DisplayMemberPath="DisplayName" SelectedItem="{Binding SelectedMapping, Mode=TwoWay}" SelectionChanged="MappingComboBox_SelectionChanged"/>
+                        <TextBlock Text="{loc:LocalizedString MappingLabel}"  FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                        <ComboBox Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="5" Width="350" Tag="{loc:LocalizedString NoMappingPlaceholder}" ItemsSource="{Binding Mappings}" DisplayMemberPath="DisplayName" SelectedItem="{Binding SelectedMapping, Mode=TwoWay}" SelectionChanged="MappingComboBox_SelectionChanged"/>
                     </StackPanel>
                     <StackPanel Margin="5">
-                        <TextBlock Text="Game" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
-                        <ComboBox Name="ROMsComboBox" Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="5" Width="350" Tag="No ROM Selected" DisplayMemberPath="Name" SelectedItem="{Binding SelectedROM, Mode=TwoWay}"/>
+                        <TextBlock Text="{loc:LocalizedString Game}" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                        <ComboBox Name="ROMsComboBox" Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="5" Width="350" Tag="{loc:LocalizedString NoROMSelected}" DisplayMemberPath="Name" SelectedItem="{Binding SelectedROM, Mode=TwoWay}"/>
                     </StackPanel>
                 </StackPanel>
                 
                 <Separator Grid.Row="3" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
                 
-                <TextBlock Grid.Row="4" Name="NoMappingText" Text="No Mapping Selected" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource Graviton.SubSubText.Colour}" Visibility="Visible"/>
-                <TextBlock Grid.Row="4" Name="NoFilesText" Text="No Files Found" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource Graviton.SubSubText.Colour}" Visibility="Collapsed"/>
+                <TextBlock Grid.Row="4" Name="NoMappingText" Text="{loc:LocalizedString NoMappingPlaceholder}" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource Graviton.SubSubText.Colour}" Visibility="Visible"/>
+                <TextBlock Grid.Row="4" Name="NoFilesText" Text="{loc:LocalizedString NoFilesFound}" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource Graviton.SubSubText.Colour}" Visibility="Collapsed"/>
                 <ProgressBar Grid.Row="4" Name="LoadingBar" Margin="10" Width="Auto" Height="4" IsIndeterminate="True" Visibility="Collapsed"/>
 
                 <TreeView Name="FileTree" Grid.Row="5" Margin="0,10,0,0">
@@ -97,11 +97,11 @@
                 
                 <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right" Margin="5">
                     <Button Name="Save" Click="SyncNewSave_Click" Margin="0,0,10,0" HorizontalAlignment="Right">
-                        <TextBlock Text="Create Save" Padding="3,2" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:LocalizedString CreateSaveButton}" Padding="3,2" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Button>
 
                     <Button Name="Cancel" Click="Cancel_Click" Margin="0,0,10,0" HorizontalAlignment="Right">
-                        <TextBlock Text="Cancel" Padding="3,2" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:LocalizedString Cancel}" Padding="3,2" FontFamily="{StaticResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Button>
                 </StackPanel>
 

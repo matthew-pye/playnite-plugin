@@ -17,9 +17,7 @@ using System.Windows.Media;
 
 namespace Graviton.Settings
 {
-    /// <summary>
-    /// Interaction logic for GravitonSettingsView.xaml
-    /// </summary>
+
     public partial class AuthenticationTab : UserControl
     {
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
@@ -39,20 +37,6 @@ namespace Graviton.Settings
 
             AuthPanel.IsEnabled = !GameSessionHandler.IsAGameRunning;
 
-            AuthButtonText.Text = Loc.GetString("AuthButton");
-
-            UseBasicAuthText.Text = Loc.GetString("UseBasicAuth");
-            UserPassWarning.Text = Loc.GetString("UserPassWarning");
-            BasicLoginText.Text = Loc.GetString("Login");
-
-            AdvanceOptionsText.Text = Loc.GetString("AdvanceOptions");
-            CustomHeadersText.Text = Loc.GetString("CustomHeaders");
-            AddHeaderText.Text = $"\uea60 {Loc.GetString("NewHeader")}";
-
-            ProfileEditButton.FontFamily = Playnite.Fonts.NerdFont;
-            ShowPassword.FontFamily = Playnite.Fonts.NerdFont;
-            AddHeaderText.FontFamily = Playnite.Fonts.NerdFont;
-            
             RomMPassword.Password = _plugin.Settings.PasswordNP;
             RomMPassword.PasswordChanged += (_, _) =>
             {
@@ -178,7 +162,7 @@ namespace Graviton.Settings
             string raw = (heartbeat.Value.Version ?? string.Empty).Split('-', '+')[0];
             if (Version.TryParse(raw, out Version? parsed) && parsed.CompareTo(new Version(5, 0, 0)) < 0)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.QRlogin.gated", "Your server doesn't support QR login (5.0.0+), Use client token or username/password instead!", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.QRlogin.gated", Loc.GetString("QRLoginNotSupported"), GravitonSeverity.Error));
                 e.Handled = true;
                 return;
             }

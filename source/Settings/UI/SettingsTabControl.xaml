@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:s="clr-namespace:Graviton.Settings"
+             xmlns:loc="clr-namespace:Playnite"
              mc:Ignorable="d"
              d:DesignHeight="1000" d:DesignWidth="800">
 
@@ -48,22 +49,40 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         
-        <TextBlock Name="GameIsRunningText" Grid.Row="0" Text="&#xea6c; Cannot change settings while a game is running" Foreground="{DynamicResource Graviton.Error.Colour}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Right" Margin="5" Visibility="Collapsed"/>
+        <TextBlock Name="GameIsRunningText" Grid.Row="0" Text="{loc:LocalizedString GameIsRunningWarning}" Foreground="{DynamicResource Graviton.Error.Colour}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Right" Margin="5" Visibility="Collapsed"/>
 
         <TabControl Name="SettingsTabs" Grid.Row="1" FontFamily="{StaticResource NerdFont}">
 
             <!-- Authentication -->
-            <TabItem Name="AuthItem" Header="&#xf0004; Authentication">
+            <TabItem Name="AuthItem">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xf0004;" Margin="0,0,4,0"/>
+                        <TextBlock Text="{loc:LocalizedString Authentication}"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <s:AuthenticationTab Margin="5,10,5,5"/>
             </TabItem>
 
             <!-- Options -->
-            <TabItem Name="OptionsItem" Header="&#xf013; Options">
+            <TabItem Name="OptionsItem">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xf013;" Margin="0,0,4,0"/>
+                        <TextBlock Text="{loc:LocalizedString Options}"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <s:OptionsTab Margin="5,10,5,5"/>
             </TabItem>
 
             <!-- Mappings -->
-            <TabItem Name="MappingsItem" Header="&#xf0eb6; Emulator Mappings">
+            <TabItem Name="MappingsItem">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xf0eb6;" Margin="0,0,4,0"/>
+                        <TextBlock Text="{loc:LocalizedString Mappings}"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <s:MappingsTab Margin="5,10,5,5" ManageSavesRequested="MappingsTab_ManageSavesRequested"/>
             </TabItem>
 
@@ -78,7 +97,13 @@
             </TabItem>-->
 
             <!-- Dev options -->
-            <TabItem Name="DEVTAB" Header="&#xeef4; Dev Settings">
+            <TabItem Name="DEVTAB">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xeef4;" Margin="0,0,4,0"/>
+                        <TextBlock Text="{loc:LocalizedString DevSettingsTab}"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <s:DevTab Margin="5,10,5,5"/>
             </TabItem>
 

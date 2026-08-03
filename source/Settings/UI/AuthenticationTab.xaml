@@ -137,7 +137,7 @@
                     <!-- #endregion -->
 
                     <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,10,5,0">
-                        <Label Name="RomMServerVersionText" Content="Server Ver." Foreground="{DynamicResource Graviton.SubSubText.Colour}" FontSize="12"/>
+                        <Label Name="RomMServerVersionText" Content="{loc:LocalizedString ServerVersionLabel}" Foreground="{DynamicResource Graviton.SubSubText.Colour}" FontSize="12"/>
                         <Label Name="RomMServerVersion" Content="{Binding AccountState.ServerVersion, Mode=OneWay}" Foreground="{DynamicResource Graviton.SubSubText.Colour}" FontSize="12" Margin="0"/>
                     </StackPanel>
 
@@ -294,7 +294,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBox x:Name="ServerAddressBox" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Margin="10,5,10,10" Text="{Binding Host, Mode=TwoWay}" VerticalAlignment="Center" local:Placeholder.Text="Server Address"/>
+                    <TextBox x:Name="ServerAddressBox" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Margin="10,5,10,10" Text="{Binding Host, Mode=TwoWay}" VerticalAlignment="Center" local:Placeholder.Text="{loc:LocalizedString ServerText}"/>
 
                     <!-- #region QR Code -->
                     <Border BorderThickness="1" CornerRadius="8" ClipToBounds="True" BorderBrush="{DynamicResource Graviton.DarkTransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" Margin="10" Grid.Row="1" Grid.Column="0" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}">
@@ -314,26 +314,26 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <TextBlock Margin="0,15,0,0"  Text="Login with QR code" Grid.Row="0" HorizontalAlignment="Left" FontSize="24" FontWeight="Bold"/>
-                        <TextBlock Text="Scan with phone or open in browser." Grid.Row="1" HorizontalAlignment="Left" FontSize="16" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                        <TextBlock Margin="0,15,0,0"  Text="{loc:LocalizedString LoginQRTitle}" Grid.Row="0" HorizontalAlignment="Left" FontSize="24" FontWeight="Bold"/>
+                        <TextBlock Text="{loc:LocalizedString PhoneScanSubtitle}" Grid.Row="1" HorizontalAlignment="Left" FontSize="16" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
                         <StackPanel Orientation="Horizontal" Grid.Row="2">
                             <Button Name="QRAuth" Click="Click_LoginViaQR" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                <TextBlock Name="QRAuthText" Text="Start" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Name="QRAuthText" Text="{loc:LocalizedString Start}" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
                             <Button Name="OpenInBrowser" Click="Click_OnInBrowser" Visibility="Collapsed" Margin="5" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                <TextBlock Name="OpenInBrowserText" Text="Open in browser" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock Name="OpenInBrowserText" Text="{loc:LocalizedString OpenInBrowser}" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
                         </StackPanel>
 
-                        <TextBlock Margin="5" Grid.Row="3" Text="or" HorizontalAlignment="Left" FontSize="16" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                        <TextBlock Margin="5" Grid.Row="3" Text="{loc:LocalizedString Or}" HorizontalAlignment="Left" FontSize="16" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
                         <Grid Margin="5" Grid.Row="4" VerticalAlignment="Bottom">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBox x:Name="ClientTokenBox" Grid.Column="0" Text="{Binding ClientTokenNP, Mode=TwoWay}" local:Placeholder.Text="Login with Client Token"/>
+                            <TextBox x:Name="ClientTokenBox" Grid.Column="0" Text="{Binding ClientTokenNP, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString ClientTokenLogin}"/>
                             <Button Grid.Column="1" Name="ConnectButton" Click="Click_Authenticate" Margin="5,0,5,0">
-                                <TextBlock Name="AuthButtonText" Text="Connect" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Name="AuthButtonText" Text="{loc:LocalizedString AuthButton}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             </Button>
                         </Grid>
                     </Grid>
@@ -343,7 +343,7 @@
 
                 <!-- #region Advance Login-->
                 <Border Margin="5" Grid.Column="1" Grid.Row="1" BorderThickness="1" CornerRadius="3" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" VerticalAlignment="Top" HorizontalAlignment="Stretch"/>
-                <Expander Margin="10,15,0,0" Grid.Column="1" Grid.Row="1"  Header="Advanced: sign in with username and password">
+                <Expander Margin="10,15,0,0" Grid.Column="1" Grid.Row="1"  Header="{loc:LocalizedString AdvanceSigninHeader}" FontSize="14">
                     <Expander.Style>
                         <Style TargetType="Expander">
                             <Setter Property="Template">
@@ -403,7 +403,8 @@
                     </Expander.Style>
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="83*"/>
+                            <ColumnDefinition Width="423*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
@@ -413,28 +414,29 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <TextBlock Name="UserPassWarning" Margin="10,5,5,5" Text="Warning! Using this is NOT recommended!" TextWrapping="Wrap" Grid.Row="0" Foreground="{DynamicResource Graviton.Warn.Colour}"/>
+                        <TextBlock Name="UserPassWarning" Margin="10,5,5,5" Text="{loc:LocalizedString UserPassWarning}" TextWrapping="Wrap" Grid.Row="0" Foreground="{DynamicResource Graviton.Warn.Colour}" Grid.ColumnSpan="2"/>
 
-                        <Grid Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Graviton.SettingsToggleRow}" Margin="5,7">
+                        <Grid Grid.Row="1" Grid.ColumnSpan="3" Style="{StaticResource Graviton.SettingsToggleRow}" Margin="5,7,5,7">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="41*"/>
+                                <ColumnDefinition Width="304*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Name="UseBasicAuthText" Text="Use Basic Auth" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                            <ToggleButton Grid.Column="1" IsChecked="{Binding UseBasicAuth, Mode=TwoWay}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="0" Name="UseBasicAuthText" Text="{loc:LocalizedString UseBasicAuth}" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center" Margin="0,0,15,0" Grid.ColumnSpan="2"/>
+                            <ToggleButton Grid.Column="2" IsChecked="{Binding UseBasicAuth, Mode=TwoWay}" VerticalAlignment="Center"/>
                         </Grid>
 
-                        <TextBox x:Name="UsernameBox" Grid.Row="2" Margin="5" Text="{Binding UsernameNP, Mode=TwoWay}" local:Placeholder.Text="Username"/>
+                        <TextBox x:Name="UsernameBox" Grid.Row="2" Margin="5,5,5,5" Text="{Binding UsernameNP, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString Username}" Grid.ColumnSpan="2"/>
 
-                        <Grid Grid.Row="3" Margin="5">
-                            <TextBox x:Name="RomMPasswordUnmasked" Text="{Binding PasswordNP, Mode=TwoWay}" Visibility="Collapsed" Margin="5,0,0,0" local:Placeholder.Text="Password"/>
-                            <PasswordBox x:Name="RomMPassword" PasswordChar="●" PasswordChanged="RomMPassword_PasswordChanged" local:Placeholder.Text="Password"/>
+                        <Grid Grid.Row="3" Margin="5,5,5,5" Grid.ColumnSpan="2">
+                            <TextBox x:Name="RomMPasswordUnmasked" Text="{Binding PasswordNP, Mode=TwoWay}" Visibility="Collapsed" local:Placeholder.Text="{loc:LocalizedString Password}"/>
+                            <PasswordBox x:Name="RomMPassword" PasswordChar="●" PasswordChanged="RomMPassword_PasswordChanged" local:Placeholder.Text="{loc:LocalizedString Password}"/>
 
                             <Button Name="ShowPassword" Content="&#xea70;" FontSize="18" HorizontalAlignment="Right" Margin="0,0,10,0" Click="Click_ShowPassword" Style="{StaticResource Graviton.IconButton}"/>
                         </Grid>
 
-                        <Button Name="BasicLoginButton" Grid.Column="1" Grid.Row="3" Click="Click_BasicLogin" Margin="5">
-                            <TextBlock Name="BasicLoginText" Text="Login" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Button Name="BasicLoginButton" Grid.Column="2" Grid.Row="3" Click="Click_BasicLogin" Margin="5,5,5,5">
+                            <TextBlock Name="BasicLoginText" Text="{loc:LocalizedString Login}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
 
                     </Grid>
@@ -447,11 +449,11 @@
         </Border>
 
         <!-- #region Advance Options -->
-        <TextBlock Name="AdvanceOptionsText" Text="Advanced Options" Margin="5,5,5,15" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20" FontWeight="Bold"/>
+        <TextBlock Name="AdvanceOptionsText" Text="{loc:LocalizedString AdvanceOptions}" Margin="5,5,5,15" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20" FontWeight="Bold"/>
 
         <Border Style="{StaticResource Graviton.SettingsCard}">
             <StackPanel>
-                <TextBlock Name="CustomHeadersText" Text="Custom Headers" Style="{StaticResource Graviton.SettingsSubHeader}" Margin="0,0,0,10"/>
+                <TextBlock Name="CustomHeadersText" Text="{loc:LocalizedString CustomHeaders}" Style="{StaticResource Graviton.SettingsSubHeader}" Margin="0,0,0,10"/>
 
                 <ItemsControl ItemsSource="{Binding CustomHeaders, Mode=TwoWay}">
                     <ItemsControl.ItemTemplate>
@@ -468,7 +470,10 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <Button Click="Click_AddHeader" Margin="0,8,0,0" HorizontalAlignment="Left" Style="{StaticResource Graviton.IconButton}">
-                    <TextBlock Name="AddHeaderText" Text="&#xea60; New Header" Margin="2,0,5,0"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="AddHeaderIcon" Text="&#xea60;" Margin="2,0,2,0" FontFamily="{DynamicResource NerdFont}"/>
+                        <TextBlock Name="AddHeaderText" Text="{loc:LocalizedString NewHeader}" Margin="0,0,3,0"/>
+                    </StackPanel>
                 </Button>
             </StackPanel>
         </Border>

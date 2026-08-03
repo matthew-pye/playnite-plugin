@@ -1,6 +1,4 @@
-﻿using Playnite;
-
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 
 namespace Graviton.Settings
@@ -22,30 +20,6 @@ namespace Graviton.Settings
             InitializeComponent();
 
             OptionsPanel.IsEnabled = !GameSessionHandler.IsAGameRunning;
-
-            LibraryScanningText.Text = Loc.GetString("LibraryScanning");
-            MergeROMText.Text = Loc.GetString("MergeROMs");
-            KeepDeleteText.Text = Loc.GetString("KeepDeleted");
-            SkipDeletedText.Text = Loc.GetString("SkipDeleted");
-            ExcludeGenresText.Text = Loc.GetString("ExcludeGenres");
-            InstallationText.Text = Loc.GetString("Installation");
-            Use7zText.Text = Loc.GetString("Use7z");
-            Browse7zText.Text = Loc.GetString("Browse");
-            StatusTitle.Text = Loc.GetString("StatusSync");
-            KeepStatusSyncedText.Text = Loc.GetString("KeepStatusSynced");
-            KeepFavouritesSyncedText.Text = Loc.GetString("KeepFavouritesSynced");
-            KeepPrivateNotesSyncedText.Text = Loc.GetString("KeepPrivateNotesSynced");
-            KeepPublicNotesSyncedText.Text = Loc.GetString("KeepPublicNotesSynced");
-
-            SaveSyncTitle.Text = Loc.GetString("SaveSync");
-            SaveSyncEnabledText.Text = Loc.GetString("EnableSaveSyncing");
-            DownloadSaveOnLaunchText.Text = Loc.GetString("DownloadSaveOnLaunch");
-            UploadSaveOnFinishedText.Text = Loc.GetString("UploadSaveOnFinished");
-            ConflictStyleText.Text = Loc.GetString("SaveConflictsLabel");
-            AutoCleanupSavesText.Text = Loc.GetString("AutoCleanOldSaves");
-            SaveStateSyncTitle.Text = Loc.GetString("SaveStateSync");
-            SaveStateSyncEnabledText.Text = Loc.GetString("EnableSaveStateSyncing");
-
         }
 
         private async void Browse7zPath_Click(object sender, RoutedEventArgs e)

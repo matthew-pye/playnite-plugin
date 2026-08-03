@@ -23,14 +23,14 @@ namespace Graviton
         {
             if (IsAGameRunning)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.sync.alreadyrunning", "A game is already running cannot, start sync!", GravitonSeverity.Info));
+                GravitonNotify.Add(new GravitonNotification("graviton.sync.alreadyrunning", Loc.GetString("SyncAlreadyRunning"), GravitonSeverity.Info));
                 return;
             }
 
             ROM = _plugin.ImportedGames.FirstOrDefault(x => x.Key == gameID).Value ?? null;
             if (ROM == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.game.notfound", $"Game with {gameID} not found, skipping sync!", GravitonSeverity.Info));
+                GravitonNotify.Add(new GravitonNotification("graviton.game.notfound", Loc.GetString("GameNotFoundSkipSync", ("GameId", gameID)), GravitonSeverity.Info));
                 return;
             }
 
@@ -45,7 +45,7 @@ namespace Graviton
                         await SaveNegotiator.NegotiateSave(ROM);
                 }
                 else
-                    GravitonNotify.Add(new GravitonNotification("graviton.sync.notenabled", "'Sync before game start' disabled, skipping sync!", GravitonSeverity.Info));
+                    GravitonNotify.Add(new GravitonNotification("graviton.sync.notenabled", Loc.GetString("SyncBeforeGameStartDisabled"), GravitonSeverity.Info));
 
             }
             
@@ -112,7 +112,7 @@ namespace Graviton
                 }
                 else
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.sync.notenabled", "'Sync after game quit' disabled, skipping sync!", GravitonSeverity.Info));
+                    GravitonNotify.Add(new GravitonNotification("graviton.sync.notenabled", Loc.GetString("SyncAfterGameQuitDisabled"), GravitonSeverity.Info));
                 }
             } 
 

@@ -213,6 +213,7 @@ namespace Graviton.Import
                 //}
 
                 await _playniteAPI.Library.Games.UpdateAsync(game);
+                _plugin.ImportedGames[gameID].Resync(ROM);
 
                 ROM.Processed = true; // Skips the ROM being remerged if user has split the ROMs apart
                 return new(gameID, null);

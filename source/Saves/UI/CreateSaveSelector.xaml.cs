@@ -102,7 +102,7 @@ namespace Graviton.Saves
         {
             if(SelectedROM == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.ROM.null", "No game has been selected, cannot create new save", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.ROM.null", Playnite.Loc.GetString("SaveNoGameSelected"), GravitonSeverity.Error));
                 e.Handled = true;
                 return;
             }
@@ -120,7 +120,7 @@ namespace Graviton.Saves
             Playnite.MessageBoxResult result;
             if(SelectedROM.LocalSave != null)
             {
-                result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{SelectedROM.Name} already has a tracked save, do you want to overwrite it?", "File Paths", Playnite.MessageBoxButtons.YesNo);
+                result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Playnite.Loc.GetString("OverwriteSaveConfirm", ("GameName", SelectedROM.Name!)), Playnite.Loc.GetString("OverwriteSaveTitle"), Playnite.MessageBoxButtons.YesNo);
                 if(result == Playnite.MessageBoxResult.No)
                 {
                     e.Handled = true;
@@ -128,7 +128,7 @@ namespace Graviton.Saves
                 }
             }
 
-            result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"Creating a new save for {SelectedROM.Name}?\nPaths:\n{sourcePathsList}", "File Paths", Playnite.MessageBoxButtons.OKCancel);
+            result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Playnite.Loc.GetString("CreateSaveConfirm", ("GameName", SelectedROM.Name!), ("Paths", sourcePathsList)), Playnite.Loc.GetString("FilePaths"), Playnite.MessageBoxButtons.OKCancel);
             if(result == Playnite.MessageBoxResult.OK)
             {
                 SelectedSourcePaths = sourcePaths;

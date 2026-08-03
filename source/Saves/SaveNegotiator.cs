@@ -95,7 +95,7 @@ namespace Graviton.Saves
         {
             if (GameSessionHandler.IsAGameRunning)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", "Cannot do save sync operations as a game is currently running!", GravitonSeverity.Info));
+                GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info));
                 return;
             }
 
@@ -116,7 +116,7 @@ namespace Graviton.Saves
 
             if (response == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.syncresponse.null", $"The server failed to respond, skipping sync", GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.syncresponse.null", Loc.GetString("ServerNoResponseSync"), GravitonSeverity.Error));
                 return;
             }
             else
@@ -185,7 +185,7 @@ namespace Graviton.Saves
                         case "no_op":
                             rom.LocalSave.Status = SaveStatus.Synced;
                             rom.LocalSave.IsTempRestored = false;
-                            GravitonNotify.Add(new GravitonNotification("graviton.sync.noop", $"No sync need for {rom.Name}", GravitonSeverity.Info));
+                            GravitonNotify.Add(new GravitonNotification("graviton.sync.noop", Loc.GetString("NoSyncNeeded", ("GameName", rom.Name!)), GravitonSeverity.Info));
                             operationCompleted++;
                             break;
 
@@ -273,7 +273,7 @@ namespace Graviton.Saves
                     negotiateSave.FileSize = new FileInfo(path).Length;
                     if (negotiateSave.FileSize == 0)
                     {
-                        GravitonNotify.Add(new GravitonNotification("graviton.save.zerobytes", $"The save file for {rom.Name} has 0 bytes, skipping sync", GravitonSeverity.Error));
+                        GravitonNotify.Add(new GravitonNotification("graviton.save.zerobytes", Loc.GetString("SaveFileZeroBytes", ("GameName", rom.Name!)), GravitonSeverity.Error));
                         continue;
                     }
 
@@ -306,7 +306,7 @@ namespace Graviton.Saves
                     negotiateSave.FileSize = new FileInfo(packedsavepath).Length;
                     if (negotiateSave.FileSize == 0)
                     {
-                        GravitonNotify.Add(new GravitonNotification("graviton.save.zerobytes", $"The save file for {rom.Name} has 0 bytes, skipping sync", GravitonSeverity.Error));
+                        GravitonNotify.Add(new GravitonNotification("graviton.save.zerobytes", Loc.GetString("SaveFileZeroBytes", ("GameName", rom.Name!)), GravitonSeverity.Error));
                         continue;
                     }
 
@@ -359,7 +359,7 @@ namespace Graviton.Saves
                     rom.LocalSave.Status = SaveStatus.MissingFiles;
                     rom.LocalSave.MissingFiles.Add(path);
                     rom.Save();
-                    GravitonNotify.Add(new GravitonNotification("graviton.save.missingfiles", $"The save file for {rom.Name} has missing files, skipping sync", GravitonSeverity.Error));
+                    GravitonNotify.Add(new GravitonNotification("graviton.save.missingfiles", Loc.GetString("SaveFileMissingFiles", ("GameName", rom.Name!)), GravitonSeverity.Error));
                     continue;
                 }
 
@@ -369,8 +369,13 @@ namespace Graviton.Saves
             return negotiate;
         }
 
+        internal static Func<GravitonSave, SaveSyncStatus>? ConflictResolverOverride;
+
         public static SaveSyncStatus ResolveConflict(GravitonSave save)
         {
+            if (ConflictResolverOverride != null)
+                return ConflictResolverOverride(save);
+
             if (save.ServerLastUpdatedAt == null)
                 return SaveSyncStatus.conflict;
 
@@ -385,7 +390,7 @@ namespace Graviton.Saves
 
             var resolveConflictView = new ResolveConflictView(save.ServerLastUpdatedAt.Value, save.LastSyncedAt!.Value);
 
-            window.Title = "Save Conflict";
+            window.Title = Loc.GetString("SaveConflict");
             window.Content = resolveConflictView;
             window.ResizeMode = ResizeMode.NoResize;
             window.Owner = PlayniteAPI.GetLastActiveWindow();
