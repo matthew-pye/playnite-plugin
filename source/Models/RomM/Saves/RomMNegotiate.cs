@@ -1,4 +1,6 @@
-﻿using System.Text.Json.Serialization;
+﻿using Graviton.Models.RomM.Saves;
+
+using System.Text.Json.Serialization;
 
 namespace Graviton.Models.RomM
 {
@@ -45,7 +47,8 @@ namespace Graviton.Models.RomM
     public class RomMNegotiateOperations
     {
         [JsonPropertyName("action")]
-        public string? Action { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public SaveSyncStatus? Action { get; set; }
 
         [JsonPropertyName("rom_id")]
         public int ROMID { get; set; }

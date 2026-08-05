@@ -7,7 +7,7 @@ namespace Graviton.Saves
 {
     public partial class ResolveConflictView : UserControl
     {
-        public SaveSyncStatus Status = SaveSyncStatus.no_op;
+        public SaveSyncStatus Status = SaveSyncStatus.conflict;
 
         public string ServerUpdatedAt;
         public string LocalUpdatedAt;

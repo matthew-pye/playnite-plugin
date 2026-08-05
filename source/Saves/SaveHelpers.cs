@@ -174,7 +174,7 @@ namespace Graviton.Saves
                 catch (Exception)
                 {
                     GravitonPlugin.Logger.Error($"Failed to compute content hash for {zipPath}, retrying #{i++}");
-                    Task.Delay(100);
+                    Task.Delay(100).GetAwaiter().GetResult();
                 }
             }
 

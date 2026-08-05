@@ -300,6 +300,11 @@ namespace Graviton.Saves
                     e.Handled = true;
                     return;
 
+                case SaveStatus.Conflicted:
+                    GravitonNotify.Add(new GravitonNotification("graviton.save.conflicted", Loc.GetString("SyncStillConflicted", ("GameName", save.GameName!)), GravitonSeverity.Info));
+                    e.Handled = true;
+                    return;
+
                 case SaveStatus.ServerOnly:
                     save = await SaveManager.TrackNewRemoteSave(save);
                     Saves[saveindex] = save;

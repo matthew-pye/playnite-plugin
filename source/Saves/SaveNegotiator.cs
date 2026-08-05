@@ -59,19 +59,19 @@ namespace Graviton.Saves
 
                     switch (operation.Action)
                     {
-                        case "upload":
+                        case SaveSyncStatus.upload:
                             rom.LocalSave.Status = SaveStatus.LocalNewer;
                             break;
 
-                        case "download":
+                        case SaveSyncStatus.download:
                             rom.LocalSave.Status = SaveStatus.RemoteNewer;
                             break;
 
-                        case "no_op":
+                        case SaveSyncStatus.no_op:
                             rom.LocalSave.Status = SaveStatus.Synced;
                             break;
 
-                        case "conflict":
+                        case SaveSyncStatus.conflict:
                             rom.LocalSave.Status = SaveStatus.Conflicted;
                             break;
 
@@ -139,16 +139,16 @@ namespace Graviton.Saves
 
                     var action = operation.Action;
 
-                    if (operation.Action == "conflict")
+                    if (operation.Action == SaveSyncStatus.conflict)
                     {
-                        action = ResolveConflict(rom.LocalSave!).ToString();
+                        action = ResolveConflict(rom.LocalSave!);
                     }
 
                     switch (action)
                     {
-                        case "upload":
+                        case SaveSyncStatus.upload:
                             var saveID = rom.LocalSave.SaveID;
-                            var result = await SaveManager.Upload(rom.LocalSave!, false, screenshot);
+                            var result = await SaveManager.Upload(rom.LocalSave!, false, screenshot, operation);
 
                             if(saveID == result.SaveID)
                             {
@@ -160,7 +160,7 @@ namespace Graviton.Saves
                             operationCompleted++;
                             break;
 
-                        case "download":
+                        case SaveSyncStatus.download:
 
                             if(rom.LocalSave.HistoricSaves == null)
                                 rom.LocalSave.HistoricSaves = new();
@@ -168,8 +168,13 @@ namespace Graviton.Saves
                             var savecopy = JsonSerializer.Deserialize<GravitonSave>(JsonSerializer.Serialize(rom.LocalSave));
                             if(savecopy != null)
                             {
-                                savecopy.HistoricSaves = null;
-                                rom.LocalSave.HistoricSaves.Add(savecopy);
+                                var historicsave = rom.LocalSave.HistoricSaves.FirstOrDefault(x => x.SaveID == savecopy.SaveID);
+                                if (historicsave == null) 
+                                { 
+                                    savecopy.IsCurrent = false; 
+                                    savecopy.IsHistoric = true; 
+                                    rom.LocalSave.HistoricSaves.Add(savecopy); 
+                                }
                             }
                             
                             rom.LocalSave.SaveID = operation.SaveID;
@@ -182,11 +187,18 @@ namespace Graviton.Saves
                             operationCompleted++;
                             break;
 
-                        case "no_op":
+                        case SaveSyncStatus.no_op:
                             rom.LocalSave.Status = SaveStatus.Synced;
                             rom.LocalSave.IsTempRestored = false;
                             GravitonNotify.Add(new GravitonNotification("graviton.sync.noop", Loc.GetString("NoSyncNeeded", ("GameName", rom.Name!)), GravitonSeverity.Info));
                             operationCompleted++;
+                            break;
+
+                        case SaveSyncStatus.conflict:
+                            rom.LocalSave.Status = SaveStatus.Conflicted;
+                            rom.LocalSave.IsTempRestored = false;
+                            GravitonNotify.Add(new GravitonNotification("graviton.sync.conflicted", Loc.GetString("SyncStillConflicted", ("GameName", rom.Name!)), GravitonSeverity.Warn));
+                            operationFailed++;
                             break;
 
                         default:
@@ -205,13 +217,13 @@ namespace Graviton.Saves
             rom.Save();
 
             var deviceid = new { operations_completed = operationCompleted, operations_failed = operationFailed};
-            await HttpClientSingleton.RomMPostJsonAsync($"/api/sync/sessions/{response.SessionID}/complete", deviceid);
+            await RomMServer.POSTAsync($"/api/sync/sessions/{response.SessionID}/complete", deviceid);
 
         }
 
         public static async Task<RomMNegotiateResponse?> Negotiate(RomMNegotiate negotiate)
         { 
-            var response = await HttpClientSingleton.RomMPostJsonAsync("/api/sync/negotiate", negotiate);
+            var response = await RomMServer.POSTAsync("/api/sync/negotiate", negotiate);
             if (response == null)
                 return null;
 
@@ -268,6 +280,7 @@ namespace Graviton.Saves
 
                 var path = rom.LocalSave.SourceFilePaths[0].Replace(EmulatorMapping.MappingPathToken, mapping.SavePath);
 
+                // Single file save
                 if (rom.LocalSave.SourceFilePaths.Count == 1 && File.Exists(path))
                 {
                     negotiateSave.FileSize = new FileInfo(path).Length;
@@ -289,20 +302,26 @@ namespace Graviton.Saves
                     negotiateSave.FileName = rom.LocalSave.Filename;
                     negotiateSave.UpdatedAt = new FileInfo(path).LastWriteTimeUtc.ToString("O");
                 }
-                else if(rom.LocalSave.SourceFilePaths.Count > 1 || Directory.Exists(path))
+                else if(rom.LocalSave.SourceFilePaths.Count > 1 || Directory.Exists(path)) //Multi-file / Folder / Multi-folder save
                 {
-                    var packedsavepath = $"{_plugin.PluginDataPath}/temp/{rom.LocalSave.Filename}";
-                    if (!SaveHelpers.PackSave(rom.LocalSave.SourceFilePaths, mapping.SavePath, packedsavepath, out var skippedPaths))
-                        continue;
 
-                    if (skippedPaths.Count > 0)
+                    var packedsavepath = $"{_plugin.PluginDataPath}/temp/{rom.LocalSave.Filename}";
+                    var savePacked = SaveHelpers.PackSave(rom.LocalSave.SourceFilePaths, mapping.SavePath, packedsavepath, out var skippedPaths);
+
+                    // Skip negotiate if pack fails or there are missing paths
+                    if (!savePacked || skippedPaths.Count > 0)
                     {
-                        rom.LocalSave.Status = SaveStatus.MissingFiles;
-                        rom.LocalSave.MissingFiles = skippedPaths;
-                        rom.Save();
-                        continue;
+                        if (skippedPaths.Count > 0)
+                        {
+                            rom.LocalSave.Status = SaveStatus.MissingFiles;
+                            rom.LocalSave.MissingFiles = skippedPaths;
+                            rom.Save();
+                        }
+                       
+                       continue;
                     }
 
+                    // Skip 0 byte saves
                     negotiateSave.FileSize = new FileInfo(packedsavepath).Length;
                     if (negotiateSave.FileSize == 0)
                     {
@@ -337,24 +356,24 @@ namespace Graviton.Saves
                         else
                         {
                             rom.LocalSave.Status = SaveStatus.MissingFiles;
-                            rom.LocalSave.MissingFiles = skippedPaths;
-                            rom.Save();
-                            break;
+                            skippedPaths.Add(path);
                         }
                     }
 
                     if(rom.LocalSave.Status == SaveStatus.MissingFiles)
                     {
+                        rom.LocalSave.MissingFiles = skippedPaths;
+                        rom.Save();
                         continue;
                     }
 
                     negotiateSave.FileName = Path.GetFileName(packedsavepath);
                     negotiateSave.UpdatedAt = saveWritetimes.Max().ToString("O");
 
-                    if (!(rom.LocalSave.SourceFilePaths.Count == 1 && Path.HasExtension(rom.LocalSave.SourceFilePaths[0])))
+                    if (File.Exists(packedsavepath))
                         File.Delete(packedsavepath);
                 }
-                else
+                else // File for single file/folder save is missing
                 {
                     rom.LocalSave.Status = SaveStatus.MissingFiles;
                     rom.LocalSave.MissingFiles.Add(path);

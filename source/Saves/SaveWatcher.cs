@@ -11,7 +11,6 @@ namespace Graviton.Saves
         private readonly object _fileUpdateLock = new object();
         private ScreenshotService ScreenCapture;
 
-        int index = 0;
         public SaveWatcher(ScreenshotService service)
         {
             ScreenCapture = service;
@@ -90,7 +89,6 @@ namespace Graviton.Saves
                     if (image != null)
                     {
                         NewestSaveScreenshot = image;
-                        File.WriteAllBytes($"{GravitonPlugin.Instance.PluginDataPath}/temp/{index++}.jpg", image);
                         LastFileUpdate = now;
                     }
                 }
