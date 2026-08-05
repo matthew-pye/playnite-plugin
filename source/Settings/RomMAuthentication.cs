@@ -5,8 +5,6 @@ using Playnite;
 
 using System.IO;
 using System.Net;
-using System.Net.Http;
-using System.Net.Http.Json;
 using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -31,7 +29,7 @@ namespace Graviton.Settings
 
         public async Task<ServerInfo?> Heartbeat()
         {
-            var result = await HttpClientSingleton.RomMGetAsync("/api/heartbeat", true);
+            var result = await RomMServer.GETAsync("/api/heartbeat", true);
             if(result == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.heartbeat.failed", Loc.GetString("HeartbeatFailed"), GravitonSeverity.Error));
@@ -67,7 +65,7 @@ namespace Graviton.Settings
                     return false;
                 }
                  
-                HttpClientSingleton.ConfigureBasicAuth(_plugin.Settings.UsernameNP, _plugin.Settings.PasswordNP);
+                RomMServer.ConfigureBasicAuth(_plugin.Settings.UsernameNP, _plugin.Settings.PasswordNP);
             }
             else
             {
@@ -79,7 +77,7 @@ namespace Graviton.Settings
                 }
                     
 
-                HttpClientSingleton.ConfigureClientToken(_plugin.Settings.ClientTokenNP);
+                RomMServer.ConfigureClientToken(_plugin.Settings.ClientTokenNP);
             }
 
             _plugin.Settings.AccountState.LastAuthenticated = DateTime.UtcNow;
@@ -158,7 +156,7 @@ namespace Graviton.Settings
 
         public async Task<bool> SyncUserData()
         {
-            var result = await HttpClientSingleton.RomMGetAsync("/api/users/me");
+            var result = await RomMServer.GETAsync("/api/users/me");
             if (result == null)
                 return false;  
                   
@@ -170,8 +168,10 @@ namespace Graviton.Settings
 
                 if (!string.IsNullOrEmpty(userinfo.IconPath) && _iconPathRegex.IsMatch(userinfo.IconPath))
                 {
-                    var response = await HttpClientSingleton.Instance.GetAsync($"{_plugin.Settings.Host}/api/users/{userinfo.Id}/avatar", System.Net.Http.HttpCompletionOption.ResponseContentRead, new System.Threading.CancellationToken());
-                    response.EnsureSuccessStatusCode();
+                    var response = await RomMServer.RawGETAsync($"/api/users/{userinfo.Id}/avatar");
+                    if (response == null || response.Content == null)
+                        throw new Exception("Null response from server");
+
                     var imagebytes = await response.Content.ReadAsByteArrayAsync();
 
                     if (imagebytes.Length > 20 * 1024 * 1024) // 20MB cap
@@ -243,7 +243,7 @@ namespace Graviton.Settings
 
             try
             {
-                var response = await HttpClientSingleton.RomMPostJsonAsync("/api/auth/device/init", deviceInit, true);
+                var response = await RomMServer.POSTAsync("/api/auth/device/init", deviceInit, true);
                 if (response == null)
                 {
                     return null;
@@ -276,13 +276,15 @@ namespace Graviton.Settings
             {
                 if (intervalMillisecs <= 0)
                 {
-                    HttpResponseMessage? response = null;
+                    RawClientResponse? response = null;
 
                     try
                     {
-                        response = await HttpClientSingleton.Instance.PostAsJsonAsync($"{_plugin.Settings.Host}/api/auth/device/token", deviceCode);
-                        status = response.StatusCode;
-                        response.EnsureSuccessStatusCode();
+                        response = await RomMServer.RawPOSTAsync($"/api/auth/device/token", deviceCode);
+                        if (response == null || response.Content == null)
+                            throw new Exception("Null response from server");
+
+                        status = response.Status ?? HttpStatusCode.NoContent;
 
                         var stream = await response.Content.ReadAsStreamAsync();
                         var json = await JsonDocument.ParseAsync(stream);
@@ -302,7 +304,7 @@ namespace Graviton.Settings
                     }
                     catch (Exception ex)
                     {
-                        if (response != null)
+                        if (response != null && response.Content != null)
                         {
                             var result = await response.Content.ReadAsStringAsync();
                             if (result.Contains("expired_token"))
@@ -316,7 +318,7 @@ namespace Graviton.Settings
                                 return false;
                             }
 
-                            if (response.StatusCode != HttpStatusCode.BadRequest)
+                            if (response.Status != HttpStatusCode.BadRequest)
                             {
                                 GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", ex.Message)), GravitonSeverity.Error, ex));
                                 return false;
@@ -342,7 +344,7 @@ namespace Graviton.Settings
             // Check to see if current device id is valid
             if (!string.IsNullOrEmpty(_plugin.Settings.AccountState.DeviceID))
             {
-                var result = await HttpClientSingleton.RomMGetAsync("/api/devices");
+                var result = await RomMServer.GETAsync("/api/devices");
                 if (result != null)
                 {
                     try
@@ -368,7 +370,7 @@ namespace Graviton.Settings
             newDevice.ClientVersion = GravitonPlugin.Version.ToString();
             newDevice.HostName = Environment.MachineName;
 
-            var request = await HttpClientSingleton.RomMPostJsonAsync("/api/devices", newDevice);
+            var request = await RomMServer.POSTAsync("/api/devices", newDevice);
             if (request == null)
                 return false;
 
@@ -400,7 +402,7 @@ namespace Graviton.Settings
             newDevice.MACAddress = (from nic in NetworkInterface.GetAllNetworkInterfaces() where nic.OperationalStatus == OperationalStatus.Up select nic.GetPhysicalAddress().ToString()).FirstOrDefault();
             newDevice.HostName = Environment.MachineName;
 
-            var result = await HttpClientSingleton.RomMPutJsonAsync($"/api/devices/{_plugin.Settings.AccountState.DeviceID}", newDevice);
+            var result = await RomMServer.PUTAsync($"/api/devices/{_plugin.Settings.AccountState.DeviceID}", newDevice);
             if (result == null)
                 return false;
 

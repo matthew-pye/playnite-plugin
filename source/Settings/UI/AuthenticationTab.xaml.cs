@@ -85,7 +85,7 @@ namespace Graviton.Settings
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(filetype);
 
                 content.Add(fileContent, "avatar", fileName);
-                var result = await HttpClientSingleton.RomMPutContentAsync($"/api/users/{_plugin.Settings.AccountState.UserID}", content);
+                var result = await RomMServer.PUTAsync($"/api/users/{_plugin.Settings.AccountState.UserID}", content);
 
                 if (result != null)
                 {
@@ -241,7 +241,7 @@ namespace Graviton.Settings
             if (header != null)
             {
                 if (!string.IsNullOrEmpty(header.Name))
-                    HttpClientSingleton.Instance.DefaultRequestHeaders.Remove(header.Name);
+                    RomMServer.RemoveHeader(header.Name);
 
                 _plugin.Settings.CustomHeaders.Remove(header);
             }
@@ -254,8 +254,7 @@ namespace Graviton.Settings
             var header = ((FrameworkElement)sender).DataContext as CustomHTTPHeader;
             if (header != null && !string.IsNullOrEmpty(header.Name) && !string.IsNullOrEmpty(header.Value))
             {
-                if (!HttpClientSingleton.Instance.DefaultRequestHeaders.Contains(header.Name))
-                    HttpClientSingleton.Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
+                RomMServer.AddHeader(header.Name, header.Value);
             }
             else if (header != null)
             {
@@ -271,7 +270,7 @@ namespace Graviton.Settings
             var header = ((FrameworkElement)sender).DataContext as CustomHTTPHeader;
             if (header != null && !string.IsNullOrEmpty(header.Name))
             {
-                HttpClientSingleton.Instance.DefaultRequestHeaders.Remove(header.Name);
+                RomMServer.RemoveHeader(header.Name);
             }
 
             e.Handled = true;

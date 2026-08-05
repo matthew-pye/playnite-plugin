@@ -16,21 +16,19 @@ namespace Graviton
     public class RawClientResponse
     {
         public HttpStatusCode? Status = null;
-        public Stream? Content = null;
+        public HttpContent? Content = null;
     }
 
-    public static class HttpClientSingleton
+    public static class RomMServer
     {
-        public static HttpClient Instance { get => httpClient; }
-
         private static HttpClient httpClient = new HttpClient();
 
         private static GravitonPlugin? _plugin;
         private static bool IsInitialized = false;
 
-        private static string Host => _plugin!.Settings.Host;
+        private static string Host => _plugin?.Settings.Host ?? "";
 
-        static HttpClientSingleton()
+        static RomMServer()
         {
             httpClient.DefaultRequestHeaders.Accept.Clear();
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -44,45 +42,48 @@ namespace Graviton
             IsInitialized = true;
         }
 
-        internal static void UseHttpClientForTests(HttpMessageHandler handler)
+        public static void AddHeader(string name, string value)
         {
-            httpClient = new HttpClient(handler);
-            httpClient.DefaultRequestHeaders.Accept.Clear();
-            httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            httpClient.Timeout = TimeSpan.FromSeconds(30);
+            if (!httpClient.DefaultRequestHeaders.Contains(name))
+                httpClient.DefaultRequestHeaders.Add(name, value);
+        }
+        public static void RemoveHeader(string name)
+        {
+            if (httpClient.DefaultRequestHeaders.Contains(name))
+                httpClient.DefaultRequestHeaders.Remove(name);
         }
 
         public static void ConfigureBasicAuth(string username, string password)
         {
             if (!IsInitialized)
             {
-                Debug.WriteLine("HttpClientSingleton hasn't been initialized cannot perform HTTP requests!!");
+                Debug.WriteLine("RomMServer hasn't been initialized cannot perform HTTP requests!!");
                 return;
             }
 
-            Instance.DefaultRequestHeaders.Authorization = null;
+            httpClient.DefaultRequestHeaders.Authorization = null;
             var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
-            Instance.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
             foreach (var header in _plugin!.Settings.CustomHeaders.Where(x => x.Enabled))
             {
-                Instance.DefaultRequestHeaders.Remove(header.Name);
-                Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
+                httpClient.DefaultRequestHeaders.Remove(header.Name);
+                httpClient.DefaultRequestHeaders.Add(header.Name, header.Value);
             }
         }
         public static void ConfigureClientToken(string clientToken)
         {
             if (!IsInitialized)
             {
-                Debug.WriteLine("HttpClientSingleton hasn't been initialized cannot perform HTTP requests!!");
+                Debug.WriteLine("RomMServer hasn't been initialized cannot perform HTTP requests!!");
                 return;
             }
 
-            Instance.DefaultRequestHeaders.Authorization = null;
-            Instance.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", clientToken);
+            httpClient.DefaultRequestHeaders.Authorization = null;
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", clientToken);
             foreach (var header in _plugin!.Settings.CustomHeaders.Where(x => x.Enabled))
             {
-                Instance.DefaultRequestHeaders.Remove(header.Name);
-                Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
+                httpClient.DefaultRequestHeaders.Remove(header.Name);
+                httpClient.DefaultRequestHeaders.Add(header.Name, header.Value);
             }
         }
 
@@ -90,7 +91,7 @@ namespace Graviton
         {
             if (!IsInitialized)
             {
-                Debug.WriteLine("HttpClientSingleton hasn't been initialized cannot perform HTTP requests!!");
+                Debug.WriteLine("RomMServer hasn't been initialized cannot perform HTTP requests!!");
                 return null;
             }
 
@@ -169,14 +170,11 @@ namespace Graviton
             try
             {
                 response = await send();
-                content = await response.Content.ReadAsStreamAsync();
                 response.EnsureSuccessStatusCode();
 
-                if (content.Length <= 0)
-                    return null;
 
                 _plugin.Settings.AccountState.AuthenticateFailed = HttpStatusCode.OK;
-                return new() { Status = HttpStatusCode.OK, Content = content };
+                return new() { Status = HttpStatusCode.OK, Content = response.Content };
             }
             catch (Exception ex)
             {
@@ -208,17 +206,20 @@ namespace Graviton
             }
         }
 
-        public static Task<JsonDocument?> RomMGetAsync(string APIPath, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.GetAsync($"{Host}{APIPath}"), "graviton.GET.failed", "GETFailed");
-        public static Task<RawClientResponse?> RomMRawGetAsync(string APIPath, bool PublicEndpoint = false) => ExecuteRawAsync(APIPath, PublicEndpoint, () => httpClient.GetAsync($"{Host}{APIPath}"), "graviton.GET.failed", "GETFailed");
-        public static Task<JsonDocument?> RomMDeleteAsync(string APIPath, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.DeleteAsync($"{Host}{APIPath}"), "graviton.DELETE.failed", "DELETEFailed");
+        public static Task<JsonDocument?> GETAsync(string APIPath, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.GetAsync($"{Host}{APIPath}"), "graviton.GET.failed", "GETFailed");
+        public static Task<JsonDocument?> POSTAsync(string APIPath, HttpContent content, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PostAsync($"{Host}{APIPath}", content), "graviton.POST.failed", "POSTFailed");
+        public static Task<JsonDocument?> POSTAsync(string APIPath, object json, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PostAsJsonAsync($"{Host}{APIPath}", json), "graviton.POST.failed", "POSTFailed");
+        public static Task<JsonDocument?> PUTAsync(string APIPath, HttpContent content, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PutAsync($"{Host}{APIPath}", content), "graviton.PUT.failed", "PUTFailed");
+        public static Task<JsonDocument?> PUTAsync(string APIPath, object json, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PutAsJsonAsync($"{Host}{APIPath}", json), "graviton.PUT.failed", "PUTFailed");
+        public static Task<JsonDocument?> DELETEAsync(string APIPath, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.DeleteAsync($"{Host}{APIPath}"), "graviton.DELETE.failed", "DELETEFailed");
 
-        public static Task<JsonDocument?> RomMPostJsonAsync(string APIPath, object json, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PostAsJsonAsync($"{Host}{APIPath}", json), "graviton.POST.failed", "POSTFailed");
-        public static Task<JsonDocument?> RomMPutJsonAsync(string APIPath, object json, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PutAsJsonAsync($"{Host}{APIPath}", json), "graviton.PUT.failed", "PUTFailed");
 
-        public static Task<JsonDocument?> RomMPostContentAsync(string APIPath, HttpContent content, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PostAsync($"{Host}{APIPath}", content), "graviton.POST.failed", "POSTFailed");
-        public static Task<RawClientResponse?> RomMRawPostContentAsync(string APIPath, HttpContent content, bool PublicEndpoint = false) => ExecuteRawAsync(APIPath, PublicEndpoint, () => httpClient.PostAsync($"{Host}{APIPath}", content), "graviton.POST.failed", "POSTFailed");
-        public static Task<JsonDocument?> RomMPutContentAsync(string APIPath, HttpContent content, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PutAsync($"{Host}{APIPath}", content), "graviton.PUT.failed", "PUTFailed");
-        public static Task<RawClientResponse?> RomMRawPutContentAsync(string APIPath, HttpContent content, bool PublicEndpoint = false) => ExecuteRawAsync(APIPath, PublicEndpoint, () => httpClient.PutAsync($"{Host}{APIPath}", content), "graviton.PUT.failed", "PUTFailed");
+        public static Task<RawClientResponse?> RawGETAsync(string APIPath, bool PublicEndpoint = false) => ExecuteRawAsync(APIPath, PublicEndpoint, () => httpClient.GetAsync($"{Host}{APIPath}"), "graviton.GET.failed", "GETFailed");
+        public static Task<RawClientResponse?> RawPOSTAsync(string APIPath, HttpContent content, bool PublicEndpoint = false) => ExecuteRawAsync(APIPath, PublicEndpoint, () => httpClient.PostAsync($"{Host}{APIPath}", content), "graviton.POST.failed", "POSTFailed");
+        public static Task<RawClientResponse?> RawPOSTAsync(string APIPath, object json, bool PublicEndpoint = false) => ExecuteRawAsync(APIPath, PublicEndpoint, () => httpClient.PostAsJsonAsync($"{Host}{APIPath}", json), "graviton.POST.failed", "POSTFailed");
+        public static Task<RawClientResponse?> RawPUTAsync(string APIPath, HttpContent content, bool PublicEndpoint = false) => ExecuteRawAsync(APIPath, PublicEndpoint, () => httpClient.PutAsync($"{Host}{APIPath}", content), "graviton.PUT.failed", "PUTFailed");
+        public static Task<RawClientResponse?> RawPUTAsync(string APIPath, object json, bool PublicEndpoint = false) => ExecuteRawAsync(APIPath, PublicEndpoint, () => httpClient.PutAsJsonAsync($"{Host}{APIPath}", json), "graviton.PUT.failed", "PUTFailed");
+
 
         private static string ExtractErrorResponse(string body)
         {

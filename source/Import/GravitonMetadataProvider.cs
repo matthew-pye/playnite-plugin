@@ -27,7 +27,7 @@ namespace Graviton.Import
                     if (!int.TryParse(Game.LibraryGameId?.Split(':')[0], out romMId))
                         throw new Exception($"[Metadata] {Game.Name} GameID is malformed!");
 
-                    var result = await HttpClientSingleton.RomMGetAsync($"/api/roms/{romMId}");
+                    var result = await RomMServer.GETAsync($"/api/roms/{romMId}");
                     if (result == null)
                         return false;
 

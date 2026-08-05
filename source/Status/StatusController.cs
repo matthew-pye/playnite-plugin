@@ -47,7 +47,7 @@ namespace Graviton.Status
                 }
             };
             var playsessions = new { device_id = _plugin.Settings.AccountState.DeviceID, sessions = session };    
-            var response = await HttpClientSingleton.RomMPostJsonAsync("/api/play-sessions", playsessions);
+            var response = await RomMServer.POSTAsync("/api/play-sessions", playsessions);
 
         }
 
@@ -98,7 +98,7 @@ namespace Graviton.Status
             var formData = new MultipartFormDataContent();
             formData.Add(new StringContent("Favorites"), "name");
 
-            var result = await HttpClientSingleton.RomMPostContentAsync("/api/collections?is_favorite=true&is_public=false", formData);
+            var result = await RomMServer.POSTAsync("/api/collections?is_favorite=true&is_public=false", formData);
             if (result == null)
                 return null;
 
@@ -115,7 +115,7 @@ namespace Graviton.Status
 
         public async Task<RomMCollection?> PullFavourites()
         {
-            var result = await HttpClientSingleton.RomMGetAsync("/api/collections");
+            var result = await RomMServer.GETAsync("/api/collections");
             if (result == null)
                 return null;
 
@@ -145,7 +145,7 @@ namespace Graviton.Status
 
             var formData = new MultipartFormDataContent();
             formData.Add(new StringContent(JsonSerializer.Serialize(favouriteCollection.RomIDs)), "rom_ids");
-            var result = await HttpClientSingleton.RomMPutContentAsync($"/api/collections/{favouriteCollection.Id}", formData);
+            var result = await RomMServer.PUTAsync($"/api/collections/{favouriteCollection.Id}", formData);
 
         }
 
@@ -180,7 +180,7 @@ namespace Graviton.Status
               status = (status != "backlogged" && status != "now_playing" && status != "not_played") ? status : null            
             };
 
-            await HttpClientSingleton.RomMPutJsonAsync($"/api/roms/{romMID}/props", props);
+            await RomMServer.PUTAsync($"/api/roms/{romMID}/props", props);
         }
 
         //public async Task RefreshRA()
@@ -213,7 +213,7 @@ namespace Graviton.Status
                 while (!token.IsCancellationRequested)
                 {
                     var heartbeat = new { rom_id = romMID, device_id = _plugin.Settings.AccountState.DeviceID };
-                    await HttpClientSingleton.RomMPostJsonAsync("/api/activity/heartbeat", heartbeat);
+                    await RomMServer.POSTAsync("/api/activity/heartbeat", heartbeat);
                     await Task.Delay(5000, token);
                 }
             }
@@ -224,7 +224,7 @@ namespace Graviton.Status
             }
             finally
             {
-                await HttpClientSingleton.RomMDeleteAsync($"/api/activity/heartbeat?device_id={_plugin.Settings.AccountState.DeviceID}");
+                await RomMServer.DELETEAsync($"/api/activity/heartbeat?device_id={_plugin.Settings.AccountState.DeviceID}");
             }
 
         }

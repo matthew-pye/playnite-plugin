@@ -153,7 +153,7 @@ namespace Graviton
                 Directory.CreateDirectory($"{PluginDataPath}/temp/");
 
             GravitonNotify.Initialize(Instance, PlayniteApi, Logger);
-            HttpClientSingleton.Initialize(Instance);
+            RomMServer.Initialize(Instance);
 
             SettingsHandler = new(Instance, PlayniteApi, Logger);
             ImportController = new(Instance, PlayniteApi, Logger);
@@ -197,11 +197,11 @@ namespace Graviton
             {
                 if (Settings.UseBasicAuth)
                 {
-                    HttpClientSingleton.ConfigureBasicAuth(Settings.UsernameNP, Settings.PasswordNP);
+                    RomMServer.ConfigureBasicAuth(Settings.UsernameNP, Settings.PasswordNP);
                 }
                 else
                 {
-                    HttpClientSingleton.ConfigureClientToken(Settings.ClientTokenNP);
+                    RomMServer.ConfigureClientToken(Settings.ClientTokenNP);
                 }
 
                 if (Account == null)

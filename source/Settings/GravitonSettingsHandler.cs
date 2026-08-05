@@ -50,7 +50,7 @@ namespace Graviton.Settings
                 if (string.IsNullOrEmpty(header.Name))
                     continue;
 
-                HttpClientSingleton.Instance.DefaultRequestHeaders.Remove(header.Name);
+                RomMServer.RemoveHeader(header.Name);
             }
 
             // Add old headers back
@@ -59,7 +59,7 @@ namespace Graviton.Settings
                 if (string.IsNullOrEmpty(header.Name) || string.IsNullOrEmpty(header.Value))
                     continue;
 
-                HttpClientSingleton.Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
+                RomMServer.AddHeader(header.Name, header.Value);
             }
 
             await Task.CompletedTask;
@@ -71,8 +71,8 @@ namespace Graviton.Settings
             SaveSettings(_playniteAPI.UserDataDir, Settings);
             foreach (var header in Settings.CustomHeaders.Where(x => x.Enabled))
             {
-                HttpClientSingleton.Instance.DefaultRequestHeaders.Remove(header.Name);
-                HttpClientSingleton.Instance.DefaultRequestHeaders.Add(header.Name, header.Value);
+                RomMServer.RemoveHeader(header.Name);
+                RomMServer.AddHeader(header.Name, header.Value);
             }
             InEditingMode = false;
 

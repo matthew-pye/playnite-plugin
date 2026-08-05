@@ -106,7 +106,7 @@ namespace Graviton.Import
 
         public async Task<List<RomMPlatform>?> FetchPlatforms()
         {
-            var result = await HttpClientSingleton.RomMGetAsync("/api/platforms");
+            var result = await RomMServer.GETAsync("/api/platforms");
             if (result == null)
             {
                 _plugin.Settings.AccountState.LastAuthenticated = null;
@@ -124,7 +124,11 @@ namespace Graviton.Import
                 {
                     if(_platformSlugRegex.IsMatch(platform.Slug!))
                     {
-                        using Stream stream = await HttpClientSingleton.Instance!.GetStreamAsync($"{_plugin.Settings.Host}/assets/platforms/{platform.Slug}.svg");
+                        var rawResponse = await RomMServer.RawGETAsync($"/assets/platforms/{platform.Slug}.svg");
+                        if (rawResponse == null || rawResponse.Content == null)
+                            throw new Exception("Failed to get response from server");
+
+                        Stream stream = await rawResponse.Content.ReadAsStreamAsync();
                         var svg = SvgDocument.Open<SvgDocument>(stream);
                         
                         var image = svg.Draw();
@@ -195,7 +199,7 @@ namespace Graviton.Import
                 {
                     var romURL = url + $"offset={offset}";
 
-                    var request = await HttpClientSingleton.RomMGetAsync(romURL);
+                    var request = await RomMServer.GETAsync(romURL);
                     var roms = request?.RootElement.GetProperty("items").Deserialize<List<RomMRom>>() ?? throw new Exception("Deserialize failed");
                     romData.AddRange(roms);
 

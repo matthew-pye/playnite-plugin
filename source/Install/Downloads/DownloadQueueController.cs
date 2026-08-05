@@ -4,7 +4,6 @@ using SharpCompress.Archives;
 
 using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
 
 using static Playnite.InstallController;
 
@@ -121,57 +120,56 @@ namespace Graviton.Install.Downloads
             item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloading"));
             item.SetProgress(0, 1, true);
 
-            using (var response = await HttpClientSingleton.Instance.GetAsync(req.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct)
-                                            .ConfigureAwait(false))
+            var response = await RomMServer.RawGETAsync(req.DownloadUrl);
+            if (response == null || response.Content == null)
+                throw new Exception("Null response from server");
+
+            var totalBytes = response.Content.Headers.ContentLength;
+            item.SetProgress(0, totalBytes ?? 1, !totalBytes.HasValue);
+
+            Directory.CreateDirectory(req.InstallDir);
+
+            byte[] buffer = new byte[1024 * 256];
+            long downloaded = 0;
+            long lastUiUpdate = 0;
+            const long uiUpdateThreshold = 1024 * 512; // 512KB
+
+            using (var httpStream = await response.Content.ReadAsStreamAsync())
+            using (var fileStream = new FileStream(req.GamePath, FileMode.Create, FileAccess.Write, FileShare.None, buffer.Length, true))
             {
-                response.EnsureSuccessStatusCode();
-
-                var totalBytes = response.Content.Headers.ContentLength;
-                item.SetProgress(0, totalBytes ?? 1, !totalBytes.HasValue);
-
-                Directory.CreateDirectory(req.InstallDir);
-
-                byte[] buffer = new byte[1024 * 256];
-                long downloaded = 0;
-                long lastUiUpdate = 0;
-                const long uiUpdateThreshold = 1024 * 512; // 512KB
-
-                using (var httpStream = await response.Content.ReadAsStreamAsync())
-                using (var fileStream = new FileStream(req.GamePath, FileMode.Create, FileAccess.Write, FileShare.None, buffer.Length, true))
+                while (true)
                 {
-                    while (true)
+                    ct.ThrowIfCancellationRequested();
+
+                    int read = await httpStream.ReadAsync(buffer, 0, buffer.Length, ct);
+                    if (read <= 0)
                     {
-                        ct.ThrowIfCancellationRequested();
+                        break;
+                    }
 
-                        int read = await httpStream.ReadAsync(buffer, 0, buffer.Length, ct);
-                        if (read <= 0)
+                    await fileStream.WriteAsync(buffer, 0, read, ct);
+
+                    downloaded += read;
+
+                    if (downloaded - lastUiUpdate >= uiUpdateThreshold)
+                    {
+                        lastUiUpdate = downloaded;
+
+                        if (totalBytes.HasValue && totalBytes.Value > 0)
                         {
-                            break;
+                            item.SetProgress(downloaded, totalBytes.Value, false);
+                            var pct = (double)downloaded / totalBytes.Value * 100.0;
+                            item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloadingPct", ("Percent", pct.ToString("0"))));
                         }
-
-                        await fileStream.WriteAsync(buffer, 0, read, ct);
-
-                        downloaded += read;
-
-                        if (downloaded - lastUiUpdate >= uiUpdateThreshold)
+                        else
                         {
-                            lastUiUpdate = downloaded;
-
-                            if (totalBytes.HasValue && totalBytes.Value > 0)
-                            {
-                                item.SetProgress(downloaded, totalBytes.Value, false);
-                                var pct = (double)downloaded / totalBytes.Value * 100.0;
-                                item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloadingPct", ("Percent", pct.ToString("0"))));
-                            }
-                            else
-                            {
-                                item.SetProgress(downloaded, Math.Max(1, downloaded), true);
-                                item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloading"));
-                            }
+                            item.SetProgress(downloaded, Math.Max(1, downloaded), true);
+                            item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloading"));
                         }
                     }
                 }
             }
+            
 
             // Extract if needed (we treat extract as 0..100 in its own bar)
             if (req.HasMultipleFiles || (req.AutoExtract && IsFileCompressed(req.GamePath)))

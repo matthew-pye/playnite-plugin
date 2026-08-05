@@ -95,7 +95,7 @@ SaveLocationConfirm = Do you want the save to be unpacked here:\n{$Path}
 ReplaceSaveTitle = Replace save
 ReplaceSaveConfirm = {$GameName} already has a save being tracked do you want to replace it?
 
-# Save Discovery / Helpers / Http
+# Save
 NoAutoDetectExtensions = One or more mappings have no auto detect extensions, they have been skipped!
 PackSaveFailed = Failed to pack save archive to {$Path}
 PackSaveFilesSkipped = One or more files/folders were skipped when packing save, see logs
@@ -109,6 +109,7 @@ SyncAfterGameQuitDisabled = 'Sync after game quit' disabled, skipping sync!
 GameNotFoundSkipSync = Game with {$GameId} not found, skipping sync!
 ServerNoResponseSync = The server failed to respond, skipping sync
 NoSyncNeeded = No sync needed for {$GameName}
+SyncStillConflicted = No option selected to resolve conflict for {$GameName} 
 SaveFileZeroBytes = The save file for {$GameName} has 0 bytes, skipping sync
 SaveFileMissingFiles = The save file for {$GameName} has missing files, skipping sync
 SaveUploadSuccess = {$GameName} save backed up ({$Size})

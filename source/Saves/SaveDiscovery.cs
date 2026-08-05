@@ -285,7 +285,7 @@ namespace Graviton.Saves
 
                 foreach (var rom in ROMs)
                 {
-                    response = await HttpClientSingleton.RomMGetAsync($"/api/saves?rom_id={rom.Id}");
+                    response = await RomMServer.GETAsync($"/api/saves?rom_id={rom.Id}");
                     if (response == null)
                         continue;
 
@@ -312,11 +312,11 @@ namespace Graviton.Saves
 
             if (Mapping != null)
             {
-                response = await HttpClientSingleton.RomMGetAsync($"/api/saves?platform_id={Mapping.RomMPlatformId}");
+                response = await RomMServer.GETAsync($"/api/saves?platform_id={Mapping.RomMPlatformId}");
             }
             else
             {
-                response = await HttpClientSingleton.RomMGetAsync($"/api/saves");
+                response = await RomMServer.GETAsync($"/api/saves");
             }
 
             if (response == null)
