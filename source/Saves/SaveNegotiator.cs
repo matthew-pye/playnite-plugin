@@ -18,14 +18,15 @@ namespace Graviton.Saves
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
         private ILogger _logger;
-
+        private IRomMServer _romMServer;
         private SaveController SaveController => _plugin.SaveController!;
 
-        public SaveNegotiator(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
+        public SaveNegotiator(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
             _logger = logger;
+            _romMServer = romMServer;
         }
 
         public async Task<List<RomMRomLocal>?> SoftNegotiateSaves(List<RomMRomLocal> roms)
@@ -231,13 +232,13 @@ namespace Graviton.Saves
             rom.Save();
 
             var deviceid = new { operations_completed = operationCompleted, operations_failed = operationFailed};
-            await RomMServer.POSTAsync($"/api/sync/sessions/{response.SessionID}/complete", deviceid);
+            await _romMServer.POSTAsync($"/api/sync/sessions/{response.SessionID}/complete", deviceid);
 
         }
 
         public async Task<RomMNegotiateResponse?> Negotiate(RomMNegotiate negotiate)
         { 
-            var response = await RomMServer.POSTAsync("/api/sync/negotiate", negotiate);
+            var response = await _romMServer.POSTAsync("/api/sync/negotiate", negotiate);
             if (response == null)
                 return null;
 

@@ -21,15 +21,17 @@ namespace Graviton.Import
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
         private ILogger _logger;
+        private IRomMServer _romMServer;
 
         private static readonly Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
         private static readonly Regex _platformSlugRegex = new Regex("^[a-zA-Z0-9_\\-]+$");
 
-        public GravitonImportController(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
+        public GravitonImportController(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer server)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
             _logger = logger;
+            _romMServer = server;
         }
 
         public async Task<List<Game>> Import(ImportGamesArgs args)
@@ -106,7 +108,7 @@ namespace Graviton.Import
 
         public async Task<List<RomMPlatform>?> FetchPlatforms()
         {
-            var result = await RomMServer.GETAsync("/api/platforms");
+            var result = await _romMServer.GETAsync("/api/platforms");
             if (result == null)
             {
                 _plugin.Settings.AccountState.LastAuthenticated = null;
@@ -124,7 +126,7 @@ namespace Graviton.Import
                 {
                     if(_platformSlugRegex.IsMatch(platform.Slug!))
                     {
-                        var rawResponse = await RomMServer.RawGETAsync($"/assets/platforms/{platform.Slug}.svg");
+                        var rawResponse = await _romMServer.RawGETAsync($"/assets/platforms/{platform.Slug}.svg");
                         if (rawResponse == null || rawResponse.Content == null)
                             throw new Exception("Failed to get response from server");
 
@@ -199,7 +201,7 @@ namespace Graviton.Import
                 {
                     var romURL = url + $"offset={offset}";
 
-                    var request = await RomMServer.GETAsync(romURL);
+                    var request = await _romMServer.GETAsync(romURL);
                     var roms = request?.RootElement.GetProperty("items").Deserialize<List<RomMRom>>() ?? throw new Exception("Deserialize failed");
                     romData.AddRange(roms);
 

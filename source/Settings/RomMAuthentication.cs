@@ -17,19 +17,21 @@ namespace Graviton.Settings
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
         private ILogger _logger;
+        private IRomMServer _romMServer;
 
         private static readonly Regex _iconPathRegex = new Regex(@"^users/[^/]+/profile/avatar\.(png|jpg|jpeg|webp)$");
 
-        public RomMAuthentication(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
+        public RomMAuthentication(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer server)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
             _logger = logger;
+            _romMServer = server;
         }
 
         public async Task<ServerInfo?> Heartbeat()
         {
-            var result = await RomMServer.GETAsync("/api/heartbeat", true);
+            var result = await _romMServer.GETAsync("/api/heartbeat", true);
             if(result == null)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.heartbeat.failed", Loc.GetString("HeartbeatFailed"), GravitonSeverity.Error));
@@ -65,7 +67,7 @@ namespace Graviton.Settings
                     return false;
                 }
                  
-                RomMServer.ConfigureBasicAuth(_plugin.Settings.UsernameNP, _plugin.Settings.PasswordNP);
+                _romMServer.ConfigureBasicAuth(_plugin.Settings.UsernameNP, _plugin.Settings.PasswordNP);
             }
             else
             {
@@ -77,7 +79,7 @@ namespace Graviton.Settings
                 }
                     
 
-                RomMServer.ConfigureClientToken(_plugin.Settings.ClientTokenNP);
+                _romMServer.ConfigureClientToken(_plugin.Settings.ClientTokenNP);
             }
 
             _plugin.Settings.AccountState.LastAuthenticated = DateTime.UtcNow;
@@ -156,7 +158,7 @@ namespace Graviton.Settings
 
         public async Task<bool> SyncUserData()
         {
-            var result = await RomMServer.GETAsync("/api/users/me");
+            var result = await _romMServer.GETAsync("/api/users/me");
             if (result == null)
                 return false;  
                   
@@ -168,7 +170,7 @@ namespace Graviton.Settings
 
                 if (!string.IsNullOrEmpty(userinfo.IconPath) && _iconPathRegex.IsMatch(userinfo.IconPath))
                 {
-                    var response = await RomMServer.RawGETAsync($"/api/users/{userinfo.Id}/avatar");
+                    var response = await _romMServer.RawGETAsync($"/api/users/{userinfo.Id}/avatar");
                     if (response == null || response.Content == null)
                         throw new Exception("Null response from server");
 
@@ -243,7 +245,7 @@ namespace Graviton.Settings
 
             try
             {
-                var response = await RomMServer.POSTAsync("/api/auth/device/init", deviceInit, true);
+                var response = await _romMServer.POSTAsync("/api/auth/device/init", deviceInit, true);
                 if (response == null)
                 {
                     return null;
@@ -280,7 +282,7 @@ namespace Graviton.Settings
 
                     try
                     {
-                        response = await RomMServer.RawPOSTAsync($"/api/auth/device/token", deviceCode);
+                        response = await _romMServer.RawPOSTAsync($"/api/auth/device/token", deviceCode);
                         if (response == null || response.Content == null)
                             throw new Exception("Null response from server");
 
@@ -344,7 +346,7 @@ namespace Graviton.Settings
             // Check to see if current device id is valid
             if (!string.IsNullOrEmpty(_plugin.Settings.AccountState.DeviceID))
             {
-                var result = await RomMServer.GETAsync("/api/devices");
+                var result = await _romMServer.GETAsync("/api/devices");
                 if (result != null)
                 {
                     try
@@ -370,7 +372,7 @@ namespace Graviton.Settings
             newDevice.ClientVersion = GravitonPlugin.Version.ToString();
             newDevice.HostName = Environment.MachineName;
 
-            var request = await RomMServer.POSTAsync("/api/devices", newDevice);
+            var request = await _romMServer.POSTAsync("/api/devices", newDevice);
             if (request == null)
                 return false;
 
@@ -402,7 +404,7 @@ namespace Graviton.Settings
             newDevice.MACAddress = (from nic in NetworkInterface.GetAllNetworkInterfaces() where nic.OperationalStatus == OperationalStatus.Up select nic.GetPhysicalAddress().ToString()).FirstOrDefault();
             newDevice.HostName = Environment.MachineName;
 
-            var result = await RomMServer.PUTAsync($"/api/devices/{_plugin.Settings.AccountState.DeviceID}", newDevice);
+            var result = await _romMServer.PUTAsync($"/api/devices/{_plugin.Settings.AccountState.DeviceID}", newDevice);
             if (result == null)
                 return false;
 

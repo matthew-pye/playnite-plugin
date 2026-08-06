@@ -18,6 +18,7 @@ namespace Graviton.Saves
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
         private ILogger _logger;
+        private IRomMServer _romMServer;
 
         private SaveController SaveController => _plugin.SaveController!;
 
@@ -26,11 +27,12 @@ namespace Graviton.Saves
         private EmulatorMapping? Mapping;
         private List<RomMRomLocal>? ROMs;
 
-        public SaveDiscovery(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
+        public SaveDiscovery(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
             _logger = logger;
+            _romMServer = romMServer;
         }
 
         public async Task<List<GravitonSave>?> Discover(EmulatorMapping mapping)
@@ -295,7 +297,7 @@ namespace Graviton.Saves
 
                 foreach (var rom in ROMs)
                 {
-                    response = await RomMServer.GETAsync($"/api/saves?rom_id={rom.Id}");
+                    response = await _romMServer.GETAsync($"/api/saves?rom_id={rom.Id}");
                     if (response == null)
                         continue;
 
@@ -322,11 +324,11 @@ namespace Graviton.Saves
 
             if (Mapping != null)
             {
-                response = await RomMServer.GETAsync($"/api/saves?platform_id={Mapping.RomMPlatformId}");
+                response = await _romMServer.GETAsync($"/api/saves?platform_id={Mapping.RomMPlatformId}");
             }
             else
             {
-                response = await RomMServer.GETAsync($"/api/saves");
+                response = await _romMServer.GETAsync($"/api/saves");
             }
 
             if (response == null)

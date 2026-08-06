@@ -19,14 +19,16 @@ namespace Graviton.Settings
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
         private ILogger _logger;
+        private IRomMServer _romMServer;
 
         [ObservableProperty] private GravitonPluginSettings settings = new();
 
-        public GravitonSettingsHandler(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger) 
+        public GravitonSettingsHandler(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer server) 
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
-            _logger = logger;   
+            _logger = logger;
+            _romMServer = server;
         }
 
         public override UserControl GetEditView(GetSettingsViewArgs args)
@@ -50,7 +52,7 @@ namespace Graviton.Settings
                 if (string.IsNullOrEmpty(header.Name))
                     continue;
 
-                RomMServer.RemoveHeader(header.Name);
+                _romMServer.RemoveHeader(header.Name);
             }
 
             // Add old headers back
@@ -59,7 +61,7 @@ namespace Graviton.Settings
                 if (string.IsNullOrEmpty(header.Name) || string.IsNullOrEmpty(header.Value))
                     continue;
 
-                RomMServer.AddHeader(header.Name, header.Value);
+                _romMServer.AddHeader(header.Name, header.Value);
             }
 
             await Task.CompletedTask;
@@ -71,8 +73,8 @@ namespace Graviton.Settings
             SaveSettings(_playniteAPI.UserDataDir, Settings);
             foreach (var header in Settings.CustomHeaders.Where(x => x.Enabled))
             {
-                RomMServer.RemoveHeader(header.Name);
-                RomMServer.AddHeader(header.Name, header.Value);
+                _romMServer.RemoveHeader(header.Name);
+                _romMServer.AddHeader(header.Name, header.Value);
             }
             InEditingMode = false;
 

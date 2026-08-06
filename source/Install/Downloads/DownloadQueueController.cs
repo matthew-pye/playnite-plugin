@@ -11,9 +11,10 @@ namespace Graviton.Install.Downloads
 {
     public class DownloadQueueController
     {
-        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
-        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
-        private ILogger _logger { get => GravitonPlugin.Logger; }
+        private GravitonPlugin _plugin;
+        private IPlayniteApi _playniteAPI;
+        private ILogger _logger;
+        private IRomMServer _romMServer;
 
         private readonly DownloadQueueViewModel DownloadQueueVM;
         private readonly SemaphoreSlim concurrencyGate;
@@ -23,8 +24,13 @@ namespace Graviton.Install.Downloads
         public ILogger Logger => LogManager.GetLogger();
         public int MaxConcurrent { get; }
 
-        public DownloadQueueController(DownloadQueueViewModel downloadQueueVM, int maxConcurrent)
+        public DownloadQueueController(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer, DownloadQueueViewModel downloadQueueVM, int maxConcurrent)
         {
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+            _romMServer = romMServer;
+
             DownloadQueueVM = downloadQueueVM;
 
             MaxConcurrent = Math.Max(1, maxConcurrent);
@@ -120,7 +126,7 @@ namespace Graviton.Install.Downloads
             item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloading"));
             item.SetProgress(0, 1, true);
 
-            var response = await RomMServer.RawGETAsync(req.DownloadUrl);
+            var response = await _romMServer.RawGETAsync(req.DownloadUrl);
             if (response == null || response.Content == null)
                 throw new Exception("Null response from server");
 

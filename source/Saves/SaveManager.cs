@@ -22,14 +22,15 @@ namespace Graviton.Saves
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
         private ILogger _logger;
-
+        private IRomMServer _romMServer;
         private SaveController SaveController => _plugin.SaveController!;
 
-        public SaveManager(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
+        public SaveManager(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
             _logger = logger;
+            _romMServer = romMServer;
         }
 
         public async Task<GravitonSave> Upload(GravitonSave save, bool overwrite = false, byte[]? screenshot = null, RomMNegotiateOperations? operation = null)
@@ -97,7 +98,7 @@ namespace Graviton.Saves
             savecontent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             content.Add(savecontent, "saveFile", Path.GetFileName(savePath));
 
-            var response = await RomMServer.RawPOSTAsync($"/api/saves?rom_id={rom.Id}&slot={save.Slot}&autocleanup={_plugin.Settings.AutoCleanupSaves}&autocleanup_limit={_plugin.Settings.AutoCleanupSavesLimit}&device_id={_plugin.Settings.AccountState.DeviceID}&overwrite={overwrite}", content);
+            var response = await _romMServer.RawPOSTAsync($"/api/saves?rom_id={rom.Id}&slot={save.Slot}&autocleanup={_plugin.Settings.AutoCleanupSaves}&autocleanup_limit={_plugin.Settings.AutoCleanupSavesLimit}&device_id={_plugin.Settings.AccountState.DeviceID}&overwrite={overwrite}", content);
 
             if (response?.Status == HttpStatusCode.Conflict)
             {
@@ -144,7 +145,7 @@ namespace Graviton.Saves
                     savecontent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                     content.Add(savecontent, "screenshotFile", (Path.GetFileNameWithoutExtension(result.FileName!) + ".jpg"));
 
-                    _ = await RomMServer.PUTAsync($"/api/saves/{result.ID}?device_id={_plugin.Settings.AccountState.DeviceID}", content);
+                    _ = await _romMServer.PUTAsync($"/api/saves/{result.ID}?device_id={_plugin.Settings.AccountState.DeviceID}", content);
 
                 }
 
@@ -214,7 +215,7 @@ namespace Graviton.Saves
                 return save;
             }
 
-            var savedata = await RomMServer.RawGETAsync($"/api/saves/{save.SaveID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
+            var savedata = await _romMServer.RawGETAsync($"/api/saves/{save.SaveID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
             if (savedata == null || savedata.Status != HttpStatusCode.OK)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadServerDataFailed"), GravitonSeverity.Error));
@@ -276,7 +277,7 @@ namespace Graviton.Saves
             }
 
             var deviceid = new { device_id = _plugin.Settings.AccountState.DeviceID };
-            await RomMServer.POSTAsync($"/api/saves/{save.SaveID}/downloaded", deviceid);
+            await _romMServer.POSTAsync($"/api/saves/{save.SaveID}/downloaded", deviceid);
             
             GravitonNotify.Add(new GravitonNotification("graviton.download.success", Loc.GetString("SaveDownloadSuccess", ("GameName", rom.Name!), ("Size", save.FileSizeString)), GravitonSeverity.Success));
             return save;
@@ -316,7 +317,7 @@ namespace Graviton.Saves
                 await UntrackSave(save.SaveID);
             }
 
-            var savedata = await RomMServer.RawGETAsync($"/api/saves/{save.SaveID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
+            var savedata = await _romMServer.RawGETAsync($"/api/saves/{save.SaveID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
             if (savedata == null || savedata.Status != HttpStatusCode.OK)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadServerDataFailed"), GravitonSeverity.Error));
@@ -376,7 +377,7 @@ namespace Graviton.Saves
             rom.Save();
 
             var deviceid = new { device_id = _plugin.Settings.AccountState.DeviceID };
-            await RomMServer.POSTAsync($"/api/saves/{save.SaveID}/downloaded", deviceid);
+            await _romMServer.POSTAsync($"/api/saves/{save.SaveID}/downloaded", deviceid);
 
             GravitonNotify.Add(new GravitonNotification("graviton.download.success", Loc.GetString("SaveDownloadSuccess", ("GameName", rom.Name!), ("Size", save.FileSizeString)), GravitonSeverity.Success));
             return save;
@@ -412,7 +413,7 @@ namespace Graviton.Saves
                 return null;
             }
 
-            var savedata = await RomMServer.RawGETAsync($"/api/saves/{save.ID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
+            var savedata = await _romMServer.RawGETAsync($"/api/saves/{save.ID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
             if (savedata == null || savedata.Status != HttpStatusCode.OK)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadServerDataFailed"), GravitonSeverity.Error));
@@ -459,7 +460,7 @@ namespace Graviton.Saves
             newsave.Status = SaveStatus.LocalNewer;
 
             var deviceid = new { device_id = _plugin.Settings.AccountState.DeviceID };
-            await RomMServer.POSTAsync($"/api/saves/{save.ID}/downloaded", deviceid);
+            await _romMServer.POSTAsync($"/api/saves/{save.ID}/downloaded", deviceid);
 
             return await TrackNewLocalSave(newsave);
         }
@@ -496,7 +497,7 @@ namespace Graviton.Saves
         public async Task UntrackSave(int saveID)
         {
             var deviceid = new { device_id = _plugin.Settings.AccountState.DeviceID };
-            await RomMServer.POSTAsync($"/api/saves/{saveID}/untrack", deviceid);
+            await _romMServer.POSTAsync($"/api/saves/{saveID}/untrack", deviceid);
         }
 
         private async Task<SaveSyncStatus> AutoConflictResolve(GravitonSave save, RomMRomLocal rom, string localFilePath, bool isPacked, RomMNegotiateOperations? operation = null)

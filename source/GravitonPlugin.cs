@@ -35,6 +35,7 @@ namespace Graviton
         internal static GravitonPlugin Instance { get; private set; } = null!;
         internal static IPlayniteApi PlayniteApi { get; private set; } = null!;
         internal static ILogger Logger { get; private set; } = null!;
+        internal static RomMServer RomMServer { get; private set; } = null!;
 
         internal GravitonImportController? ImportController { get; private set; }
         internal SaveController? SaveController { get; private set; }
@@ -155,14 +156,14 @@ namespace Graviton
                 Directory.CreateDirectory($"{PluginDataPath}/temp/");
 
             GravitonNotify.Initialize(Instance, PlayniteApi, Logger);
-            RomMServer.Initialize(Instance);
-
-            SettingsHandler = new(Instance, PlayniteApi, Logger);
-            ImportController = new(Instance, PlayniteApi, Logger);
-            SaveController = new(Instance, PlayniteApi, Logger);
-            StatusController = new(Instance, PlayniteApi, Logger);
             
-            Account = new(Instance, PlayniteApi, Logger);
+            RomMServer = new(Instance);
+            SettingsHandler = new(Instance, PlayniteApi, Logger, RomMServer);
+            ImportController = new(Instance, PlayniteApi, Logger, RomMServer);
+            SaveController = new(Instance, PlayniteApi, Logger, RomMServer);
+            StatusController = new(Instance, PlayniteApi, Logger, RomMServer);
+            
+            Account = new(Instance, PlayniteApi, Logger, RomMServer);
 
             ImportedGames = new ConcurrentDictionary<string, RomMRomLocal>();
             
@@ -186,7 +187,7 @@ namespace Graviton
             }
 
             _downloadsViewModel = new();
-            DownloadQueueController = new(_downloadsViewModel, maxConcurrent: 10);
+            DownloadQueueController = new(Instance, PlayniteApi, Logger, RomMServer, _downloadsViewModel, maxConcurrent: 10);
             _downloadsAppView = new();
 
         }
@@ -232,7 +233,7 @@ namespace Graviton
 
         public override Task<MetadataProvider?> GetMetadataProviderAsync(GetMetadataProviderArgs args)
         {
-            return Task.FromResult<MetadataProvider?>(new GravitonMetadataProvider());
+            return Task.FromResult<MetadataProvider?>(new GravitonMetadataProvider(Instance, PlayniteApi, Logger, RomMServer));
         }
 
         public override async Task OnGameCollectionChange(DataCollectionChangeArgs<Game> args)

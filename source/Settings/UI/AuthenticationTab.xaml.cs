@@ -23,6 +23,7 @@ namespace Graviton.Settings
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
         private ILogger _logger { get => GravitonPlugin.Logger; }
+        private IRomMServer _romMServer { get =>  GravitonPlugin.RomMServer; }
 
         Dictionary<string, string[]> ImageFileChoices = new Dictionary<string, string[]>()
         {
@@ -85,7 +86,7 @@ namespace Graviton.Settings
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(filetype);
 
                 content.Add(fileContent, "avatar", fileName);
-                var result = await RomMServer.PUTAsync($"/api/users/{_plugin.Settings.AccountState.UserID}", content);
+                var result = await _romMServer.PUTAsync($"/api/users/{_plugin.Settings.AccountState.UserID}", content);
 
                 if (result != null)
                 {
@@ -241,7 +242,7 @@ namespace Graviton.Settings
             if (header != null)
             {
                 if (!string.IsNullOrEmpty(header.Name))
-                    RomMServer.RemoveHeader(header.Name);
+                    _romMServer.RemoveHeader(header.Name);
 
                 _plugin.Settings.CustomHeaders.Remove(header);
             }
@@ -254,7 +255,7 @@ namespace Graviton.Settings
             var header = ((FrameworkElement)sender).DataContext as CustomHTTPHeader;
             if (header != null && !string.IsNullOrEmpty(header.Name) && !string.IsNullOrEmpty(header.Value))
             {
-                RomMServer.AddHeader(header.Name, header.Value);
+                _romMServer.AddHeader(header.Name, header.Value);
             }
             else if (header != null)
             {
@@ -270,7 +271,7 @@ namespace Graviton.Settings
             var header = ((FrameworkElement)sender).DataContext as CustomHTTPHeader;
             if (header != null && !string.IsNullOrEmpty(header.Name))
             {
-                RomMServer.RemoveHeader(header.Name);
+                _romMServer.RemoveHeader(header.Name);
             }
 
             e.Handled = true;

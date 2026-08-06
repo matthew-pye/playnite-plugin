@@ -9,13 +9,20 @@ namespace Graviton.Import
 {
     public class GravitonMetadataProviderGameSession : MetadataProviderGameSession
     {
-        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
-        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
-        private ILogger _logger { get => GravitonPlugin.Logger; }
+        private GravitonPlugin _plugin;
+        private IPlayniteApi _playniteAPI;
+        private ILogger _logger;
+        private IRomMServer _romMServer;
 
         private RomMRom? ROM = null;
 
-        public GravitonMetadataProviderGameSession(Game game) : base(game) { }
+        public GravitonMetadataProviderGameSession(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer, Game game) : base(game) 
+        {
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+            _romMServer = romMServer;
+        }
 
         public async Task<bool> PullRomData()
         {
@@ -27,7 +34,7 @@ namespace Graviton.Import
                     if (!int.TryParse(Game.LibraryGameId?.Split(':')[0], out romMId))
                         throw new Exception($"[Metadata] {Game.Name} GameID is malformed!");
 
-                    var result = await RomMServer.GETAsync($"/api/roms/{romMId}");
+                    var result = await _romMServer.GETAsync($"/api/roms/{romMId}");
                     if (result == null)
                         return false;
 
@@ -159,9 +166,23 @@ namespace Graviton.Import
 
     public class GravitonMetadataProvider : MetadataProvider
     {
+        private GravitonPlugin _plugin;
+        private IPlayniteApi _playniteAPI;
+        private ILogger _logger;
+        private IRomMServer _romMServer;
+
+        public GravitonMetadataProvider(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer)
+        {
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+            _romMServer = romMServer;
+        }
+
+
         public override async Task<MetadataProviderGameSession?> CreateGameSessionAsync(CreateGameMetadataSessionArgs args)
         {
-            GravitonMetadataProviderGameSession metadata = new(args.Game);
+            GravitonMetadataProviderGameSession metadata = new(_plugin, _playniteAPI, _logger, _romMServer, args.Game);
             var success = await metadata.PullRomData();
             if (!success)
                 return null;
