@@ -37,6 +37,8 @@ namespace Graviton
         internal static ILogger Logger { get; private set; } = null!;
 
         internal GravitonImportController? ImportController { get; private set; }
+        internal SaveController? SaveController { get; private set; }
+        internal List<GameSessionHandler> GameSessionHandlers { get; private set; } = new();
         internal StatusController? StatusController { get; private set; }
         internal DownloadQueueController? DownloadQueueController { get; private set; }
 
@@ -157,6 +159,7 @@ namespace Graviton
 
             SettingsHandler = new(Instance, PlayniteApi, Logger);
             ImportController = new(Instance, PlayniteApi, Logger);
+            SaveController = new(Instance, PlayniteApi, Logger);
             StatusController = new(Instance, PlayniteApi, Logger);
             
             Account = new(Instance, PlayniteApi, Logger);
@@ -300,7 +303,9 @@ namespace Graviton
         {
             if (args.Game.LibraryId == Id && args.Game.LibraryGameId != null)
             {
-                await GameSessionHandler.GameStarting(args.Game.LibraryGameId);
+                var newSession = new GameSessionHandler(Instance, PlayniteApi, Logger);
+                await newSession.GameStarting(args.Game.LibraryGameId);
+                GameSessionHandlers.Add(newSession);
             }
         }
 
@@ -308,7 +313,8 @@ namespace Graviton
         {
             if (args.StartingArgs.Game.LibraryId == Id && args.StartingArgs.Game.LibraryGameId != null)
             {
-                _ = GameSessionHandler.GameStarted(args.StartedArgs.StartedProcessId, args.StartingArgs.Game.LibraryGameId);
+                var gameSession = GameSessionHandlers.FirstOrDefault(x => x.GameID == args.StartingArgs.Game.LibraryGameId);
+                _ = gameSession?.GameStarted(args.StartedArgs.StartedProcessId, args.StartingArgs.Game.LibraryGameId);
             }
         }
 
@@ -316,7 +322,12 @@ namespace Graviton
         {
             if (args.StartingArgs.Game.LibraryId == Id)
             {
-                _ = GameSessionHandler.GameStopped(args.StartingArgs.Game.LibraryGameId, args.StoppedArgs.SessionLength);
+                var gameSession = GameSessionHandlers.FirstOrDefault(x => x.GameID == args.StartingArgs.Game.LibraryGameId);
+                if(gameSession != null)
+                {
+                    await gameSession.GameStopped(args.StartingArgs.Game.LibraryGameId, args.StoppedArgs.SessionLength);
+                    GameSessionHandlers.Remove(gameSession);
+                }
             }
         }
 

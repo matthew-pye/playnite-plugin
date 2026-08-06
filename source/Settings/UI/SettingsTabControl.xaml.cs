@@ -12,7 +12,7 @@ namespace Graviton.Settings
         {
             InitializeComponent();
 
-            GameIsRunningText.Visibility = GameSessionHandler.IsAGameRunning ? Visibility.Visible : Visibility.Collapsed;
+            GameIsRunningText.Visibility = GravitonPlugin.Instance.GameSessionHandlers.Count() > 0 ? Visibility.Visible : Visibility.Collapsed;
 
 #if DEBUG
             DEVTAB.Visibility = System.Windows.Visibility.Visible;

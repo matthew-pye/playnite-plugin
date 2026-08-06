@@ -46,7 +46,7 @@ namespace Graviton.Settings
         {
             InitializeComponent();
 
-            MappingPanel.IsEnabled = !GameSessionHandler.IsAGameRunning;
+            MappingPanel.IsEnabled = _plugin.GameSessionHandlers.Count() <= 0;
         }
 
         private async void SyncPlatforms_Click(object sender, RoutedEventArgs e)

@@ -17,14 +17,24 @@ using System.Text.Json;
 
 namespace Graviton.Saves
 {
-    internal static class SaveManager
+    internal class SaveManager
     {
-        private static GravitonPlugin _plugin => GravitonPlugin.Instance;
-        private static IPlayniteApi PlayniteAPI => GravitonPlugin.PlayniteApi;
+        private GravitonPlugin _plugin;
+        private IPlayniteApi _playniteAPI;
+        private ILogger _logger;
 
-        public static async Task<GravitonSave> Upload(GravitonSave save, bool overwrite = false, byte[]? screenshot = null, RomMNegotiateOperations? operation = null)
+        private SaveController SaveController => _plugin.SaveController!;
+
+        public SaveManager(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
         {
-            if (GameSessionHandler.IsAGameRunning)
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+        }
+
+        public async Task<GravitonSave> Upload(GravitonSave save, bool overwrite = false, byte[]? screenshot = null, RomMNegotiateOperations? operation = null)
+        {
+            if (_plugin.GameSessionHandlers.Count() > 0)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info));
                 return save;
@@ -94,7 +104,7 @@ namespace Graviton.Saves
                 var autoConflictResolve = await AutoConflictResolve(save, rom, savePath, isPacked, operation);
                 
                 if (autoConflictResolve == SaveSyncStatus.conflict)
-                    autoConflictResolve = SaveNegotiator.ResolveConflict(save);
+                    autoConflictResolve = SaveController.Negotiator.ResolveConflict(save);
 
                 switch (autoConflictResolve)
                 {
@@ -182,9 +192,9 @@ namespace Graviton.Saves
             }
         }
 
-        public static async Task<GravitonSave> Download(GravitonSave save, bool skipSavingROM = false)
+        public async Task<GravitonSave> Download(GravitonSave save, bool skipSavingROM = false)
         {
-            if (GameSessionHandler.IsAGameRunning)
+            if (_plugin.GameSessionHandlers.Count() > 0)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info));
                 return save;
@@ -272,9 +282,9 @@ namespace Graviton.Saves
             return save;
         }
 
-        public static async Task<GravitonSave> TrackNewRemoteSave(GravitonSave save)
+        public async Task<GravitonSave> TrackNewRemoteSave(GravitonSave save)
         {
-            if (GameSessionHandler.IsAGameRunning)
+            if (_plugin.GameSessionHandlers.Count() > 0)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info));
                 return save;
@@ -296,7 +306,7 @@ namespace Graviton.Saves
 
             if(rom.LocalSave != null && rom.LocalSave.SaveID != -1)
             {
-                var result = await PlayniteAPI.Dialogs.ShowMessageAsync(Loc.GetString("ExistingSaveConfirm", ("Slot", save.Slot!), ("Filename", save.Filename)), Loc.GetString("ExistingSaveTitle"), MessageBoxButtons.YesNo, MessageBoxSeverity.Warning);
+                var result = await _playniteAPI.Dialogs.ShowMessageAsync(Loc.GetString("ExistingSaveConfirm", ("Slot", save.Slot!), ("Filename", save.Filename)), Loc.GetString("ExistingSaveTitle"), MessageBoxButtons.YesNo, MessageBoxSeverity.Warning);
                 if(result == Playnite.MessageBoxResult.No)
                 {
                     GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("SaveAlreadyTrackedDownload"), GravitonSeverity.Info));
@@ -326,10 +336,10 @@ namespace Graviton.Saves
             {
                 string savepath = mapping.SavePath;
 
-                var result = await PlayniteAPI.Dialogs.ShowMessageAsync(Loc.GetString("SaveLocationConfirm", ("Path", savepath)), Loc.GetString("SaveLocationTitle"), MessageBoxButtons.YesNo, MessageBoxSeverity.Warning);
+                var result = await _playniteAPI.Dialogs.ShowMessageAsync(Loc.GetString("SaveLocationConfirm", ("Path", savepath)), Loc.GetString("SaveLocationTitle"), MessageBoxButtons.YesNo, MessageBoxSeverity.Warning);
                 if (result == Playnite.MessageBoxResult.No)
                 {
-                    var savepaths = await PlayniteAPI.Dialogs.SelectFolderAsync(savepath);
+                    var savepaths = await _playniteAPI.Dialogs.SelectFolderAsync(savepath);
                     if(savepaths == null || savepaths.Count < 1)
                     {
                         GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadExtractionPathFailed"), GravitonSeverity.Error));
@@ -372,12 +382,12 @@ namespace Graviton.Saves
             return save;
         }
 
-        public static async Task<GravitonSave> TrackNewLocalSave(GravitonSave save)
+        public async Task<GravitonSave> TrackNewLocalSave(GravitonSave save)
         {
             return await Upload(save);
         }
 
-        public static async Task<GravitonSave?> DownloadArchivedSave(RomMSave save)
+        public async Task<GravitonSave?> DownloadArchivedSave(RomMSave save)
         {
             var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
             if (rom == null)
@@ -388,7 +398,7 @@ namespace Graviton.Saves
 
             if(rom.LocalSave != null)
             {
-                var result = await PlayniteAPI.Dialogs.ShowMessageAsync(Loc.GetString("ReplaceSaveConfirm", ("GameName", rom.Name!)), Loc.GetString("ReplaceSaveTitle"), MessageBoxButtons.YesNo);
+                var result = await _playniteAPI.Dialogs.ShowMessageAsync(Loc.GetString("ReplaceSaveConfirm", ("GameName", rom.Name!)), Loc.GetString("ReplaceSaveTitle"), MessageBoxButtons.YesNo);
                 if(result == Playnite.MessageBoxResult.No)
                 {
                     return null;
@@ -454,13 +464,13 @@ namespace Graviton.Saves
             return await TrackNewLocalSave(newsave);
         }
 
-        public static async Task CheckRestoredSaveNeedUploading(RomMRomLocal rom, byte[]? screenshot = null)
+        public async Task CheckRestoredSaveNeedUploading(RomMRomLocal rom, byte[]? screenshot = null)
         {
             if (rom.LocalSave == null)
                 return;
 
 
-            var negotiate = SaveNegotiator.BuildNegotiate(new() { rom });
+            var negotiate = SaveController.Negotiator.BuildNegotiate(new() { rom });
             if (negotiate.Saves.Count <= 0)
             {
                 GravitonPlugin.Logger.Error("[SaveManager] No saves in negotiate, skipping!");
@@ -483,13 +493,13 @@ namespace Graviton.Saves
             }
         }
 
-        public static async Task UntrackSave(int saveID)
+        public async Task UntrackSave(int saveID)
         {
             var deviceid = new { device_id = _plugin.Settings.AccountState.DeviceID };
             await RomMServer.POSTAsync($"/api/saves/{saveID}/untrack", deviceid);
         }
 
-        private static async Task<SaveSyncStatus> AutoConflictResolve(GravitonSave save, RomMRomLocal rom, string localFilePath, bool isPacked, RomMNegotiateOperations? operation = null)
+        private async Task<SaveSyncStatus> AutoConflictResolve(GravitonSave save, RomMRomLocal rom, string localFilePath, bool isPacked, RomMNegotiateOperations? operation = null)
         {
             string? localHash = null;
             localHash = isPacked ? SaveHelpers.ComputePackedContentHash(localFilePath) : SaveHelpers.ComputeFileContentHash(localFilePath);
@@ -505,8 +515,8 @@ namespace Graviton.Saves
             // Skip negotaiting save if a negotaition operation is already under way
             if(operation == null)
             {
-                var negotiate = SaveNegotiator.BuildNegotiate(new() { rom });
-                var negotiateResponse = negotiate.Saves.Count > 0 ? await SaveNegotiator.Negotiate(negotiate) : null;
+                var negotiate = SaveController.Negotiator.BuildNegotiate(new() { rom });
+                var negotiateResponse = negotiate.Saves.Count > 0 ? await SaveController.Negotiator.Negotiate(negotiate) : null;
                 operation = negotiateResponse?.Operations.FirstOrDefault(x => x.ROMID == rom.Id && x.Slot == save.Slot);
             }
 

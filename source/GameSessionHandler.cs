@@ -7,19 +7,32 @@ using Playnite;
 
 namespace Graviton
 {
-    public static class GameSessionHandler
+    public class GameSessionHandler
     {
-        private static GravitonPlugin _plugin => GravitonPlugin.Instance;
-        private static IPlayniteApi PlayniteAPI => GravitonPlugin.PlayniteApi;
+        private GravitonPlugin _plugin;
+        private IPlayniteApi _playniteAPI;
+        private ILogger _logger;
 
-        private static ScreenshotService? ScreenshotCapture = new();
-        private static SaveWatcher? SaveWatcher = new(ScreenshotCapture);
-        private static RomMRomLocal? ROM;
-        private static string? GameID;
+        private SaveController SaveController => _plugin.SaveController!;
+        private ScreenshotService ScreenshotCapture;
+        private SaveWatcher SaveWatcher;
 
-        public static bool IsAGameRunning { get; private set; } = false;
+        private RomMRomLocal? ROM;
+        public string? GameID;
 
-        public static async Task GameStarting(string gameID)
+        public bool IsAGameRunning { get; private set; } = false;
+
+        public GameSessionHandler(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
+        {
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+
+            ScreenshotCapture = new();
+            SaveWatcher = new(ScreenshotCapture);
+        }
+
+        public async Task GameStarting(string gameID)
         {
             if (IsAGameRunning)
             {
@@ -42,7 +55,7 @@ namespace Graviton
                 if (_plugin.Settings.DownloadSaveOnLaunch)
                 {
                     if (!ROM.LocalSave.IsTempRestored)
-                        await SaveNegotiator.NegotiateSave(ROM);
+                        await SaveController.Negotiator.NegotiateSave(ROM);
                 }
                 else
                     GravitonNotify.Add(new GravitonNotification("graviton.sync.notenabled", Loc.GetString("SyncBeforeGameStartDisabled"), GravitonSeverity.Info));
@@ -53,7 +66,7 @@ namespace Graviton
             IsAGameRunning = true;
         }
 
-        public static async Task GameStarted(int processID, string? gameID)
+        public async Task GameStarted(int processID, string? gameID)
         {
             if (!IsAGameRunning || gameID != GameID)
                 return;
@@ -80,7 +93,7 @@ namespace Graviton
 
         }
 
-        public static async Task GameStopped(string? gameID, uint sessionLength)
+        public async Task GameStopped(string? gameID, uint sessionLength)
         {
             var stoppedTime = DateTime.UtcNow;
 
@@ -106,9 +119,9 @@ namespace Graviton
                 if (_plugin.Settings.UploadSaveOnFinished)
                 {
                     if (ROM.LocalSave.IsTempRestored)
-                        await SaveManager.CheckRestoredSaveNeedUploading(ROM, SaveWatcher?.NewestSaveScreenshot);
+                        await SaveController.Manager.CheckRestoredSaveNeedUploading(ROM, SaveWatcher?.NewestSaveScreenshot);
                     else
-                        await SaveNegotiator.NegotiateSave(ROM, SaveWatcher?.NewestSaveScreenshot);
+                        await SaveController.Negotiator.NegotiateSave(ROM, SaveWatcher?.NewestSaveScreenshot);
                 }
                 else
                 {

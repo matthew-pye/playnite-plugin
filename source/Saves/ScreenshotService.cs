@@ -64,9 +64,9 @@ namespace Graviton.Saves
         }
         #endregion
 
-        private static readonly ImageCodecInfo JpegEncoder = ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == ImageFormat.Jpeg.Guid);
+        private readonly ImageCodecInfo JpegEncoder = ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == ImageFormat.Jpeg.Guid);
 
-        private static readonly EncoderParameters JpegEncoderParams = new(1)
+        private readonly EncoderParameters JpegEncoderParams = new(1)
         {
             Param = { [0] = new EncoderParameter(Encoder.Quality, 85L) }
         };

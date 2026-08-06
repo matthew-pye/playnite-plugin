@@ -13,12 +13,22 @@ using System.Windows;
 
 namespace Graviton.Saves
 {
-    internal static class SaveNegotiator
+    internal class SaveNegotiator
     {
-        private static GravitonPlugin _plugin => GravitonPlugin.Instance;
-        private static IPlayniteApi PlayniteAPI => GravitonPlugin.PlayniteApi;
- 
-        public static async Task<List<RomMRomLocal>?> SoftNegotiateSaves(List<RomMRomLocal> roms)
+        private GravitonPlugin _plugin;
+        private IPlayniteApi _playniteAPI;
+        private ILogger _logger;
+
+        private SaveController SaveController => _plugin.SaveController!;
+
+        public SaveNegotiator(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
+        {
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+        }
+
+        public async Task<List<RomMRomLocal>?> SoftNegotiateSaves(List<RomMRomLocal> roms)
         {
             var negotiate = BuildNegotiate(roms);
 
@@ -91,9 +101,9 @@ namespace Graviton.Saves
             return roms;
         }
 
-        public static async Task NegotiateSave(RomMRomLocal rom, byte[]? screenshot = null)
+        public async Task NegotiateSave(RomMRomLocal rom, byte[]? screenshot = null)
         {
-            if (GameSessionHandler.IsAGameRunning)
+            if (_plugin.GameSessionHandlers.Count() > 0)
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info));
                 return;
@@ -152,7 +162,7 @@ namespace Graviton.Saves
                             rom.LocalSave.ServerHash = operation.ServerContentHash;
                             rom.LocalSave.ServerLastUpdatedAt = DateTime.Parse(operation.ServerUpdatedAt!);
 
-                            var result = await SaveManager.Upload(rom.LocalSave!, false, screenshot, operation);
+                            var result = await SaveController.Manager.Upload(rom.LocalSave!, false, screenshot, operation);
 
                             if(saveID == result.SaveID)
                             {
@@ -186,7 +196,7 @@ namespace Graviton.Saves
                             rom.LocalSave.ServerHash = operation.ServerContentHash;
                             rom.LocalSave.ServerLastUpdatedAt = DateTime.Parse(operation.ServerUpdatedAt!);
 
-                            await SaveManager.Download(rom.LocalSave);
+                            await SaveController.Manager.Download(rom.LocalSave);
                             rom.LocalSave.IsTempRestored = false;
                             operationCompleted++;
                             break;
@@ -225,7 +235,7 @@ namespace Graviton.Saves
 
         }
 
-        public static async Task<RomMNegotiateResponse?> Negotiate(RomMNegotiate negotiate)
+        public async Task<RomMNegotiateResponse?> Negotiate(RomMNegotiate negotiate)
         { 
             var response = await RomMServer.POSTAsync("/api/sync/negotiate", negotiate);
             if (response == null)
@@ -242,7 +252,7 @@ namespace Graviton.Saves
             }
         }
 
-        public static RomMNegotiate BuildNegotiate(List<RomMRomLocal> roms)
+        public RomMNegotiate BuildNegotiate(List<RomMRomLocal> roms)
         {
             RomMNegotiate negotiate = new RomMNegotiate();
             negotiate.DeviceID = _plugin.Settings.AccountState.DeviceID;
@@ -392,13 +402,13 @@ namespace Graviton.Saves
             return negotiate;
         }
 
-        public static SaveSyncStatus ResolveConflict(GravitonSave save)
+        public SaveSyncStatus ResolveConflict(GravitonSave save)
         {
 
             if (save.ServerLastUpdatedAt == null)
                 return SaveSyncStatus.conflict;
 
-            var window = PlayniteAPI.CreateWindow(new WindowCreationOptions
+            var window = _playniteAPI.CreateWindow(new WindowCreationOptions
             {
                 ShowMinimizeButton = false,
                 ShowMaximizeButton = false,
@@ -412,7 +422,7 @@ namespace Graviton.Saves
             window.Title = Loc.GetString("SaveConflict");
             window.Content = resolveConflictView;
             window.ResizeMode = ResizeMode.NoResize;
-            window.Owner = PlayniteAPI.GetLastActiveWindow();
+            window.Owner = _playniteAPI.GetLastActiveWindow();
             window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
             window.ShowDialog();
 

@@ -25,6 +25,7 @@ namespace Graviton.Saves
         }
 
         private GravitonPlugin _plugin => GravitonPlugin.Instance;
+        private SaveController SaveController => GravitonPlugin.Instance.SaveController!;
 
         EmulatorMapping? Mapping { get; set; }
         List<RomMRomLocal>? ROMs { get; set; }
@@ -87,15 +88,15 @@ namespace Graviton.Saves
 
             if (ROMs != null)
             {
-                saves = await SaveDiscovery.Discover(ROMs);
+                saves = await SaveController.Discover.Discover(ROMs);
             }
             else if (Mapping != null)
             {
-                saves = await SaveDiscovery.Discover(Mapping);
+                saves = await SaveController.Discover.Discover(Mapping);
             }
             else
             {
-                saves = await SaveDiscovery.Discover();
+                saves = await SaveController.Discover.Discover();
             }
 
             if (saves == null || saves.Count < 1)
@@ -182,7 +183,7 @@ namespace Graviton.Saves
                     Status = SaveStatus.LocalNewer
                 };
 
-                newsave = await SaveManager.TrackNewLocalSave(newsave);
+                newsave = await SaveController.Manager.TrackNewLocalSave(newsave);
                 Saves.Add(newsave);
             }
 
@@ -256,7 +257,7 @@ namespace Graviton.Saves
 
             if(save.Status == SaveStatus.Conflicted)
             {
-                var result = SaveNegotiator.ResolveConflict(save);
+                var result = SaveController.Negotiator.ResolveConflict(save);
                 switch (result)
                 {
                     case SaveSyncStatus.upload:
@@ -287,14 +288,14 @@ namespace Graviton.Saves
                     break;
 
                 case SaveStatus.LocalNewer:
-                    save = await SaveManager.Upload(save);
+                    save = await SaveController.Manager.Upload(save);
                     Saves[saveindex] = save;
                     SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
                     e.Handled = true;
                     return;
 
                 case SaveStatus.RemoteNewer:
-                    save = await SaveManager.Download(save);
+                    save = await SaveController.Manager.Download(save);
                     Saves[saveindex] = save;
                     SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
                     e.Handled = true;
@@ -306,14 +307,14 @@ namespace Graviton.Saves
                     return;
 
                 case SaveStatus.ServerOnly:
-                    save = await SaveManager.TrackNewRemoteSave(save);
+                    save = await SaveController.Manager.TrackNewRemoteSave(save);
                     Saves[saveindex] = save;
                     SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
                     e.Handled = true;
                     return;
 
                 case SaveStatus.UntrackedLocal:
-                    save = await SaveManager.TrackNewLocalSave(save);
+                    save = await SaveController.Manager.TrackNewLocalSave(save);
                     Saves[saveindex] = save;
                     SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
                     e.Handled = true;
@@ -324,7 +325,7 @@ namespace Graviton.Saves
 
                     if (response == Playnite.MessageBoxResult.Yes)
                     {
-                        save = await SaveManager.Upload(save);
+                        save = await SaveController.Manager.Upload(save);
                     }
                     e.Handled = true;
                     return;
@@ -343,7 +344,7 @@ namespace Graviton.Saves
                             save.SourceFilePaths.Remove(path);
 
                         save.Status = SaveStatus.LocalNewer;
-                        save = await SaveManager.Upload(save);
+                        save = await SaveController.Manager.Upload(save);
                     }
 
                     e.Handled = true;
@@ -379,7 +380,7 @@ namespace Graviton.Saves
             if (response == UntrackSave)
             {
                 Saves.Remove(save);
-                await SaveManager.UntrackSave(save.SaveID);
+                await SaveController.Manager.UntrackSave(save.SaveID);
                 rom.LocalSave = null;
                 rom.Save();
             }
@@ -421,7 +422,7 @@ namespace Graviton.Saves
             if(response == RestoreLocally || response == FullRestore)
             {
                 Saves.Remove(parentROM.LocalSave!);
-                var result = await SaveManager.Download(historicSave, true);
+                var result = await SaveController.Manager.Download(historicSave, true);
                 if(result.Status == SaveStatus.Synced)
                 {
                     parentROM.LocalSave!.HistoricSaves?.Remove(historicSave);
@@ -451,7 +452,7 @@ namespace Graviton.Saves
                     parentROM.Save();
 
                     if(response == FullRestore)
-                        await SaveManager.Upload(historicSave);
+                        await SaveController.Manager.Upload(historicSave);
                 }
 
                 Saves.Add(parentROM.LocalSave!);
@@ -519,7 +520,7 @@ namespace Graviton.Saves
                 }
 
                 if (needsUpload)
-                    await SaveNegotiator.NegotiateSave(rom);
+                    await SaveController.Negotiator.NegotiateSave(rom);
 
 
                 if (response.Any(x => !x.StartsWith(mapping.SavePath)))

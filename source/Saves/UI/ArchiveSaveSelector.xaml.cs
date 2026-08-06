@@ -19,6 +19,8 @@ namespace Graviton.Saves
         List<RomMRomLocal>? ROMs;
         EmulatorMapping? Mapping;
 
+        private SaveController SaveController => GravitonPlugin.Instance.SaveController!;
+
         public ArchiveSaveSelector()
         {
             InitializeComponent();
@@ -47,15 +49,15 @@ namespace Graviton.Saves
 
             if (ROMs != null)
             {
-                saves = await SaveDiscovery.GetArchivedSaves(ROMs);
+                saves = await SaveController.Discover.GetArchivedSaves(ROMs);
             }
             else if (Mapping != null)
             {
-                saves = await SaveDiscovery.GetArchivedSaves(Mapping);
+                saves = await SaveController.Discover.GetArchivedSaves(Mapping);
             }
             else
             {
-                saves = await SaveDiscovery.GetArchivedSaves();
+                saves = await SaveController.Discover.GetArchivedSaves();
             }
 
             if (saves == null || saves.Count < 1)
@@ -83,7 +85,7 @@ namespace Graviton.Saves
             var result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("TrackArchivedSaveConfirm"), Loc.GetString("TrackArchivedSave"), MessageBoxButtons.YesNo);
             if (result == Playnite.MessageBoxResult.Yes)
             {
-                NewSave = await SaveManager.DownloadArchivedSave(save);
+                NewSave = await SaveController.Manager.DownloadArchivedSave(save);
 
                 if(NewSave != null)
                     Window.GetWindow(this)?.Close();
