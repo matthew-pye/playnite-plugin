@@ -51,7 +51,7 @@
         
         <TextBlock Name="GameIsRunningText" Grid.Row="0" Text="{loc:LocalizedString GameIsRunningWarning}" Foreground="{DynamicResource Graviton.Error.Colour}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Right" Margin="5" Visibility="Collapsed"/>
 
-        <TabControl Name="SettingsTabs" Grid.Row="1" FontFamily="{StaticResource NerdFont}">
+        <TabControl Name="SettingsTabs" Grid.Row="1" FontFamily="{StaticResource NerdFont}" SelectionChanged="SettingsTabs_SelectionChanged">
 
             <!-- Authentication -->
             <TabItem Name="AuthItem">
@@ -83,18 +83,8 @@
                         <TextBlock Text="{loc:LocalizedString Mappings}"/>
                     </StackPanel>
                 </TabItem.Header>
-                <s:MappingsTab Margin="5,10,5,5" ManageSavesRequested="MappingsTab_ManageSavesRequested"/>
+                <s:MappingsTab x:Name="MappingsTabControl" Margin="5,10,5,5" ManageSavesRequested="MappingsTab_ManageSavesRequested"/>
             </TabItem>
-
-            <!-- Saves 
-            <TabItem Name="SavesItem" Header="&#xf0193; Saves">
-
-            </TabItem>-->
-
-            <!-- Save States 
-            <TabItem Name="SaveStatesItem" Header="&#xeea8; Save States">
-
-            </TabItem>-->
 
             <!-- Dev options -->
             <TabItem Name="DEVTAB">

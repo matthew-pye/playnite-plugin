@@ -3,3 +3,7 @@ name = "Graviton (RomM Library)"
 author = "Matthew Pye"
 version = "Edit Version in GravitonPlugin.cs"
 module = "Graviton.dll"
+
+[[dependencies]]
+addon_id = "Crow.Emunight"
+min_version = "1.0"

@@ -61,8 +61,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Emunight.SDK" Version="1.0.0-alpha1" />
     <PackageReference Include="GrindCore.SharpCompress" Version="0.48.0" />
-    <PackageReference Include="Playnite.SDK" Version="11.0.0-alpha11" />
+    <PackageReference Include="Playnite.SDK" Version="11.0.0-zeta10" />
     <PackageReference Include="QRCoder" Version="1.8.0" />
     <PackageReference Include="Svg" Version="3.4.8" />
   </ItemGroup>
@@ -81,10 +82,7 @@
     </Compile>
   </ItemGroup>
 
- <UsingTask
-    TaskName="UpdateExtensionVersion"
-    TaskFactory="CodeTaskFactory"
-    AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+ <UsingTask TaskName="UpdateExtensionVersion" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
 
   <ParameterGroup>
     <SourceFile ParameterType="System.String" Required="true" />
@@ -145,14 +143,9 @@
   </Task>
 </UsingTask>
 
-<Target
-    Name="GenerateExtensionToml"
-    BeforeTargets="CopyFilesToOutputDirectory">
+<Target Name="GenerateExtensionToml" BeforeTargets="CopyFilesToOutputDirectory">
 
-  <UpdateExtensionVersion
-      SourceFile="$(MSBuildProjectDirectory)\GravitonPlugin.cs"
-      TemplateFile="$(MSBuildProjectDirectory)\extension.toml"
-      OutputFile="$(TargetDir)extension.toml" />
+  <UpdateExtensionVersion SourceFile="$(MSBuildProjectDirectory)\GravitonPlugin.cs" TemplateFile="$(MSBuildProjectDirectory)\extension.toml" OutputFile="$(TargetDir)extension.toml" />
 
 </Target>
 

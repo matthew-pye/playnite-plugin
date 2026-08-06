@@ -42,5 +42,15 @@ namespace Graviton.Settings
             SettingsTabs.Visibility = Visibility.Visible;
         }
 
+        private void SettingsTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.Source != SettingsTabs)
+                return;
+
+            if (SettingsTabs.SelectedItem == MappingsItem)
+            {
+                MappingsTabControl.RefreshAvailableEmulators();
+            }
+        }
     }
 }

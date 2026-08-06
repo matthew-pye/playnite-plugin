@@ -1,9 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using Emunight;
+
 using Graviton.Models.RomM.Platform;
 using Graviton.Models.Saves;
-
-using Playnite;
 
 using System.Collections.ObjectModel;
 using System.IO;
@@ -22,14 +22,15 @@ namespace Graviton.Models
         [ObservableProperty] private bool _enabled = true;
         [ObservableProperty] private bool _autoExtract = false;
         [ObservableProperty] private bool _useM3U = false;
-        //[JsonIgnore] private Emulator _emulator;
-        [JsonIgnore] private Guid? _emulatorId;
-        //[JsonIgnore] private EmulatorProfile _emulatorProfile;
-        //[JsonIgnore] private IEnumerable<EmulatorProfile> _availableProfiles;
-        [JsonIgnore] private string? _emulatorProfileId;
-        [JsonIgnore] private RomMPlatform? _emulatedPlatform = null;
-        [JsonIgnore] private ObservableCollection<RomMPlatform> _availablePlatforms = new ObservableCollection<RomMPlatform>();
+
+        [JsonIgnore] private EmulatorBase? _emulator;
+        [JsonIgnore] private ObservableCollection<EmulatorBase> _availableEmulators = new();
+        [ObservableProperty][NotifyPropertyChangedFor(nameof(IsSetup))] private string? _emulatorId;
+
+        [JsonIgnore] private RomMPlatform? _emulatedPlatform;
+        [JsonIgnore] private ObservableCollection<RomMPlatform> _availablePlatforms = new();     
         [ObservableProperty] private int _romMPlatformId = -1;
+
         [ObservableProperty][NotifyPropertyChangedFor(nameof(IsSetup))] private string _destinationPath = "";
 
         [ObservableProperty] private SaveLayoutStyle _findSaveLayout = SaveLayoutStyle.Disabled;
@@ -40,129 +41,58 @@ namespace Graviton.Models
               
         [ObservableProperty] [property: JsonIgnore] private bool _isSelected = false;
 
-        [property: JsonIgnore] public bool IsSetup => RomMPlatform != null && !string.IsNullOrEmpty(DestinationPath);
+        [property: JsonIgnore] public bool IsSetup => !string.IsNullOrEmpty(EmulatorId) && 
+                                                      RomMPlatformId >= 0 && 
+                                                      !string.IsNullOrEmpty(DestinationPath);
 
         [JsonConstructor]
         public EmulatorMapping() {}
 
-        public EmulatorMapping(ObservableCollection<RomMPlatform> romMPlatforms)
+        public EmulatorMapping(ObservableCollection<EmulatorBase> emulators, ObservableCollection<RomMPlatform> romMPlatforms)
         {
             MappingId = Guid.NewGuid();
             AvailablePlatforms = romMPlatforms;
+            AvailableEmulators = emulators;
         }
 
-        //[JsonIgnore]
-        //public Emulator Emulator
-        //{
-        //    get => _emulator;
-        //    set 
-        //    {
-        //        if (value != null)
-        //        {
-        //            _emulator = value;
-        //            _emulatorId = value.Id;
-        //            AvailableProfiles = Emulator?.SelectableProfiles;
-        //            RomMPlatform = new RomMPlatform();
-        //            MappingName = value.Name;
-        //            OnPropertyChanged();
-        //            OnPropertyChanged(nameof(IsSetup));
-        //        } 
-        //    }
-        //}
-        public Guid? EmulatorId
+        [JsonIgnore]
+        public ObservableCollection<EmulatorBase> AvailableEmulators
         {
-            get => _emulatorId;
-            set
-            {
-                _emulatorId = value;
-                //Emulator = SettingsViewModel.Instance.PlayniteAPI.Database.Emulators.FirstOrDefault(x => x.Id == _emulatorId);
+            get => _availableEmulators;
+            set { 
+                _availableEmulators = value; 
                 OnPropertyChanged();
-            }
-        }
 
-        //[JsonIgnore]
-        //public EmulatorProfile EmulatorProfile
-        //{
-        //    get => _emulatorProfile;
-        //    set 
-        //    {
-        //        if (value != null)
-        //        {
-        //            _emulatorProfile = value;
-        //            _emulatorProfileId = value.Id;
-        //
-        //            if (Emulator != null)
-        //            {
-        //                var name = Emulator.Name;
-        //                if (EmulatorProfile != null  && EmulatorProfile.Name != "")
-        //                    name += " - " + EmulatorProfile.Name;
-        //                if (RomMPlatform != null && !string.IsNullOrEmpty(RomMPlatform.Name))
-        //                    name += " - " + RomMPlatform.Name;
-        //
-        //                MappingName = name;
-        //            }
-        //        }
-        //        OnPropertyChanged(); 
-        //        OnPropertyChanged(nameof(IsSetup));
-        //    }
-        //}
-        public string? EmulatorProfileId
-        {
-            get => _emulatorProfileId;
-            set
-            {
-                _emulatorProfileId = value;
-                //EmulatorProfile = Emulator?.SelectableProfiles.FirstOrDefault(x => x.Id == _emulatorProfileId);
-                OnPropertyChanged();
+                if (_availableEmulators != null && !string.IsNullOrEmpty(EmulatorId))
+                {
+                    Emulator = _availableEmulators.FirstOrDefault(x => x.Id == EmulatorId);
+                }
+
             }
         }
 
         [JsonIgnore]
-        public RomMPlatform? RomMPlatform
+        public EmulatorBase? Emulator
         {
-            get => _emulatedPlatform;
+            get => _emulator;
             set
             {
-                _emulatedPlatform = value;             
-                if(value != null)
-                {
-                    RomMPlatformId = value.Id;
-                    //if(Emulator != null)
-                    //{
-                    //    var name = Emulator.Name;
-                    //    if (EmulatorProfile != null && EmulatorProfile.Name != "")
-                    //        name += " - " + EmulatorProfile.Name;
-                    //    if (RomMPlatform != null && !string.IsNullOrEmpty(RomMPlatform.Name))
-                    //        name += " - " + RomMPlatform.Name;
-                    //
-                    //    MappingName = name;
-                    //}
-
-                }
-                else
-                {
-                    RomMPlatformId = -1;
-                }
+                _emulator = value;
+                EmulatorId = value?.Id;
 
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(PlatformIcon));
+                OnPropertyChanged(nameof(IsImportedEmulator));
+                OnPropertyChanged(nameof(IsCustomEmulator));
                 OnPropertyChanged(nameof(IsSetup));
             }
         }
 
+        [JsonIgnore]
+        public bool IsImportedEmulator => Emulator is ImportedEmulator;
+        [JsonIgnore]
+        public bool IsCustomEmulator => Emulator is CustomEmulator;
 
-        //[JsonIgnore]
-        //public static IEnumerable<Emulator> AvailableEmulators => SettingsViewModel.Instance.PlayniteAPI.Database.Emulators?.OrderBy(x => x.Name) ?? Enumerable.Empty<Emulator>();
-        //[JsonIgnore]
-        //public IEnumerable<EmulatorProfile> AvailableProfiles
-        //{
-        //    get => _availableProfiles;
-        //    set
-        //    {
-        //        _availableProfiles = value;
-        //        OnPropertyChanged();
-        //    }
-        //}    
+
         [JsonIgnore]
         public ObservableCollection<RomMPlatform> AvailablePlatforms
         {
@@ -180,6 +110,28 @@ namespace Graviton.Models
         }
 
         [JsonIgnore]
+        public RomMPlatform? RomMPlatform
+        {
+            get => _emulatedPlatform;
+            set
+            {
+                _emulatedPlatform = value;             
+                if(value != null)
+                {
+                    RomMPlatformId = value.Id;
+                }
+                else
+                {
+                    RomMPlatformId = -1;
+                }
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(PlatformIcon));
+                OnPropertyChanged(nameof(IsSetup));
+            }
+        }
+
+        [JsonIgnore]
         public string? PlatformIcon
         {
             get => (RomMPlatformId != -1 && File.Exists($"{_plugin.PluginDataPath}/Platforms/{RomMPlatform?.Slug}.png")) ?          
@@ -192,50 +144,22 @@ namespace Graviton.Models
         {
             get
             {
-                IPlayniteApi playnite = GravitonPlugin.PlayniteApi ?? throw new Exception("PlayniteApi is not initialised");
-                return playnite.AppInfo.ApplicationDirectory;
+                //IPlayniteApi playnite = GravitonPlugin.PlayniteApi ?? throw new Exception("PlayniteApi is not initialised");
                 //return playnite.Paths.IsPortable ? DestinationPath?.Replace(playnite.ExpandableVariables.PlayniteDirectory, playnite.AppInfo.ApplicationDirectory) : DestinationPath;
+                return DestinationPath;
             }
         }
-
-        [JsonIgnore]
-        public string DisplayName
-        {
-            get => $"Emulator Name - Profile Name - {RomMPlatform?.DisplayName}";
-        }
-
-        //[JsonIgnore] public string EmulatorBasePath => Emulator?.InstallDir;
-
-        //[JsonIgnore]
-        //public string EmulatorBasePathResolved
-        //{
-        //    get
-        //    {
-        //        var playnite = SettingsViewModel.Instance.PlayniteAPI;
-        //        var ret = Emulator?.InstallDir;
-        //        if (playnite.Paths.IsPortable)
-        //        {
-        //            ret = ret?.Replace(ExpandableVariables.PlayniteDirectory, playnite.Paths.ApplicationPath);
-        //        }
-        //        return ret;
-        //    }
-        //}
 
 
         public string GetDescriptionLines()
         {
-
             return $"{nameof(EmulatorId)}: {EmulatorId}\n" +
-                   $"{nameof(EmulatorProfileId)}: {EmulatorProfileId ?? "<Unknown>"}\n" +
                    $"{nameof(RomMPlatformId)}: {RomMPlatformId}\n" +
-                   $"{nameof(RomMPlatform)}*: {RomMPlatform?.Name ?? "<Unknown>"}\n" +
+                   $"{nameof(RomMPlatform)}: {RomMPlatform?.Name ?? "<Unknown>"}\n" +
                    $"{nameof(DestinationPath)}: {DestinationPath ?? "<Unknown>"}\n" +
-                   $"{nameof(DestinationPathResolved)}*: {DestinationPathResolved ?? "<Unknown>"}";
-
-
-            //yield return $"{nameof(Emulator)}*: {Emulator?.Name ?? "<Unknown>"}";
-            //yield return $"{nameof(EmulatorProfile)}*: {EmulatorProfile?.Name ?? "<Unknown>"}";      
-            //yield return $"{nameof(EmulatorBasePathResolved)}*: {EmulatorBasePathResolved ?? "<Unknown>"}";
+                   $"{nameof(DestinationPathResolved)}: {DestinationPathResolved ?? "<Unknown>"}\n" +
+                   $"{nameof(Emulator)}: {Emulator?.Name ?? "<Unknown>"}\n" +
+                   $"Emulator Install Path: {Emulator?.InstallDir ?? "<Unknown>"}\n";
         }
     }
 }

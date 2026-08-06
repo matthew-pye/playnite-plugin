@@ -1,4 +1,6 @@
-﻿using Graviton.Models;
+﻿using Emunight;
+
+using Graviton.Models;
 using Graviton.Models.Notifications;
 using Graviton.Saves;
 
@@ -22,6 +24,16 @@ namespace Graviton.Settings
         {
             get => (EmulatorMapping)GetValue(SelectedMappingProperty);
             set => SetValue(SelectedMappingProperty, value);
+        }
+
+        public void RefreshAvailableEmulators()
+        {
+            var emulators = ((IEnumerable<EmulatorBase>)_plugin.EmunightAPI!.ImportedEmulators).Concat(_plugin.EmunightAPI.CustomEmulators).OrderBy(e => e.Name).ToObservableCollection();
+
+            foreach (var mapping in _plugin.Settings.Mappings)
+            {
+                mapping.AvailableEmulators = emulators;
+            }
         }
 
         private static void OnSelectedMappingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -62,7 +74,9 @@ namespace Graviton.Settings
         
         private void AddMapping_Click(object sender, RoutedEventArgs e)
         {
-            _plugin.Settings.Mappings.Add(new EmulatorMapping(_plugin.Settings.AccountState.RomMPlatforms));
+            var emulators = ((IEnumerable<EmulatorBase>)_plugin.EmunightAPI!.ImportedEmulators).Concat(_plugin.EmunightAPI.CustomEmulators).OrderBy(e => e.Name).ToObservableCollection();
+
+            _plugin.Settings.Mappings.Add(new EmulatorMapping(emulators, _plugin.Settings.AccountState.RomMPlatforms));
         }
         
         private async void DeleteMapping_Click(object sender, RoutedEventArgs e)

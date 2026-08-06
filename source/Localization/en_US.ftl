@@ -186,6 +186,8 @@ ManageSaves = Manage Saves
 ManageSaveStates = Manage Save States
 AutoSaveStylePlaceholder = No Auto-Save Style Selected
 SetupIncomplete = Setup Incomplete
+CustomEmulatorSet = Custom Emulator, no profile to select
+NoEmulatorsSetup = No Emulators setup in Emunight
 
 # Options page
 LibraryScanning = Library Scanning

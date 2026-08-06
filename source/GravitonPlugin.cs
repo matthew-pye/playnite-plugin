@@ -1,4 +1,6 @@
-﻿using Graviton.Import;
+﻿using Emunight;
+
+using Graviton.Import;
 using Graviton.Install;
 using Graviton.Install.Downloads;
 using Graviton.Models.Notifications;
@@ -36,6 +38,8 @@ namespace Graviton
         internal static IPlayniteApi PlayniteApi { get; private set; } = null!;
         internal static ILogger Logger { get; private set; } = null!;
         internal static RomMServer RomMServer { get; private set; } = null!;
+
+        internal IEmunightAPI? EmunightAPI { get; private set; }
 
         internal GravitonImportController? ImportController { get; private set; }
         internal SaveController? SaveController { get; private set; }
@@ -190,6 +194,15 @@ namespace Graviton
             DownloadQueueController = new(Instance, PlayniteApi, Logger, RomMServer, _downloadsViewModel, maxConcurrent: 10);
             _downloadsAppView = new();
 
+        }
+
+        public override async Task PostInitializationAsync(PostInitializationArgs args)
+        {
+            var result = await PlayniteApi.CallPluginAsync(new("Crow.Emunight", "get_api"));
+            if (result?.Success == true && result.Value is Emunight.IEmunightAPI emunightApi)
+            {
+                EmunightAPI = emunightApi;
+            }
         }
 
         public override async Task OnApplicationStartupAsync(OnApplicationStartupArgs args)
