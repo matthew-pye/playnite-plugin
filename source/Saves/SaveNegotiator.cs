@@ -148,6 +148,10 @@ namespace Graviton.Saves
                     {
                         case SaveSyncStatus.upload:
                             var saveID = rom.LocalSave.SaveID;
+                            rom.LocalSave.Status = SaveStatus.LocalNewer;
+                            rom.LocalSave.ServerHash = operation.ServerContentHash;
+                            rom.LocalSave.ServerLastUpdatedAt = DateTime.Parse(operation.ServerUpdatedAt!);
+
                             var result = await SaveManager.Upload(rom.LocalSave!, false, screenshot, operation);
 
                             if(saveID == result.SaveID)
@@ -388,12 +392,8 @@ namespace Graviton.Saves
             return negotiate;
         }
 
-        internal static Func<GravitonSave, SaveSyncStatus>? ConflictResolverOverride;
-
         public static SaveSyncStatus ResolveConflict(GravitonSave save)
         {
-            if (ConflictResolverOverride != null)
-                return ConflictResolverOverride(save);
 
             if (save.ServerLastUpdatedAt == null)
                 return SaveSyncStatus.conflict;

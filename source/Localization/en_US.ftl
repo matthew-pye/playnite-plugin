@@ -85,6 +85,7 @@ DeserializeResponseFailed = Failed to deserialize server response!
 DownloadROMNotFound = Failed to find ROM that matches save, skipping download
 DownloadMappingNotFound = Failed to find mapping, skipping download
 DownloadServerDataFailed = Failed to get save data from server, skipping download
+DownloadHashFailed = Downloaded file doesn't match server hash, skipping download
 DownloadUnpackFailed = Failed to unpack save data, skipping download
 SaveAlreadyTrackedDownload = A save is already being tracked, skipping download
 DownloadExtractionPathFailed = Failed to set extraction path, skipping download

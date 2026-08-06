@@ -222,6 +222,14 @@ namespace Graviton.Saves
 
             if (ArchiveFactory.IsArchive(tempDir, out _))
             {
+                // Check downloaded file matches the server hash
+                var downloadedHash = SaveHelpers.ComputePackedContentHash(tempDir);
+                if(downloadedHash != save.ServerHash)
+                {
+                    GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadHashFailed"), GravitonSeverity.Error));
+                    return save;
+                }
+
                 var paths = SaveHelpers.UnpackSave(tempDir, mapping.SavePath);
                 if(paths == null)
                 {
@@ -234,6 +242,13 @@ namespace Graviton.Saves
             }
             else
             {
+                var downloadedHash = SaveHelpers.ComputeFileContentHash(tempDir);
+                if (downloadedHash != save.ServerHash)
+                {
+                    GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadHashFailed"), GravitonSeverity.Error));
+                    return save;
+                }
+
                 var savelocation = save.SourceFilePaths[0].Replace(EmulatorMapping.MappingPathToken, mapping.SavePath);
                 File.Move(tempDir, savelocation, true);
             }
