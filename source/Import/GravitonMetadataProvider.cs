@@ -73,73 +73,54 @@ namespace Graviton.Import
             {
                 case BuiltInGameDataId.Name:
                     return ROM.Name;
-
                 case BuiltInGameDataId.Description:
                     return ROM.Summary;
-
                 //case BuiltInGameDataId.Note:
-                //    return null;
-
+                  //return null;
                 case BuiltInGameDataId.DesktopCover:
                     return ROM?.PathCoverL != null ? new ImportableFile(BuiltInGameDataId.DesktopCover, $"{_plugin.Settings.Host}{ROM.PathCoverL}") : null;
 
                 case BuiltInGameDataId.Genres:
-                    return ROM.Metadatum?.Genres?.Count > 0 ? ROM.Metadatum.Genres : null;
-
+                    return ROM.Metadatum?.Genres;
                 case BuiltInGameDataId.Tags:
-                    return ROM.Tags?.Count > 0 ? ROM.Tags : null;
-
+                    return ROM.Tags;
                 case BuiltInGameDataId.Features:
-                    return ROM.Metadatum?.Gamemodes?.Count > 0 ? ROM.Metadatum.Gamemodes : null;
-
+                    return ROM.Metadatum?.Gamemodes;
                 case BuiltInGameDataId.Platforms:
                     return ROM.PlatformName;
-
                 case BuiltInGameDataId.Categories:
-                    return ROM.Metadatum?.Collections?.Count > 0 ? ROM.Metadatum.Collections : null;
-
+                    return ROM.Metadatum?.Collections;
                 case BuiltInGameDataId.Series:
-                    return ROM.Metadatum?.Franchises?.Count > 0 ? ROM.Metadatum.Franchises : null;
-
+                    return ROM.Metadatum?.Franchises;
                 case BuiltInGameDataId.AgeRating:
-                    if(ROM.IgdbMetadata?.AgeRatings != null)
-                    {
-                        List<string> ageratings = new();
-                        foreach (var rating in ROM.IgdbMetadata.AgeRatings)
-                        {
-                            ageratings.Add($"{rating.RatingBoard} {rating.Rating}");
-                        }
-                        return ageratings;
-                    }
-                    return null;
-
+                    return ROM.IgdbMetadata?.AgeRatings?.Select(x => $"{x.RatingBoard} {x.Rating}");
                 case BuiltInGameDataId.Region:
-                    return ROM.Regions?.Count > 0 ? ROM.Regions : null;
-
-                case BuiltInGameDataId.CompletionStatus:
-                    if (ROM.RomUser?.Status != null)
-                    {
-                        return RomMRomUser.CompletionStatusMap[ROM.RomUser.Status];
-                    }
-                    return null;
-
-                case BuiltInGameDataId.UserScore:
-                    return ROM.RomUser?.Rating * 10;
-
+                    return ROM.Regions;
                 case BuiltInGameDataId.CommunityScore:
                     return ROM.Metadatum?.AverageRating;
-
                 case BuiltInGameDataId.ReleaseDate:
-                    return ROM.Metadatum?.ReleaseDate;
-
+                    if(ROM.Metadatum?.ReleaseDate != null)
+                        return new DateTime(ROM.Metadatum.ReleaseDate ?? 0);
+                    else 
+                        return null;
+                case BuiltInGameDataId.EstimatedInstallSize:
+					return ROM.FileSizeBytes;
+                     
+                case BuiltInGameDataId.CompletionStatus:
+                    if (ROM.RomUser?.Status != null)
+                        return RomMRomUser.CompletionStatusMap[ROM.RomUser.Status];
+                    else
+                        return null;
+                case BuiltInGameDataId.UserScore:
+                    return ROM.RomUser?.Rating * 10;
                 case BuiltInGameDataId.ObtainedDate:
                     return ROM.CreatedAt;
-
                 case BuiltInGameDataId.LastPlayedDate:
                     return ROM.RomUser?.LastPlayed;
-
                 case BuiltInGameDataId.Favorite:
                     return ROM.Collections?.Any(x => x.Name == "Favorites");
+                case BuiltInGameDataId.Hidden:
+                    return ROM.RomUser?.Hidden;
 
                 case BuiltInGameDataId.Links:
                     List<WebLink> links = new();
@@ -165,13 +146,33 @@ namespace Graviton.Import
                         return links;
 
                     return null;
+                case BuiltInGameDataId.ExternalIds:
+                    List<ExternalIdentifier> Ids = new();
+                    if (ROM.SSId != null)
+                    {
+                        Ids.Add(new("screenscraper", ROM.SSId.ToString()!));
+                    }
+                    if (ROM.HasheousId != null)
+                    {
+                        Ids.Add(new("hasheous", ROM.HasheousId.ToString()!));
+                    }
+                    if (ROM.RAId != null)
+                    {
+                        Ids.Add(new("retroachievements", ROM.RAId.ToString()!));
+                    }
+                    if (ROM.HLTBId != null)
+                    {
 
-                case BuiltInGameDataId.TTBMainEstimated:
-                    return ROM.HLTBMetadata?.MainStory;
-                case BuiltInGameDataId.TTBMainSidesEstimated:
-                    return ROM.HLTBMetadata?.MainStoryExtra;
-                case BuiltInGameDataId.TTBCompletionEstimated:
-                    return ROM.HLTBMetadata?.Completionist;
+                        Ids.Add(new("howlongtobeat", ROM.HLTBId.ToString()!));
+                    }
+
+                    if (Ids.Count > 0)
+                        return Ids;
+
+                    return null;
+
+                case BuiltInGameDataId.TimeToBeatEstimated:
+                    return ROM.HLTBMetadata?.MainStory != null ? new TimeToBeat(ROM.HLTBMetadata.MainStory, ROM.HLTBMetadata.MainStoryExtra, ROM.HLTBMetadata.Completionist) : null;
 
                 default:
                     return null;

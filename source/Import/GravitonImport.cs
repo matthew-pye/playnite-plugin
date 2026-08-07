@@ -45,7 +45,7 @@ namespace Graviton.Import
 
             if (_mapping.RomMPlatform?.Name != null && !_playniteAPI.Library.Platforms.Any(x => x.Name == _mapping.RomMPlatform.Name))
             {
-                await _playniteAPI.Library.Platforms.AddAsync(new Platform(_mapping.RomMPlatform.Name));
+                await _playniteAPI.Library.Platforms.AddAsync(new Platform(_mapping.RomMPlatform.Name.ToLower() ,_mapping.RomMPlatform.Name));
             }
 
             // Process ROMs
@@ -239,7 +239,7 @@ namespace Graviton.Import
                 game.TimeToBeatEstimated = new(ROM.HLTBMetadata.MainStory, ROM.HLTBMetadata.MainStoryExtra, ROM.HLTBMetadata.Completionist);
 
             game.GenreIds = ROM.Metadatum?.Genres != null ? ROM.Metadatum.Genres.Select(x => x.ToLower()).ToHashSet() : null;
-            game.PlatformIds = new HashSet<string>([_mapping.RomMPlatform!.Name]);
+            game.PlatformIds = new HashSet<string>([_mapping.RomMPlatform?.Name.ToLower() ?? ""]);
             game.CategoryIds = ROM.Metadatum?.Collections != null ? ROM.Metadatum.Collections.Select(x => x.ToLower()).ToHashSet() : null;
             game.FeatureIds = ROM.Metadatum?.Gamemodes != null ? ROM.Metadatum.Gamemodes.Select(x => x.ToLower()).ToHashSet() : null;
             game.SeriesIds = ROM.Metadatum?.Franchises != null ? ROM.Metadatum.Franchises.Select(x => x.ToLower()).ToHashSet() : null;

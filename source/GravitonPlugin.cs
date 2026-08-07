@@ -119,10 +119,7 @@ namespace Graviton
                     BuiltInGameDataId.Links,
                     BuiltInGameDataId.ExternalIds,
 
-                    BuiltInGameDataId.TimeToBeatEstimated,
-                    BuiltInGameDataId.TTBMainEstimated,
-                    BuiltInGameDataId.TTBMainSidesEstimated,
-                    BuiltInGameDataId.TTBCompletionEstimated,
+                    BuiltInGameDataId.TimeToBeatEstimated
                 ]
             };
             AchievementsSettings = new()
