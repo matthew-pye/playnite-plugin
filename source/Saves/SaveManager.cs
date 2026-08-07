@@ -56,7 +56,7 @@ namespace Graviton.Saves
             }
 
             bool isPacked = false;
-            string savePath = save.SourceFilePaths[0].Replace(EmulatorMapping.MappingPathToken, mapping.SavePath);
+            string savePath = save.SourceFilePaths[0].Replace(EmulatorMapping.SavePathToken, mapping.SavePath);
             
             if (save.SourceFilePaths.Count > 1 || (!File.Exists(savePath) && Directory.Exists(savePath)))
             {
@@ -249,7 +249,7 @@ namespace Graviton.Saves
                 }
 
                 save.SourceFilePaths = paths;
-                save.SourceFilePaths = save.SourceFilePaths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken)).ToObservableCollection();
+                save.SourceFilePaths = save.SourceFilePaths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.SavePathToken)).ToObservableCollection();
             }
             else
             {
@@ -260,7 +260,7 @@ namespace Graviton.Saves
                     return save;
                 }
 
-                var savelocation = save.SourceFilePaths[0].Replace(EmulatorMapping.MappingPathToken, mapping.SavePath);
+                var savelocation = save.SourceFilePaths[0].Replace(EmulatorMapping.SavePathToken, mapping.SavePath);
                 File.Move(tempDir, savelocation, true);
             }
 
@@ -359,11 +359,11 @@ namespace Graviton.Saves
                     return save;
                 }
 
-                save.SourceFilePaths = paths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken)).ToObservableCollection();
+                save.SourceFilePaths = paths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.SavePathToken)).ToObservableCollection();
             }
             else
             {
-                var savelocation = save.SourceFilePaths[0].Replace(EmulatorMapping.MappingPathToken, mapping.SavePath);
+                var savelocation = save.SourceFilePaths[0].Replace(EmulatorMapping.SavePathToken, mapping.SavePath);
                 File.Move(tempDir, savelocation, true);
             }
 
@@ -443,13 +443,13 @@ namespace Graviton.Saves
                 }
 
                 newsave.SourceFilePaths = paths;
-                newsave.SourceFilePaths = newsave.SourceFilePaths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken)).ToObservableCollection();
+                newsave.SourceFilePaths = newsave.SourceFilePaths.Select(x => x.Replace(mapping.SavePath, EmulatorMapping.SavePathToken)).ToObservableCollection();
             }
             else
             {
                 var savelocation = Path.Combine(mapping.SavePath, save.FileName!);
                 File.Move(tempDir, savelocation, true);
-                newsave.SourceFilePaths = new() { savelocation.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken) };
+                newsave.SourceFilePaths = new() { savelocation.Replace(mapping.SavePath, EmulatorMapping.SavePathToken) };
             }
 
             newsave.Filename = save.FileName!;

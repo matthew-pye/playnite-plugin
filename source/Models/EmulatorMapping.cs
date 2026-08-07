@@ -14,7 +14,8 @@ namespace Graviton.Models
 {
     public partial class EmulatorMapping : ObservableObject
     {
-        public static readonly string MappingPathToken = "{MappingSavePath}";
+        public static readonly string SavePathToken = "{MappingSavePath}";
+        public static readonly string InstallPathToken = "{MappingInstallPath}";
 
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
 
@@ -26,6 +27,9 @@ namespace Graviton.Models
         [JsonIgnore] private EmulatorBase? _emulator;
         [JsonIgnore] private ObservableCollection<EmulatorBase> _availableEmulators = new();
         [ObservableProperty][NotifyPropertyChangedFor(nameof(IsSetup))] private string? _emulatorId;
+
+        [JsonIgnore] private ImportedEmulatorProfileSettings? _emulatorProfile;
+        [ObservableProperty][NotifyPropertyChangedFor(nameof(IsSetup))] private string? _emulatorProfileId;
 
         [JsonIgnore] private RomMPlatform? _emulatedPlatform;
         [JsonIgnore] private ObservableCollection<RomMPlatform> _availablePlatforms = new();     
@@ -42,6 +46,7 @@ namespace Graviton.Models
         [ObservableProperty] [property: JsonIgnore] private bool _isSelected = false;
 
         [property: JsonIgnore] public bool IsSetup => !string.IsNullOrEmpty(EmulatorId) && 
+                                                      (IsImportedEmulator ? !string.IsNullOrEmpty(EmulatorProfileId) : true) &&
                                                       RomMPlatformId >= 0 && 
                                                       !string.IsNullOrEmpty(DestinationPath);
 
@@ -66,6 +71,11 @@ namespace Graviton.Models
                 if (_availableEmulators != null && !string.IsNullOrEmpty(EmulatorId))
                 {
                     Emulator = _availableEmulators.FirstOrDefault(x => x.Id == EmulatorId);
+
+                    if (IsImportedEmulator && !string.IsNullOrEmpty(EmulatorProfileId))
+                    {
+                        Profile = AvailableProfiles.FirstOrDefault(x => x.ProfileId == EmulatorProfileId);
+                    }
                 }
 
             }
@@ -80,7 +90,13 @@ namespace Graviton.Models
                 _emulator = value;
                 EmulatorId = value?.Id;
 
+                if (value is not ImportedEmulator imported || imported.ProfileSettings?.Any(p => p.ProfileId == EmulatorProfileId) != true)
+                {
+                    EmulatorProfileId = null;
+                }
+
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(AvailableProfiles));
                 OnPropertyChanged(nameof(IsImportedEmulator));
                 OnPropertyChanged(nameof(IsCustomEmulator));
                 OnPropertyChanged(nameof(IsSetup));
@@ -91,6 +107,23 @@ namespace Graviton.Models
         public bool IsImportedEmulator => Emulator is ImportedEmulator;
         [JsonIgnore]
         public bool IsCustomEmulator => Emulator is CustomEmulator;
+
+        [JsonIgnore]
+        public IEnumerable<ImportedEmulatorProfileSettings> AvailableProfiles => (Emulator as ImportedEmulator)?.ProfileSettings ?? Enumerable.Empty<ImportedEmulatorProfileSettings>();
+
+        [JsonIgnore]
+        public ImportedEmulatorProfileSettings? Profile
+        {
+            get => _emulatorProfile;
+            set
+            {
+                _emulatorProfile = value;
+                EmulatorProfileId = value?.ProfileId;
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsSetup));
+            }
+        }
 
 
         [JsonIgnore]

@@ -107,7 +107,7 @@ namespace Graviton.Saves
                                 ServerHash = remotesave.ContentHash,
                                 ServerLastUpdatedAt = DateTime.TryParse(remotesave.UpdatedAt, out DateTime ServerUpdatedAt) ? ServerUpdatedAt : null,
                                 Filename = remotesave.FileName != null ? ServerTimestampTagPattern.Replace(remotesave.FileName, "") : "",
-                                SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{ServerTimestampTagPattern.Replace(remotesave.FileName!, "")}" },
+                                SourceFilePaths = new() { $"{EmulatorMapping.SavePathToken}/{ServerTimestampTagPattern.Replace(remotesave.FileName!, "")}" },
                                 IsHistoric = true,
                             };
 
@@ -167,7 +167,7 @@ namespace Graviton.Saves
                                 ServerHash = historicSave.ContentHash,
                                 ServerLastUpdatedAt = DateTime.TryParse(historicSave.UpdatedAt, out DateTime HistoricServerUpdatedAt) ? HistoricServerUpdatedAt : null,
                                 Filename = historicSave.FileName != null ? ServerTimestampTagPattern.Replace(historicSave.FileName, "") : "",
-                                SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{ServerTimestampTagPattern.Replace(historicSave.FileName!, "")}" },
+                                SourceFilePaths = new() { $"{EmulatorMapping.SavePathToken}/{ServerTimestampTagPattern.Replace(historicSave.FileName!, "")}" },
                                 IsHistoric = true
                             });
                         }
@@ -184,7 +184,7 @@ namespace Graviton.Saves
                         ServerHash = remotesave.ContentHash,
                         ServerLastUpdatedAt = DateTime.TryParse(remotesave.UpdatedAt, out DateTime ServerUpdatedAt) ? ServerUpdatedAt : null,
                         Filename = remotesave.FileName != null ? ServerTimestampTagPattern.Replace(remotesave.FileName, "") : "",
-                        SourceFilePaths = new() { $"{EmulatorMapping.MappingPathToken}/{ServerTimestampTagPattern.Replace(remotesave.FileName!, "")}" },
+                        SourceFilePaths = new() { $"{EmulatorMapping.SavePathToken}/{ServerTimestampTagPattern.Replace(remotesave.FileName!, "")}" },
                         HistoricSaves = historicSaves?.OrderByDescending(x => x.LastSyncedAt).ToObservableCollection() ?? null,
                         IsCurrent = true
                     };

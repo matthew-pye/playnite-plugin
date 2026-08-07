@@ -293,7 +293,7 @@ namespace Graviton.Saves
                     Slot = rom.LocalSave.Slot
                 };
 
-                var path = rom.LocalSave.SourceFilePaths[0].Replace(EmulatorMapping.MappingPathToken, mapping.SavePath);
+                var path = rom.LocalSave.SourceFilePaths[0].Replace(EmulatorMapping.SavePathToken, mapping.SavePath);
 
                 // Single file save
                 if (rom.LocalSave.SourceFilePaths.Count == 1 && File.Exists(path))
@@ -356,7 +356,7 @@ namespace Graviton.Saves
                     List<DateTime> saveWritetimes = new List<DateTime>();
                     foreach (var savepath in rom.LocalSave.SourceFilePaths)
                     {
-                        path = savepath.Replace(EmulatorMapping.MappingPathToken, mapping.SavePath);
+                        path = savepath.Replace(EmulatorMapping.SavePathToken, mapping.SavePath);
 
                         if (File.Exists(path))
                         {

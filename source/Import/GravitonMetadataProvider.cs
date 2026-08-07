@@ -1,4 +1,5 @@
-﻿using Graviton.Models.RomM.Rom;
+﻿using Graviton.Models.RomM;
+using Graviton.Models.RomM.Rom;
 
 using Playnite;
 
@@ -15,6 +16,7 @@ namespace Graviton.Import
         private IRomMServer _romMServer;
 
         private RomMRom? ROM = null;
+        private static (DateTime, RomMUser?) UserData;
 
         public GravitonMetadataProviderGameSession(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer, Game game) : base(game) 
         {
@@ -39,6 +41,18 @@ namespace Graviton.Import
                         return false;
 
                     ROM = JsonSerializer.Deserialize<RomMRom>(result) ?? throw new Exception("Unable to deserialize ROM!");
+
+                    if(DateTime.UtcNow - UserData.Item1 > TimeSpan.FromSeconds(30))
+                    {
+                        result = await _romMServer.GETAsync($"/api/users/me");
+                        if (result == null)
+                            return false;
+
+                        UserData.Item2 = JsonSerializer.Deserialize<RomMUser>(result);
+                        UserData.Item1 = DateTime.UtcNow;
+                    }
+                    
+
                     return true;
                 }
                 catch (Exception Ex)
@@ -67,7 +81,7 @@ namespace Graviton.Import
                 //    return null;
 
                 case BuiltInGameDataId.DesktopCover:
-                    return ROM?.PathCoverL;
+                    return ROM?.PathCoverL != null ? new ImportableFile(BuiltInGameDataId.DesktopCover, $"{_plugin.Settings.Host}{ROM.PathCoverL}") : null;
 
                 case BuiltInGameDataId.Genres:
                     return ROM.Metadatum?.Genres?.Count > 0 ? ROM.Metadatum.Genres : null;
@@ -158,6 +172,7 @@ namespace Graviton.Import
                     return ROM.HLTBMetadata?.MainStoryExtra;
                 case BuiltInGameDataId.TTBCompletionEstimated:
                     return ROM.HLTBMetadata?.Completionist;
+
                 default:
                     return null;
             }
@@ -178,7 +193,6 @@ namespace Graviton.Import
             _logger = logger;
             _romMServer = romMServer;
         }
-
 
         public override async Task<MetadataProviderGameSession?> CreateGameSessionAsync(CreateGameMetadataSessionArgs args)
         {

@@ -29,7 +29,7 @@ namespace Graviton.Saves
 
                 foreach (var path in sourcePaths)
                 {
-                    var processedpath = path.Replace(EmulatorMapping.MappingPathToken, savePathRoot);
+                    var processedpath = path.Replace(EmulatorMapping.SavePathToken, savePathRoot);
 
                     if (File.Exists(processedpath))
                     {

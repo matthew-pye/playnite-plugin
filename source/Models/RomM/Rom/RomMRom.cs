@@ -25,6 +25,19 @@ namespace Graviton.Models.RomM.Rom
 
         [JsonPropertyName("full_path")]
         public string FullPath { get; set; } = string.Empty;
+
+        [JsonPropertyName("is_top_level")]
+        public bool IsTopLevel { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public string CreatedAt { get; set; } = string.Empty;
+
+        [JsonPropertyName("updated_at")]
+        public string UpdatedAt { get; set; } = string.Empty;
+
+        [JsonPropertyName("category")]
+        public string Category { get; set; } = string.Empty;
+
     }
 
     public class RomMSibling
@@ -93,7 +106,7 @@ namespace Graviton.Models.RomM.Rom
         public string? FileExtension { get; set; }
 
         [JsonPropertyName("fs_path")]
-        public string? FilePath { get; set; }
+        public string? FileSystemPath { get; set; }
 
         [JsonPropertyName("fs_size_bytes")]
         public ulong FileSizeBytes { get; set; }
@@ -119,6 +132,9 @@ namespace Graviton.Models.RomM.Rom
 
         [JsonPropertyName("hltb_metadata")]
         public HLTBMetadata? HLTBMetadata { get; set; }
+
+        [JsonPropertyName("merged_ra_metadata")]
+        public MergedRetroAchievementsMetadata? MergedRAMetadata { get; set; }
 
         [JsonPropertyName("regions")]
         public List<string>? Regions { get; set; }

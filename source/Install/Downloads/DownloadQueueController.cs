@@ -140,7 +140,7 @@ namespace Graviton.Install.Downloads
             long lastUiUpdate = 0;
             const long uiUpdateThreshold = 1024 * 512; // 512KB
 
-            using (var httpStream = await response.Content.ReadAsStreamAsync())
+            using (var httpStream = response.Content.ReadAsStream())
             using (var fileStream = new FileStream(req.GamePath, FileMode.Create, FileAccess.Write, FileShare.None, buffer.Length, true))
             {
                 while (true)

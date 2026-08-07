@@ -1,4 +1,5 @@
 ﻿using Graviton.Models.Notifications;
+using Graviton.Models.RomM;
 using Graviton.Models.RomM.Collection;
 using Graviton.Models.RomM.PlaySessions;
 using Graviton.Models.RomM.Rom;
@@ -7,6 +8,8 @@ using Playnite;
 
 using System.Net.Http;
 using System.Text.Json;
+
+using static Playnite.Plugin;
 
 namespace Graviton.Status
 {
@@ -237,5 +240,59 @@ namespace Graviton.Status
             await PushPlaySession(GameID, StopTime, SessionLength);
         }
 
+
+        public async Task<List<ImportableAchievements>> GetAchievements(GetAchievementsArgs args)
+        {
+            List<ImportableAchievements> achievements = new();
+
+            try
+            {
+                var response = await _romMServer.GETAsync("/api/users/me");
+                if (response == null)
+                    return new();
+
+                var userData = JsonSerializer.Deserialize<RomMUser?>(response);
+
+                foreach (var game in args.Games)
+                {
+                    var id = game.LibraryGameId?.Split(':')[0];
+                    response = await _romMServer.GETAsync($"/api/roms/{id}");
+                    if (response == null)
+                        continue;
+
+                    var rom = JsonSerializer.Deserialize<RomMRom>(response);
+                    if (rom == null || rom?.MergedRAMetadata?.Achievements == null)
+                        continue;
+
+                    var userCheevosData = userData?.RAProgression?.RAGames?.FirstOrDefault(x => x.ID == rom.RAId);
+                    var cheevoSet = new List<ImportableAchievement>();
+
+                    foreach (var cheevo in rom.MergedRAMetadata.Achievements)
+                    {
+                        var userCheevoData = userCheevosData?.EarnedAchievements?.FirstOrDefault(x => x.ID.ToString() == cheevo.BadgeID);
+
+                        cheevoSet.Add(new($"RA-{cheevo.ID}", cheevo.Title ?? "") 
+                        {
+                            Description = cheevo.Description,
+                            UnlockedIcon = $"{_plugin.Settings.Host}{cheevo.BadgePath}",
+                            LockedIcon = $"{_plugin.Settings.Host}{cheevo.LockedBadgePath}",
+                            UnlockedDate = !string.IsNullOrEmpty(userCheevoData?.HardcoreDate) ? DateTime.Parse(userCheevoData.HardcoreDate) : !string.IsNullOrEmpty(userCheevoData?.Date) ? DateTime.Parse(userCheevoData.Date) : null,
+                            AchievementType = !string.IsNullOrEmpty(cheevo.Type) ? new(cheevo.Type, cheevo.Type) : null,
+                        });
+
+                    }
+
+                    achievements.Add(new(game.Id, cheevoSet));
+                }
+
+                return achievements;
+            }
+            catch (Exception ex)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.getuserdata.failed", $"{Loc.GetString("GetUserDataFailed")}", GravitonSeverity.Error, ex));
+            }
+
+            return new();
+        }
     }
 }

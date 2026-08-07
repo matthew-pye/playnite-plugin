@@ -51,6 +51,7 @@ namespace Graviton.Import
 
             string url = BuildGeneralROMUrl();
 
+
             // Pull ROM data for each enabled mapping and add the games to playnite
             List<Task<(List<Game> NewGames, List<string> ProcessedGames)>> tasks = new();
             foreach (var mapping in enabledMappings)
@@ -59,11 +60,11 @@ namespace Graviton.Import
                     break;
 
                 // Check mapping has an Emulator, Profile & Platform assigned to it
-                //if (mapping.Emulator == null || mapping.EmulatorProfile == null || mapping.RomMPlatform == null || mapping.RomMPlatformId == -1)
-                //{
-                //    Logger.Warn($"[Import Controller] Emulator {mapping.MappingId} is misconfigured, skipping.");
-                //    continue;
-                //}
+                if (!mapping.IsSetup)
+                {
+                    GravitonNotify.Add(new GravitonNotification($"graviton.mapping.incomplete", $"One or more mappings are not fully setup, those mapping have been skipped", GravitonSeverity.Warn));
+                    continue;
+                }
 
                 RomMPlatform? apiPlatform = apiPlatforms.FirstOrDefault(p => p.Id == mapping.RomMPlatformId);
                 if (apiPlatform == null)

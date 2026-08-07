@@ -94,8 +94,9 @@ namespace Graviton
                 SupportedDataIds = [
                     BuiltInGameDataId.Name,
                     BuiltInGameDataId.Description,
-                    BuiltInGameDataId.Note,
+                    //BuiltInGameDataId.Note,
                     BuiltInGameDataId.DesktopCover,
+
                     BuiltInGameDataId.Genres,
                     BuiltInGameDataId.Tags,
                     BuiltInGameDataId.Features,
@@ -104,18 +105,29 @@ namespace Graviton
                     BuiltInGameDataId.Series,
                     BuiltInGameDataId.AgeRating,
                     BuiltInGameDataId.Region,
-                    BuiltInGameDataId.CompletionStatus,
-                    BuiltInGameDataId.UserScore,
                     BuiltInGameDataId.CommunityScore,
                     BuiltInGameDataId.ReleaseDate,
+                    BuiltInGameDataId.EstimatedInstallSize,
+
+                    BuiltInGameDataId.CompletionStatus,
+                    BuiltInGameDataId.UserScore,             
                     BuiltInGameDataId.ObtainedDate,
                     BuiltInGameDataId.LastPlayedDate,
                     BuiltInGameDataId.Favorite,
+                    BuiltInGameDataId.Hidden,
+
                     BuiltInGameDataId.Links,
+                    BuiltInGameDataId.ExternalIds,
+
+                    BuiltInGameDataId.TimeToBeatEstimated,
                     BuiltInGameDataId.TTBMainEstimated,
                     BuiltInGameDataId.TTBMainSidesEstimated,
                     BuiltInGameDataId.TTBCompletionEstimated,
                 ]
+            };
+            AchievementsSettings = new()
+            {
+                SupportedLibraries = [Id],
             };
         }
 
@@ -273,30 +285,28 @@ namespace Graviton
             return await ImportController!.Import(args) ?? throw new Exception("Import controller is null, cannot continue");
         }
 
+        public override async Task<List<ImportableAchievements>> GetAchievementsAsync(GetAchievementsArgs args)
+        {
+            return await StatusController!.GetAchievements(args);
+        }
+
         public override async Task<List<InstallController>> GetInstallActionsAsync(GetInstallActionsArgs args)
         {
-            var idParts = args.Game.LibraryGameId?.Split(':');
-
             try
             {
-                if (idParts == null || idParts.Length != 2 || !SHA1Regex.IsMatch(idParts[1]))
-                    throw new Exception("GameID is malformed!");
 
-                if (!File.Exists($"{PluginDataPath}/Games/{idParts[1]}.json"))
-                    throw new Exception("Game info file doesn't exist!");
+                if(!ImportedGames.ContainsKey(args.Game.LibraryGameId!))
+                    throw new Exception($"Cannot find game with ID: {args.Game.LibraryGameId}");
 
-
-                var gameinfo = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{PluginDataPath}/Games/{idParts[1]}.json"));
-
-                if (gameinfo == null || gameinfo.FileName == null || gameinfo.DownloadURL == null)
-                    throw new Exception("Game info is corrupted!");
+                var gameinfo = ImportedGames[args.Game.LibraryGameId!];
 
                 GameInstallInfo installInfo = new()
                 {
                     Id = gameinfo.Id,
-                    FileName = gameinfo.FileName,
+                    FileName = gameinfo.FileName ?? "",
                     HasMultipleFiles = gameinfo.HasMultipleFiles,
-                    DownloadURL = gameinfo.DownloadURL,
+                    DownloadURL = gameinfo.DownloadURL ?? "",
+                    InstallPath = gameinfo.InstallPath ?? "",
                     PatchFileID = gameinfo.PatchFileId,
                     Mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId == gameinfo.MappingID)
                 };
@@ -312,7 +322,47 @@ namespace Graviton
                 return [];
             }
         }
-        
+
+        public override async Task<List<PlayController>> GetPlayActionsAsync(GetPlayActionsArgs args)
+        {    
+            if (args.Game.LibraryId == Id && ImportedGames.ContainsKey(args.Game.LibraryGameId!))
+            {
+                var game = ImportedGames[args.Game.LibraryGameId!];
+                var mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId == game.MappingID);
+                if(mapping == null)
+                    return [];
+
+                if(mapping.IsCustomEmulator)
+                {
+                    var emulator = mapping.Emulator as CustomEmulator;
+                    var controller = new AutomaticFilePlayController(new FileGameAction
+                    {
+                        Path = emulator!.StartupPath,
+                        Arguments = emulator.Arguments,
+                        TrackingOptions = emulator.TrackingOptions,
+                    });
+                }
+                else
+                {
+                    var emulator = mapping.Emulator as ImportedEmulator;
+
+                    var controller = new AutomaticFilePlayController(new FileGameAction
+                    {
+                        Path = mapping.Profile?.Executable,
+                        Arguments = mapping.Profile?.Arguments,
+                        TrackingOptions = new()
+                        {
+                            Mode = TrackingMode.ProcessTree,
+                        }
+                    });
+                }
+
+                
+            }
+
+            return [];
+        }
+
         public override async Task OnGameStartingAsync(OnGameStartingEventArgs args)
         {
             if (args.Game.LibraryId == Id && args.Game.LibraryGameId != null)

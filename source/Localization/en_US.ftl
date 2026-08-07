@@ -269,6 +269,7 @@ LibraryIdConvertFailed = Failed to parse {$GameID}, Skipping task!
 CompletionStatusNameFailed = Failed to get name of completion status
 ConvertStatusFailed = {$PlayniteStatus} cannot be converted to a RomM status
 GameHeartbeatFailed = Failed to send activity heartbeat 
+GetUserDataFailed = Failed to get user data from server
 
 # Save Controller
 FailedGetSaves = Failed to get local saves - {$Error}

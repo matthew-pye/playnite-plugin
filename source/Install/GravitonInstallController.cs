@@ -1,4 +1,5 @@
 ﻿using Graviton.Install.Downloads;
+using Graviton.Models;
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Rom;
 
@@ -33,22 +34,34 @@ namespace Graviton.Install
         {
             if (GameData.Id == (int)InstallStatus.Cancelled)
             {
-                CancelInstall();
-                await Task.CompletedTask;
+                await CancelInstall();
                 return; 
             }   
 
-            var dstPath = GameData.Mapping?.DestinationPathResolved
-                ?? throw new Exception("Mapped emulator data cannot be found, try removing and re-adding.");
+            var dstPath = GameData.Mapping?.DestinationPathResolved ?? throw new Exception("Mapped emulator data cannot be found, try removing and re-adding.");
 
-            // Paths (same as before)
-            var installDir = Path.Combine(dstPath, Path.GetFileNameWithoutExtension(GameData.FileName));
+            var installDir = GameData.InstallPath.Replace(EmulatorMapping.InstallPathToken, dstPath);
 
+           
             // If RomM indicates multiple files, we download as an archive name (zip) into the install folder.
             // Otherwise we download the single ROM file.
             var downloadFilePath = GameData.HasMultipleFiles
                 ? Path.Combine(installDir, GameData.FileName + ".zip")
                 : Path.Combine(installDir, GameData.FileName);
+
+            // Skip download if the game is already installed
+            if (!GameData.HasMultipleFiles && File.Exists(downloadFilePath))
+            {
+                var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception("Could not get game to set as installed!");
+                game.InstallState = InstallState.Installed;
+                await _playniteAPI.Library.Games.UpdateAsync(game);
+
+                await GameInstalledAsync(new()
+                { 
+                    InstallDirectory = installDir,
+                    InstallSize = (ulong)(new FileInfo(downloadFilePath).Length),
+                });
+            }
 
             var req = new DownloadRequest
             {
@@ -64,46 +77,6 @@ namespace Graviton.Install
                 HasMultipleFiles = GameData.HasMultipleFiles,
                 AutoExtract = GameData.Mapping != null && GameData.Mapping.AutoExtract,
 
-                // Called by queue AFTER download/extract is done
-                BuildRoms = () =>
-                {
-                    //var roms = new List<GameRom>();
-
-                    // If the downloaded file still exists and wasn't extracted -> single file ROM
-                    if (File.Exists(downloadFilePath))
-                    {
-                        //roms.Add(new GameRom(Game.Name, downloadFilePath));
-                        //return roms;
-                    }
-
-                    // Otherwise, we assume extracted files are in installDir
-                    //var supported = GetEmulatorSupportedFileTypes(_gameData);
-                    //var actualRomFiles = GetRomFiles(installDir, supported);
-
-                    // Prefer .m3u if requested
-                    //var useM3u = GameData.Mapping != null && GameData.Mapping.UseM3U && supported.Any(x => x.ToLower() == "m3u");
-                    //if (useM3u)
-                    //{
-                    //    var m3uFile = actualRomFiles.FirstOrDefault(m =>
-                    //        m.EndsWith(".m3u", StringComparison.OrdinalIgnoreCase));
-                    //
-                    //    if (!string.IsNullOrEmpty(m3uFile))
-                    //    {
-                    //        roms.Add(new GameRom(Game.Name, m3uFile));
-                    //        return roms;
-                    //    }
-                    //}
-                    //
-                    //// Otherwise add all rom files except m3u (we don’t want duplicates)
-                    //foreach (var f in actualRomFiles.Where(f => !f.EndsWith(".m3u", StringComparison.OrdinalIgnoreCase)))
-                    //{
-                    //    roms.Add(new GameRom(Game.Name, f));
-                    //}
-
-                    //return roms;
-                    return new List<Game>();
-                },
-
                 // Callbacks into Playnite install pipeline
                 OnInstalled = async installedArgs =>
                 {
@@ -114,21 +87,19 @@ namespace Graviton.Install
                     await GameInstalledAsync(installedArgs);
                 },
 
-                OnCancelled = () =>
+                OnCancelled = async () =>
                 {
-                    //var game = PlayniteApi.Library.Games[Game.Id];
-                    //game.IsInstalling = false;
-                    //game.IsInstalled = false;
-                    //PlayniteApi.Library.Games.UpdateAsync(game);
-
-                    GameInstallationCancelledAsync(new GameInstallationCancelledArgs());
+                    await CancelInstall();
                 },
 
-                OnFailed = ex =>
+                OnFailed = async ex =>
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.install.failed", Loc.GetString("DownloadFailed", ("GameName", Game.Name), ("Error", ex.Message)), GravitonSeverity.Error, ex)); 
+                    GravitonNotify.Add(new GravitonNotification("graviton.install.failed", Loc.GetString("DownloadFailed", ("GameName", Game.Name), ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                    var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception("Could not get game to set as installed!");
+                    game.InstallState = InstallState.Uninstalled;
+                    await _playniteAPI.Library.Games.UpdateAsync(game);
 
-                    //Game.IsInstalling = false;
+                    await GameInstallationCancelledAsync(new GameInstallationCancelledArgs());
                 }
             };
 
@@ -136,60 +107,13 @@ namespace Graviton.Install
             _plugin.DownloadQueueController?.Enqueue(req);
         }
 
-        private void CancelInstall()
+        private async Task CancelInstall()
         {
-            //var game = PlayniteApi.Library.Games[Game.Id];
-            //game.IsInstalling = false;
-            //PlayniteApi.Library.Games.Update(game);
+            var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception("Could not get game to set as installed!");
+            game.InstallState = InstallState.Uninstalled;
+            await _playniteAPI.Library.Games.UpdateAsync(game);
 
-            GameInstallationCancelledAsync(new GameInstallationCancelledArgs());
+            await GameInstallationCancelledAsync(new GameInstallationCancelledArgs());
         }
-
-        private static string[] GetRomFiles(string installDir, List<string> supportedFileTypes)
-        {
-            // NOTE: this traversal check is weak; containment checks should be done via GetFullPath
-            // against a trusted root. Keeping your existing checks as-is for now.
-            if (installDir == null || installDir.Contains("../") || installDir.Contains(@"..\"))
-            {
-                throw new ArgumentException("Invalid file path");
-            }
-
-            if (supportedFileTypes == null || supportedFileTypes.Count == 0)
-            {
-                return Directory.GetFiles(installDir, "*", SearchOption.AllDirectories)
-                    .ToArray();
-            }
-
-            return supportedFileTypes.SelectMany(fileType =>
-            {
-                if (fileType == null || fileType.Contains("../") || fileType.Contains(@"..\"))
-                {
-                    throw new ArgumentException("Invalid file path");
-                }
-
-                return Directory.GetFiles(installDir, "*." + fileType, SearchOption.AllDirectories);
-            }).ToArray();
-        }
-
-        //private static List<string> GetEmulatorSupportedFileTypes(GameInstallInfo info)
-        //{
-        //    if (info.Mapping.EmulatorProfile is CustomEmulatorProfile)
-        //    {
-        //        var customProfile = info.Mapping.EmulatorProfile as CustomEmulatorProfile;
-        //        return customProfile.ImageExtensions;
-        //    }
-        //    else if (info.Mapping.EmulatorProfile is BuiltInEmulatorProfile)
-        //    {
-        //        var builtInProfile = (info.Mapping.EmulatorProfile as BuiltInEmulatorProfile);
-        //        return API.Instance.Emulation.Emulators
-        //            .FirstOrDefault(e => e.Id == info.Mapping.Emulator.BuiltInConfigId)?
-        //            .Profiles
-        //            .FirstOrDefault(p => p.Name == builtInProfile.Name)?
-        //            .ImageExtensions;
-        //    }
-        //
-        //    return null;
-        //}
-
     }
 }

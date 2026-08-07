@@ -47,4 +47,49 @@ namespace Graviton.Models.RomM.Metadata
         [JsonPropertyName("results")]
         public List<RetroAchievementGame>? RAGames { get; set; }
     }
+
+    public class FullRetroAchievement
+    {
+        [JsonPropertyName("ra_id")]
+        public int? ID { get; set; }
+
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
+
+        [JsonPropertyName("description")]
+        public string? Description { get; set; }
+
+        [JsonPropertyName("points")]
+        public int? Points { get; set; }
+
+        [JsonPropertyName("num_awarded")]
+        public int? NumAwarded { get; set; }
+
+        [JsonPropertyName("num_awarded_hardcore")]
+        public int? HardcoreNumAwarded { get; set; }
+
+        [JsonPropertyName("badge_id")]
+        public string? BadgeID { get; set; }
+
+        [JsonPropertyName("badge_path_lock")]
+        public string? LockedBadgePath { get; set; }
+
+        [JsonPropertyName("badge_path")]
+        public string? BadgePath { get; set; }
+
+        [JsonPropertyName("display_order")]
+        public int? DisplayOrder { get; set; }
+
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
+    }
+
+    public class MergedRetroAchievementsMetadata
+    {
+        [JsonPropertyName("first_release_date")]
+        public long? ReleaseDate { get; set; }
+
+        [JsonPropertyName("achievements")]
+        public List<FullRetroAchievement>? Achievements { get; set; }
+    }
 }

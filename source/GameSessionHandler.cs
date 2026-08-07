@@ -47,7 +47,23 @@ namespace Graviton
                 return;
             }
 
-            if(_plugin.Settings.SyncPlaySession)
+            var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == ROM.MappingID);
+            if (mapping == null)
+            {
+                GravitonNotify.Add(new GravitonNotification("graviton.game.notfound", Loc.GetString("GameNotFoundSkipSync", ("GameId", gameID)), GravitonSeverity.Info));
+                return;
+            }
+
+            if(mapping.IsImportedEmulator)
+            {
+                
+            }
+            else
+            {
+
+            }
+
+            if (_plugin.Settings.SyncPlaySession)
                 _ = _plugin.StatusController?.StartActivityHeartbeat(gameID);
 
             if (ROM.LocalSave != null && _plugin.Settings.SaveSyncEnabled)
@@ -80,7 +96,7 @@ namespace Graviton
 
                 if (ROM.LocalSave.SourceFilePaths.Count > 0 && mapping != null)
                 {
-                    var paths = ROM.LocalSave.SourceFilePaths.Select(x => x.Replace(EmulatorMapping.MappingPathToken, mapping.SavePath)).ToList();
+                    var paths = ROM.LocalSave.SourceFilePaths.Select(x => x.Replace(EmulatorMapping.SavePathToken, mapping.SavePath)).ToList();
 
                     SaveWatcher!.Setup(paths);
                     await ScreenshotCapture!.Setup(processID, _plugin.Settings.SecondsBeforeSave);

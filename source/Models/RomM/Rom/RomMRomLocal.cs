@@ -15,6 +15,7 @@ namespace Graviton.Models.RomM.Rom
         public string FileName { get; set; }
         public bool HasMultipleFiles { get; set; }
         public string DownloadURL { get; set; }
+        public string InstallPath { get; set; }
 
         public int PatchFileID { get; set; }
 
@@ -30,6 +31,7 @@ namespace Graviton.Models.RomM.Rom
         public string? FileName { get; set; }
         public bool HasMultipleFiles { get; set; }
         public string? DownloadURL { get; set; }
+        public string? InstallPath { get; set; }
         public Guid MappingID { get; set; }
 
         public int PatchFileId { get; set; } = -1;
@@ -48,22 +50,32 @@ namespace Graviton.Models.RomM.Rom
             toSave.HasMultipleFiles = ROM.HasMultipleFiles;
             toSave.PlayniteID = string.IsNullOrEmpty(PlayniteID) ? GravitonPlugin.Instance.ImportedGames[$"{ROM.Id}:{ROM.SHA1}"].PlayniteID : PlayniteID;
 
+            toSave.InstallPath = EmulatorMapping.InstallPathToken + ROM.FullPath?.Replace(ROM.FileSystemPath ?? "", "");
+
             if (!ROM.HasMultipleFiles)
             {
                 var romfile = DetermineFile(ROM);
                 if (romfile == null)
                 {
-                    GravitonPlugin.Logger.Error("[Importer] Unable to save ROM data as there is no rom file!");
+                    GravitonPlugin.Logger.Error("Unable to save ROM data as there is no rom file!");
                     return null;
                 }
 
                 toSave.FileName = Path.GetFileName(romfile.FileName);
-                toSave.DownloadURL = $"{GravitonPlugin.Instance.Settings.Host}/api/roms/{ROM.Id}/files/content/{romfile.FileName}";
+                toSave.DownloadURL = $"/api/roms/{ROM.Id}/content/{romfile.FileName}";
             }
             else
             {
+                var fileIDs = ROM.Files.Where(x => x.Category == "game").Select(y => y.Id.ToString()).ToList();
+
+                if(fileIDs == null || fileIDs.Count() <= 0)
+                {
+                    GravitonPlugin.Logger.Error("Unable to save ROM data as there are no files in the game category!");
+                    return null;
+                }
+
                 toSave.FileName = Path.GetFileName(ROM.FileName);
-                toSave.DownloadURL = $"{GravitonPlugin.Instance.Settings.Host}/api/roms/{ROM.Id}/content/{ROM.FileName}";
+                toSave.DownloadURL = $"/api/roms/{ROM.Id}/content/{ROM.FileName}?file_ids={string.Join(',', fileIDs)}";
             }
             toSave.MappingID = MappingID;
 
@@ -77,7 +89,8 @@ namespace Graviton.Models.RomM.Rom
             Name = ROM.Name;
             SHA1 = ROM.SHA1;
             HasMultipleFiles = ROM.HasMultipleFiles;
-            
+            InstallPath = EmulatorMapping.InstallPathToken + ROM.FullPath?.Replace(ROM.FileSystemPath ?? "", "");
+
             if (!ROM.HasMultipleFiles)
             {
                 var romfile = DetermineFile(ROM);
@@ -88,13 +101,21 @@ namespace Graviton.Models.RomM.Rom
                 }
 
                FileName = Path.GetFileName(romfile.FileName);
-               DownloadURL = $"{GravitonPlugin.Instance.Settings.Host}/api/roms/{ROM.Id}/files/content/{romfile.FileName}";
+               DownloadURL = $"/api/roms/{ROM.Id}/content/{romfile.FileName}";
             }
             else
             {
+                var fileIDs = ROM.Files.Where(x => x.Category == "game").Select(y => y.Id.ToString()).ToList();
+
+                if (fileIDs == null || fileIDs.Count() <= 0)
+                {
+                    GravitonPlugin.Logger.Error("Unable to save ROM data as there are no files in the game category!");
+                    return;
+                }
+
                 FileName = Path.GetFileName(ROM.FileName);
-                DownloadURL = $"{GravitonPlugin.Instance.Settings.Host}/api/roms/{ROM.Id}/content/{ROM.FileName}";
-            }
+                DownloadURL = $"/api/roms/{ROM.Id}/content/{ROM.FileName}?file_ids={string.Join(',', fileIDs)}";
+            }   
 
             Save();
         }
@@ -126,7 +147,7 @@ namespace Graviton.Models.RomM.Rom
                 return null;
 
             if (ROM.Files.Count > 1)
-                return ROM.Files.OrderBy(f => f.FullPath.Count(c => c == '/')).FirstOrDefault();
+                return ROM.Files.Where(x => x.Category == "Game").OrderBy(f => f.FullPath.Count(c => c == '/')).FirstOrDefault();
 
             return ROM.Files.FirstOrDefault();
         }

@@ -179,7 +179,7 @@ namespace Graviton.Saves
                     ROMID = saveSelector.SelectedROM!.Id,
                     GameName = saveSelector.SelectedROM!.Name!,
                     Filename = saveSelector.SelectedSourcePaths!.Count > 1 || !File.Exists(saveSelector.SelectedSourcePaths[0]) ? $"{saveSelector.SelectedROM.Name}.zip" : Path.GetFileName(saveSelector.SelectedSourcePaths[0]),
-                    SourceFilePaths = saveSelector.SelectedSourcePaths!.Select(x => x.Replace(saveSelector.SelectedMapping!.SavePath, EmulatorMapping.MappingPathToken)).ToObservableCollection(),
+                    SourceFilePaths = saveSelector.SelectedSourcePaths!.Select(x => x.Replace(saveSelector.SelectedMapping!.SavePath, EmulatorMapping.SavePathToken)).ToObservableCollection(),
                     Status = SaveStatus.LocalNewer
                 };
 
@@ -514,7 +514,7 @@ namespace Graviton.Saves
                 {
                     if (path.StartsWith(mapping.SavePath))
                     {
-                        rom.LocalSave.SourceFilePaths.Add(path.Replace(mapping.SavePath, EmulatorMapping.MappingPathToken));
+                        rom.LocalSave.SourceFilePaths.Add(path.Replace(mapping.SavePath, EmulatorMapping.SavePathToken));
                         needsUpload = true;
                     }
                 }

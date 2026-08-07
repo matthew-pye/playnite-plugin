@@ -60,13 +60,13 @@ namespace Graviton.Models.Saves
 
             foreach (var path in sourceFilePaths)
             {
-                bool isMapped = path.StartsWith(EmulatorMapping.MappingPathToken, StringComparison.OrdinalIgnoreCase);
+                bool isMapped = path.StartsWith(EmulatorMapping.SavePathToken, StringComparison.OrdinalIgnoreCase);
 
                 string relative;
                 if (isMapped)
                 {
                     // Already relative under the placeholder - just strip the token + leading separator
-                    relative = path.Substring(EmulatorMapping.MappingPathToken.Length)
+                    relative = path.Substring(EmulatorMapping.SavePathToken.Length)
                                     .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 }
                 else
@@ -80,7 +80,7 @@ namespace Graviton.Models.Saves
 
                 var currentLevel = roots;
                 SaveDirectoryTree? currentNode = null;
-                var currentPath = isMapped ? EmulatorMapping.MappingPathToken : rootPath;
+                var currentPath = isMapped ? EmulatorMapping.SavePathToken : rootPath;
 
                 for (int i = 0; i < parts.Length; i++)
                 {

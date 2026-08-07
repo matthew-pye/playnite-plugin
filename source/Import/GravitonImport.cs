@@ -4,9 +4,9 @@ using Graviton.Models.RomM.Rom;
 
 using Playnite;
 
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using System.IO;
 using System.Text.RegularExpressions;
 
 namespace Graviton.Import
@@ -193,24 +193,6 @@ namespace Graviton.Import
                     game.Favorite = ROM.Collections.Any(x => x.Name == "Favorites");
                 }
 
-                //if (ROM.Notes != null)
-                //{
-                //    foreach (var note in ROM.Notes)
-                //    {
-                //        var rootGameNote = _playniteAPI.Library.GameNotes.FirstOrDefault(x => x.Id == game.Id);
-                //        if(rootGameNote != null)
-                //        {
-                //            rootGameNote.Text = note.Note;
-                //            await _playniteAPI.Library.GameNotes.UpdateAsync(rootGameNote);
-                //        }
-                //        else
-                //        {
-                //            GameNote newNote = new(game.Id, note.Note, GameNoteFormat.Markdown);
-                //            newNote.Name = note.Title;
-                //            await _playniteAPI.Library.GameNotes.AddAsync(newNote);
-                //        }
-                //    }
-                //}
 
                 await _playniteAPI.Library.Games.UpdateAsync(game);
                 _plugin.ImportedGames[gameID].Resync(ROM);
@@ -279,7 +261,6 @@ namespace Graviton.Import
             game.Links = new();
             game.ExternalIdentifiers = new();
             game.ExternalIdentifiers?.Add(new("romm", ROM.Id.ToString()!));
-            game.ExternalIdentifiers?.Add(new("gravitonmappingid", _mapping.MappingId.ToString()));
             if (ROM.IgdbId != null)
             {
                 game.ExternalIdentifiers?.Add(new("igdb", ROM.IgdbId.ToString()!));
@@ -315,27 +296,11 @@ namespace Graviton.Import
             game.InstallDirectory = _mapping.DestinationPathResolved;
             if(!ROM.HasMultipleFiles)
             {
-                var relativeROMPath = ROM.FullPath?.Replace(ROM.FilePath ?? "", "");
+                var relativeROMPath = ROM.FullPath?.Replace(ROM.FileSystemPath ?? "", "");
                 game.InstallState = File.Exists($"{_mapping.DestinationPathResolved}\\{relativeROMPath}") ? InstallState.Installed : InstallState.Uninstalled;
             }
 
             await _playniteAPI.Library.GameDescriptions.AddAsync(new GameDescription(game.Id, ROM.Summary, GameDescriptionFormat.Markdown));
-
-            //if (ROM.Notes != null)
-            //{
-            //    foreach (var note in ROM.Notes!)
-            //    {
-            //        GameNote newNote = new GameNote()
-            //        {
-            //            Id = game.Id,
-            //            Name = note.Title,
-            //            Text = note.Note,
-            //            Format = GameNoteFormat.Markdown
-            //        };
-            //
-            //        await _playniteAPI.Library.GameNotes.AddAsync(newNote);
-            //    }
-            //}
 
             return game;
         }

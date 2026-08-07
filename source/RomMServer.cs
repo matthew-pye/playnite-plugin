@@ -180,7 +180,12 @@ namespace Graviton
                     }
                 }
 
-                if (response != null && (int)response.StatusCode > 399 && (int)response.StatusCode < 500 && content?.Length > 0)
+                if(response != null && (int)response.StatusCode == 404)
+                {
+                    var body = new StreamReader(content!, Encoding.UTF8).ReadToEnd();
+                    GravitonPlugin.Logger.Error($"Path: {apiPath}\nRaw Details: {body}");
+                }
+                else if (response != null && (int)response.StatusCode > 399 && (int)response.StatusCode < 500 && content?.Length > 0)
                 {
                     var body = new StreamReader(content!, Encoding.UTF8).ReadToEnd();
                     var displayMessage = ExtractErrorResponse(body);
