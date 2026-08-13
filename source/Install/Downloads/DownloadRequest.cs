@@ -10,7 +10,8 @@ namespace Graviton.Install.Downloads
         public string GameId { get; set; } = string.Empty;
         public string GameName { get; set; } = string.Empty;
         public string DownloadUrl { get; set; } = string.Empty;
-        public string InstallDir { get; set; } = string.Empty;     // folder where to extract/install
+        public string MappingDir { get; set; } = string.Empty;
+        public string InstallDir { get; set; } = string.Empty;
         public string GamePath { get; set; } = string.Empty;       // full path to the downloaded file on disk
         public bool HasMultipleFiles { get; set; }  // whether archive contains multiple top-level files
         public bool AutoExtract { get; set; } = true;

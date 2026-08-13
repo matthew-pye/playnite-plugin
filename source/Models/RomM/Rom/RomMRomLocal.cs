@@ -28,13 +28,17 @@ namespace Graviton.Models.RomM.Rom
         public string? PlayniteID { get; set; }
         public string? Name { get; set; }
         public string? SHA1 { get; set; }
+
         public string? FileName { get; set; }
+        public int PatchFileId { get; set; } = -1;
+
         public bool HasMultipleFiles { get; set; }
         public string? DownloadURL { get; set; }
         public string? InstallPath { get; set; }
-        public Guid MappingID { get; set; }
+        public string? InstalledPath { get; set; }
+        public bool IsInstalledPathDirectory { get; set; }
 
-        public int PatchFileId { get; set; } = -1;
+        public Guid MappingID { get; set; }
 
         public GravitonSave? LocalSave { get; set; }
         public LocalSaveState SaveStates { get; set; } = new();

@@ -175,11 +175,23 @@ namespace Graviton.Install.Downloads
                     }
                 }
             }
-            
+  
+            var path = Path.TrimEndingDirectorySeparator(req.InstallDir);
+            var mappingPath = Path.TrimEndingDirectorySeparator(req.MappingDir);
+
+            var game = _playniteAPI.Library.Games.Get(req.GameId) ?? throw new Exception("Could not get game to be installed!");
+            _plugin.ImportedGames.TryGetValue(game.LibraryGameId ?? "", out var romMLocal);
+            if(romMLocal == null)
+                throw new Exception("Could not get game to be installed!");
 
             // Extract if needed (we treat extract as 0..100 in its own bar)
+            // This check may need changing in the case where a user has multiple archive files 
             if (req.HasMultipleFiles || (req.AutoExtract && IsFileCompressed(req.GamePath)))
             {
+                // If InstallPath is the same as the mapping path add place the extracted contents in a folder with the name of the game
+                if (path.CompareTo(mappingPath, StringComparison.OrdinalIgnoreCase) == 0)
+                    path += "\\" + req.GameName + "\\";
+
                 item.SetStatus(DownloadStatus.Extracting, Loc.GetString("DownloadStatusExtracting"));
                 Logger.Info($"Extracting {req.GamePath}...");
 
@@ -192,7 +204,21 @@ namespace Graviton.Install.Downloads
                     ExtractArchiveWithEntryProgress(req.GamePath, req.InstallDir, item, ct);
                 }
                 try { File.Delete(req.GamePath); } catch { }
+
+                romMLocal.InstalledPath = path;
+                romMLocal.IsInstalledPathDirectory = true;
             }
+            else if (path.CompareTo(mappingPath, StringComparison.OrdinalIgnoreCase) == 0)
+            {
+                romMLocal.InstalledPath = req.GamePath;
+            }
+            else
+            {
+                romMLocal.InstalledPath = path;
+                romMLocal.IsInstalledPathDirectory = true;
+            }
+
+            romMLocal.Save();
 
             // Build rom list + signal installed
             var roms = req.BuildRoms != null ? req.BuildRoms() : null;

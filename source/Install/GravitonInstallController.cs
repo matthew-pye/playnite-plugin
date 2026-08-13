@@ -41,8 +41,7 @@ namespace Graviton.Install
             var dstPath = GameData.Mapping?.DestinationPathResolved ?? throw new Exception("Mapped emulator data cannot be found, try removing and re-adding.");
 
             var installDir = GameData.InstallPath.Replace(EmulatorMapping.InstallPathToken, dstPath);
-
-           
+        
             // If RomM indicates multiple files, we download as an archive name (zip) into the install folder.
             // Otherwise we download the single ROM file.
             var downloadFilePath = GameData.HasMultipleFiles
@@ -53,6 +52,21 @@ namespace Graviton.Install
             if (!GameData.HasMultipleFiles && File.Exists(downloadFilePath))
             {
                 var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception("Could not get game to set as installed!");
+                _plugin.ImportedGames.TryGetValue(game.LibraryGameId ?? "", out var romMLocal);
+                if (romMLocal == null)
+                    throw new Exception("Could not get game to be installed!");
+
+                if (installDir.CompareTo(dstPath, StringComparison.OrdinalIgnoreCase) == 0)
+                {
+                    romMLocal.InstalledPath = downloadFilePath;
+                }
+                else
+                {
+                    romMLocal.InstalledPath = installDir;
+                    romMLocal.IsInstalledPathDirectory = true;
+                }
+                romMLocal.Save();
+
                 game.InstallState = InstallState.Installed;
                 await _playniteAPI.Library.Games.UpdateAsync(game);
 
@@ -61,6 +75,8 @@ namespace Graviton.Install
                     InstallDirectory = installDir,
                     InstallSize = (ulong)(new FileInfo(downloadFilePath).Length),
                 });
+
+                return;
             }
 
             var req = new DownloadRequest
@@ -69,6 +85,7 @@ namespace Graviton.Install
                 GameName = Game.Name,
 
                 DownloadUrl = GameData.DownloadURL,
+                MappingDir = dstPath.Replace(EmulatorMapping.InstallPathToken, dstPath),
                 InstallDir = installDir,
                 GamePath = downloadFilePath,
                 Use7z = _plugin.Settings.Use7z,
