@@ -55,8 +55,20 @@
                     </Border>
 
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Emulator.Name}" FontSize="16" FontWeight="Medium" Foreground="{DynamicResource Graviton.Text.Colour}" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Text="{Binding RomMPlatform.DisplayName}" FontSize="14" Foreground="{DynamicResource Graviton.SubSubText.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                        <TextBlock Text="{Binding RomMPlatform.DisplayName}" FontSize="16" Foreground="{DynamicResource Graviton.Text.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                        <TextBlock Text="{Binding Emulator.Name}" FontSize="14" FontWeight="Medium" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding Profile.ProfileId}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsImportedEmulator}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
 
                     <Ellipse Grid.Column="2" Width="6" Height="6" VerticalAlignment="Top" Margin="6,5,0,0">
@@ -150,8 +162,20 @@
                 </Border>
 
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Emulator.Name}" FontSize="22" FontWeight="Medium" Foreground="{DynamicResource Graviton.Text.Colour}" TextTrimming="CharacterEllipsis"/>
-                    <TextBlock Text="{Binding RomMPlatform.DisplayName}" FontSize="20" Foreground="{DynamicResource Graviton.SubSubText.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                    <TextBlock Text="{Binding RomMPlatform.DisplayName}" FontSize="22" Foreground="{DynamicResource Graviton.Text.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                    <TextBlock Text="{Binding Emulator.Name}" FontSize="20" FontWeight="Medium" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding Profile.ProfileId}" FontSize="18" Foreground="{DynamicResource Graviton.SubSubText.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsImportedEmulator}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
 
                 <Button Click="DeleteMapping_Click" Grid.Column="3" Margin="5" HorizontalAlignment="Right" Width="40" Height="40">

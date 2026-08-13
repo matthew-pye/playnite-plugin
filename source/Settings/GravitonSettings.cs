@@ -12,6 +12,7 @@ using System.IO;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Graviton.Settings
@@ -57,7 +58,6 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _keepFavouritesSynced = false;      
         [ObservableProperty] private bool _keepPrivateNotesSynced = false;      
         [ObservableProperty] private bool _keepPublicNotesSynced = false;      
-
 
         [ObservableProperty] private bool _saveSyncEnabled = true;      
         [ObservableProperty] private bool _downloadSaveOnLaunch = true;      
@@ -148,6 +148,7 @@ namespace Graviton.Settings
                 UseBasicAuth = this.UseBasicAuth,
                 UsernameNP = this.UsernameNP,
                 PasswordNP = this.PasswordNP,
+                CustomHeaders = this.CustomHeaders,
 
                 ProfilePath = this.ProfilePath,
                 
@@ -155,6 +156,7 @@ namespace Graviton.Settings
                 MergeRevisions = this.MergeRevisions,
                 SkipMissingFiles = this.SkipMissingFiles,
                 KeepDeletedGames = this.KeepDeletedGames,
+                ImportGamePatchesAsSiblings = this.ImportGamePatchesAsSiblings,
 
                 Use7z = this.Use7z,
                 PathTo7z = this.PathTo7z,
@@ -163,6 +165,7 @@ namespace Graviton.Settings
                 KeepFavouritesSynced = this.KeepFavouritesSynced,
                 KeepPrivateNotesSynced = this.KeepPrivateNotesSynced,
                 KeepPublicNotesSynced = this.KeepPublicNotesSynced,
+                SyncPlaySession = this.SyncPlaySession,
 
                 SaveSyncEnabled = this.SaveSyncEnabled,
                 SaveStateSyncEnabled = this.SaveStateSyncEnabled,
@@ -176,7 +179,7 @@ namespace Graviton.Settings
                 ScreenshotResolution = this.ScreenshotResolution,
                 SecondsBeforeSave = this.SecondsBeforeSave,
 
-                Mappings = new(this.Mappings),
+                Mappings = JsonSerializer.Deserialize<ObservableCollection<EmulatorMapping>>(JsonSerializer.Serialize(this.Mappings)) ?? this.Mappings,
 
                 AccountState = this.AccountState
             };

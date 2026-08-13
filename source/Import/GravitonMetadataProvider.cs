@@ -99,18 +99,22 @@ namespace Graviton.Import
                 case BuiltInGameDataId.CommunityScore:
                     return ROM.Metadatum?.AverageRating;
                 case BuiltInGameDataId.ReleaseDate:
-                    if(ROM.Metadatum?.ReleaseDate != null)
-                        return new DateTime(ROM.Metadatum.ReleaseDate ?? 0);
+                    if (ROM.Metadatum?.ReleaseDate != null && ROM.Metadatum?.ReleaseDate > 0)
+                       return new PartialDate(new DateTime(((ROM.Metadatum.ReleaseDate ?? 0) + 62135596800000) * 10000));
                     else 
                         return null;
                 case BuiltInGameDataId.EstimatedInstallSize:
 					return ROM.FileSizeBytes;
                      
                 case BuiltInGameDataId.CompletionStatus:
-                    if (ROM.RomUser?.Status != null)
-                        return RomMRomUser.CompletionStatusMap[ROM.RomUser.Status];
-                    else
-                        return null;
+                    if (ROM.RomUser?.Status != null && RomMRomUser.CompletionStatusMap.ContainsKey(ROM.RomUser.Status))
+                    {
+                        var playniteStatus = _playniteAPI.Library.CompletionStatuses.FirstOrDefault(x => x.Name == RomMRomUser.CompletionStatusMap[ROM.RomUser.Status]);
+                        if (playniteStatus != null)
+                            return playniteStatus.Id;
+                    }
+                    return null;
+
                 case BuiltInGameDataId.UserScore:
                     return ROM.RomUser?.Rating * 10;
                 case BuiltInGameDataId.ObtainedDate:

@@ -177,7 +177,7 @@ namespace Graviton.Settings
 
             QRCodeURl = $"{_plugin.Settings.Host}{initDevice.VerificationPathComplete}";
 
-            var logoPath = $"{GravitonPlugin.Instance.PluginDLLPath}/libraryicon.png";
+            var logoPath = $"{GravitonPlugin.Instance.PluginDLLPath}/pluginicon.png";
 
             UIDispatcher.Invoke(() => QRAuth.IsEnabled = false);
             UIDispatcher.Invoke(() => OpenInBrowser.Visibility = Visibility.Visible);

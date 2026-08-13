@@ -171,8 +171,8 @@ namespace Graviton.Settings
                 if (!string.IsNullOrEmpty(userinfo.IconPath) && _iconPathRegex.IsMatch(userinfo.IconPath))
                 {
                     var response = await _romMServer.RawGETAsync($"/api/users/{userinfo.Id}/avatar");
-                    if (response == null || response.Content == null)
-                        throw new Exception("Null response from server");
+                    if (response == null || response.Content == null|| response.Status != HttpStatusCode.OK)
+                        throw new Exception($"Response from server didn't indicate success ({response?.Status})");
 
                     var imagebytes = await response.Content.ReadAsByteArrayAsync();
 
@@ -283,49 +283,51 @@ namespace Graviton.Settings
                     try
                     {
                         response = await _romMServer.RawPOSTAsync($"/api/auth/device/token", deviceCode);
-                        if (response == null || response.Content == null)
-                            throw new Exception("Null response from server");
 
-                        status = response.Status ?? HttpStatusCode.NoContent;
-
-                        var stream = await response.Content.ReadAsStreamAsync();
-                        var json = await JsonDocument.ParseAsync(stream);
-                        var result = JsonSerializer.Deserialize<RomMPairDeviceResponse>(json);
-
-                        if (result == null)
+                        // If server responds OK the user has completed the login
+                        if (response?.Status == HttpStatusCode.OK)
                         {
-                            GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairWasNull"))), GravitonSeverity.Error));
-                            return false;
+                            if (response.Content == null)
+                                throw new Exception("Null response from server");
+
+                            status = response.Status.Value;
+                            var stream = await response.Content.ReadAsStreamAsync();
+                            var json = await JsonDocument.ParseAsync(stream);
+                            var result = JsonSerializer.Deserialize<RomMPairDeviceResponse>(json);
+
+                            if (result == null)
+                                throw new Exception("Failed to deserialize response");
+
+                            _plugin.Settings.AccountState.DeviceID = result.DeviceID!;
+                            _plugin.Settings.ClientTokenNP = result.AccessToken!;
+                            await _plugin.Account?.Login()!;
+                            return true;
                         }
-
-                        _plugin.Settings.AccountState.DeviceID = result.DeviceID!;
-                        _plugin.Settings.ClientTokenNP = result.AccessToken!;
-                        await _plugin.Account?.Login()!;
-                        return true;
-
-                    }
-                    catch (Exception ex)
-                    {
-                        if (response != null && response.Content != null)
+                        else if (response?.Status == HttpStatusCode.BadRequest && response.Content != null)
                         {
-                            var result = await response.Content.ReadAsStringAsync();
-                            if (result.Contains("expired_token"))
+                            // Check to see if body contains a pair failure else repoll server as the pair is still in progress
+                            var body = await response.Content.ReadAsStringAsync();
+                            if (body.Contains("expired_token")) 
                             {
                                 GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairExpired"))), GravitonSeverity.Info));
                                 return false;
                             }
-                            if (result.Contains("access_denied"))
+                            if (body.Contains("access_denied")) 
                             {
                                 GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairWasDenied"))), GravitonSeverity.Warn));
                                 return false;
                             }
-
-                            if (response.Status != HttpStatusCode.BadRequest)
-                            {
-                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", ex.Message)), GravitonSeverity.Error, ex));
-                                return false;
-                            }
                         }
+                        else if (response != null)
+                        {
+                            throw new Exception($"Unexpected status code: {response.Status}");
+                        }
+                            
+                    }
+                    catch (Exception ex)
+                    {
+                        GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                        return false;
                     }
 
                     intervalMillisecs = pairDevice.Interval * 1000;

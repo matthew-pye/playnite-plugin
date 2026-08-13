@@ -34,8 +34,7 @@ namespace Graviton.Status
 
         public async Task PushPlaySession(string GameID, DateTime StopTime, uint SessionLength)
         {
-            int romMID;
-            if (!int.TryParse(GameID.Split(':')[0], out romMID))
+            if (!GravitonHelper.TryParseGameID(GameID, out var id, out var gameSHA1))
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", GameID)), GravitonSeverity.Error));
                 return;
@@ -45,7 +44,7 @@ namespace Graviton.Status
             {
                 new RomMPlaySession
                 {
-                   ROMId = romMID,
+                   ROMId = id,
                    StopTime = StopTime.ToString("O"),
                    StartTime = StopTime.AddMilliseconds(-SessionLength).ToString("O"),
                    Duration = (int)SessionLength
@@ -76,17 +75,16 @@ namespace Graviton.Status
 
                 if (_plugin.Settings.KeepFavouritesSynced && favouriteCollection != null && updatedGame.ChangedProperties.Contains(nameof(Game.Favorite)))
                 {
-                    int romMID;
-                    if (!int.TryParse(updatedGame.OldData.LibraryGameId?.Split(':')[0], out romMID))
+                    if (!GravitonHelper.TryParseGameID(updatedGame.OldData.LibraryGameId, out var id, out var gameSHA1))
                     {
-                        GravitonNotify.Add(new GravitonNotification($"graviton.{updatedGame.OldData.LibraryGameId}.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", updatedGame.OldData.LibraryGameId!.ToString())), GravitonSeverity.Error));
+                        GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", updatedGame.OldData.LibraryGameId!)), GravitonSeverity.Error));
                         continue;
                     }
 
                     if (updatedGame.NewData.Favorite)
-                        favouriteCollection.RomIDs.Add(romMID);
+                        favouriteCollection.RomIDs.Add(id);
                     else
-                        favouriteCollection.RomIDs.Remove(romMID);
+                        favouriteCollection.RomIDs.Remove(id);
 
                     favouriteCollection.HasBeenUpdated = true;
                 }
@@ -157,10 +155,9 @@ namespace Graviton.Status
         // Play Status
         public async Task UpdateStatus(Game game)
         {
-            int romMID;
-            if (!int.TryParse(game.LibraryGameId?.Split(':')[0], out romMID))
+            if (!GravitonHelper.TryParseGameID(game.LibraryGameId, out var id, out var gameSHA1))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", game.LibraryGameId!.ToString())), GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", game.LibraryGameId!)), GravitonSeverity.Error));
                 return;
             }
 
@@ -185,20 +182,8 @@ namespace Graviton.Status
               status = (status != "backlogged" && status != "now_playing" && status != "not_played") ? status : null            
             };
 
-            await _romMServer.PUTAsync($"/api/roms/{romMID}/props", props);
+            await _romMServer.PUTAsync($"/api/roms/{id}/props", props);
         }
-
-        //public async Task RefreshRA()
-        //{
-        //    var refresh = new { incremental = true };
-        //
-        //    var result = await HttpClientSingleton.RomMPostJsonAsync($"/api/users/{_plugin.Settings.AccountState.UserID}/ra/refresh", refresh);
-        //    if(result != null)
-        //    {
-        //
-        //    }
-        //
-        //}
 
         public async Task StartActivityHeartbeat(string GameID)
         {
@@ -206,10 +191,9 @@ namespace Graviton.Status
             _heartbeatCts = new CancellationTokenSource();
             var token = _heartbeatCts.Token;
 
-            int romMID;
-            if (!int.TryParse(GameID.Split(':')[0], out romMID))
+            if (!GravitonHelper.TryParseGameID(GameID, out var id, out var gameSHA1))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.start.game.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", GameID)), GravitonSeverity.Error));
+                GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", GameID)), GravitonSeverity.Error));
                 return;
             }
 
@@ -217,7 +201,7 @@ namespace Graviton.Status
             {
                 while (!token.IsCancellationRequested)
                 {
-                    var heartbeat = new { rom_id = romMID, device_id = _plugin.Settings.AccountState.DeviceID };
+                    var heartbeat = new { rom_id = id, device_id = _plugin.Settings.AccountState.DeviceID };
                     await _romMServer.POSTAsync("/api/activity/heartbeat", heartbeat);
                     await Task.Delay(5000, token);
                 }
@@ -247,7 +231,15 @@ namespace Graviton.Status
 
             try
             {
-                var response = await _romMServer.GETAsync("/api/users/me");
+                JsonDocument? response;
+                if (_plugin.Settings.AccountState.UserID >= 0)
+                {
+                    response = await _romMServer.GETAsync($"/api/users/{_plugin.Settings.AccountState.UserID}/ra/refresh");
+                    if (response == null)
+                        return new();
+                }
+                
+                response = await _romMServer.GETAsync("/api/users/me");
                 if (response == null)
                     return new();
 
@@ -255,7 +247,12 @@ namespace Graviton.Status
 
                 foreach (var game in args.Games)
                 {
-                    var id = game.LibraryGameId?.Split(':')[0];
+                    if (!GravitonHelper.TryParseGameID(game.LibraryGameId!, out var id, out var gameSHA1))
+                    {
+                        GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", game.LibraryGameId!)), GravitonSeverity.Error));
+                        continue;
+                    }
+
                     response = await _romMServer.GETAsync($"/api/roms/{id}");
                     if (response == null)
                         continue;

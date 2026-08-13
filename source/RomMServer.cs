@@ -156,49 +156,26 @@ namespace Graviton
                 return null;
             }
 
-            HttpResponseMessage? response = null;
-            Stream? content = null;
             try
             {
-                response = await send();
-                response.EnsureSuccessStatusCode();
+                var response = await send();
 
-
-                _plugin.Settings.AccountState.AuthenticateFailed = HttpStatusCode.OK;
-                return new() { Status = HttpStatusCode.OK, Content = response.Content };
-            }
-            catch (Exception ex)
-            {
-                if (response == null || response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
+                if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
                 {
-                    _plugin.Settings.AccountState.AuthenticateFailed = response?.StatusCode;
-
-                    if (response?.StatusCode == HttpStatusCode.Unauthorized || response?.StatusCode == HttpStatusCode.Forbidden)
-                    {
-                        _plugin.Account!.ResetLocalAccountState();
-                        _plugin.Settings.AccountState.AuthenticateFailed = response?.StatusCode;
-                    }
-                }
-
-                if(response != null && (int)response.StatusCode == 404)
-                {
-                    var body = new StreamReader(content!, Encoding.UTF8).ReadToEnd();
-                    GravitonPlugin.Logger.Error($"Path: {apiPath}\nRaw Details: {body}");
-                }
-                else if (response != null && (int)response.StatusCode > 399 && (int)response.StatusCode < 500 && content?.Length > 0)
-                {
-                    var body = new StreamReader(content!, Encoding.UTF8).ReadToEnd();
-                    var displayMessage = ExtractErrorResponse(body);
-
-                    GravitonNotify.Add(new GravitonNotification("graviton.request.4xx", Loc.GetString("ServerResponded", ("Message", displayMessage)), GravitonSeverity.Error));
-                    GravitonPlugin.Logger.Error($"Path: {apiPath}\nRaw Details: {body}");
+                    _plugin.Account!.ResetLocalAccountState();
+                    _plugin.Settings.AccountState.AuthenticateFailed = response.StatusCode;
                 }
                 else
                 {
-                    GravitonNotify.Add(new GravitonNotification(nofiyType, $"{Loc.GetString(locFailedMessage, [("APIPath", apiPath)])} - {ex.Message}", GravitonSeverity.Error, ex));
+                    _plugin.Settings.AccountState.AuthenticateFailed = HttpStatusCode.OK;
                 }
 
-                return new() { Status = response?.StatusCode, Content = null };
+                return new() { Status = response.StatusCode, Content = response.Content };
+            }
+            catch (Exception ex)
+            {
+                GravitonNotify.Add(new GravitonNotification(nofiyType, $"{Loc.GetString(locFailedMessage, [("APIPath", apiPath)])} - {ex.Message}", GravitonSeverity.Error, ex));
+                return null;
             }
         }
 

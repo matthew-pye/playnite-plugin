@@ -116,13 +116,13 @@ namespace Graviton.Saves
                             if (existingHistoricSave == null)
                                 matchinglocal.LocalSave.HistoricSaves.Add(historicSave);
                             else
-                                existingHistoricSave = historicSave;
+                                matchinglocal.LocalSave.HistoricSaves[matchinglocal.LocalSave.HistoricSaves.IndexOf(existingHistoricSave)] = historicSave;
 
                             continue;
                         }
                     }
 
-                    var matchingremote = remotesaves.FirstOrDefault(x => x.ROMID == remotesave.ROMID && x.Slot == remotesave.Slot);
+                    var matchingremote = remotesaves.FirstOrDefault(x => x.ROMID == remotesave.ROMID && x.Slot == remotesave.Slot && x != remotesave);
                     if(matchingremote != null)
                     {
                         DateTime.TryParse(matchingremote.UpdatedAt, out DateTime matchingUpdatedAt);

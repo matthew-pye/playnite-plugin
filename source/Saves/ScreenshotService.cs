@@ -83,7 +83,7 @@ namespace Graviton.Saves
         public async Task<bool> Setup(int processID, int maxFramesCaptured, int intervalBetweenFrameCaptures = 1000)
         {
             // Wait for emulator to start before trying to setup capture
-            await Task.Delay(2000);
+            await Task.Delay(5000);
 
             try
             {

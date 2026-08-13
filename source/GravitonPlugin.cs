@@ -241,8 +241,9 @@ namespace Graviton
 
                     if (await Account.SyncPlatforms())
                         Logger.Info(Loc.GetString("PlatformsSynced", [("PlatformCount", Settings.AccountState.RomMPlatforms.Count)]));
-             
+
                     await Account.SyncUserData();
+                    GravitonSettingsHandler.SaveSettings(PluginDataPath, Settings);
                 }      
             } 
 
@@ -268,11 +269,11 @@ namespace Graviton
 
             if(args.RemovedItems?.Count > 0 && args.RemovedItems.Any(x => x.LibraryId == Id))
             {
-                foreach (var removed in args.RemovedItems)
+                foreach (var removed in args.RemovedItems.Where(x => x.LibraryId == Id))
                 {
-                    ImportedGames.TryRemove(removed.LibraryGameId!, out _);
-                    if (File.Exists($"{PluginDataPath}/Games/{removed.LibraryGameId!.Split(':')[1]}.json"))
-                        File.Delete($"{PluginDataPath}/Games/{removed.LibraryGameId!.Split(':')[1]}.json");
+                    ImportedGames.TryRemove(removed.LibraryGameId!, out var game);
+                    if (File.Exists($"{PluginDataPath}/Games/{game?.SHA1}.json"))
+                        File.Delete($"{PluginDataPath}/Games/{game?.SHA1}.json");
                 }
             }
         }
@@ -287,74 +288,50 @@ namespace Graviton
             return await StatusController!.GetAchievements(args);
         }
 
+        #region Game Session
         public override async Task<List<InstallController>> GetInstallActionsAsync(GetInstallActionsArgs args)
         {
-            try
+            if(args.Game.LibraryId == Id)
             {
-
-                if(!ImportedGames.ContainsKey(args.Game.LibraryGameId!))
-                    throw new Exception($"Cannot find game with ID: {args.Game.LibraryGameId}");
-
-                var gameinfo = ImportedGames[args.Game.LibraryGameId!];
-
-                GameInstallInfo installInfo = new()
+                try
                 {
-                    Id = gameinfo.Id,
-                    FileName = gameinfo.FileName ?? "",
-                    HasMultipleFiles = gameinfo.HasMultipleFiles,
-                    DownloadURL = gameinfo.DownloadURL ?? "",
-                    InstallPath = gameinfo.InstallPath ?? "",
-                    PatchFileID = gameinfo.PatchFileId,
-                    Mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId == gameinfo.MappingID)
-                };
 
-                if (installInfo.Mapping == null)
-                    throw new Exception("Couldn't find mapping!");
-                
-                return [new GravitonInstallController(args.Game, installInfo)];      
+                    if (!ImportedGames.ContainsKey(args.Game.LibraryGameId!))
+                        throw new Exception($"Cannot find game with ID: {args.Game.LibraryGameId}");
+
+                    var gameinfo = ImportedGames[args.Game.LibraryGameId!];
+
+                    GameInstallInfo installInfo = new()
+                    {
+                        Id = gameinfo.Id,
+                        FileName = gameinfo.FileName ?? "",
+                        HasMultipleFiles = gameinfo.HasMultipleFiles,
+                        DownloadURL = gameinfo.DownloadURL ?? "",
+                        InstallPath = gameinfo.InstallPath ?? "",
+                        PatchFileID = gameinfo.PatchFileId,
+                        Mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId == gameinfo.MappingID)
+                    };
+
+                    if (installInfo.Mapping == null)
+                        throw new Exception("Couldn't find mapping!");
+
+                    return [new GravitonInstallController(args.Game, installInfo)];
+                }
+                catch (Exception ex)
+                {
+                    GravitonNotify.Add(new GravitonNotification("graviton.install.idmalformed", Loc.GetString("InstallFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                    return [];
+                }
             }
-            catch (Exception ex)
-            {
-                GravitonNotify.Add(new GravitonNotification("graviton.install.idmalformed", Loc.GetString("InstallFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
-                return [];
-            }
+
+            return [];
         }
 
         public override async Task<List<PlayController>> GetPlayActionsAsync(GetPlayActionsArgs args)
         {    
             if (args.Game.LibraryId == Id && ImportedGames.ContainsKey(args.Game.LibraryGameId!))
             {
-                var game = ImportedGames[args.Game.LibraryGameId!];
-                var mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId == game.MappingID);
-                if(mapping == null)
-                    return [];
-
-                if(mapping.IsCustomEmulator)
-                {
-                    var emulator = mapping.Emulator as CustomEmulator;
-                    var controller = new AutomaticFilePlayController(new FileGameAction
-                    {
-                        Path = emulator!.StartupPath,
-                        Arguments = emulator.Arguments,
-                        TrackingOptions = emulator.TrackingOptions,
-                    });
-                }
-                else
-                {
-                    var emulator = mapping.Emulator as ImportedEmulator;
-
-                    var controller = new AutomaticFilePlayController(new FileGameAction
-                    {
-                        Path = mapping.Profile?.Executable,
-                        Arguments = mapping.Profile?.Arguments,
-                        TrackingOptions = new()
-                        {
-                            Mode = TrackingMode.ProcessTree,
-                        }
-                    });
-                }
-
-                
+                // Waiting for Emunight update to expose ImportedEmulators Filetype, Default exe, Default Args
             }
 
             return [];
@@ -391,6 +368,7 @@ namespace Graviton
                 }
             }
         }
+        #endregion
 
         public override Task OnGamepadButtonStateChangedAsync(OnGamepadButtonStateChangedArgs args)
         {

@@ -285,6 +285,7 @@ namespace Graviton.Saves
             {
                 case SaveStatus.Synced:
                     GravitonNotify.Add(new GravitonNotification("graviton.save.alreadysynced", Loc.GetString("SaveAlreadySynced"), GravitonSeverity.Info));
+                    e.Handled = true;
                     break;
 
                 case SaveStatus.LocalNewer:
@@ -352,6 +353,7 @@ namespace Graviton.Saves
 
                 default:
                     GravitonNotify.Add(new GravitonNotification("graviton.save.unknown", Loc.GetString("SaveStatusUnknownWarning"), GravitonSeverity.Warn));
+                    e.Handled = true;
                     break;
             }
         }
@@ -512,7 +514,7 @@ namespace Graviton.Saves
                 bool needsUpload = false;
                 foreach (var path in response)
                 {
-                    if (path.StartsWith(mapping.SavePath))
+                    if (path.StartsWith(mapping.SavePath, StringComparison.OrdinalIgnoreCase))
                     {
                         rom.LocalSave.SourceFilePaths.Add(path.Replace(mapping.SavePath, EmulatorMapping.SavePathToken));
                         needsUpload = true;

@@ -40,6 +40,10 @@ namespace Graviton.Settings
         {
             Settings = _plugin.Settings.Clone();
             InEditingMode = true;
+
+            foreach (var mapping in Settings.Mappings)
+                mapping.AvailablePlatforms = Settings.AccountState.RomMPlatforms;
+  
             await Task.CompletedTask;
         }
 
@@ -58,7 +62,7 @@ namespace Graviton.Settings
             // Add old headers back
             foreach (var header in _plugin.Settings.CustomHeaders)
             {
-                if (string.IsNullOrEmpty(header.Name) || string.IsNullOrEmpty(header.Value))
+                if (string.IsNullOrEmpty(header.Name) || string.IsNullOrEmpty(header.Value) || !header.Enabled)
                     continue;
 
                 _romMServer.AddHeader(header.Name, header.Value);

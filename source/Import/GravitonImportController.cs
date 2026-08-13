@@ -1,6 +1,8 @@
-﻿using Graviton.Models.Notifications;
+﻿using Graviton.Models;
+using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Platform;
 using Graviton.Models.RomM.Rom;
+using Graviton.Settings;
 
 using Playnite;
 
@@ -48,9 +50,15 @@ namespace Graviton.Import
                 return new List<Game>();
 
             _plugin.Settings.AccountState.RomMPlatforms = apiPlatforms.ToObservableCollection();
+            foreach (var mapping in _plugin.Settings.Mappings)
+            {
+                mapping.AvailablePlatforms = _plugin.Settings.AccountState.RomMPlatforms;
+            }
+            GravitonSettingsHandler.SaveSettings(_plugin.PluginDataPath, _plugin.Settings);
 
             string url = BuildGeneralROMUrl();
 
+            List<EmulatorMapping> processedMappings = new();
 
             // Pull ROM data for each enabled mapping and add the games to playnite
             List<Task<(List<Game> NewGames, List<string> ProcessedGames)>> tasks = new();
@@ -80,7 +88,7 @@ namespace Graviton.Import
                 if (args.CancelToken.IsCancellationRequested)
                     break;
 
-                if (rommROMs == null)
+                if (rommROMs.Count() <= 0)
                     continue;
                 else
                     _logger.Debug($"[Import Controller] Finished parsing response for {apiPlatform.Name}.");
@@ -88,7 +96,7 @@ namespace Graviton.Import
 
                 _logger.Debug($"[Import Controller] Creating new import task for {apiPlatform.Name}.");
                 tasks.Add(new GravitonImport(_plugin, _playniteAPI, _logger, args.CancelToken, mapping, rommROMs).ProcessData());
-
+                processedMappings.Add(mapping);
             }
 
             await Task.WhenAll(tasks);
@@ -102,7 +110,7 @@ namespace Graviton.Import
             }
 
             if (!_plugin.Settings.KeepDeletedGames)
-                await RemoveMissingGames(proccessedgames);
+                await RemoveMissingGames(proccessedgames, processedMappings);
 
             return games;
         }
@@ -203,6 +211,9 @@ namespace Graviton.Import
                     var romURL = url + $"offset={offset}";
 
                     var request = await _romMServer.GETAsync(romURL);
+                    if(request == null)
+                        throw new Exception("Server returned null data");
+
                     var roms = request?.RootElement.GetProperty("items").Deserialize<List<RomMRom>>() ?? throw new Exception("Deserialize failed");
                     romData.AddRange(roms);
 
@@ -219,6 +230,7 @@ namespace Graviton.Import
                 }
                 catch (Exception ex)
                 {
+                    romData.Clear();
                     GravitonNotify.Add(new GravitonNotification($"graviton.GET.roms.{platform.Id}.failed", Loc.GetString("DownloadROMDataFailed", ("PlatformName", platform.Name), ("Error", ex.Message)), GravitonSeverity.Error, ex));
                     hasMoreData = false;
                 }
@@ -227,7 +239,7 @@ namespace Graviton.Import
             return romData;
         }
 
-        private async Task RemoveMissingGames(List<string> ImportedGames)
+        private async Task RemoveMissingGames(List<string> ImportedGames, List<EmulatorMapping> processedMappings)
         {
 
             _logger.Info($"[Importer] Starting to remove not found games.");
@@ -237,23 +249,18 @@ namespace Graviton.Import
                 if (ImportedGames.Contains(game.Key))
                     continue;
 
-                var splitID = game.Key.Split(':');
-                if (splitID == null || splitID.Length != 2)
-                    continue;
-
-                string gameSHA1 = splitID[1]!;
-                if (!_SHA1Regex.IsMatch(gameSHA1))
+                if (!GravitonHelper.TryParseGameID(game.Key, out var id, out var gameSHA1) || gameSHA1 == null || !_SHA1Regex.IsMatch(gameSHA1))
                     continue;
 
                 if (File.Exists($"{_plugin.PluginDataPath}/Games/{gameSHA1}.json"))
                 {
-                    var gamejson = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{_plugin.PluginDataPath}/Games/{splitID[1]}.json"));
+                    var gamejson = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{_plugin.PluginDataPath}/Games/{gameSHA1}.json"));
 
                     var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == gamejson?.MappingID);
                     if (mapping != null)
                     {
-                        // Don't remove games from mappings that are disabled
-                        if (!mapping.Enabled)
+                        // Don't remove games from mappings that are disabled or where skipped on import
+                        if (!mapping.Enabled || !processedMappings.Contains(mapping))
                             continue;
                     }
                 }
@@ -276,9 +283,9 @@ namespace Graviton.Import
                 await _playniteAPI.Library.Games.RemoveAsync(game.Value.PlayniteID!);
                 _plugin.ImportedGames.TryRemove(game.Key, out _);
                 
-                File.Delete($"{_plugin.PluginDataPath}/Games/{splitID[1]}.json");
+                File.Delete($"{_plugin.PluginDataPath}/Games/{gameSHA1}.json");
 
-                _logger.Info($"[Importer] Removing {splitID[0]}");
+                _logger.Info($"[Importer] Removing {id}");
             }
 
             _logger.Info($"[Importer] Finished removing not found games");

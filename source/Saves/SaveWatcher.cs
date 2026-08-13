@@ -89,9 +89,9 @@ namespace Graviton.Saves
                     if (image != null)
                     {
                         NewestSaveScreenshot = image;
-                        LastFileUpdate = now;
                     }
-                }
+                    LastFileUpdate = now;
+                }   
             }
         }
 
