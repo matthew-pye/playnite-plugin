@@ -187,7 +187,7 @@ namespace Graviton
                     var rom = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllBytes(rompath));
                     if (rom != null)
                     {
-                        ImportedGames.TryAdd($"{rom.Id}:{rom.SHA1}", rom);
+                        ImportedGames.TryAdd($"{rom.Id}", rom);
                         continue;
                     }
 
@@ -272,8 +272,8 @@ namespace Graviton
                 foreach (var removed in args.RemovedItems.Where(x => x.LibraryId == Id))
                 {
                     ImportedGames.TryRemove(removed.LibraryGameId!, out var game);
-                    if (File.Exists($"{PluginDataPath}/Games/{game?.SHA1}.json"))
-                        File.Delete($"{PluginDataPath}/Games/{game?.SHA1}.json");
+                    if (File.Exists($"{PluginDataPath}/Games/{removed.LibraryGameId}.json"))
+                        File.Delete($"{PluginDataPath}/Games/{removed.LibraryGameId}.json");
                 }
             }
         }

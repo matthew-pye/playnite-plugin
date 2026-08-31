@@ -17,10 +17,10 @@ internal static class GravitonSiblingMerger
                 try
                 {
 
-                    if (!Plugin.ImportedGames.ContainsKey($"{ROM.Id}:{ROM.SHA1}") || string.IsNullOrEmpty(Plugin.ImportedGames[$"{ROM.Id}:{ROM.SHA1}"].PlayniteID))
+                    if (!Plugin.ImportedGames.ContainsKey($"{ROM.Id}") || string.IsNullOrEmpty(Plugin.ImportedGames[$"{ROM.Id}"].PlayniteID))
                     continue;
 
-                    var game = GravitonPlugin.PlayniteApi.Library.Games.Get(Plugin.ImportedGames[$"{ROM.Id}:{ROM.SHA1}"].PlayniteID!);
+                    var game = GravitonPlugin.PlayniteApi.Library.Games.Get(Plugin.ImportedGames[$"{ROM.Id}"].PlayniteID!);
                     if (game == null)
                         continue;
 
@@ -35,9 +35,9 @@ internal static class GravitonSiblingMerger
                                 continue;
 
                             // Check to see if sibling has been imported
-                            if (Plugin.ImportedGames.ContainsKey($"{siblingROM.Id}:{siblingROM.SHA1}") && !string.IsNullOrEmpty(Plugin.ImportedGames[$"{siblingROM.Id}:{siblingROM.SHA1}"].PlayniteID))
+                            if (Plugin.ImportedGames.ContainsKey($"{siblingROM.Id}") && !string.IsNullOrEmpty(Plugin.ImportedGames[$"{siblingROM.Id}"].PlayniteID))
                             {
-                                var siblingGame = GravitonPlugin.PlayniteApi.Library.Games.Get(Plugin.ImportedGames[$"{siblingROM.Id}:{siblingROM.SHA1}"].PlayniteID!)!;
+                                var siblingGame = GravitonPlugin.PlayniteApi.Library.Games.Get(Plugin.ImportedGames[$"{siblingROM.Id}"].PlayniteID!)!;
                                 SiblingROMs.Add((siblingROM, siblingGame));
                             }
                         }

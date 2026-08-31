@@ -34,7 +34,7 @@ namespace Graviton.Status
 
         public async Task PushPlaySession(string GameID, DateTime StopTime, uint SessionLength)
         {
-            if (!GravitonHelper.TryParseGameID(GameID, out var id, out var gameSHA1))
+            if (!GravitonHelper.TryParseGameID(GameID, out var id))
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", GameID)), GravitonSeverity.Error));
                 return;
@@ -75,7 +75,7 @@ namespace Graviton.Status
 
                 if (_plugin.Settings.KeepFavouritesSynced && favouriteCollection != null && updatedGame.ChangedProperties.Contains(nameof(Game.Favorite)))
                 {
-                    if (!GravitonHelper.TryParseGameID(updatedGame.OldData.LibraryGameId, out var id, out var gameSHA1))
+                    if (!GravitonHelper.TryParseGameID(updatedGame.OldData.LibraryGameId, out var id))
                     {
                         GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", updatedGame.OldData.LibraryGameId!)), GravitonSeverity.Error));
                         continue;
@@ -155,7 +155,7 @@ namespace Graviton.Status
         // Play Status
         public async Task UpdateStatus(Game game)
         {
-            if (!GravitonHelper.TryParseGameID(game.LibraryGameId, out var id, out var gameSHA1))
+            if (!GravitonHelper.TryParseGameID(game.LibraryGameId, out var id))
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", game.LibraryGameId!)), GravitonSeverity.Error));
                 return;
@@ -191,7 +191,7 @@ namespace Graviton.Status
             _heartbeatCts = new CancellationTokenSource();
             var token = _heartbeatCts.Token;
 
-            if (!GravitonHelper.TryParseGameID(GameID, out var id, out var gameSHA1))
+            if (!GravitonHelper.TryParseGameID(GameID, out var id))
             {
                 GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", GameID)), GravitonSeverity.Error));
                 return;
@@ -247,7 +247,7 @@ namespace Graviton.Status
 
                 foreach (var game in args.Games)
                 {
-                    if (!GravitonHelper.TryParseGameID(game.LibraryGameId!, out var id, out var gameSHA1))
+                    if (!GravitonHelper.TryParseGameID(game.LibraryGameId!, out var id))
                     {
                         GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", game.LibraryGameId!)), GravitonSeverity.Error));
                         continue;

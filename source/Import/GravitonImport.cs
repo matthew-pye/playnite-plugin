@@ -49,7 +49,7 @@ namespace Graviton.Import
                 if (_cancelToken.IsCancellationRequested)
                     break;
 
-                string gameID = $"{ROM.Id}:{ROM.SHA1}";
+                string gameID = $"{ROM.Id}";
                 try
                 {
                     var result = await ProcessROM(ROM, gameID);
@@ -237,7 +237,7 @@ namespace Graviton.Import
 
             game.SourceId = GravitonPlugin.Id;
             game.LibraryId = GravitonPlugin.Id;
-            game.LibraryGameId = $"{ROM.Id}:{ROM.SHA1}";
+            game.LibraryGameId = $"{ROM.Id}";
 
             if(string.IsNullOrEmpty(ROM.Name))
                 return null;
@@ -325,17 +325,13 @@ namespace Graviton.Import
         private async Task<bool> UpdatedDeletedGame(RomMRom ROM)
         {
             // Check to see if a game already exists with an old romMId
-            var oldgame = _plugin.ImportedGames.FirstOrDefault(g =>
-            {
-                GravitonHelper.TryParseGameID(g.Key, out var ID, out var SHA1);
-                return SHA1 == ROM.SHA1;
-            });
+            var oldgame = _plugin.ImportedGames.FirstOrDefault(g => g.Value.SHA1 == ROM.SHA1);
 
             if (oldgame.Value != null)
             {
                 var game = _playniteAPI.Library.Games.Get(oldgame.Value.PlayniteID!)!;
 
-                game.LibraryGameId = $"{ROM.Id}:{ROM.SHA1}";
+                game.LibraryGameId = $"{ROM.Id}";
                 oldgame.Value.Id = ROM.Id;
                 await _playniteAPI.Library.Games.UpdateAsync(game);
 

@@ -217,7 +217,7 @@ namespace Graviton.Saves
                 var mapping = _plugin.Settings.Mappings.FirstOrDefault( x => x.MappingId == localrom.MappingID);
                 if (mapping == null)
                 {
-                    _logger.Error($"Failed to find mapping for {localrom.Id}:{localrom.SHA1}");
+                    _logger.Error($"Failed to find mapping for {localrom.Id}");
                     continue;
                 }
 

@@ -249,12 +249,12 @@ namespace Graviton.Import
                 if (ImportedGames.Contains(game.Key))
                     continue;
 
-                if (!GravitonHelper.TryParseGameID(game.Key, out var id, out var gameSHA1) || gameSHA1 == null || !_SHA1Regex.IsMatch(gameSHA1))
+                if (!GravitonHelper.TryParseGameID(game.Key, out var id))
                     continue;
 
-                if (File.Exists($"{_plugin.PluginDataPath}/Games/{gameSHA1}.json"))
+                if (File.Exists($"{_plugin.PluginDataPath}/Games/{id}.json"))
                 {
-                    var gamejson = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{_plugin.PluginDataPath}/Games/{gameSHA1}.json"));
+                    var gamejson = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{_plugin.PluginDataPath}/Games/{id}.json"));
 
                     var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == gamejson?.MappingID);
                     if (mapping != null)
@@ -283,7 +283,7 @@ namespace Graviton.Import
                 await _playniteAPI.Library.Games.RemoveAsync(game.Value.PlayniteID!);
                 _plugin.ImportedGames.TryRemove(game.Key, out _);
                 
-                File.Delete($"{_plugin.PluginDataPath}/Games/{gameSHA1}.json");
+                File.Delete($"{_plugin.PluginDataPath}/Games/{id}.json");
 
                 _logger.Info($"[Importer] Removing {id}");
             }
