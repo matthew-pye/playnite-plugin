@@ -296,7 +296,7 @@ namespace Graviton
                 try
                 {
 
-                    if (!ImportedGames.ContainsKey(args.Game.LibraryGameId!))
+                    if (!ImportedGames.ContainsKey(args.Game.LibraryGameId ?? ""))
                         throw new Exception($"Cannot find game with ID: {args.Game.LibraryGameId}");
 
                     var gameinfo = ImportedGames[args.Game.LibraryGameId!];

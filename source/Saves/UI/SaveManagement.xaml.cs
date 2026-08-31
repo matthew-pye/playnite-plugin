@@ -172,14 +172,14 @@ namespace Graviton.Saves
             window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
             window.ShowDialog();
 
-            if (saveSelector.WasConfirmed)
+            if (saveSelector.WasConfirmed && saveSelector.SelectedROM != null && saveSelector.SelectedMapping != null)
             {
                 GravitonSave newsave = new()
                 {
-                    ROMID = saveSelector.SelectedROM!.Id,
-                    GameName = saveSelector.SelectedROM!.Name!,
-                    Filename = saveSelector.SelectedSourcePaths!.Count > 1 || !File.Exists(saveSelector.SelectedSourcePaths[0]) ? $"{saveSelector.SelectedROM.Name}.zip" : Path.GetFileName(saveSelector.SelectedSourcePaths[0]),
-                    SourceFilePaths = saveSelector.SelectedSourcePaths!.Select(x => x.Replace(saveSelector.SelectedMapping!.SavePath, EmulatorMapping.SavePathToken)).ToObservableCollection(),
+                    ROMID = saveSelector.SelectedROM.Id,
+                    GameName = saveSelector.SelectedROM.Name ?? "",
+                    Filename = saveSelector.SelectedSourcePaths?.Count > 1 || !File.Exists(saveSelector.SelectedSourcePaths?[0] ?? "") ? $"{saveSelector.SelectedROM.Name}.zip" : Path.GetFileName(saveSelector.SelectedSourcePaths?[0] ?? ""),
+                    SourceFilePaths = saveSelector.SelectedSourcePaths != null ? saveSelector.SelectedSourcePaths.Select(x => x.Replace(saveSelector.SelectedMapping.SavePath, EmulatorMapping.SavePathToken)).ToObservableCollection() : new(),
                     Status = SaveStatus.LocalNewer
                 };
 
@@ -423,11 +423,15 @@ namespace Graviton.Saves
 
             if(response == RestoreLocally || response == FullRestore)
             {
-                Saves.Remove(parentROM.LocalSave!);
+                if (parentROM.LocalSave == null)
+                    parentROM.LocalSave = new();
+                else
+                    Saves.Remove(parentROM.LocalSave);
+
                 var result = await SaveController.Manager.Download(historicSave, true);
                 if(result.Status == SaveStatus.Synced)
                 {
-                    parentROM.LocalSave!.HistoricSaves?.Remove(historicSave);
+                    parentROM.LocalSave.HistoricSaves?.Remove(historicSave);
 
                     if (parentROM.LocalSave.HistoricSaves == null)
                         parentROM.LocalSave.HistoricSaves = new();

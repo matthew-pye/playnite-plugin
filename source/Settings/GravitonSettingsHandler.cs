@@ -42,7 +42,7 @@ namespace Graviton.Settings
             InEditingMode = true;
 
             foreach (var mapping in Settings.Mappings)
-                mapping.AvailablePlatforms = Settings.AccountState.RomMPlatforms;
+                mapping.AvailablePlatforms = Settings.AccountState.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
   
             await Task.CompletedTask;
         }
@@ -118,7 +118,7 @@ namespace Graviton.Settings
                     {
                         foreach (var mapping in settings.Mappings)
                         {
-                            mapping.AvailablePlatforms = settings.AccountState.RomMPlatforms;
+                            mapping.AvailablePlatforms = settings.AccountState.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
                         }
                     }
                 }

@@ -114,6 +114,9 @@ namespace Graviton.Models.RomM.Rom
         [JsonPropertyName("name")]
         public string? Name { get; set; }
 
+        [JsonPropertyName("name_sort_key")]
+        public string? SortName { get; set; }
+
         [JsonPropertyName("slug")]
         public string? Slug { get; set; }
 

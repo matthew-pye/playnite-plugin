@@ -52,7 +52,7 @@ namespace Graviton.Import
             _plugin.Settings.AccountState.RomMPlatforms = apiPlatforms.ToObservableCollection();
             foreach (var mapping in _plugin.Settings.Mappings)
             {
-                mapping.AvailablePlatforms = _plugin.Settings.AccountState.RomMPlatforms;
+                mapping.AvailablePlatforms = _plugin.Settings.AccountState.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
             }
             GravitonSettingsHandler.SaveSettings(_plugin.PluginDataPath, _plugin.Settings);
 

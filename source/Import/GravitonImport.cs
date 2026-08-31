@@ -194,7 +194,13 @@ namespace Graviton.Import
 
             if (_plugin.ImportedGames.ContainsKey(gameID) && !string.IsNullOrEmpty(_plugin.ImportedGames[gameID].PlayniteID)) // Skip full import if ROM has already been imported 
             {
-                var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames[gameID].PlayniteID!)!;
+                var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames[gameID].PlayniteID!);
+
+                if(game == null)
+                {
+                    GravitonNotify.Add(new GravitonNotification($"graviton.import.game.{ROM.Id}.failed", Loc.GetString("ROMUpdateFailed", ("GameName", ROM.Name!), ("ROMID", ROM.Id)), GravitonSeverity.Error));
+                    return new(gameID, null);
+                }
 
                 if (ROM.Collections != null)
                 {
@@ -225,7 +231,7 @@ namespace Graviton.Import
             }
         }
 
-        private async Task<Game> ImportGame(RomMRom ROM)
+        private async Task<Game?> ImportGame(RomMRom ROM)
         {
             Game game = new Game();
 
@@ -233,7 +239,13 @@ namespace Graviton.Import
             game.LibraryId = GravitonPlugin.Id;
             game.LibraryGameId = $"{ROM.Id}:{ROM.SHA1}";
 
-            game.Name = ROM.Name ?? throw new Exception("ROM doesn't have a name cannot continue!");
+            if(string.IsNullOrEmpty(ROM.Name))
+                return null;
+
+            game.Name = ROM.Name;
+            game.SortingName = ROM.SortName ?? "";
+            await _playniteAPI.Library.GameDescriptions.AddAsync(new GameDescription(game.Id, ROM.Summary, GameDescriptionFormat.Markdown));
+
             game.EstimatedInstallSize = ROM.FileSizeBytes;
             if (ROM.Metadatum?.ReleaseDate != null && ROM.Metadatum?.ReleaseDate > 0)
                 game.ReleaseDate = new PartialDate(new DateTime(((ROM.Metadatum.ReleaseDate ?? 0) + 62135596800000) * 10000));
@@ -268,7 +280,7 @@ namespace Graviton.Import
 
             game.Links = new();
             game.ExternalIdentifiers = new();
-            game.ExternalIdentifiers?.Add(new("romm", ROM.Id.ToString()!));
+            game.ExternalIdentifiers?.Add(new("romm", ROM.Id.ToString()));
             if (ROM.IgdbId != null)
             {
                 game.ExternalIdentifiers?.Add(new("igdb", ROM.IgdbId.ToString()!));
@@ -296,7 +308,6 @@ namespace Graviton.Import
             }
             if (ROM.HLTBId != null)
             {
-
                 game.Links.Add(new WebLink("howlongtobeat", $"https://howlongtobeat.com/game/{ROM.HLTBId}"));
                 game.ExternalIdentifiers?.Add(new("howlongtobeat", ROM.HLTBId.ToString()!));
             }
@@ -308,8 +319,6 @@ namespace Graviton.Import
                 game.InstallState = File.Exists($"{_mapping.DestinationPathResolved}\\{relativeROMPath}") ? InstallState.Installed : InstallState.Uninstalled;
             }
 
-            await _playniteAPI.Library.GameDescriptions.AddAsync(new GameDescription(game.Id, ROM.Summary, GameDescriptionFormat.Markdown));
-
             return game;
         }
 
@@ -318,8 +327,8 @@ namespace Graviton.Import
             // Check to see if a game already exists with an old romMId
             var oldgame = _plugin.ImportedGames.FirstOrDefault(g =>
             {
-                var splitID = g.Key?.Split(':');
-                return splitID?.Length == 2 && splitID[1] == ROM.SHA1;
+                GravitonHelper.TryParseGameID(g.Key, out var ID, out var SHA1);
+                return SHA1 == ROM.SHA1;
             });
 
             if (oldgame.Value != null)

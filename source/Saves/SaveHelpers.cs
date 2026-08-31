@@ -99,7 +99,13 @@ namespace Graviton.Saves
                 var resolvedPaths = new List<string>(fileEntries.Count);
                 foreach (var entry in fileEntries)
                 {
-                    var resolvedPath = Path.GetFullPath(Path.Combine(destinationFull, entry.Key!));
+                    if (entry.Key == null) 
+                    {
+                        GravitonPlugin.Logger.Warn($"[UnpackSave] Entry key was null, skipping!");
+                        continue; 
+                    }
+
+                    var resolvedPath = Path.GetFullPath(Path.Combine(destinationFull, entry.Key));
                     if (!resolvedPath.StartsWith(destinationFull, StringComparison.OrdinalIgnoreCase))
                     {
                         GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", Loc.GetString("ArchiveResolvesOutside", ("Entry", entry.Key!)), GravitonSeverity.Error));

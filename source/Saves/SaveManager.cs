@@ -115,7 +115,7 @@ namespace Graviton.Saves
                         return await Download(save);
                     default:
                         GravitonNotify.Add(new GravitonNotification("graviton.upload.failed", Loc.GetString("UploadConflictResolveFailed"), GravitonSeverity.Error));
-                        rom.LocalSave!.Status = SaveStatus.Conflicted;
+                        rom.LocalSave?.Status = SaveStatus.Conflicted;
                         rom.Save();
                         return save;
                 }
@@ -137,13 +137,13 @@ namespace Graviton.Saves
                 if (result == null)
                     throw new Exception();
 
-                if(screenshot != null)
+                if(screenshot != null && !string.IsNullOrEmpty(result.FileName))
                 {
                     content = new MultipartFormDataContent();
 
                     savecontent = new ByteArrayContent(screenshot);
                     savecontent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-                    content.Add(savecontent, "screenshotFile", (Path.GetFileNameWithoutExtension(result.FileName!) + ".jpg"));
+                    content.Add(savecontent, "screenshotFile", (Path.GetFileNameWithoutExtension(result.FileName) + ".jpg"));
 
                     _ = await _romMServer.PUTAsync($"/api/saves/{result.ID}?device_id={_plugin.Settings.AccountState.DeviceID}", content);
 
@@ -169,13 +169,22 @@ namespace Graviton.Saves
                 save.Status = SaveStatus.Synced;
                 save.IsCurrent = true;
 
-                save.LastSyncedAt = DateTime.Parse(result.UpdatedAt!);
+                if(DateTime.TryParse(result.UpdatedAt, out var lastSyncedAt))
+                {
+                    save.LastSyncedAt = lastSyncedAt;
+                    save.ServerLastUpdatedAt = lastSyncedAt;
+                }
+                else // Could cause erroneous upload to server
+                {
+                    save.LastSyncedAt = DateTime.UtcNow; 
+                    save.ServerLastUpdatedAt = DateTime.UtcNow;
+                }
+                    
                 save.ContentHash = result.ContentHash;
-                save.FileSize = result.FileSize!.Value;
+                save.FileSize = result.FileSize ?? -1;
 
                 save.LastSyncedContentHash = result.ContentHash;
-
-                save.ServerLastUpdatedAt = DateTime.Parse(result.UpdatedAt!);
+                
                 save.ServerHash = result.ContentHash;
 
                 save.MissingFiles = new();
@@ -447,13 +456,22 @@ namespace Graviton.Saves
             }
             else
             {
-                var savelocation = Path.Combine(mapping.SavePath, save.FileName!);
+                var savelocation = Path.Combine(mapping.SavePath, save.FileName ?? "");
                 File.Move(tempDir, savelocation, true);
                 newsave.SourceFilePaths = new() { savelocation.Replace(mapping.SavePath, EmulatorMapping.SavePathToken) };
             }
 
-            newsave.Filename = save.FileName!;
-            newsave.LastSyncedAt = DateTime.Parse(save.UpdatedAt!);
+            newsave.Filename = save.FileName ?? "";
+
+            if (DateTime.TryParse(save.UpdatedAt, out var lastSyncedAt))
+            {
+                newsave.LastSyncedAt = lastSyncedAt;
+            }
+            else // Could cause erroneous upload to server
+            {
+                newsave.LastSyncedAt = DateTime.UtcNow;
+            }
+
             newsave.ContentHash = save.ContentHash;
             newsave.LastSyncedContentHash = save.ContentHash;
             newsave.FileSize = ms.Length;

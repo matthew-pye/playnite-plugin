@@ -126,7 +126,7 @@ namespace Graviton.Settings
         {
             foreach (var mapping in _plugin.Settings.Mappings!)
             {
-                mapping.AvailablePlatforms = _plugin.Settings.AccountState.RomMPlatforms;
+                mapping.AvailablePlatforms = _plugin.Settings.AccountState.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
             }
 
             var importcontroller = _plugin?.ImportController;
@@ -148,7 +148,7 @@ namespace Graviton.Settings
             _plugin?.Settings.AccountState.RomMPlatforms = platforms.ToObservableCollection();
             foreach (var mapping in _plugin?.Settings.Mappings!)
             {
-                mapping.AvailablePlatforms = platforms.ToObservableCollection();
+                mapping.AvailablePlatforms = platforms.Where(x => x.RomCount > 0).ToObservableCollection();
             }
 
 
@@ -298,9 +298,9 @@ namespace Graviton.Settings
                             if (result == null)
                                 throw new Exception("Failed to deserialize response");
 
-                            _plugin.Settings.AccountState.DeviceID = result.DeviceID!;
-                            _plugin.Settings.ClientTokenNP = result.AccessToken!;
-                            await _plugin.Account?.Login()!;
+                            _plugin.Settings.AccountState.DeviceID = result.DeviceID ?? throw new Exception("Failed to get Device ID");
+                            _plugin.Settings.ClientTokenNP = result.AccessToken ?? throw new Exception("Failed to get Access Token");
+                            await _plugin.Account!.Login();
                             return true;
                         }
                         else if (response?.Status == HttpStatusCode.BadRequest && response.Content != null)

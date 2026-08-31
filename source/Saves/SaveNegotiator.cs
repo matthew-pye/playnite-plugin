@@ -152,7 +152,7 @@ namespace Graviton.Saves
 
                     if (operation.Action == SaveSyncStatus.conflict)
                     {
-                        action = ResolveConflict(rom.LocalSave!);
+                        action = ResolveConflict(rom.LocalSave);
                     }
 
                     switch (action)
@@ -161,7 +161,9 @@ namespace Graviton.Saves
                             var saveID = rom.LocalSave.SaveID;
                             rom.LocalSave.Status = SaveStatus.LocalNewer;
                             rom.LocalSave.ServerHash = operation.ServerContentHash;
-                            rom.LocalSave.ServerLastUpdatedAt = DateTime.Parse(operation.ServerUpdatedAt!);
+
+                            if (DateTime.TryParse(operation.ServerUpdatedAt, out var serverUpdatedAt))
+                                rom.LocalSave.ServerLastUpdatedAt = serverUpdatedAt;
 
                             var result = await SaveController.Manager.Upload(rom.LocalSave!, false, screenshot, operation);
 
@@ -195,7 +197,9 @@ namespace Graviton.Saves
                             rom.LocalSave.SaveID = operation.SaveID;
                             rom.LocalSave.Status = SaveStatus.RemoteNewer;
                             rom.LocalSave.ServerHash = operation.ServerContentHash;
-                            rom.LocalSave.ServerLastUpdatedAt = DateTime.Parse(operation.ServerUpdatedAt!);
+
+                            if (DateTime.TryParse(operation.ServerUpdatedAt, out var updatedAt))
+                                rom.LocalSave.ServerLastUpdatedAt = updatedAt;
 
                             await SaveController.Manager.Download(rom.LocalSave);
                             rom.LocalSave.IsTempRestored = false;
@@ -418,7 +422,14 @@ namespace Graviton.Saves
                 DefaultHeight = 315
             });
 
-            var resolveConflictView = new ResolveConflictView(save.ServerLastUpdatedAt.Value, save.LastSyncedAt!.Value);
+            if(save.LastSyncedAt == null || !save.LastSyncedAt.HasValue)
+            {
+                GravitonPlugin.Logger.Error($"{save.GameName} save LastSyncedAt was null cannot resolve conflict");
+                save.Status = SaveStatus.Conflicted; 
+                return SaveSyncStatus.conflict;
+            }
+
+            var resolveConflictView = new ResolveConflictView(save.ServerLastUpdatedAt.Value, save.LastSyncedAt.Value);
 
             window.Title = Loc.GetString("SaveConflict");
             window.Content = resolveConflictView;
