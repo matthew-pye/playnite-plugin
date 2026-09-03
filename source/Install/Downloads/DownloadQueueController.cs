@@ -21,7 +21,7 @@ namespace Graviton.Install.Downloads
 
         private readonly System.Collections.Concurrent.ConcurrentDictionary<string, CancellationTokenSource> activeDownloads = new();
 
-        public ILogger Logger => LogManager.GetLogger();
+        public ILogger Logger => LogManager.GetLogger<GravitonPlugin>();
         public int MaxConcurrent { get; }
 
         public DownloadQueueController(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer, DownloadQueueViewModel downloadQueueVM, int maxConcurrent)

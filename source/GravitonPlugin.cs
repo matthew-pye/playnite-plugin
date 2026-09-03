@@ -136,7 +136,7 @@ namespace Graviton
 
             PlayniteApi = args.Api ?? throw new Exception("Failed to set playnite instance!");
             Loc.Api = args.Api ?? throw new Exception("Failed to set localization api instance!");
-            Logger = LogManager.GetLogger();
+            Logger = LogManager.GetLogger<GravitonPlugin>();
 
             await PlayniteApi.Library.Sources.AddAsync(new Source(Id, "Graviton"));
 
