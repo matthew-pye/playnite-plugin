@@ -96,7 +96,7 @@ namespace Graviton.Settings
             var setFile = Path.Combine(dataDir, "settings.json");
             try
             {
-                File.WriteAllText(setFile, JsonSerializer.Serialize<GravitonPluginSettings>(settings));
+                File.WriteAllText(setFile, JsonSerializer.Serialize<GravitonPluginSettings>(settings, new JsonSerializerOptions { WriteIndented = true }));
             }
             catch (Exception ex)
             {
