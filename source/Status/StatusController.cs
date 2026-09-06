@@ -234,7 +234,7 @@ namespace Graviton.Status
                 JsonDocument? response;
                 if (_plugin.Settings.AccountState.UserID >= 0)
                 {
-                    response = await _romMServer.GETAsync($"/api/users/{_plugin.Settings.AccountState.UserID}/ra/refresh");
+                    response = await _romMServer.POSTAsync($"/api/users/{_plugin.Settings.AccountState.UserID}/ra/refresh", new { incremental = true });
                     if (response == null)
                         return new();
                 }

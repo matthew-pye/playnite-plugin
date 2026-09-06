@@ -225,9 +225,9 @@ DELETEFailed = DELETE Request Failed For {$APIPath}
 
 # Import
 NoFileNameWithID = The filename for ROM ID {$ROMID} does not exist. Does the ROM exist on the server's file system?
-ROMImportFailed = Failed to import {$GameName} [ID:{ROMID}], Skipping
+ROMImportFailed = Failed to import {$GameName} [ID:{$ROMID}], Skipping
 ROMDataSaveFailed = Failed to save ROM data to disk - {$Error}
-ROMUpdateFailed = Failed to update {$GameName} [ID:{ROMID}], Skipping
+ROMUpdateFailed = Failed to update {$GameName} [ID:{$ROMID}], Skipping
 
 # Import controller
 NoEmulatorsConfigured = No emulators are configured or enabled in RomM settings. No games will be imported.

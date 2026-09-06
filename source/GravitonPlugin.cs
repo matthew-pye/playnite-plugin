@@ -5,6 +5,7 @@ using Graviton.Install;
 using Graviton.Install.Downloads;
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Rom;
+using Graviton.Play;
 using Graviton.Saves;
 using Graviton.Settings;
 using Graviton.Status;
@@ -46,6 +47,7 @@ namespace Graviton
         internal List<GameSessionHandler> GameSessionHandlers { get; private set; } = new();
         internal StatusController? StatusController { get; private set; }
         internal DownloadQueueController? DownloadQueueController { get; private set; }
+        internal GravitonPlayController? PlayController { get; private set; }
 
         internal ConcurrentDictionary<string, RomMRomLocal> ImportedGames { get; private set; } = new();
 
@@ -212,6 +214,8 @@ namespace Graviton
             {
                 EmunightAPI = emunightApi;
             }
+
+            PlayController = new(Instance, PlayniteApi, Logger, EmunightAPI ?? throw new Exception("EmunightAPI not found"));
         }
 
         public override async Task OnApplicationStartupAsync(OnApplicationStartupArgs args)
@@ -331,7 +335,7 @@ namespace Graviton
         {    
             if (args.Game.LibraryId == Id && ImportedGames.ContainsKey(args.Game.LibraryGameId!))
             {
-                // Waiting for Emunight update to expose ImportedEmulators Filetype, Default exe, Default Args
+                return await PlayController!.GetPlayActionsAsync(args);
             }
 
             return [];
@@ -342,7 +346,9 @@ namespace Graviton
             if (args.Game.LibraryId == Id && args.Game.LibraryGameId != null)
             {
                 var newSession = new GameSessionHandler(Instance, PlayniteApi, Logger);
-                await newSession.GameStarting(args.Game.LibraryGameId);
+
+                // Check to see if game starts then add the new session to the list
+                await newSession.GameStarting(args);
                 GameSessionHandlers.Add(newSession);
             }
         }
@@ -352,7 +358,7 @@ namespace Graviton
             if (args.StartingArgs.Game.LibraryId == Id && args.StartingArgs.Game.LibraryGameId != null)
             {
                 var gameSession = GameSessionHandlers.FirstOrDefault(x => x.GameID == args.StartingArgs.Game.LibraryGameId);
-                _ = gameSession?.GameStarted(args.StartedArgs.StartedProcessId, args.StartingArgs.Game.LibraryGameId);
+                _ = gameSession?.GameStarted(args);
             }
         }
 
@@ -363,11 +369,25 @@ namespace Graviton
                 var gameSession = GameSessionHandlers.FirstOrDefault(x => x.GameID == args.StartingArgs.Game.LibraryGameId);
                 if(gameSession != null)
                 {
-                    await gameSession.GameStopped(args.StartingArgs.Game.LibraryGameId, args.StoppedArgs.SessionLength);
+                    await gameSession.GameStopped(args);
                     GameSessionHandlers.Remove(gameSession);
                 }
             }
         }
+
+        public override async Task OnGameStartupCancelledAsync(OnGameStartupCancelledEventArgs args)
+        {
+            if (args.SessionArgs.Game.LibraryId == Id)
+            {
+                var gameSession = GameSessionHandlers.FirstOrDefault(x => x.GameID == args.SessionArgs.Game.LibraryGameId);
+                if (gameSession != null)
+                {
+                    await gameSession.GameCancelled(args);
+                    GameSessionHandlers.Remove(gameSession);
+                }
+            }
+        }
+
         #endregion
 
         public override Task OnGamepadButtonStateChangedAsync(OnGamepadButtonStateChangedArgs args)

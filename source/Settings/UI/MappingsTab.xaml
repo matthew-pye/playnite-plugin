@@ -57,7 +57,7 @@
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="{Binding RomMPlatform.DisplayName}" FontSize="16" Foreground="{DynamicResource Graviton.Text.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
                         <TextBlock Text="{Binding Emulator.Name}" FontSize="14" FontWeight="Medium" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Text="{Binding Profile.ProfileId}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0">
+                        <TextBlock Text="{Binding Profile.Name}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -164,7 +164,7 @@
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="{Binding RomMPlatform.DisplayName}" FontSize="22" Foreground="{DynamicResource Graviton.Text.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
                     <TextBlock Text="{Binding Emulator.Name}" FontSize="20" FontWeight="Medium" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
-                    <TextBlock Text="{Binding Profile.ProfileId}" FontSize="18" Foreground="{DynamicResource Graviton.SubSubText.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0">
+                    <TextBlock Text="{Binding Profile.Name}" FontSize="18" Foreground="{DynamicResource Graviton.SubSubText.Colour}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -256,7 +256,7 @@
 
                             <!-- Profile -->
                             <TextBlock Name="ProfileText" Text="{loc:LocalizedString Profile}" FontWeight="SemiBold" FontSize="14" Margin="10,10,0,0" Grid.Column="1" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
-                            <ComboBox Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="10,0,0,0" Grid.Column="1" Grid.Row="2" Tag="{loc:LocalizedString NoProfile}" ItemsSource="{Binding AvailableProfiles}" DisplayMemberPath="ProfileId" SelectedItem="{Binding Profile, Mode=TwoWay}">
+                            <ComboBox Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="10,0,0,0" Grid.Column="1" Grid.Row="2" Tag="{loc:LocalizedString NoProfile}" ItemsSource="{Binding AvailableProfiles}" DisplayMemberPath="Name" SelectedItem="{Binding Profile, Mode=TwoWay}">
                                 <ComboBox.Style>
                                     <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
                                         <Setter Property="IsEnabled" Value="False"/>
@@ -325,7 +325,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Name="Preferm3uText" Text="{loc:LocalizedString PreferM3U}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0" ToolTip="{loc:LocalizedString PreferM3UTooltip}"/>
-                                <ToggleButton Grid.Column="1" Name="Preferm3u" IsChecked="{Binding UseM3U, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                <ToggleButton Grid.Column="1" Name="Preferm3u" IsChecked="{Binding PreferM3U, Mode=TwoWay}" VerticalAlignment="Center"/>
                             </Grid>
                         </StackPanel>
                     </Border>

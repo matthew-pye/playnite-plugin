@@ -1,5 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
+using Emunight;
+
 using Graviton.Models.Notifications;
 
 using Playnite;
@@ -119,6 +121,7 @@ namespace Graviton.Settings
                         foreach (var mapping in settings.Mappings)
                         {
                             mapping.AvailablePlatforms = settings.AccountState.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
+                            mapping.AvailableEmulators = ((IEnumerable<EmulatorBase>)GravitonPlugin.Instance.EmunightAPI!.ImportedEmulators).Concat(GravitonPlugin.Instance.EmunightAPI.CustomEmulators).OrderBy(e => e.Name).ToObservableCollection();
                         }
                     }
                 }

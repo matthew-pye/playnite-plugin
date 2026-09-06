@@ -12,6 +12,7 @@ using System.Text.Json.Serialization;
 
 namespace Graviton.Models
 {
+
     public partial class EmulatorMapping : ObservableObject
     {
         public static readonly string SavePathToken = "{MappingSavePath}";
@@ -22,13 +23,13 @@ namespace Graviton.Models
         [ObservableProperty] private Guid _mappingId;
         [ObservableProperty] private bool _enabled = true;
         [ObservableProperty] private bool _autoExtract = false;
-        [ObservableProperty] private bool _useM3U = false;
+        [ObservableProperty] private bool _preferM3U = false;
 
         [JsonIgnore] private EmulatorBase? _emulator;
         [JsonIgnore] private ObservableCollection<EmulatorBase> _availableEmulators = new();
         [ObservableProperty][NotifyPropertyChangedFor(nameof(IsSetup))] private string? _emulatorId;
 
-        [JsonIgnore] private ImportedEmulatorProfileSettings? _emulatorProfile;
+        [JsonIgnore] private EmulatorProfile? _emulatorProfile;
         [ObservableProperty][NotifyPropertyChangedFor(nameof(IsSetup))] private string? _emulatorProfileId;
 
         [JsonIgnore] private RomMPlatform? _emulatedPlatform;
@@ -74,7 +75,7 @@ namespace Graviton.Models
 
                     if (IsImportedEmulator && !string.IsNullOrEmpty(EmulatorProfileId))
                     {
-                        Profile = AvailableProfiles.FirstOrDefault(x => x.ProfileId == EmulatorProfileId);
+                        Profile = AvailableProfiles.FirstOrDefault(x => x.Id == EmulatorProfileId);
                     }
                 }
 
@@ -109,16 +110,30 @@ namespace Graviton.Models
         public bool IsCustomEmulator => Emulator is CustomEmulator;
 
         [JsonIgnore]
-        public IEnumerable<ImportedEmulatorProfileSettings> AvailableProfiles => (Emulator as ImportedEmulator)?.ProfileSettings ?? Enumerable.Empty<ImportedEmulatorProfileSettings>();
+        public IEnumerable<EmulatorProfile> AvailableProfiles
+        { 
+            get
+            {
+                if(!IsImportedEmulator)
+                    return Enumerable.Empty<EmulatorProfile>();
+
+                var emunightEmulator = _plugin.EmunightAPI?.GetKnownEmulators().FirstOrDefault(x => x.Id == (Emulator as ImportedEmulator)!.EmulatorId);
+                if (emunightEmulator == null)
+                    return Enumerable.Empty<EmulatorProfile>();
+
+                return emunightEmulator.Profiles;
+            }
+        }
+
 
         [JsonIgnore]
-        public ImportedEmulatorProfileSettings? Profile
+        public EmulatorProfile? Profile
         {
             get => _emulatorProfile;
             set
             {
                 _emulatorProfile = value;
-                EmulatorProfileId = value?.ProfileId;
+                EmulatorProfileId = value?.Id;
 
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsSetup));
