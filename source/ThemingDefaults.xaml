@@ -11,9 +11,6 @@
     <SolidColorBrush x:Key="Graviton.RomM.Colour" Color="#372968"/>
     <SolidColorBrush x:Key="Graviton.RomMAccent.Colour" Color="#b9a6ce"/>
 
-    <!-- Was hardcoded inline in SettingsTabControl.xaml for the active/inactive tab indicator.
-         Named here so it's a single source of truth, but note this is a different, brighter purple
-         than Graviton.RomM.Colour above - see chat for whether these should be consolidated. -->
     <SolidColorBrush x:Key="Graviton.Accent.Colour" Color="#8b74e8"/>
     <SolidColorBrush x:Key="Graviton.AccentMuted.Colour" Color="#524489"/>
     
@@ -431,10 +428,11 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Thumb}">
                     <Grid>
-                        <!-- Value bubble: floats above the thumb, hidden until hover/drag/click -->
-                        <Border x:Name="ValueBubble" Background="{DynamicResource Graviton.DarkBackground.Colour}" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" CornerRadius="4" Padding="6,2" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-28,0,0" Visibility="Collapsed" SnapsToDevicePixels="True" IsHitTestVisible="False">
-                            <TextBlock Text="{Binding Value, RelativeSource={RelativeSource AncestorType={x:Type Slider}}, StringFormat={}{0:0.##}}" Foreground="{DynamicResource Graviton.Text.Colour}" FontSize="11" FontWeight="SemiBold" />
-                        </Border>
+                        <Canvas>
+                            <Border x:Name="ValueBubble" Canvas.Left="-8" Canvas.Top="-24" MinWidth="34" HorizontalAlignment="Center" Background="{DynamicResource Graviton.DarkBackground.Colour}"  BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}"  BorderThickness="1" CornerRadius="4" Padding="6,2"  Visibility="Collapsed" SnapsToDevicePixels="True" IsHitTestVisible="False">
+                                <TextBlock Text="{Binding Value, RelativeSource={RelativeSource AncestorType={x:Type Slider}}, StringFormat={}{0:0.##}}" Foreground="{DynamicResource Graviton.Text.Colour}" FontSize="11" FontWeight="SemiBold" TextAlignment="Center"/>
+                            </Border>
+                        </Canvas>
                         <Ellipse x:Name="Ellipse" Fill="{DynamicResource Graviton.Text.Colour}" Stroke="{DynamicResource Graviton.DarkBackground.Colour}" StrokeThickness="1" SnapsToDevicePixels="True" />
                     </Grid>
                     <ControlTemplate.Triggers>
@@ -474,10 +472,10 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <TickBar x:Name="TopTick" Grid.Row="0" Grid.Column="1" Placement="Top" Height="8" Margin="8,0" Opacity="0.5"
-                             Fill="{TemplateBinding Foreground}" Visibility="Collapsed" SnapsToDevicePixels="True"
-                             Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" TickFrequency="{TemplateBinding TickFrequency}"
-                             IsDirectionReversed="{TemplateBinding IsDirectionReversed}" />
+                        <TickBar x:Name="TopTick" Grid.Row="0" Grid.Column="1" Placement="Top" Height="8" Opacity="0.5"
+                                Fill="{TemplateBinding Foreground}" Visibility="Collapsed" SnapsToDevicePixels="True"
+                                Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" TickFrequency="{TemplateBinding TickFrequency}"
+                                IsDirectionReversed="{TemplateBinding IsDirectionReversed}" />
 
                         <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" FontSize="12" Margin="0,0,8,0"
                              Foreground="{DynamicResource Graviton.SubText.Colour}"
@@ -502,10 +500,10 @@
                              Foreground="{DynamicResource Graviton.SubText.Colour}"
                              Text="{Binding Maximum, RelativeSource={RelativeSource TemplatedParent}, StringFormat={}{0:0.##}}" />
 
-                        <TickBar x:Name="BottomTick" Grid.Row="2" Grid.Column="1" Placement="Bottom" Height="8" Margin="8,0" Opacity="0.5"
-                             Fill="{TemplateBinding Foreground}" Visibility="Collapsed" SnapsToDevicePixels="True"
-                             Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" TickFrequency="{TemplateBinding TickFrequency}"
-                             IsDirectionReversed="{TemplateBinding IsDirectionReversed}" />
+                        <TickBar x:Name="BottomTick" Grid.Row="2" Grid.Column="1" Placement="Bottom" Height="8" Opacity="0.5"
+                                Fill="{TemplateBinding Foreground}" Visibility="Collapsed" SnapsToDevicePixels="True"
+                                Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" TickFrequency="{TemplateBinding TickFrequency}"
+                                IsDirectionReversed="{TemplateBinding IsDirectionReversed}" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="TickPlacement" Value="TopLeft">

@@ -215,6 +215,9 @@ EnableScreenshots = Enable in-game screenshot capture for saves
 MaxResolutionTitle = Max screenshot resolution
 SecondsBeforeTitle = Screenshot timing
 SecondsBeforeSubTitle = Grabs a screenshot X seconds before you save, so the shot doesn't catch a save-in-progress overlay
+AddCollection = Create Playnite category from manual collection
+AddVirtualCollection = Create Playnite category from virtual collection
+AddSmartCollection = Create Playnite category with smart collection
 
 # Http Client
 Reauthenticate = Reauthentication required!

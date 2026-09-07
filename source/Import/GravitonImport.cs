@@ -1,5 +1,6 @@
 ﻿using Graviton.Models;
 using Graviton.Models.Notifications;
+using Graviton.Models.RomM.Collection;
 using Graviton.Models.RomM.Rom;
 
 using Playnite;
@@ -20,10 +21,11 @@ namespace Graviton.Import
         private CancellationToken _cancelToken;
         private EmulatorMapping _mapping;
         private List<RomMRom> _roms;
+        private List<RomMCollection> _collections;
 
         private static Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
 
-        public GravitonImport(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, CancellationToken cancelToken, EmulatorMapping mapping, List<RomMRom> roms)
+        public GravitonImport(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, CancellationToken cancelToken, EmulatorMapping mapping, List<RomMRom> roms, List<RomMCollection> collections)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -32,6 +34,7 @@ namespace Graviton.Import
             _cancelToken = cancelToken;
             _mapping = mapping;
             _roms = roms;
+            _collections = collections;
         }
 
         // Main library import functions
@@ -98,6 +101,15 @@ namespace Graviton.Import
             List<AgeRating> ageRatings = new();
             List<Region> regions = new();
 
+            foreach (var collection in _collections)
+            {
+                if (!string.IsNullOrEmpty(collection.Name) && collection.RomIDs.Any(x => _roms.Any(y => y.Id == x)))
+                {
+                    categories.Add(new Category(collection.Name.ToLower(), collection.Name));
+                }
+            }
+
+
             foreach (var ROM in _roms)
             {
                 // Some newer platforms don't get a hash value so we will compromise with this
@@ -114,11 +126,6 @@ namespace Graviton.Import
                 var ROMGenres = ROM.Metadatum?.Genres?.Select(x => new Genre(x.ToLower(), x)).ToList();
                 if (ROMGenres != null)
                     genres.AddRange(ROMGenres);
-
-                var ROMCollections = ROM.Metadatum?.Collections?.Select(x => new Category(x.ToLower(), x)).ToList();
-                ROMCollections?.RemoveAll(x => x.Name == "Favorites");
-                if (ROMCollections != null)
-                    categories.AddRange(ROMCollections);
 
                 var ROMSeries = ROM.Metadatum?.Franchises?.Select(x => new Series(x.ToLower(), x)).ToList();
                 if (ROMSeries != null)

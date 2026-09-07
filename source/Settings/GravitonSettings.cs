@@ -48,6 +48,9 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _mergeRevisions = false;
         [ObservableProperty] private bool _skipMissingFiles = false;
         [ObservableProperty] private bool _keepDeletedGames = false;
+        [ObservableProperty] private bool _addCollectiontoPlayniteCategory = true;
+        [ObservableProperty] private bool _addVirtualCollectiontoPlayniteCategory = true;
+        [ObservableProperty] private bool _addSmartCollectiontoPlayniteCategory = true;
         [ObservableProperty] private bool _importGamePatchesAsSiblings = false;
 
         [ObservableProperty] private bool _use7z = false;

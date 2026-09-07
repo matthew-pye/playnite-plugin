@@ -88,6 +88,35 @@
                             </TextBlock>
                         </Grid>
                     </Grid>
+                    
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Name="AddCollectionText" Text="{loc:LocalizedString AddCollection}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                            <ToggleButton Grid.Column="1" IsChecked="{Binding AddCollectiontoPlayniteCategory, Mode=TwoWay}" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Name="AddSmartCollectionText" Text="{loc:LocalizedString AddVirtualCollection}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                            <ToggleButton Grid.Column="1" IsChecked="{Binding AddVirtualCollectiontoPlayniteCategory, Mode=TwoWay}" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Name="AddVirtualCollectionText" Text="{loc:LocalizedString AddSmartCollection}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                            <ToggleButton Grid.Column="1" IsChecked="{Binding AddSmartCollectiontoPlayniteCategory, Mode=TwoWay}" VerticalAlignment="Center"/>
+                        </Grid>
+
+                    
                 </StackPanel>
             </Border>
             <!--#endregion-->
@@ -253,7 +282,7 @@
                     <StackPanel Margin="0,10,0,0" IsEnabled="{Binding CaptureScreenshots}">
                         <TextBlock Name="SecondsBeforeTitle" Text="{loc:LocalizedString SecondsBeforeTitle}" Foreground="{DynamicResource Graviton.Text.Colour}"/>
                         <TextBlock Name="SecondsBeforeSubTitle" Text="{loc:LocalizedString SecondsBeforeSubTitle}" Style="{StaticResource Graviton.SettingsHelperText}"/>
-                        <Slider Name="ScreenshotMaxCapture" Margin="0,0,10,0" Value="{Binding SecondsBeforeSave}" VerticalAlignment="Center" Minimum="5" Maximum="60" TickPlacement="BottomRight" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                        <Slider Name="ScreenshotMaxCapture" Margin="0,0,10,0" Value="{Binding SecondsBeforeSave}" VerticalAlignment="Center" Minimum="5" Maximum="60" TickPlacement="BottomRight" TickFrequency="5" IsSnapToTickEnabled="False"/>
                     </StackPanel>
                 </StackPanel>
             </Border>

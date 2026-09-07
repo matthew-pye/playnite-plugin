@@ -1,5 +1,6 @@
 ﻿using Graviton.Models;
 using Graviton.Models.Notifications;
+using Graviton.Models.RomM.Collection;
 using Graviton.Models.RomM.Platform;
 using Graviton.Models.RomM.Rom;
 using Graviton.Settings;
@@ -56,6 +57,8 @@ namespace Graviton.Import
             }
             GravitonSettingsHandler.SaveSettings(_plugin.PluginDataPath, _plugin.Settings);
 
+            var collections = await FetchCollections();
+
             string url = BuildGeneralROMUrl();
 
             List<EmulatorMapping> processedMappings = new();
@@ -93,9 +96,16 @@ namespace Graviton.Import
                 else
                     _logger.Debug($"[Import Controller] Finished parsing response for {apiPlatform.Name}.");
 
+                // Remove ROMs that are in the exclusion list
+                foreach (var rom in rommROMs.ToList())
+                {
+                    if (args.Exclusions?.Any(x => x.GameId == rom.Id.ToString()) ?? false)
+                        rommROMs.Remove(rom);   
+                }
+
 
                 _logger.Debug($"[Import Controller] Creating new import task for {apiPlatform.Name}.");
-                tasks.Add(new GravitonImport(_plugin, _playniteAPI, _logger, args.CancelToken, mapping, rommROMs).ProcessData());
+                tasks.Add(new GravitonImport(_plugin, _playniteAPI, _logger, args.CancelToken, mapping, rommROMs, collections).ProcessData());
                 processedMappings.Add(mapping);
             }
 
@@ -290,6 +300,77 @@ namespace Graviton.Import
 
             _logger.Info($"[Importer] Finished removing not found games");
         }
-    }
 
+        private async Task<List<RomMCollection>> FetchCollections()
+        {
+            List<RomMCollection> collections = new List<RomMCollection>();
+            if (_plugin.Settings.AddCollectiontoPlayniteCategory)
+            {
+                var result = await _romMServer.GETAsync("/api/collections");
+                if (result != null)
+                {
+                    try
+                    {
+                        var manualcollections = result.RootElement.Deserialize<List<RomMCollection>>();
+                        if (manualcollections != null)
+                            collections.AddRange(manualcollections);
+                    }
+                    catch (Exception ex)
+                    {
+                        GravitonNotify.Add(new GravitonNotification($"graviton.fetchcollection.failed", $"Failed to get manual collections: {ex.Message}", GravitonSeverity.Error, ex));
+                    } 
+                }
+            }
+
+            if(_plugin.Settings.AddSmartCollectiontoPlayniteCategory)
+            {
+                var result = await _romMServer.GETAsync("/api/collections/smart");
+                if (result != null)
+                {
+                    try
+                    {
+                        var manualcollections = result.RootElement.Deserialize<List<RomMCollection>>();
+                        if (manualcollections != null)
+                            collections.AddRange(manualcollections);
+                    }
+                    catch (Exception ex)
+                    {
+                        GravitonNotify.Add(new GravitonNotification($"graviton.fetchcollection.failed", $"Failed to get smart collections: {ex.Message}", GravitonSeverity.Error, ex));
+                    }
+                }
+            }
+
+            if (_plugin.Settings.AddVirtualCollectiontoPlayniteCategory)
+            {
+                var result = await _romMServer.GETAsync("/api/collections/virtual/identifiers");
+                if (result == null)
+                    return collections;
+
+                var collectionIDs = result.RootElement.Deserialize<List<string>>();
+                if(collectionIDs == null)
+                    return collections;
+
+                foreach (var id in collectionIDs)
+                {
+                    result = await _romMServer.GETAsync($"/api/collections/virtual/{id}");
+                    if (result == null)
+                        continue;
+
+                    try
+                    {
+                        collections.Add(result.RootElement.Deserialize<RomMCollection>() ?? throw new Exception("Failed to deserialze collection"));
+                    }
+                    catch (Exception)
+                    {
+                        continue;
+                    }
+                }
+
+
+            }
+
+            return collections;
+        }
+
+    }
 }
