@@ -16,7 +16,7 @@
 </div>
 
 > [!WARNING]
-> This plugin **DOES NOT** properly work yet! Only library importing works currently, waiting for emulator support to be added to Playnite 11 with alpha 2
+> This plugin is in a very alpha state but should have feature parity with the original playnite 10 version
 
 # Overview
 
