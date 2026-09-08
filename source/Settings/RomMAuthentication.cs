@@ -126,7 +126,7 @@ namespace Graviton.Settings
         {
             foreach (var mapping in _plugin.Settings.Mappings!)
             {
-                mapping.AvailablePlatforms = _plugin.Settings.AccountState.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
+                mapping.AvailablePlatforms = _plugin.Settings.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
             }
 
             var importcontroller = _plugin?.ImportController;
@@ -145,7 +145,7 @@ namespace Graviton.Settings
                 return false;
             }
 
-            _plugin?.Settings.AccountState.RomMPlatforms = platforms.ToObservableCollection();
+            _plugin?.Settings.RomMPlatforms = platforms.ToObservableCollection();
             foreach (var mapping in _plugin?.Settings.Mappings!)
             {
                 mapping.AvailablePlatforms = platforms.Where(x => x.RomCount > 0).ToObservableCollection();

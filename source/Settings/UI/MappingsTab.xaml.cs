@@ -66,7 +66,7 @@ namespace Graviton.Settings
             SyncPlatformsButton.IsEnabled = false;
 
             if(await _plugin.Account!.SyncPlatforms())
-                GravitonNotify.Add(new GravitonNotification("graviton.GET.platforms", Loc.GetString("PlatformsSynced", ("PlaformCount", _plugin.Settings.AccountState.RomMPlatforms.Count)), GravitonSeverity.Success));
+                GravitonNotify.Add(new GravitonNotification("graviton.GET.platforms", Loc.GetString("PlatformsSynced", ("PlaformCount", _plugin.Settings.RomMPlatforms.Count)), GravitonSeverity.Success));
 
             SyncPlatformsButton.IsEnabled = true;
             e.Handled = true;
@@ -76,7 +76,7 @@ namespace Graviton.Settings
         {
             var emulators = ((IEnumerable<EmulatorBase>)_plugin.EmunightAPI!.ImportedEmulators).Concat(_plugin.EmunightAPI.CustomEmulators).OrderBy(e => e.Name).ToObservableCollection();
 
-            _plugin.Settings.Mappings.Add(new EmulatorMapping(emulators, _plugin.Settings.AccountState.RomMPlatforms));
+            _plugin.Settings.Mappings.Add(new EmulatorMapping(emulators, _plugin.Settings.RomMPlatforms));
         }
         
         private async void DeleteMapping_Click(object sender, RoutedEventArgs e)

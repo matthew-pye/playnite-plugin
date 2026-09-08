@@ -44,7 +44,7 @@ namespace Graviton.Settings
             InEditingMode = true;
 
             foreach (var mapping in Settings.Mappings)
-                mapping.AvailablePlatforms = Settings.AccountState.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
+                mapping.AvailablePlatforms = Settings.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
   
             await Task.CompletedTask;
         }
@@ -120,7 +120,7 @@ namespace Graviton.Settings
                     {
                         foreach (var mapping in settings.Mappings)
                         {
-                            mapping.AvailablePlatforms = settings.AccountState.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
+                            mapping.AvailablePlatforms = settings.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
                             mapping.AvailableEmulators = ((IEnumerable<EmulatorBase>)GravitonPlugin.Instance.EmunightAPI!.ImportedEmulators).Concat(GravitonPlugin.Instance.EmunightAPI.CustomEmulators).OrderBy(e => e.Name).ToObservableCollection();
                         }
                     }

@@ -43,17 +43,21 @@ namespace Graviton.Import
             if (!enabledMappings.Any())
             {
                 GravitonNotify.Add(new GravitonNotification($"graviton.emulators.notconfigured", Loc.GetString("NoEmulatorsConfigured"), GravitonSeverity.Warn));
+                _plugin.ImportInProgress = false;
                 return new List<Game>();
             }
 
             IList<RomMPlatform>? apiPlatforms = await FetchPlatforms();
             if (apiPlatforms == null)
+            {
+                _plugin.ImportInProgress = false;
                 return new List<Game>();
-
-            _plugin.Settings.AccountState.RomMPlatforms = apiPlatforms.ToObservableCollection();
+            }
+                
+            _plugin.Settings.RomMPlatforms = apiPlatforms.ToObservableCollection();
             foreach (var mapping in _plugin.Settings.Mappings)
             {
-                mapping.AvailablePlatforms = _plugin.Settings.AccountState.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
+                mapping.AvailablePlatforms = _plugin.Settings.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
             }
             GravitonSettingsHandler.SaveSettings(_plugin.PluginDataPath, _plugin.Settings);
 
@@ -105,7 +109,7 @@ namespace Graviton.Import
 
 
                 _logger.Debug($"[Import Controller] Creating new import task for {apiPlatform.Name}.");
-                tasks.Add(new GravitonImport(_plugin, _playniteAPI, _logger, args.CancelToken, mapping, rommROMs, collections).ProcessData());
+                tasks.Add(new GravitonImport(_plugin, _playniteAPI, _logger, args, mapping, rommROMs, collections).ProcessData());
                 processedMappings.Add(mapping);
             }
 
@@ -122,6 +126,9 @@ namespace Graviton.Import
             if (!_plugin.Settings.KeepDeletedGames)
                 await RemoveMissingGames(proccessedgames, processedMappings);
 
+            _plugin.ImportInProgress = false;
+            var sessionsstring = JsonSerializer.Serialize(_playniteAPI.Library.GameSessions, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText($"{_plugin.PluginDataPath}/temp/sessions.json", sessionsstring);
             return games;
         }
 
@@ -371,6 +378,8 @@ namespace Graviton.Import
 
             return collections;
         }
+
+
 
     }
 }

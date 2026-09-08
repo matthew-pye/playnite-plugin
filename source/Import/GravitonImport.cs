@@ -10,6 +10,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
+using static Playnite.Plugin;
+
 namespace Graviton.Import
 {
     internal class GravitonImport
@@ -18,20 +20,20 @@ namespace Graviton.Import
         private IPlayniteApi _playniteAPI;
         private ILogger _logger;
 
-        private CancellationToken _cancelToken;
+        private ImportGamesArgs _args;
         private EmulatorMapping _mapping;
         private List<RomMRom> _roms;
         private List<RomMCollection> _collections;
 
         private static Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
 
-        public GravitonImport(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, CancellationToken cancelToken, EmulatorMapping mapping, List<RomMRom> roms, List<RomMCollection> collections)
+        public GravitonImport(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, ImportGamesArgs args, EmulatorMapping mapping, List<RomMRom> roms, List<RomMCollection> collections)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
             _logger = logger;
 
-            _cancelToken = cancelToken;
+            _args = args;
             _mapping = mapping;
             _roms = roms;
             _collections = collections;
@@ -49,7 +51,7 @@ namespace Graviton.Import
             // Process ROMs
             foreach (var ROM in _roms)
             {
-                if (_cancelToken.IsCancellationRequested)
+                if (_args.CancelToken.IsCancellationRequested)
                     break;
 
                 string gameID = $"{ROM.Id}";
@@ -103,6 +105,9 @@ namespace Graviton.Import
 
             foreach (var collection in _collections)
             {
+                if (_args.CancelToken.IsCancellationRequested)
+                    break;
+
                 if (!string.IsNullOrEmpty(collection.Name) && collection.RomIDs.Any(x => _roms.Any(y => y.Id == x)))
                 {
                     categories.Add(new Category(collection.Name.ToLower(), collection.Name));
@@ -112,6 +117,9 @@ namespace Graviton.Import
 
             foreach (var ROM in _roms)
             {
+                if (_args.CancelToken.IsCancellationRequested)
+                    break;
+
                 // Some newer platforms don't get a hash value so we will compromise with this
                 if (string.IsNullOrEmpty(ROM.SHA1) || !_SHA1Regex.IsMatch(ROM.SHA1!))
                 {
@@ -182,14 +190,6 @@ namespace Graviton.Import
                 return null;
             }
 
-            // Skip game import if the ROM is apart of the exclusion list
-            //if (_plugin.Playnite.Database.ImportExclusions[Playnite.ImportExclusionItem.GetId($"{ROM.Id}:{ROM.SHA1}", _plugin.Id)] != null)
-            //{
-            //    Logger?.Warn($"[Importer] Excluding {ROM.Name} from import.");
-            //    continue;
-            //}
-
-
             // If keep deleted games is enabled and a deleted game gets re-added back to the server under a new romMId, Update playnite entry
             if (_plugin.Settings.KeepDeletedGames)
             {
@@ -201,44 +201,135 @@ namespace Graviton.Import
 
             if (_plugin.ImportedGames.ContainsKey(gameID) && !string.IsNullOrEmpty(_plugin.ImportedGames[gameID].PlayniteID)) // Skip full import if ROM has already been imported 
             {
-                var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames[gameID].PlayniteID!);
-
-                if(game == null)
-                {
-                    GravitonNotify.Add(new GravitonNotification($"graviton.import.game.{ROM.Id}.failed", Loc.GetString("ROMUpdateFailed", ("GameName", ROM.Name!), ("ROMID", ROM.Id)), GravitonSeverity.Error));
-                    return new(gameID, null);
-                }
-
-                if (ROM.Collections != null)
-                {
-                    game.Favorite = ROM.Collections.Any(x => x.Name == "Favorites");
-                }
-
-
-                await _playniteAPI.Library.Games.UpdateAsync(game);
-                _plugin.ImportedGames[gameID].Resync(ROM);
-
-                ROM.Processed = true; // Skips the ROM being remerged if user has split the ROMs apart
-                return new(gameID, null);
+                return await UpdateGame(ROM, gameID);
             }
             else // Import game
             {
-                var importedGame = await ImportGame(ROM);
-                if (importedGame != null)
-                {
-                    await _playniteAPI.Library.Games.AddAsync(importedGame);
-                    RomMRomLocal.Build(_mapping.MappingId, ROM, importedGame.Id);
-                    return new(gameID, importedGame);
-                }
-                else
-                {
-                    GravitonNotify.Add(new GravitonNotification($"graviton.import.game.{ROM.Id}.failed", Loc.GetString("ROMImportFailed", ("GameName", ROM.Name!), ("ROMID", ROM.Id)), GravitonSeverity.Error));
-                    return null;
-                }
+                return await ImportNewGame(ROM, gameID);
             }
         }
 
-        private async Task<Game?> ImportGame(RomMRom ROM)
+        private async Task<(string gameID, Game? newGame)?> UpdateGame(RomMRom ROM, string gameID)
+        {
+            var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames[gameID].PlayniteID!);
+
+            if (game == null)
+            {
+                GravitonNotify.Add(new GravitonNotification($"graviton.import.game.{ROM.Id}.failed", Loc.GetString("ROMUpdateFailed", ("GameName", ROM.Name!), ("ROMID", ROM.Id)), GravitonSeverity.Error));
+                return new(gameID, null);
+            }
+
+            // Import new game sessions
+            if (_args.SessionImport == SessionImportMode.Always && _plugin.Settings.ImportPlaysessions != Models.RomM.PlaySessions.ImportPlaySessions.None)
+            {
+                var sessions = await _plugin.StatusController!.FetchPlaySessions(ROM.Id);
+
+                if (sessions != null && sessions.Count > 0)
+                {
+                    var playnitesessions = _playniteAPI.Library.GameSessions.Where(x => x.GameId == game.Id).ToList();
+                    List<GameSession> newsessions = _playniteAPI.Library.GameSessions.Where(x => x.GameId == game.Id).ToList();
+
+                    foreach (var session in sessions)
+                    {
+                        if (string.IsNullOrEmpty(session.StartTime))
+                            continue;
+
+                        var sessiondate = DateTime.Parse(session.StartTime ?? "0");
+                        sessiondate.AddMilliseconds(-sessiondate.Millisecond);
+
+                        // Check to see if session has already been imported if not add it
+                        if (!playnitesessions.Any(x => x.Date.HasValue && DateTime.Compare(x.Date.Value.AddMilliseconds(-x.Date.Value.Millisecond).UtcDateTime, sessiondate) == 0))
+                        {
+                            GameSession newssession = new(game.LibraryGameId!, GravitonPlugin.Id, session.ID.ToString())
+                            {
+                                Date = sessiondate.ToLocalTime(),
+                                Length = (uint)(session.Duration / 1000)
+                            };
+
+                            if (game.SessionIds == null)
+                                game.SessionIds = new();
+
+                            game.SessionIds.Add(newssession.Id);
+                            newsessions.Add(newssession);
+
+                        }
+                    }
+
+                    if(newsessions.Count > 0)
+                        await _playniteAPI.Library.GameSessions.AddAsync(newsessions);
+                }
+            }
+
+            if (ROM.Collections != null)
+            {
+                game.Favorite = ROM.Collections.Any(x => x.Name == "Favorites");
+            }
+
+            // Update categories the ROM is in
+            if (game.CategoryIds == null)
+                game.CategoryIds = ROM.Metadatum?.Collections?.Select(x => x.ToLower()).ToHashSet();
+            else
+                game.CategoryIds.AddRange(ROM.Metadatum?.Collections?.Select(x => x.ToLower()).ToHashSet());
+
+            await _playniteAPI.Library.Games.UpdateAsync(game);
+            _plugin.ImportedGames[gameID].Resync(ROM);
+
+            ROM.Processed = true; // Skips the ROM being remerged if user has split the ROMs apart
+            return new(gameID, null);
+        }
+
+        private async Task<(string gameID, Game? newGame)?> ImportNewGame(RomMRom ROM, string gameID)
+        {
+            var importedGame = await GenerateGame(ROM);
+            if (importedGame != null)
+            {
+                // Import game sessions
+                if (_args.SessionImport != SessionImportMode.Never && _plugin.Settings.ImportPlaysessions != Models.RomM.PlaySessions.ImportPlaySessions.None)
+                {
+                    var sessions = await _plugin.StatusController!.FetchPlaySessions(ROM.Id);
+
+                    if (sessions != null && sessions.Count > 0)
+                    {
+                        List<GameSession> newsessions = new();
+
+                        foreach (var session in sessions)
+                        {
+                            if (string.IsNullOrEmpty(session.StartTime))
+                                continue;
+
+                            var sessiondate = DateTime.Parse(session.StartTime ?? "0");
+                            sessiondate.AddMilliseconds(-sessiondate.Millisecond);
+
+                            newsessions.Add(new(importedGame.LibraryGameId!, GravitonPlugin.Id, session.ID.ToString())
+                            {
+                                Date = sessiondate.ToLocalTime(),
+                                Length = (uint)(session.Duration / 1000)
+                            });
+
+                            if (importedGame.SessionIds == null)
+                                importedGame.SessionIds = new();
+
+                            importedGame.SessionIds.Add(session.ID.ToString());
+
+                        }
+
+                        await _playniteAPI.Library.GameSessions.AddAsync(newsessions);
+                    }
+                }
+
+                await _playniteAPI.Library.Games.AddAsync(importedGame);
+                RomMRomLocal.Build(_mapping.MappingId, ROM, importedGame.Id);
+
+                return new(gameID, importedGame);
+            }
+            else
+            {
+                GravitonNotify.Add(new GravitonNotification($"graviton.import.game.{ROM.Id}.failed", Loc.GetString("ROMImportFailed", ("GameName", ROM.Name!), ("ROMID", ROM.Id)), GravitonSeverity.Error));
+                return null;
+            }
+        }
+
+        private async Task<Game?> GenerateGame(RomMRom ROM)
         {
             Game game = new Game();
 

@@ -3,6 +3,7 @@
 using Graviton.Models;
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Platform;
+using Graviton.Models.RomM.PlaySessions;
 using Graviton.Models.Saves;
 
 using Playnite;
@@ -29,7 +30,6 @@ namespace Graviton.Settings
         [ObservableProperty] private DateTime? _lastAuthenticated;
         [ObservableProperty] [property:JsonIgnore] private HttpStatusCode? _authenticateFailed;
 
-        [ObservableProperty] private ObservableCollection<RomMPlatform> _romMPlatforms = new ObservableCollection<RomMPlatform>();
     }
 
     public partial class GravitonPluginSettings : ObservableObject
@@ -52,12 +52,12 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _addVirtualCollectiontoPlayniteCategory = true;
         [ObservableProperty] private bool _addSmartCollectiontoPlayniteCategory = true;
         [ObservableProperty] private bool _importGamePatchesAsSiblings = false;
+        [ObservableProperty] private ImportPlaySessions _importPlaysessions = ImportPlaySessions.All;
 
         [ObservableProperty] private bool _use7z = false;
         [ObservableProperty] private string _pathTo7z = "";      
-
-        [ObservableProperty] private bool _keepStatusSynced = false;      
-        [ObservableProperty] private bool _syncPlaySession = true;      
+  
+        [ObservableProperty] private bool _keepStatusSynced = true;          
         [ObservableProperty] private bool _keepFavouritesSynced = false;      
         [ObservableProperty] private bool _keepPrivateNotesSynced = false;      
         [ObservableProperty] private bool _keepPublicNotesSynced = false;      
@@ -69,13 +69,14 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _autoCleanupSaves = true;
         [ObservableProperty] private int _autoCleanupSavesLimit = 10;
 
-        [ObservableProperty] private bool _captureScreenshots = true;
+        [ObservableProperty] private bool _captureScreenshots = false;
         [ObservableProperty] private int _secondsBeforeSave = 15;
         [ObservableProperty] private ScreenshotResolution _screenshotResolution = ScreenshotResolution.P1080;
 
         [ObservableProperty] private bool _saveStateSyncEnabled = false;
 
         [ObservableProperty] private ObservableCollection<EmulatorMapping> _mappings = new ObservableCollection<EmulatorMapping>();
+        [ObservableProperty] private ObservableCollection<RomMPlatform> _romMPlatforms = new ObservableCollection<RomMPlatform>();
 
         public GravitonAccountState AccountState { get; init; } = new();
 
@@ -160,6 +161,10 @@ namespace Graviton.Settings
                 SkipMissingFiles = this.SkipMissingFiles,
                 KeepDeletedGames = this.KeepDeletedGames,
                 ImportGamePatchesAsSiblings = this.ImportGamePatchesAsSiblings,
+                AddCollectiontoPlayniteCategory = this.AddCollectiontoPlayniteCategory,
+                AddSmartCollectiontoPlayniteCategory = this.AddSmartCollectiontoPlayniteCategory,
+                AddVirtualCollectiontoPlayniteCategory = this.AddVirtualCollectiontoPlayniteCategory,
+                ImportPlaysessions = this.ImportPlaysessions,
 
                 Use7z = this.Use7z,
                 PathTo7z = this.PathTo7z,
@@ -168,7 +173,6 @@ namespace Graviton.Settings
                 KeepFavouritesSynced = this.KeepFavouritesSynced,
                 KeepPrivateNotesSynced = this.KeepPrivateNotesSynced,
                 KeepPublicNotesSynced = this.KeepPublicNotesSynced,
-                SyncPlaySession = this.SyncPlaySession,
 
                 SaveSyncEnabled = this.SaveSyncEnabled,
                 SaveStateSyncEnabled = this.SaveStateSyncEnabled,
@@ -183,6 +187,7 @@ namespace Graviton.Settings
                 SecondsBeforeSave = this.SecondsBeforeSave,
 
                 Mappings = JsonSerializer.Deserialize<ObservableCollection<EmulatorMapping>>(JsonSerializer.Serialize(this.Mappings)) ?? this.Mappings,
+                RomMPlatforms = this.RomMPlatforms,
 
                 AccountState = this.AccountState
             };

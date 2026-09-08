@@ -44,7 +44,7 @@ namespace Graviton.Status
             {
                 new RomMPlaySession
                 {
-                   ROMId = id,
+                   ROMID = id,
                    StopTime = StopTime.ToString("O"),
                    StartTime = StopTime.AddMilliseconds(-SessionLength).ToString("O"),
                    Duration = (int)SessionLength
@@ -95,7 +95,7 @@ namespace Graviton.Status
             }
         }
 
-        // Favourites
+        // Collections
         private async Task<RomMCollection?> CreateFavorites()
         {
             var formData = new MultipartFormDataContent();
@@ -153,6 +153,56 @@ namespace Graviton.Status
         }
 
         // Play Status
+        public async Task<List<RomMPlaySession>?> FetchPlaySessions(int romID, DateTime? startAfter = null)
+        {
+            List<RomMPlaySession> playsessions = new();
+
+            int pagesize = 50;
+            int offset = 0;
+            bool hasMoreData = true;
+
+            var url = $"/api/play-sessions?rom_id={romID}&limit={pagesize}";
+
+            if (startAfter != null)
+                url += $"&start_after={startAfter}";
+
+            if (_plugin.Settings.ImportPlaysessions == ImportPlaySessions.OnlyThisDevice)
+                url += $"&device_id={_plugin.Settings.AccountState.DeviceID}";
+
+            while (hasMoreData)
+            {
+                url += $"&offset={offset}";
+
+                var request = await _romMServer.GETAsync(url);
+                if (request == null)
+                    return null;
+
+                // Check for empty play sessions list
+                if (request.RootElement.GetRawText() == "[]")
+                    break;
+                try
+                {
+                    var sessions = request?.RootElement.Deserialize<List<RomMPlaySession>>();
+
+                    if (sessions == null)
+                        break;
+
+                    playsessions.AddRange(sessions);
+
+                    if (sessions?.Count < pagesize)
+                        hasMoreData = false;
+
+                }
+                catch (Exception ex)
+                {
+                    GravitonNotify.Add(new GravitonNotification("graviton.fetch.playsession", "Failed to get play session!", GravitonSeverity.Error, ex));
+                    return null;
+                }                
+            }
+
+            return playsessions;
+        }
+
         public async Task UpdateStatus(Game game)
         {
             if (!GravitonHelper.TryParseGameID(game.LibraryGameId, out var id))
@@ -247,6 +297,9 @@ namespace Graviton.Status
 
                 foreach (var game in args.Games)
                 {
+                    if (args.CancelToken.IsCancellationRequested)
+                        break;
+
                     if (!GravitonHelper.TryParseGameID(game.LibraryGameId!, out var id))
                     {
                         GravitonNotify.Add(new GravitonNotification("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", game.LibraryGameId!)), GravitonSeverity.Error));
@@ -266,6 +319,9 @@ namespace Graviton.Status
 
                     foreach (var cheevo in rom.MergedRAMetadata.Achievements)
                     {
+                        if (args.CancelToken.IsCancellationRequested)
+                            break;
+
                         var userCheevoData = userCheevosData?.EarnedAchievements?.FirstOrDefault(x => x.ID.ToString() == cheevo.BadgeID);
 
                         cheevoSet.Add(new($"RA-{cheevo.ID}", cheevo.Title ?? "") 

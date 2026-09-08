@@ -5,12 +5,13 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:s="clr-namespace:Graviton.Settings"
-             xmlns:models="clr-namespace:Graviton.Models.Saves"
+             xmlns:savmodels="clr-namespace:Graviton.Models.Saves"
+             xmlns:playmodels="clr-namespace:Graviton.Models.RomM.PlaySessions"
              xmlns:local="clr-namespace:Graviton"
              xmlns:loc="clr-namespace:Playnite"
              xmlns:psdk="clr-namespace:Playnite.Desktop;assembly=Playnite.SDK"
              mc:Ignorable="d"
-             d:DesignHeight="900" d:DesignWidth="1600">
+             d:DesignHeight="2000" d:DesignWidth="1600">
 
     <UserControl.Resources>
         <ResourceDictionary>
@@ -20,12 +21,17 @@
 
             <ObjectDataProvider x:Key="SaveConflictResolveValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
                 <ObjectDataProvider.MethodParameters>
-                    <x:Type TypeName="models:SaveConflictResolve"/>
+                    <x:Type TypeName="savmodels:SaveConflictResolve"/>
                 </ObjectDataProvider.MethodParameters>
             </ObjectDataProvider>
             <ObjectDataProvider x:Key="ScreenshotResolutionValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
                 <ObjectDataProvider.MethodParameters>
-                    <x:Type TypeName="models:ScreenshotResolution"/>
+                    <x:Type TypeName="savmodels:ScreenshotResolution"/>
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+            <ObjectDataProvider x:Key="ImportPlaySessionsValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="playmodels:ImportPlaySessions"/>
                 </ObjectDataProvider.MethodParameters>
             </ObjectDataProvider>
         </ResourceDictionary>
@@ -103,7 +109,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Name="AddSmartCollectionText" Text="{loc:LocalizedString AddVirtualCollection}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                            <TextBlock Grid.Column="0" Name="AddVirtualCollectionText" Text="{loc:LocalizedString AddVirtualCollection}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                             <ToggleButton Grid.Column="1" IsChecked="{Binding AddVirtualCollectiontoPlayniteCategory, Mode=TwoWay}" VerticalAlignment="Center"/>
                         </Grid>
 
@@ -112,11 +118,26 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Name="AddVirtualCollectionText" Text="{loc:LocalizedString AddSmartCollection}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                            <TextBlock Grid.Column="0" Name="AddSmartCollectionText" Text="{loc:LocalizedString AddSmartCollection}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                             <ToggleButton Grid.Column="1" IsChecked="{Binding AddSmartCollectiontoPlayniteCategory, Mode=TwoWay}" VerticalAlignment="Center"/>
                         </Grid>
 
-                    
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="ImportPlaySessionsText" Text="{loc:LocalizedString ImportPlaySessions}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ComboBox Grid.Column="1" MinWidth="200" ItemsSource="{Binding Source={StaticResource ImportPlaySessionsValues}}" SelectedItem="{Binding ImportPlaysessions, Mode=TwoWay}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </Grid>
+
+
                 </StackPanel>
             </Border>
             <!--#endregion-->
@@ -282,7 +303,7 @@
                     <StackPanel Margin="0,10,0,0" IsEnabled="{Binding CaptureScreenshots}">
                         <TextBlock Name="SecondsBeforeTitle" Text="{loc:LocalizedString SecondsBeforeTitle}" Foreground="{DynamicResource Graviton.Text.Colour}"/>
                         <TextBlock Name="SecondsBeforeSubTitle" Text="{loc:LocalizedString SecondsBeforeSubTitle}" Style="{StaticResource Graviton.SettingsHelperText}"/>
-                        <Slider Name="ScreenshotMaxCapture" Margin="0,0,10,0" Value="{Binding SecondsBeforeSave}" VerticalAlignment="Center" Minimum="5" Maximum="60" TickPlacement="BottomRight" TickFrequency="5" IsSnapToTickEnabled="False"/>
+                        <Slider Name="ScreenshotMaxCapture" Margin="0,0,10,0" Value="{Binding SecondsBeforeSave}" VerticalAlignment="Center" Minimum="0" Maximum="60" TickPlacement="BottomRight" TickFrequency="5" IsSnapToTickEnabled="False"/>
                     </StackPanel>
                 </StackPanel>
             </Border>

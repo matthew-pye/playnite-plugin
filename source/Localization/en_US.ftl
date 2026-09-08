@@ -364,17 +364,6 @@ SetAsSave = Set as Save
 SyncEnabled = Sync enabled
 UploadNewSave = Upload New Save
 
-# Enum descriptions
-SaveConflictStyle_Ask = Ask
-SaveConflictStyle_PreferNewer = Prefer Newer
-SaveConflictStyle_PreferRemote = Prefer Remote
-SaveConflictStyle_PreferLocal = Prefer Local
-    ## See AutoSaveDetectionTooltip key to understand what these mean
-SaveLayoutStyle_SingleFile = Single File
-SaveLayoutStyle_FixedSet = Fixed Set
-SaveLayoutStyle_WholeFolder = Folder
-SaveLayoutStyle_Disabled = Disabled
-
 # Installing
 DownloadStatusQueued = Queued
 DownloadStatusCompleted = Completed

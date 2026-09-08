@@ -136,7 +136,7 @@ namespace Graviton.Play
             }
 
             // Start activity session on RomM
-            if (_plugin.Settings.SyncPlaySession)
+            if (_plugin.Settings.KeepStatusSynced)
                 _ = _plugin.StatusController?.StartActivityHeartbeat(gameID!);
 
             IsAGameRunning = true;
@@ -208,7 +208,7 @@ namespace Graviton.Play
             IsAGameRunning = false;
 
             // Stop activity session on RomM
-            if (_plugin.Settings.SyncPlaySession)
+            if (_plugin.Settings.KeepStatusSynced)
                 _ = _plugin.StatusController?.StopActivityHeartbeat(args.StartingArgs.Game.LibraryGameId!, stoppedTime, args.StoppedArgs.SessionLength * 1000);
 
             if (ROM == null)

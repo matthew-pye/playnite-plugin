@@ -74,6 +74,8 @@ namespace Graviton
 
         internal static Regex SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
 
+        internal bool ImportInProgress = false;
+
         public GravitonPlugin() : base()
         {
             if (Instance != null)
@@ -244,7 +246,7 @@ namespace Graviton
                     Settings.AccountState.ServerVersion = result.Value.Version;
 
                     if (await Account.SyncPlatforms())
-                        Logger.Info(Loc.GetString("PlatformsSynced", [("PlatformCount", Settings.AccountState.RomMPlatforms.Count)]));
+                        Logger.Info(Loc.GetString("PlatformsSynced", [("PlatformCount", Settings.RomMPlatforms.Count)]));
 
                     await Account.SyncUserData();
                     GravitonSettingsHandler.SaveSettings(PluginDataPath, Settings);
@@ -266,7 +268,7 @@ namespace Graviton
         public override async Task OnGameCollectionChange(DataCollectionChangeArgs<Game> args)
         {
 
-            if (args.UpdatedItems?.Count > 0 && args.UpdatedItems.Any(x => x.OldData.LibraryId == Id))
+            if (!ImportInProgress && args.UpdatedItems?.Count > 0 && args.UpdatedItems.Any(x => x.OldData.LibraryId == Id))
             {
                 await StatusController!.GameDataChanged(args.UpdatedItems.Where(x => x.OldData.LibraryId == Id));
             }
@@ -284,6 +286,7 @@ namespace Graviton
 
         public override async Task<List<Game>> ImportGamesAsync(ImportGamesArgs args)
         {
+            ImportInProgress = true;
             return await ImportController!.Import(args) ?? throw new Exception("Import controller is null, cannot continue");
         }
 
