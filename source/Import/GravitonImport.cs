@@ -5,6 +5,7 @@ using Graviton.Models.RomM.Rom;
 
 using Playnite;
 
+using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -226,23 +227,25 @@ namespace Graviton.Import
 
                 if (sessions != null && sessions.Count > 0)
                 {
-                    var playnitesessions = _playniteAPI.Library.GameSessions.Where(x => x.GameId == game.Id).ToList();
-                    List<GameSession> newsessions = _playniteAPI.Library.GameSessions.Where(x => x.GameId == game.Id).ToList();
+                    var playnitesessions = _playniteAPI.Library.GameSessions.Where(x => x.LibraryId == GravitonPlugin.Id && x.GameId == game.LibraryGameId).ToList();
+                    List<GameSession> newsessions = new();
 
                     foreach (var session in sessions)
                     {
                         if (string.IsNullOrEmpty(session.StartTime))
                             continue;
 
-                        var sessiondate = DateTime.Parse(session.StartTime ?? "0");
-                        sessiondate.AddMilliseconds(-sessiondate.Millisecond);
+                        var sessiondate = DateTimeOffset.Parse(session.StartTime, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+                        sessiondate = sessiondate.AddMilliseconds(-sessiondate.Millisecond);
+
+                        var playnitesession = playnitesessions.FirstOrDefault(x => x.Date.HasValue && DateTimeOffset.Compare(x.Date.Value.AddMilliseconds(-x.Date.Value.Millisecond), sessiondate) == 0);
 
                         // Check to see if session has already been imported if not add it
-                        if (!playnitesessions.Any(x => x.Date.HasValue && DateTime.Compare(x.Date.Value.AddMilliseconds(-x.Date.Value.Millisecond).UtcDateTime, sessiondate) == 0))
+                        if (playnitesession == null)
                         {
                             GameSession newssession = new(game.LibraryGameId!, GravitonPlugin.Id, session.ID.ToString())
                             {
-                                Date = sessiondate.ToLocalTime(),
+                                Date = sessiondate,
                                 Length = (uint)(session.Duration / 1000)
                             };
 
@@ -250,9 +253,20 @@ namespace Graviton.Import
                                 game.SessionIds = new();
 
                             game.SessionIds.Add(newssession.Id);
+                            game.PlayTime += (uint)(session.Duration / 1000);
+
                             newsessions.Add(newssession);
 
                         }
+                        else if((!game.SessionIds?.Any(x => x == playnitesession.Id)) ?? true)
+                        {
+                            if (game.SessionIds == null)
+                                game.SessionIds = new();
+
+                            game.SessionIds.Add(playnitesession.Id);
+                            game.PlayTime += playnitesession.Length;
+                        }
+
                     }
 
                     if(newsessions.Count > 0)
@@ -297,19 +311,22 @@ namespace Graviton.Import
                             if (string.IsNullOrEmpty(session.StartTime))
                                 continue;
 
-                            var sessiondate = DateTime.Parse(session.StartTime ?? "0");
-                            sessiondate.AddMilliseconds(-sessiondate.Millisecond);
+                            var sessiondate = DateTimeOffset.Parse(session.StartTime, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+                            sessiondate = sessiondate.AddMilliseconds(-sessiondate.Millisecond);
 
-                            newsessions.Add(new(importedGame.LibraryGameId!, GravitonPlugin.Id, session.ID.ToString())
+                            GameSession newssession = new(importedGame.LibraryGameId!, GravitonPlugin.Id, session.ID.ToString())
                             {
-                                Date = sessiondate.ToLocalTime(),
+                                Date = sessiondate,
                                 Length = (uint)(session.Duration / 1000)
-                            });
+                            };
 
                             if (importedGame.SessionIds == null)
                                 importedGame.SessionIds = new();
 
-                            importedGame.SessionIds.Add(session.ID.ToString());
+                            importedGame.SessionIds.Add(newssession.Id);
+                            importedGame.PlayTime += (uint)(session.Duration / 1000);
+
+                            newsessions.Add(newssession);
 
                         }
 

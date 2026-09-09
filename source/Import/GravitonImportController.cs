@@ -61,7 +61,7 @@ namespace Graviton.Import
             }
             GravitonSettingsHandler.SaveSettings(_plugin.PluginDataPath, _plugin.Settings);
 
-            var collections = await FetchCollections();
+            var collections = await FetchCollections(args);
 
             string url = BuildGeneralROMUrl();
 
@@ -308,11 +308,14 @@ namespace Graviton.Import
             _logger.Info($"[Importer] Finished removing not found games");
         }
 
-        private async Task<List<RomMCollection>> FetchCollections()
+        private async Task<List<RomMCollection>> FetchCollections(ImportGamesArgs args)
         {
             List<RomMCollection> collections = new List<RomMCollection>();
             if (_plugin.Settings.AddCollectiontoPlayniteCategory)
             {
+                if (args.CancelToken.IsCancellationRequested)
+                    return collections;
+
                 var result = await _romMServer.GETAsync("/api/collections");
                 if (result != null)
                 {
@@ -331,6 +334,9 @@ namespace Graviton.Import
 
             if(_plugin.Settings.AddSmartCollectiontoPlayniteCategory)
             {
+                if (args.CancelToken.IsCancellationRequested)
+                    return collections;
+
                 var result = await _romMServer.GETAsync("/api/collections/smart");
                 if (result != null)
                 {
@@ -349,6 +355,9 @@ namespace Graviton.Import
 
             if (_plugin.Settings.AddVirtualCollectiontoPlayniteCategory)
             {
+                if (args.CancelToken.IsCancellationRequested)
+                    return collections;
+
                 var result = await _romMServer.GETAsync("/api/collections/virtual/identifiers");
                 if (result == null)
                     return collections;
@@ -359,6 +368,9 @@ namespace Graviton.Import
 
                 foreach (var id in collectionIDs)
                 {
+                    if (args.CancelToken.IsCancellationRequested)
+                        break;
+
                     result = await _romMServer.GETAsync($"/api/collections/virtual/{id}");
                     if (result == null)
                         continue;
@@ -372,8 +384,6 @@ namespace Graviton.Import
                         continue;
                     }
                 }
-
-
             }
 
             return collections;
