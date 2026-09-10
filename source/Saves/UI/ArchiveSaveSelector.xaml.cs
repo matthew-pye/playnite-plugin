@@ -77,7 +77,7 @@ namespace Graviton.Saves
             var save = ((FrameworkElement)sender).DataContext as RomMSave;
             if (save == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error);
                 e.Handled = true;
                 return;
             }

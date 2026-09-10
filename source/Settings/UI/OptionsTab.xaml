@@ -326,6 +326,23 @@
             </Border>
             <!--#endregion-->
 
+            <!--#region Debugging -->
+            <Border Style="{StaticResource Graviton.SettingsCard}">
+                <StackPanel>
+                    <TextBlock Name="DebuggingTitle" Text="{loc:LocalizedString DebuggingTitle}" Style="{StaticResource Graviton.SettingsSectionHeader}" />
+
+                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="EnableDebuggingText" Text="{loc:LocalizedString EnableDebugging}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding DebuggingEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+            <!--#endregion-->
+
         </StackPanel>
     </ScrollViewer>
 </UserControl>

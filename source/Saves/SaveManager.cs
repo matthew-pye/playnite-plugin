@@ -4,6 +4,7 @@ using Graviton.Models.RomM;
 using Graviton.Models.RomM.Rom;
 using Graviton.Models.RomM.Saves;
 using Graviton.Models.Saves;
+using Graviton.Notifications;
 
 using Playnite;
 
@@ -21,11 +22,11 @@ namespace Graviton.Saves
     {
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
-        private ILogger _logger;
+        private GravitonLogger _logger;
         private IRomMServer _romMServer;
         private SaveController SaveController => _plugin.SaveController!;
 
-        public SaveManager(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer)
+        public SaveManager(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -37,21 +38,21 @@ namespace Graviton.Saves
         {
             if (_plugin.GameSessionHandlers.Count() > 0)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info));
+                GravitonNotify.Notify("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info);
                 return save;
             }
 
             var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
             if(rom == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.upload.failed", Loc.GetString("UploadROMNotFound"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.upload.failed", Loc.GetString("UploadROMNotFound"), GravitonSeverity.Error);
                 return save;
             }
 
             var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
             if (mapping == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.upload.failed", Loc.GetString("UploadMappingNotFound"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.upload.failed", Loc.GetString("UploadMappingNotFound"), GravitonSeverity.Error);
                 return save;
             }
 
@@ -66,26 +67,26 @@ namespace Graviton.Saves
                 List<string>? skippedPaths = null;
                 if (!SaveHelpers.PackSave(save.SourceFilePaths, mapping.SavePath, savePath, out skippedPaths))
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.upload.failed", Loc.GetString("UploadPackFailed"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.upload.failed", Loc.GetString("UploadPackFailed"), GravitonSeverity.Error);
                     return save;
                 }
 
                 if (skippedPaths != null && skippedPaths.Count > 0)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.paths.skipped", Loc.GetString("UploadPathsSkipped"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.paths.skipped", Loc.GetString("UploadPathsSkipped"), GravitonSeverity.Error);
                     return save;
                 }
             }
             else if(save.SourceFilePaths.Count == 1 && !File.Exists(savePath) && !Directory.Exists(savePath))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.files.missing", Loc.GetString("UploadFilesMissing"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.files.missing", Loc.GetString("UploadFilesMissing"), GravitonSeverity.Error);
                 return save;
             }
 
             var savebytes = File.ReadAllBytes(savePath);
             if (savebytes.Length < 1)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.save.zerobytes", Loc.GetString("SaveFileZeroBytes", ("GameName", rom.Name!)), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.save.zerobytes", Loc.GetString("SaveFileZeroBytes", ("GameName", rom.Name!)), GravitonSeverity.Error);
                 return save;
             }
 
@@ -114,7 +115,7 @@ namespace Graviton.Saves
                     case SaveSyncStatus.download:
                         return await Download(save);
                     default:
-                        GravitonNotify.Add(new GravitonNotification("graviton.upload.failed", Loc.GetString("UploadConflictResolveFailed"), GravitonSeverity.Error));
+                        GravitonNotify.Notify("graviton.upload.failed", Loc.GetString("UploadConflictResolveFailed"), GravitonSeverity.Error);
                         rom.LocalSave?.Status = SaveStatus.Conflicted;
                         rom.Save();
                         return save;
@@ -126,7 +127,7 @@ namespace Graviton.Saves
 
             if (response?.Status != HttpStatusCode.OK || response.Content == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.upload.failed", Loc.GetString("UploadServerFailed"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.upload.failed", Loc.GetString("UploadServerFailed"), GravitonSeverity.Error);
                 return save;
             }
 
@@ -192,12 +193,12 @@ namespace Graviton.Saves
                 rom.LocalSave = save;
                 rom.Save();
 
-                GravitonNotify.Add(new GravitonNotification("graviton.upload.success", Loc.GetString("SaveUploadSuccess", ("GameName", rom.Name!), ("Size", save.FileSizeString)), GravitonSeverity.Success));
+                GravitonNotify.Notify("graviton.upload.success", Loc.GetString("SaveUploadSuccess", ("GameName", rom.Name!), ("Size", save.FileSizeString)), GravitonSeverity.Success);
                 return save;
             }
             catch (Exception)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.upload.failed", Loc.GetString("DeserializeResponseFailed"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.upload.failed", Loc.GetString("DeserializeResponseFailed"), GravitonSeverity.Error);
                 return save;
             }
         }
@@ -206,28 +207,28 @@ namespace Graviton.Saves
         {
             if (_plugin.GameSessionHandlers.Count() > 0)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info));
+                GravitonNotify.Notify("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info);
                 return save;
             }
 
             var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
             if (rom == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadROMNotFound"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadROMNotFound"), GravitonSeverity.Error);
                 return save;
             }
 
             var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
             if (mapping == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadMappingNotFound"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadMappingNotFound"), GravitonSeverity.Error);
                 return save;
             }
 
             var savedata = await _romMServer.RawGETAsync($"/api/saves/{save.SaveID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
             if (savedata == null || savedata.Status != HttpStatusCode.OK)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadServerDataFailed"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadServerDataFailed"), GravitonSeverity.Error);
                 return save;
             }
 
@@ -246,14 +247,14 @@ namespace Graviton.Saves
                 var downloadedHash = SaveHelpers.ComputePackedContentHash(tempDir);
                 if(downloadedHash != save.ServerHash)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadHashFailed"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadHashFailed"), GravitonSeverity.Error);
                     return save;
                 }
 
                 var paths = SaveHelpers.UnpackSave(tempDir, mapping.SavePath);
                 if(paths == null)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadUnpackFailed"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadUnpackFailed"), GravitonSeverity.Error);
                     return save;
                 }
 
@@ -265,7 +266,7 @@ namespace Graviton.Saves
                 var downloadedHash = SaveHelpers.ComputeFileContentHash(tempDir);
                 if (downloadedHash != save.ServerHash)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadHashFailed"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadHashFailed"), GravitonSeverity.Error);
                     return save;
                 }
 
@@ -288,7 +289,7 @@ namespace Graviton.Saves
             var deviceid = new { device_id = _plugin.Settings.AccountState.DeviceID };
             await _romMServer.POSTAsync($"/api/saves/{save.SaveID}/downloaded", deviceid);
             
-            GravitonNotify.Add(new GravitonNotification("graviton.download.success", Loc.GetString("SaveDownloadSuccess", ("GameName", rom.Name!), ("Size", save.FileSizeString)), GravitonSeverity.Success));
+            GravitonNotify.Notify("graviton.download.success", Loc.GetString("SaveDownloadSuccess", ("GameName", rom.Name!), ("Size", save.FileSizeString)), GravitonSeverity.Success);
             return save;
         }
 
@@ -296,21 +297,21 @@ namespace Graviton.Saves
         {
             if (_plugin.GameSessionHandlers.Count() > 0)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info));
+                GravitonNotify.Notify("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info);
                 return save;
             }
 
             var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
             if (rom == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadROMNotFound"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadROMNotFound"), GravitonSeverity.Error);
                 return save;
             }
 
             var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
             if (mapping == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadMappingNotFound"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadMappingNotFound"), GravitonSeverity.Error);
                 return save;
             }
 
@@ -319,7 +320,7 @@ namespace Graviton.Saves
                 var result = await _playniteAPI.Dialogs.ShowMessageAsync(Loc.GetString("ExistingSaveConfirm", ("Slot", save.Slot!), ("Filename", save.Filename)), Loc.GetString("ExistingSaveTitle"), MessageBoxButtons.YesNo, MessageBoxSeverity.Warning);
                 if(result == Playnite.MessageBoxResult.No)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("SaveAlreadyTrackedDownload"), GravitonSeverity.Info));
+                    GravitonNotify.Notify("graviton.download.failed", Loc.GetString("SaveAlreadyTrackedDownload"), GravitonSeverity.Info);
                     return save;
                 }
 
@@ -329,7 +330,7 @@ namespace Graviton.Saves
             var savedata = await _romMServer.RawGETAsync($"/api/saves/{save.SaveID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
             if (savedata == null || savedata.Status != HttpStatusCode.OK)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadServerDataFailed"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadServerDataFailed"), GravitonSeverity.Error);
                 return save;
             }
 
@@ -352,7 +353,7 @@ namespace Graviton.Saves
                     var savepaths = await _playniteAPI.Dialogs.SelectFolderAsync(savepath);
                     if(savepaths == null || savepaths.Count < 1)
                     {
-                        GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadExtractionPathFailed"), GravitonSeverity.Error));
+                        GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadExtractionPathFailed"), GravitonSeverity.Error);
                         return save;
                     }
                     else
@@ -364,7 +365,7 @@ namespace Graviton.Saves
                 var paths = SaveHelpers.UnpackSave(tempDir, savepath);
                 if (paths == null)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadUnpackFailed"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadUnpackFailed"), GravitonSeverity.Error);
                     return save;
                 }
 
@@ -388,7 +389,7 @@ namespace Graviton.Saves
             var deviceid = new { device_id = _plugin.Settings.AccountState.DeviceID };
             await _romMServer.POSTAsync($"/api/saves/{save.SaveID}/downloaded", deviceid);
 
-            GravitonNotify.Add(new GravitonNotification("graviton.download.success", Loc.GetString("SaveDownloadSuccess", ("GameName", rom.Name!), ("Size", save.FileSizeString)), GravitonSeverity.Success));
+            GravitonNotify.Notify("graviton.download.success", Loc.GetString("SaveDownloadSuccess", ("GameName", rom.Name!), ("Size", save.FileSizeString)), GravitonSeverity.Success);
             return save;
         }
 
@@ -402,7 +403,7 @@ namespace Graviton.Saves
             var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.Id == save.ROMID).Value;
             if (rom == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadROMNotFound"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadROMNotFound"), GravitonSeverity.Error);
                 return null;
             }
 
@@ -418,14 +419,14 @@ namespace Graviton.Saves
             var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
             if (mapping == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadMappingNotFound"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadMappingNotFound"), GravitonSeverity.Error);
                 return null;
             }
 
             var savedata = await _romMServer.RawGETAsync($"/api/saves/{save.ID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
             if (savedata == null || savedata.Status != HttpStatusCode.OK)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadServerDataFailed"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadServerDataFailed"), GravitonSeverity.Error);
                 return null;
             }
 
@@ -447,7 +448,7 @@ namespace Graviton.Saves
                 var paths = SaveHelpers.UnpackSave(tempDir, mapping.SavePath);
                 if (paths == null)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.download.failed", Loc.GetString("DownloadUnpackFailed"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadUnpackFailed"), GravitonSeverity.Error);
                     return null;
                 }
 

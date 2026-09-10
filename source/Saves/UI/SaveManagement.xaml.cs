@@ -154,7 +154,7 @@ namespace Graviton.Saves
                 var roms = _plugin.ImportedGames.Where(x => x.Value.MappingID == Mapping.MappingId);
                 if (roms == null)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.roms.null", Loc.GetString("NoROMsForMapping"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.roms.null", Loc.GetString("NoROMsForMapping"), GravitonSeverity.Error);
                     e.Handled = true;
                     return;
                 }
@@ -250,7 +250,7 @@ namespace Graviton.Saves
             var save = ((FrameworkElement)sender).DataContext as GravitonSave;
             if(save == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error);
                 e.Handled = true;
                 return;
             }
@@ -284,7 +284,7 @@ namespace Graviton.Saves
             switch (save.Status)
             {
                 case SaveStatus.Synced:
-                    GravitonNotify.Add(new GravitonNotification("graviton.save.alreadysynced", Loc.GetString("SaveAlreadySynced"), GravitonSeverity.Info));
+                    GravitonNotify.Notify("graviton.save.alreadysynced", Loc.GetString("SaveAlreadySynced"), GravitonSeverity.Info);
                     e.Handled = true;
                     break;
 
@@ -303,7 +303,7 @@ namespace Graviton.Saves
                     return;
 
                 case SaveStatus.Conflicted:
-                    GravitonNotify.Add(new GravitonNotification("graviton.save.conflicted", Loc.GetString("SyncStillConflicted", ("GameName", save.GameName!)), GravitonSeverity.Info));
+                    GravitonNotify.Notify("graviton.save.conflicted", Loc.GetString("SyncStillConflicted", ("GameName", save.GameName!)), GravitonSeverity.Info);
                     e.Handled = true;
                     return;
 
@@ -352,7 +352,7 @@ namespace Graviton.Saves
                     return;
 
                 default:
-                    GravitonNotify.Add(new GravitonNotification("graviton.save.unknown", Loc.GetString("SaveStatusUnknownWarning"), GravitonSeverity.Warn));
+                    GravitonNotify.Notify("graviton.save.unknown", Loc.GetString("SaveStatusUnknownWarning"), GravitonSeverity.Warn);
                     e.Handled = true;
                     break;
             }
@@ -363,7 +363,7 @@ namespace Graviton.Saves
             var save = ((FrameworkElement)sender).DataContext as GravitonSave;
             if (save == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error);
                 e.Handled = true;
                 return;
             }
@@ -371,7 +371,7 @@ namespace Graviton.Saves
             var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.LocalSave?.LocalID == save.LocalID).Value;
             if (rom == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.rom.notfound", Loc.GetString("ROMNotFoundForSave"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.rom.notfound", Loc.GetString("ROMNotFoundForSave"), GravitonSeverity.Error);
                 e.Handled = true;
                 return;
             }
@@ -406,7 +406,7 @@ namespace Graviton.Saves
             var historicSave = ((FrameworkElement)sender).DataContext as GravitonSave;
             if (historicSave == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error);
                 e.Handled = true;
                 return;
             }
@@ -414,7 +414,7 @@ namespace Graviton.Saves
             var parentROM = _plugin.ImportedGames.FirstOrDefault(x => x.Value.LocalSave?.HistoricSaves != null && x.Value.LocalSave.HistoricSaves.Any(y => y.LocalID == historicSave.LocalID)).Value;
             if(parentROM == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.parentsave.null", Loc.GetString("ParentSaveNotFound"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.parentsave.null", Loc.GetString("ParentSaveNotFound"), GravitonSeverity.Error);
                 e.Handled = true;
                 return;
             }
@@ -488,21 +488,21 @@ namespace Graviton.Saves
         {
             if (save == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.save.null", Loc.GetString("SaveIsNull"), GravitonSeverity.Error);
                 return;
             }
 
             var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.LocalSave?.LocalID == save.LocalID).Value;
             if (rom.LocalSave == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.rom.null", Loc.GetString("GameNotFoundForSave"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.rom.null", Loc.GetString("GameNotFoundForSave"), GravitonSeverity.Error);
                 return;
             }
 
             var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
             if (mapping == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.mapping.null", Loc.GetString("MappingNotFoundForGame"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.mapping.null", Loc.GetString("MappingNotFoundForGame"), GravitonSeverity.Error);
                 return;
             }
 
@@ -530,7 +530,7 @@ namespace Graviton.Saves
 
 
                 if (response.Any(x => !x.StartsWith(mapping.SavePath)))
-                    GravitonNotify.Add(new GravitonNotification("graviton.skipped.add", Loc.GetString("FilesOutsideMappingDir"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.skipped.add", Loc.GetString("FilesOutsideMappingDir"), GravitonSeverity.Error);
 
                 SavesItemControl.ItemsSource = Saves.Where(x => x.GameName.Contains(SaveFilterBox.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(y => y.GameName);
             }

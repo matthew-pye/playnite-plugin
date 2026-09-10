@@ -1,8 +1,10 @@
 ﻿using Graviton.Models.Notifications;
+using Graviton.Notifications;
 
 using Playnite;
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Graviton
 {
@@ -14,17 +16,22 @@ namespace Graviton
 
         private static GravitonPlugin? _plugin;
         private static IPlayniteApi? _playniteAPI;
-        private static ILogger? _logger;
+        private static GravitonLogger? _logger;
 
         private static bool IsInitialized = false;
 
-        public static void Initialize(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger)
+        public static void Initialize(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
             _logger = logger;
 
             IsInitialized = true;
+        }
+
+        public static void Notify(string ID, string Message, GravitonSeverity Severity, Exception? ex = null, [CallerLineNumber] int LineNumber = 0, [CallerFilePath] string File = "")
+        {
+            Add(new GravitonNotification(ID, Message, Severity, ex, LineNumber, File));
         }
 
         public static void Add(GravitonNotification Notification)

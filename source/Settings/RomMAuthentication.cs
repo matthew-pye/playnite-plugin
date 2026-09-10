@@ -1,5 +1,6 @@
 ﻿using Graviton.Models.Notifications;
 using Graviton.Models.RomM;
+using Graviton.Notifications;
 
 using Playnite;
 
@@ -16,12 +17,12 @@ namespace Graviton.Settings
     {
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
-        private ILogger _logger;
+        private GravitonLogger _logger;
         private IRomMServer _romMServer;
 
         private static readonly Regex _iconPathRegex = new Regex(@"^users/[^/]+/profile/avatar\.(png|jpg|jpeg|webp)$");
 
-        public RomMAuthentication(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer server)
+        public RomMAuthentication(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -34,7 +35,7 @@ namespace Graviton.Settings
             var result = await _romMServer.GETAsync("/api/heartbeat", true);
             if(result == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.heartbeat.failed", Loc.GetString("HeartbeatFailed"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.heartbeat.failed", Loc.GetString("HeartbeatFailed"), GravitonSeverity.Error);
                 return null;
             }
 
@@ -53,7 +54,7 @@ namespace Graviton.Settings
             // Check Host and Client token/UsernamePassword are set!
             if (string.IsNullOrEmpty(_plugin.Settings.Host))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.login.host.notset", Loc.GetString("HostNotSet"), GravitonSeverity.Warn));
+                GravitonNotify.Notify("graviton.login.host.notset", Loc.GetString("HostNotSet"), GravitonSeverity.Warn);
                 ResetLocalAccountState();
                 return false;
             }
@@ -62,7 +63,7 @@ namespace Graviton.Settings
             {
                 if (string.IsNullOrEmpty(_plugin.Settings.UsernameNP) || string.IsNullOrEmpty(_plugin.Settings.PasswordNP))
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("UserPassNotSet"), GravitonSeverity.Warn));
+                    GravitonNotify.Notify("graviton.login.userorpass.notset", Loc.GetString("UserPassNotSet"), GravitonSeverity.Warn);
                     ResetLocalAccountState();
                     return false;
                 }
@@ -73,7 +74,7 @@ namespace Graviton.Settings
             {
                 if (string.IsNullOrEmpty(_plugin.Settings.ClientTokenNP))
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.login.userorpass.notset", Loc.GetString("TokenNotSet"), GravitonSeverity.Warn));
+                    GravitonNotify.Notify("graviton.login.userorpass.notset", Loc.GetString("TokenNotSet"), GravitonSeverity.Warn);
                     ResetLocalAccountState();
                     return false;
                 }
@@ -111,7 +112,7 @@ namespace Graviton.Settings
                 return false;
             }
 
-            GravitonNotify.Add(new GravitonNotification("graviton.Account.loggedin", Loc.GetString("LoginSuccess"), GravitonSeverity.Success));
+            GravitonNotify.Notify("graviton.Account.loggedin", Loc.GetString("LoginSuccess"), GravitonSeverity.Success);
 
             if (!(await SyncPlatforms()))
             {
@@ -141,7 +142,7 @@ namespace Graviton.Settings
                 return false;
             else if (platforms.Count <= 0)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.GET.no.platforms", Loc.GetString("NoPlatforms"), GravitonSeverity.Warn));
+                GravitonNotify.Notify("graviton.GET.no.platforms", Loc.GetString("NoPlatforms"), GravitonSeverity.Warn);
                 return false;
             }
 
@@ -198,7 +199,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.GET.profileicon.failed", Loc.GetString("GETProfileIconFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                GravitonNotify.Notify("graviton.GET.profileicon.failed", Loc.GetString("GETProfileIconFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                 _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
             }
 
@@ -213,13 +214,17 @@ namespace Graviton.Settings
             _plugin.Settings.AccountState.AuthenticateFailed = null;
             _plugin.Settings.AccountState.LastAuthenticated = null;
             _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
+
+            _logger?.Trace($"Reset account state");
         }
 
         public async Task<RomMPairDevice?> InitDevicePair()
         {
+
+
             if (string.IsNullOrEmpty(_plugin.Settings.Host))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.login.host.notset", Loc.GetString("HostNotSet"), GravitonSeverity.Warn));
+                GravitonNotify.Notify("graviton.login.host.notset", Loc.GetString("HostNotSet"), GravitonSeverity.Warn);
                 return null;
             }
 
@@ -261,7 +266,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.login.QR.failed", Loc.GetString("FailedQRSetup", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                GravitonNotify.Notify("graviton.login.QR.failed", Loc.GetString("FailedQRSetup", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                 return null;
             }
         }
@@ -309,12 +314,12 @@ namespace Graviton.Settings
                             var body = await response.Content.ReadAsStringAsync();
                             if (body.Contains("expired_token")) 
                             {
-                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairExpired"))), GravitonSeverity.Info));
+                                GravitonNotify.Notify("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairExpired"))), GravitonSeverity.Info);
                                 return false;
                             }
                             if (body.Contains("access_denied")) 
                             {
-                                GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairWasDenied"))), GravitonSeverity.Warn));
+                                GravitonNotify.Notify("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairWasDenied"))), GravitonSeverity.Warn);
                                 return false;
                             }
                         }
@@ -326,7 +331,7 @@ namespace Graviton.Settings
                     }
                     catch (Exception ex)
                     {
-                        GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                        GravitonNotify.Notify("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                         return false;
                     }
 
@@ -339,7 +344,7 @@ namespace Graviton.Settings
                 intervalMillisecs -= 100;
             }
 
-            GravitonNotify.Add(new GravitonNotification("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairExpired"))), GravitonSeverity.Info));
+            GravitonNotify.Notify("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairExpired"))), GravitonSeverity.Info);
             return false;
         }
 
@@ -359,7 +364,7 @@ namespace Graviton.Settings
                     }
                     catch (Exception ex)
                     {
-                        GravitonNotify.Add(new GravitonNotification("graviton.GET.device.failed", Loc.GetString("GETDevicesFailed", ("Error", ex.Message)), GravitonSeverity.Warn, ex));
+                        GravitonNotify.Notify("graviton.GET.device.failed", Loc.GetString("GETDevicesFailed", ("Error", ex.Message)), GravitonSeverity.Warn, ex);
                         return false;
                     }
                 }
@@ -388,7 +393,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.POST.device.failed", Loc.GetString("CreateNewDeviceFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                GravitonNotify.Notify("graviton.POST.device.failed", Loc.GetString("CreateNewDeviceFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                 return false;
             }
         }

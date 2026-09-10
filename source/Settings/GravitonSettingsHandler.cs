@@ -3,6 +3,7 @@
 using Emunight;
 
 using Graviton.Models.Notifications;
+using Graviton.Notifications;
 
 using Playnite;
 
@@ -20,12 +21,12 @@ namespace Graviton.Settings
 
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
-        private ILogger _logger;
+        private static GravitonLogger? _logger;
         private IRomMServer _romMServer;
 
         [ObservableProperty] private GravitonPluginSettings settings = new();
 
-        public GravitonSettingsHandler(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer server) 
+        public GravitonSettingsHandler(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server) 
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -44,8 +45,14 @@ namespace Graviton.Settings
             InEditingMode = true;
 
             foreach (var mapping in Settings.Mappings)
+            {
                 mapping.AvailablePlatforms = Settings.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
-  
+                _logger?.Trace($"Updated availiable platforms");
+                mapping.AvailableEmulators = ((IEnumerable<EmulatorBase>)GravitonPlugin.Instance.EmunightAPI!.ImportedEmulators).Concat(GravitonPlugin.Instance.EmunightAPI.CustomEmulators).OrderBy(e => e.Name).ToObservableCollection();
+                _logger?.Trace($"Updated availiable emulators");
+            }
+
+            _logger?.Trace($"Began settings edit");
             await Task.CompletedTask;
         }
 
@@ -60,6 +67,7 @@ namespace Graviton.Settings
 
                 _romMServer.RemoveHeader(header.Name);
             }
+            _logger?.Trace($"Removed edited headers");
 
             // Add old headers back
             foreach (var header in _plugin.Settings.CustomHeaders)
@@ -69,12 +77,16 @@ namespace Graviton.Settings
 
                 _romMServer.AddHeader(header.Name, header.Value);
             }
+            _logger?.Trace($"Restored old headers");
 
+            _logger?.Trace($"Cancelled settings edit");
             await Task.CompletedTask;
         }
 
         public override async Task EndEditAsync(EndEditArgs args)
         {
+            _logger?.Trace($"Ended settings edit");
+
             _plugin.Settings = Settings;
             SaveSettings(_playniteAPI.UserDataDir, Settings);
             foreach (var header in Settings.CustomHeaders.Where(x => x.Enabled))
@@ -83,12 +95,12 @@ namespace Graviton.Settings
                 _romMServer.AddHeader(header.Name, header.Value);
             }
             InEditingMode = false;
-
             await Task.CompletedTask;
         }
 
         public override async Task<ICollection<string>> VerifySettingsAsync(VerifySettingsArgs args)
         {
+            _logger?.Trace($"Verified settings");
             await Task.CompletedTask;
             return [];
         }
@@ -99,10 +111,11 @@ namespace Graviton.Settings
             try
             {
                 File.WriteAllText(setFile, JsonSerializer.Serialize<GravitonPluginSettings>(settings, new JsonSerializerOptions { WriteIndented = true }));
+                _logger?.Trace($"Saved settings to {setFile}");
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.settings.save.failed", Loc.GetString("SettingSaveFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                GravitonNotify.Notify("graviton.settings.save.failed", Loc.GetString("SettingSaveFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
             }
         }
 
@@ -115,28 +128,34 @@ namespace Graviton.Settings
                 try
                 {
                     var file = File.ReadAllText(setFile);
+                    _logger?.Trace($"Red settings.json");
+
                     settings = JsonSerializer.Deserialize<GravitonPluginSettings>(file);
                     if (settings != null)
                     {
                         foreach (var mapping in settings.Mappings)
                         {
                             mapping.AvailablePlatforms = settings.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
+                            _logger?.Trace($"Restored Available Platforms");
                             mapping.AvailableEmulators = ((IEnumerable<EmulatorBase>)GravitonPlugin.Instance.EmunightAPI!.ImportedEmulators).Concat(GravitonPlugin.Instance.EmunightAPI.CustomEmulators).OrderBy(e => e.Name).ToObservableCollection();
+                            _logger?.Trace($"Restored Available Emulators");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.settings.load.failed", Loc.GetString("SettingLoadFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                    GravitonNotify.Notify("graviton.settings.load.failed", Loc.GetString("SettingLoadFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                 }
             }
 
             if (settings is null)
             {
+                _logger?.Trace($"No settings.json file found, creating new settings");
                 return new GravitonPluginSettings();
             }
             else
             {
+                _logger?.Trace($"Loaded settings");
                 return settings;
             }
         }       

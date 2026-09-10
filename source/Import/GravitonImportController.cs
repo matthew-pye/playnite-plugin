@@ -3,6 +3,7 @@ using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Collection;
 using Graviton.Models.RomM.Platform;
 using Graviton.Models.RomM.Rom;
+using Graviton.Notifications;
 using Graviton.Settings;
 
 using Playnite;
@@ -23,13 +24,13 @@ namespace Graviton.Import
     {
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
-        private ILogger _logger;
+        private GravitonLogger _logger;
         private IRomMServer _romMServer;
 
         private static readonly Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
         private static readonly Regex _platformSlugRegex = new Regex("^[a-zA-Z0-9_\\-]+$");
 
-        public GravitonImportController(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer server)
+        public GravitonImportController(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -42,7 +43,7 @@ namespace Graviton.Import
             var enabledMappings = _plugin.Settings.Mappings.Where(m => m.Enabled).ToList();
             if (!enabledMappings.Any())
             {
-                GravitonNotify.Add(new GravitonNotification($"graviton.emulators.notconfigured", Loc.GetString("NoEmulatorsConfigured"), GravitonSeverity.Warn));
+                GravitonNotify.Notify($"graviton.emulators.notconfigured", Loc.GetString("NoEmulatorsConfigured"), GravitonSeverity.Warn);
                 _plugin.ImportInProgress = false;
                 return new List<Game>();
             }
@@ -77,14 +78,14 @@ namespace Graviton.Import
                 // Check mapping has an Emulator, Profile & Platform assigned to it
                 if (!mapping.IsSetup)
                 {
-                    GravitonNotify.Add(new GravitonNotification($"graviton.mapping.incomplete", $"One or more mappings are not fully setup, those mapping have been skipped", GravitonSeverity.Warn));
+                    GravitonNotify.Notify($"graviton.mapping.incomplete", $"One or more mappings are not fully setup, those mapping have been skipped", GravitonSeverity.Warn);
                     continue;
                 }
 
                 RomMPlatform? apiPlatform = apiPlatforms.FirstOrDefault(p => p.Id == mapping.RomMPlatformId);
                 if (apiPlatform == null)
                 {
-                    GravitonNotify.Add(new GravitonNotification($"graviton.platform.{mapping.RomMPlatform!.Id}.notfound", Loc.GetString("PlatformNotFound", ("PlatformName", mapping.RomMPlatform.Name), ("PlatformID", mapping.RomMPlatformId)), GravitonSeverity.Error));
+                    GravitonNotify.Notify($"graviton.platform.{mapping.RomMPlatform!.Id}.notfound", Loc.GetString("PlatformNotFound", ("PlatformName", mapping.RomMPlatform.Name), ("PlatformID", mapping.RomMPlatformId)), GravitonSeverity.Error);
                     continue;
                 }
 
@@ -248,7 +249,7 @@ namespace Graviton.Import
                 catch (Exception ex)
                 {
                     romData.Clear();
-                    GravitonNotify.Add(new GravitonNotification($"graviton.GET.roms.{platform.Id}.failed", Loc.GetString("DownloadROMDataFailed", ("PlatformName", platform.Name), ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                    GravitonNotify.Notify($"graviton.GET.roms.{platform.Id}.failed", Loc.GetString("DownloadROMDataFailed", ("PlatformName", platform.Name), ("Error", ex.Message)), GravitonSeverity.Error, ex);
                     hasMoreData = false;
                 }
             }
@@ -327,7 +328,7 @@ namespace Graviton.Import
                     }
                     catch (Exception ex)
                     {
-                        GravitonNotify.Add(new GravitonNotification($"graviton.fetchcollection.failed", $"Failed to get manual collections: {ex.Message}", GravitonSeverity.Error, ex));
+                        GravitonNotify.Notify($"graviton.fetchcollection.failed", $"Failed to get manual collections: {ex.Message}", GravitonSeverity.Error, ex);
                     } 
                 }
             }
@@ -348,7 +349,7 @@ namespace Graviton.Import
                     }
                     catch (Exception ex)
                     {
-                        GravitonNotify.Add(new GravitonNotification($"graviton.fetchcollection.failed", $"Failed to get smart collections: {ex.Message}", GravitonSeverity.Error, ex));
+                        GravitonNotify.Notify($"graviton.fetchcollection.failed", $"Failed to get smart collections: {ex.Message}", GravitonSeverity.Error, ex);
                     }
                 }
             }

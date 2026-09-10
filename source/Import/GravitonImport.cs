@@ -2,6 +2,7 @@
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Collection;
 using Graviton.Models.RomM.Rom;
+using Graviton.Notifications;
 
 using Playnite;
 
@@ -9,6 +10,7 @@ using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using static Playnite.Plugin;
@@ -19,7 +21,7 @@ namespace Graviton.Import
     {
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
-        private ILogger _logger;
+        private GravitonLogger _logger;
 
         private ImportGamesArgs _args;
         private EmulatorMapping _mapping;
@@ -28,7 +30,7 @@ namespace Graviton.Import
 
         private static Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
 
-        public GravitonImport(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, ImportGamesArgs args, EmulatorMapping mapping, List<RomMRom> roms, List<RomMCollection> collections)
+        public GravitonImport(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, ImportGamesArgs args, EmulatorMapping mapping, List<RomMRom> roms, List<RomMCollection> collections)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -45,6 +47,8 @@ namespace Graviton.Import
         {
             // Add all series, genres, collections, etc to playnite database
             await PreProcessData();
+
+            _logger?.Trace($"Started processing roms for {_mapping.MappingId}");
 
             var games = new List<Game>();
             List<string> ImportedGamesIDs = new List<string>();
@@ -76,7 +80,7 @@ namespace Graviton.Import
                     {
                         _logger?.Warn($"[Importer] Failed to import new ROM {ROM.Id} ({ROM.Name}), skipping: {ex.Message}");
                     }
-                    GravitonNotify.Add(new GravitonNotification($"graviton.ROM.import.failed", "One or more ROMs failed to be imported!", GravitonSeverity.Warn, ex));
+                    GravitonNotify.Notify($"graviton.ROM.import.failed", "One or more ROMs failed to be imported!", GravitonSeverity.Warn, ex);
                 }
             }
 
@@ -97,6 +101,8 @@ namespace Graviton.Import
 
         private async Task PreProcessData()
         {
+            _logger?.Trace($"Started pre-processing roms for {_mapping.MappingId}");
+
             List<Genre> genres = new();
             List<Category> categories = new();
             List<Series> series = new();
@@ -111,6 +117,7 @@ namespace Graviton.Import
 
                 if (!string.IsNullOrEmpty(collection.Name) && collection.RomIDs.Any(x => _roms.Any(y => y.Id == x)))
                 {
+                    _logger?.Trace($"Adding {collection.Name} to collection list");
                     categories.Add(new Category(collection.Name.ToLower(), collection.Name));
                 }
             }
@@ -134,47 +141,69 @@ namespace Graviton.Import
 
                 var ROMGenres = ROM.Metadatum?.Genres?.Select(x => new Genre(x.ToLower(), x)).ToList();
                 if (ROMGenres != null)
+                {
+                    _logger?.Trace($"Adding {string.Join(',', ROMGenres.Select(x => x.Name))} to Genre list");
                     genres.AddRange(ROMGenres);
+                }
+                    
 
                 var ROMSeries = ROM.Metadatum?.Franchises?.Select(x => new Series(x.ToLower(), x)).ToList();
                 if (ROMSeries != null)
+                {
+                    _logger?.Trace($"Adding {string.Join(',', ROMSeries.Select(x => x.Name))} to Series list");
                     series.AddRange(ROMSeries);
-
+                }
+                    
                 var ROMfeatures = ROM.Metadatum?.Gamemodes?.Select(x => new Feature(x.ToLower(), x)).ToList();
                 if (ROMfeatures != null)
+                {
+                    _logger?.Trace($"Adding {string.Join(',', ROMfeatures.Select(x => x.Name))} to Features list");
                     features.AddRange(ROMfeatures);
-
+                }
+                    
                 var ROMRegions = ROM.Regions?.Select(x => new Region(x.ToLower(), x)).ToList();
                 if (ROMRegions != null)
+                {
+                    _logger?.Trace($"Adding {string.Join(',', ROMRegions.Select(x => x.Name))} to regions list");
                     regions.AddRange(ROMRegions);
-
+                }
+                    
                 var ROMAgeRatings = ROM.IgdbMetadata?.AgeRatings?.Select(x => new AgeRating($"{x.RatingBoard.ToLower()} {x.Rating}", $"{x.RatingBoard} {x.Rating}")).ToList();
                 if (ROMAgeRatings != null)
+                {
+                    _logger?.Trace($"Adding {string.Join(',', ROMAgeRatings.Select(x => x.Name))} to age rating list");
                     ageRatings.AddRange(ROMAgeRatings);
+                }  
             }
 
             if (genres.Count > 0)
             {
+                _logger?.Trace($"Adding {genres.Count} genres to playnite");
                 await _playniteAPI.Library.Genres.AddAsync(genres);
             }
             if (categories.Count > 0)
             {
+                _logger?.Trace($"Adding {categories.Count} categories to playnite");
                 await _playniteAPI.Library.Categories.AddAsync(categories);
             }
             if (series.Count > 0)
             {
+                _logger?.Trace($"Adding {series.Count} series to playnite");
                 await _playniteAPI.Library.Series.AddAsync(series);
             }
             if (features.Count > 0)
             {
+                _logger?.Trace($"Adding {features.Count} features to playnite");
                 await _playniteAPI.Library.Features.AddAsync(features);
             }
             if (ageRatings.Count > 0)
             {
+                _logger?.Trace($"Adding {ageRatings.Count} age ratings to playnite");
                 await _playniteAPI.Library.AgeRatings.AddAsync(ageRatings);
             }
             if (regions.Count > 0)
             {
+                _logger?.Trace($"Adding {regions.Count} regions to playnite");
                 await _playniteAPI.Library.Regions.AddAsync(regions);
             }
 
@@ -187,7 +216,7 @@ namespace Graviton.Import
             // Skip if ROM has no filename
             if (string.IsNullOrEmpty(ROM.FileName))
             {
-                GravitonNotify.Add(new GravitonNotification($"graviton.proccess.{ROM.Id}.nofilename", Loc.GetString("NoFileNameWithID", ("ROMID", ROM.Id)), GravitonSeverity.Error));
+                GravitonNotify.Notify($"graviton.proccess.{ROM.Id}.nofilename", Loc.GetString("NoFileNameWithID", ("ROMID", ROM.Id)), GravitonSeverity.Error);
                 return null;
             }
 
@@ -212,11 +241,14 @@ namespace Graviton.Import
 
         private async Task<(string gameID, Game? newGame)?> UpdateGame(RomMRom ROM, string gameID)
         {
+            _logger?.Trace($"Updating previously imported game ({ROM.Id})");
+
             var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames[gameID].PlayniteID!);
 
             if (game == null)
             {
-                GravitonNotify.Add(new GravitonNotification($"graviton.import.game.{ROM.Id}.failed", Loc.GetString("ROMUpdateFailed", ("GameName", ROM.Name!), ("ROMID", ROM.Id)), GravitonSeverity.Error));
+                GravitonNotify.Notify($"graviton.import.updategame.failed", Loc.GetString("ROMUpdateFailed"), GravitonSeverity.Error);
+                _logger?.Error($"Failed to find {_plugin.ImportedGames[gameID].PlayniteID} in playnite database");
                 return new(gameID, null);
             }
 
@@ -229,14 +261,19 @@ namespace Graviton.Import
                 {
                     var playnitesessions = _playniteAPI.Library.GameSessions.Where(x => x.LibraryId == GravitonPlugin.Id && x.GameId == game.LibraryGameId).ToList();
                     List<GameSession> newsessions = new();
+                    _logger?.Trace($"Pulled game sessions from playnite\n{JsonSerializer.Serialize(playnitesessions, new JsonSerializerOptions { WriteIndented = true})}");
 
                     foreach (var session in sessions)
                     {
+                        _logger?.Trace($"Checking RomM play session ({session.ID})");
+
                         if (string.IsNullOrEmpty(session.StartTime))
                             continue;
 
                         var sessiondate = DateTimeOffset.Parse(session.StartTime, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
                         sessiondate = sessiondate.AddMilliseconds(-sessiondate.Millisecond);
+
+                        _logger?.Trace($"Parsed session date {session.StartTime} -> {sessiondate}");
 
                         var playnitesession = playnitesessions.FirstOrDefault(x => x.Date.HasValue && DateTimeOffset.Compare(x.Date.Value.AddMilliseconds(-x.Date.Value.Millisecond), sessiondate) == 0);
 
@@ -341,7 +378,7 @@ namespace Graviton.Import
             }
             else
             {
-                GravitonNotify.Add(new GravitonNotification($"graviton.import.game.{ROM.Id}.failed", Loc.GetString("ROMImportFailed", ("GameName", ROM.Name!), ("ROMID", ROM.Id)), GravitonSeverity.Error));
+                GravitonNotify.Notify($"graviton.import.game.{ROM.Id}.failed", Loc.GetString("ROMImportFailed", ("GameName", ROM.Name!), ("ROMID", ROM.Id)), GravitonSeverity.Error);
                 return null;
             }
         }
@@ -439,9 +476,11 @@ namespace Graviton.Import
 
         private async Task<bool> UpdatedDeletedGame(RomMRom ROM)
         {
+            _logger?.Trace($"Checking {ROM.Id} to see if its already imported");
+
             // Check to see if a game already exists with an old romMId
             var oldgame = _plugin.ImportedGames.FirstOrDefault(g => g.Value.SHA1 == ROM.SHA1);
-
+            
             if (oldgame.Value != null)
             {
                 var game = _playniteAPI.Library.Games.Get(oldgame.Value.PlayniteID!)!;
@@ -449,6 +488,7 @@ namespace Graviton.Import
                 game.LibraryGameId = $"{ROM.Id}";
                 oldgame.Value.Id = ROM.Id;
                 await _playniteAPI.Library.Games.UpdateAsync(game);
+                _logger?.Trace($"Updated old ID ({oldgame.Value.Id}) to new ID ({ROM.Id})");
 
                 _plugin.ImportedGames.TryRemove(oldgame.Key, out _);
                 oldgame.Value.Save();

@@ -5,6 +5,7 @@ using Graviton.Install;
 using Graviton.Install.Downloads;
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Rom;
+using Graviton.Notifications;
 using Graviton.Play;
 using Graviton.Saves;
 using Graviton.Settings;
@@ -37,7 +38,7 @@ namespace Graviton
 
         internal static GravitonPlugin Instance { get; private set; } = null!;
         internal static IPlayniteApi PlayniteApi { get; private set; } = null!;
-        internal static ILogger Logger { get; private set; } = null!;
+        internal static GravitonLogger Logger { get; private set; } = new();
         internal static RomMServer RomMServer { get; private set; } = null!;
 
         internal IEmunightAPI? EmunightAPI { get; private set; }
@@ -74,6 +75,7 @@ namespace Graviton
 
         internal static Regex SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
 
+        internal bool PluginInitialized = false;
         internal bool ImportInProgress = false;
 
         public GravitonPlugin() : base()
@@ -98,7 +100,6 @@ namespace Graviton
                 SupportedDataIds = [
                     BuiltInGameDataId.Name,
                     BuiltInGameDataId.Description,
-                    //BuiltInGameDataId.Note,
                     BuiltInGameDataId.DesktopCover,
 
                     BuiltInGameDataId.Genres,
@@ -140,25 +141,6 @@ namespace Graviton
 
             PlayniteApi = args.Api ?? throw new Exception("Failed to set playnite instance!");
             Loc.Api = args.Api ?? throw new Exception("Failed to set localization api instance!");
-            Logger = LogManager.GetLogger<GravitonPlugin>();
-
-            await PlayniteApi.Library.Sources.AddAsync(new Source(Id, "Graviton"));
-
-            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("igdb", "IGDB"));
-            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("screenscraper", "Screenscraper"));
-            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("hasheous", "Hasheous"));
-            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("retroachievements", "RetroAchievements"));
-            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("howlongtobeat", "HowLongToBeat"));
-
-            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("romm", "RomM"));
-            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("gravitonmappingid", "MappingID"));
-            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("igdb", "IGDB"));
-            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("screenscraper", "Screenscraper"));
-            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("hasheous", "Hasheous"));
-            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("retroachievements", "RetroAchievements"));
-            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("howlongtobeat", "HowLongToBeat"));
-
-            await PlayniteApi.Library.CompletionStatuses.AddAsync(new CompletionStatus("never_playing", "Never Playing"));
 
             PluginDataPath = PlayniteApi.UserDataDir;
             PluginDLLPath = args.PluginInstallDir;
@@ -166,24 +148,68 @@ namespace Graviton
             if (!Directory.Exists($"{PluginDataPath}/Platforms/"))
                 Directory.CreateDirectory($"{PluginDataPath}/Platforms/");
 
-            if(!Directory.Exists($"{PluginDataPath}/Games/"))
+            if (!Directory.Exists($"{PluginDataPath}/Games/"))
                 Directory.CreateDirectory($"{PluginDataPath}/Games/");
 
             if (!Directory.Exists($"{PluginDataPath}/temp/"))
                 Directory.CreateDirectory($"{PluginDataPath}/temp/");
 
+            Logger = new();
+            Logger.Initialize();
+            Logger.Info("Logger Initialized");
+
             GravitonNotify.Initialize(Instance, PlayniteApi, Logger);
-            
+            Logger.Info("Notifications Initialized");
+
+            await PlayniteApi.Library.Sources.AddAsync(new Source(Id, "Graviton"));
+            Logger.Info("Added Graviton to sources");
+
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("igdb", "IGDB"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("screenscraper", "Screenscraper"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("hasheous", "Hasheous"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("retroachievements", "RetroAchievements"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("howlongtobeat", "HowLongToBeat"));
+            Logger.Info("Added IGDB, Screenscraper, Hasheous, RetroAchievements, HowLongToBeat to WebLinkTypes");
+
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("romm", "RomM"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("igdb", "IGDB"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("screenscraper", "Screenscraper"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("hasheous", "Hasheous"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("retroachievements", "RetroAchievements"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("howlongtobeat", "HowLongToBeat"));
+            Logger.Info("Added RomM, IGDB, Screenscraper, Hasheous, RetroAchievements, HowLongToBeat to ExternalIdentifierTypes");
+
+            await PlayniteApi.Library.CompletionStatuses.AddAsync(new CompletionStatus("never_playing", "Never Playing"));
+            Logger.Info("Added Never Playing to CompletionStatuses");
+
             RomMServer = new(Instance);
+            Logger.Info("Created RomMServer Controller");
+
             SettingsHandler = new(Instance, PlayniteApi, Logger, RomMServer);
+            Logger.Info("Created Settings Handler");
+
             ImportController = new(Instance, PlayniteApi, Logger, RomMServer);
+            Logger.Info("Created Import Controller");
+
             SaveController = new(Instance, PlayniteApi, Logger, RomMServer);
+            Logger.Info("Created Save Controller");
+
             StatusController = new(Instance, PlayniteApi, Logger, RomMServer);
-            
+            Logger.Info("Created Status Controller");
+
             Account = new(Instance, PlayniteApi, Logger, RomMServer);
+            Logger.Info("Created Account Controller");
+
+            _downloadsViewModel = new();
+            DownloadQueueController = new(Instance, PlayniteApi, Logger, RomMServer, _downloadsViewModel, maxConcurrent: 10);
+            Logger.Info("Created Download Queue Controller");
+            _downloadsAppView = new();
+
+            Logger.Info($"Total Memory before ImportGames load: {GC.GetTotalMemory(true)}");
 
             ImportedGames = new ConcurrentDictionary<string, RomMRomLocal>();
-            
+            List<int> FailedCacheAdds = new List<int>();
+
             foreach (var rompath in Directory.EnumerateFiles($"{PluginDataPath}/Games/"))
             {
                 try
@@ -191,7 +217,9 @@ namespace Graviton
                     var rom = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllBytes(rompath));
                     if (rom != null)
                     {
-                        ImportedGames.TryAdd($"{rom.Id}", rom);
+                        if (!ImportedGames.TryAdd($"{rom.Id}", rom))
+                            FailedCacheAdds.Add(rom.Id);
+
                         continue;
                     }
 
@@ -199,14 +227,16 @@ namespace Graviton
                 }
                 catch (Exception ex)
                 {
-                    Logger.Warn(ex);
+                    Logger.Error(ex);
                 }
             }
 
-            _downloadsViewModel = new();
-            DownloadQueueController = new(Instance, PlayniteApi, Logger, RomMServer, _downloadsViewModel, maxConcurrent: 10);
-            _downloadsAppView = new();
+            if(FailedCacheAdds.Count > 0)
+                Logger.Info($"Failed to add [{string.Join(", ", FailedCacheAdds)}] to Imported Games cache");
 
+            Logger.Info($"Total Memory after ImportGames load: {GC.GetTotalMemory(true)} with {ImportedGames.Count()} games added to the dictionary");
+
+            Logger.Info("Finished Plugin Initialization");
         }
 
         public override async Task PostInitializationAsync(PostInitializationArgs args)
@@ -215,26 +245,29 @@ namespace Graviton
             if (result?.Success == true && result.Value is Emunight.IEmunightAPI emunightApi)
             {
                 EmunightAPI = emunightApi;
+                Logger.Info("Found Emunight plugin");
             }
 
             PlayController = new(Instance, PlayniteApi, Logger, EmunightAPI ?? throw new Exception("EmunightAPI not found"));
+            Logger.Info("Created Play Controller");
+
+            Logger.Info("Finished Post Initialization");
+
+            PluginInitialized = true;
         }
 
         public override async Task OnApplicationStartupAsync(OnApplicationStartupArgs args)
         {
             Settings = GravitonSettingsHandler.LoadSettings(PluginDataPath);
             Settings.ProfilePath = string.IsNullOrEmpty(Settings.ProfilePath) ? Path.Combine(PluginDLLPath, @"profile.png") : Settings.ProfilePath;
+            Logger.Trace("Checked profile image file still exists");
 
             if (Settings.AccountState.LastAuthenticated != null)
             {
                 if (Settings.UseBasicAuth)
-                {
                     RomMServer.ConfigureBasicAuth(Settings.UsernameNP, Settings.PasswordNP);
-                }
                 else
-                {
                     RomMServer.ConfigureClientToken(Settings.ClientTokenNP);
-                }
 
                 if (Account == null)
                     throw new Exception("Account hasn't been initailized, cannot continue!");
@@ -244,15 +277,20 @@ namespace Graviton
                 if (result != null)
                 {
                     Settings.AccountState.ServerVersion = result.Value.Version;
+                    Logger.Trace($"Set server version to {result.Value.Version}");
 
                     if (await Account.SyncPlatforms())
                         Logger.Info(Loc.GetString("PlatformsSynced", [("PlatformCount", Settings.RomMPlatforms.Count)]));
 
                     await Account.SyncUserData();
                     GravitonSettingsHandler.SaveSettings(PluginDataPath, Settings);
-                }      
+                }
             } 
+            else
+                Logger.Trace("Last Authenticated was null, skipping login");
 
+
+            Logger.Trace("Completed Application Startup");
         }
 
         public override Task<PluginSettingsHandler?> GetSettingsHandlerAsync(GetSettingsHandlerArgs args)
@@ -267,14 +305,17 @@ namespace Graviton
 
         public override async Task OnGameCollectionChange(DataCollectionChangeArgs<Game> args)
         {
-
             if (!ImportInProgress && args.UpdatedItems?.Count > 0 && args.UpdatedItems.Any(x => x.OldData.LibraryId == Id))
             {
+                Logger?.Trace($"Game Collection Change has updated items");
+
                 await StatusController!.GameDataChanged(args.UpdatedItems.Where(x => x.OldData.LibraryId == Id));
             }
 
             if(args.RemovedItems?.Count > 0 && args.RemovedItems.Any(x => x.LibraryId == Id))
             {
+                Logger?.Trace($"Game Collection Change has removed items");
+
                 foreach (var removed in args.RemovedItems.Where(x => x.LibraryId == Id))
                 {
                     ImportedGames.TryRemove(removed.LibraryGameId!, out var game);
@@ -286,20 +327,24 @@ namespace Graviton
 
         public override async Task<List<Game>> ImportGamesAsync(ImportGamesArgs args)
         {
+            Logger?.Trace($"Started game import");
             ImportInProgress = true;
             return await ImportController!.Import(args) ?? throw new Exception("Import controller is null, cannot continue");
         }
 
         public override async Task<List<ImportableAchievements>> GetAchievementsAsync(GetAchievementsArgs args)
         {
+            Logger?.Trace($"Started achievements fetch");
             return await StatusController!.GetAchievements(args);
         }
 
         #region Game Session
         public override async Task<List<InstallController>> GetInstallActionsAsync(GetInstallActionsArgs args)
         {
-            if(args.Game.LibraryId == Id)
+            if (args.Game.LibraryId == Id)
             {
+                Logger?.Trace($"Started getting install actions");
+
                 try
                 {
 
@@ -318,6 +363,7 @@ namespace Graviton
                         PatchFileID = gameinfo.PatchFileId,
                         Mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId == gameinfo.MappingID)
                     };
+                    Logger?.Trace($"Created install info\n{JsonSerializer.Serialize(installInfo, new JsonSerializerOptions { WriteIndented = true })}");
 
                     if (installInfo.Mapping == null)
                         throw new Exception("Couldn't find mapping!");
@@ -326,7 +372,7 @@ namespace Graviton
                 }
                 catch (Exception ex)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.install.idmalformed", Loc.GetString("InstallFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                    GravitonNotify.Notify("graviton.install.idmalformed", Loc.GetString("InstallFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                     return [];
                 }
             }
@@ -338,6 +384,8 @@ namespace Graviton
         {    
             if (args.Game.LibraryId == Id && ImportedGames.ContainsKey(args.Game.LibraryGameId!))
             {
+                Logger?.Trace($"Started getting play actions");
+
                 return await PlayController!.GetPlayActionsAsync(args);
             }
 
@@ -349,6 +397,7 @@ namespace Graviton
             if (args.Game.LibraryId == Id && args.Game.LibraryGameId != null)
             {
                 var newSession = new GameSessionHandler(Instance, PlayniteApi, Logger);
+                Logger?.Trace($"Created new game session");
 
                 // Check to see if game starts then add the new session to the list
                 await newSession.GameStarting(args);
@@ -374,6 +423,7 @@ namespace Graviton
                 {
                     await gameSession.GameStopped(args);
                     GameSessionHandlers.Remove(gameSession);
+                    Logger?.Trace($"Removed game session");
                 }
             }
         }
@@ -387,16 +437,12 @@ namespace Graviton
                 {
                     await gameSession.GameCancelled(args);
                     GameSessionHandlers.Remove(gameSession);
+                    Logger?.Trace($"Removed game session");
                 }
             }
         }
 
         #endregion
-
-        public override Task OnGamepadButtonStateChangedAsync(OnGamepadButtonStateChangedArgs args)
-        {
-            return Task.CompletedTask;
-        }
 
         #region Views
 
@@ -436,8 +482,12 @@ namespace Graviton
         {
             if (args.ItemId.StartsWith("graviton."))
             {
+                Logger?.Trace($"Getting app menu items");
+
                 if (args.ItemId == "graviton.manage.saves")
                 {
+                    Logger?.Trace($"Returning 'ManageSaves' item");
+
                     return [new MenuItemImpl(Loc.GetString("ManageSaves"), (_) => 
                     {
 
@@ -463,18 +513,19 @@ namespace Graviton
 
                 if (string.IsNullOrEmpty(Settings.Host))
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.open.library", Loc.GetString("HostNotSet"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.get.appmenuitems", Loc.GetString("HostNotSet"), GravitonSeverity.Error);
                     return null;
                 }
 
                 if (!Uri.IsWellFormedUriString(Settings.Host, UriKind.Absolute))
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.open.library", Loc.GetString("HostInvaild"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.get.appmenuitems", Loc.GetString("HostInvaild"), GravitonSeverity.Error);
                     return null;
                 }
 
                 if (args.ItemId == "graviton.test.controller")
                 {
+                    Logger?.Trace($"Returning 'RomM Test Controller' item");
                     return [new MenuItemImpl("RomM Test Controller", async (_) =>
                     {
                         var webview = PlayniteApi.WebView.CreateView(new WebViewSettings()
@@ -495,17 +546,19 @@ namespace Graviton
 
                 if (args.ItemId == "graviton.open.web")
                 {
+                    Logger?.Trace($"Returning 'OpenRomMLibrary' item");
                     return [new MenuItemImpl(Loc.GetString("OpenRomMLibrary"), (_) => { Process.Start(new ProcessStartInfo(Settings.Host) { UseShellExecute = true })?.Dispose(); })];
                 }
 
                 if (Settings.AccountState.UserID < 0)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.open.library", Loc.GetString("NotAuthenticated"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.open.library", Loc.GetString("NotAuthenticated"), GravitonSeverity.Error);
                     return null;
                 }
 
                 if (args.ItemId == "graviton.open.account")
                 {
+                    Logger?.Trace($"Returning 'OpenRomMProfile' item");
                     return [new MenuItemImpl(Loc.GetString("OpenRomMProfile"), (_) => { Process.Start(new ProcessStartInfo($"{Settings.Host}/user/{Settings.AccountState.UserID}") { UseShellExecute = true })?.Dispose(); })];
                 }
             }    
@@ -527,8 +580,11 @@ namespace Graviton
             if (!args.Games.Any(x => x.LibraryId == Id))
                 return null;
 
+            Logger?.Trace($"Getting game menu items");
+
             if (args.ItemId == "graviton.manage.saves")
             {
+                Logger?.Trace($"Returning 'ManageSaves' item");
                 return [new MenuItemImpl(Loc.GetString("ManageSaves"), (_) =>
                     {
                         List<RomMRomLocal> roms = new();
@@ -537,6 +593,7 @@ namespace Graviton
                             if(game.LibraryGameId != null && ImportedGames.ContainsKey(game.LibraryGameId))
                                 roms.Add(ImportedGames[game.LibraryGameId]);
 	                    }
+                        Logger?.Trace($"Gathered games for manage saves window\n{string.Join(',', roms.Select(x => x.Name))}");
 
                          var window = PlayniteApi.CreateWindow(new WindowCreationOptions
                          {
@@ -546,14 +603,19 @@ namespace Graviton
                              DefaultWidth = 1600,
                              DefaultHeight = 900
                          });
+                        Logger?.Trace($"Created window for save management");
 
                         var manageSavesView = new SaveManagementWindow(roms);
+                        Logger?.Trace($"Created save management view");
 
                         window.Title = Loc.GetString("SaveManagerTitle");
                         window.Content = manageSavesView;
                         window.Owner = PlayniteApi.GetLastActiveWindow();
                         window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
+                        Logger?.Trace($"Showing save management window");
                         window.ShowDialog();
+                        Logger?.Trace($"Closed save management window");
 
                     })];
             }
@@ -562,6 +624,11 @@ namespace Graviton
         }
 
         #endregion
+
+        public override Task OnGamepadButtonStateChangedAsync(OnGamepadButtonStateChangedArgs args)
+        {
+            return Task.CompletedTask;
+        }
 
     }
 }

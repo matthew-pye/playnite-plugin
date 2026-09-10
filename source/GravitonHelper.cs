@@ -11,7 +11,7 @@
 
                 if (int.TryParse(gameID, out ID))
                     return true;
-
+               
                 throw new Exception($"Failed to parse {gameID} into int");
             }
 			catch (Exception ex)

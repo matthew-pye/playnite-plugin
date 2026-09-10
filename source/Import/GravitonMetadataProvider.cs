@@ -1,5 +1,6 @@
 ﻿using Graviton.Models.RomM;
 using Graviton.Models.RomM.Rom;
+using Graviton.Notifications;
 
 using Playnite;
 
@@ -12,13 +13,13 @@ namespace Graviton.Import
     {
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
-        private ILogger _logger;
+        private GravitonLogger _logger;
         private IRomMServer _romMServer;
 
         private RomMRom? ROM = null;
         private static (DateTime, RomMUser?) UserData;
 
-        public GravitonMetadataProviderGameSession(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer, Game game) : base(game) 
+        public GravitonMetadataProviderGameSession(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer, Game game) : base(game) 
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -188,10 +189,10 @@ namespace Graviton.Import
     {
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
-        private ILogger _logger;
+        private GravitonLogger _logger;
         private IRomMServer _romMServer;
 
-        public GravitonMetadataProvider(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer)
+        public GravitonMetadataProvider(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;

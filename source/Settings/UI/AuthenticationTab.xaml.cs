@@ -1,6 +1,7 @@
 ﻿using Graviton.Models;
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM;
+using Graviton.Notifications;
 using Graviton.Settings.UI;
 
 using Playnite;
@@ -22,7 +23,7 @@ namespace Graviton.Settings
     {
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
-        private ILogger _logger { get => GravitonPlugin.Logger; }
+        private GravitonLogger _logger { get => GravitonPlugin.Logger; }
         private IRomMServer _romMServer { get =>  GravitonPlugin.RomMServer; }
 
         Dictionary<string, string[]> ImageFileChoices = new Dictionary<string, string[]>()
@@ -106,7 +107,7 @@ namespace Graviton.Settings
         {
             if (string.IsNullOrEmpty(_plugin.Settings.ClientTokenNP))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.login.notoken", Loc.GetString("LoginNoToken"), GravitonSeverity.Warn));
+                GravitonNotify.Notify("graviton.login.notoken", Loc.GetString("LoginNoToken"), GravitonSeverity.Warn);
                 e.Handled = true;
                 return;
             }
@@ -123,7 +124,7 @@ namespace Graviton.Settings
 
             if(string.IsNullOrEmpty(_plugin.Settings.Host))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.openuri.clienttoken.failed", Loc.GetString("ClientTokenAddressFailed"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.openuri.clienttoken.failed", Loc.GetString("ClientTokenAddressFailed"), GravitonSeverity.Error);
                 e.Handled= true;
                 return;
             }
@@ -163,7 +164,7 @@ namespace Graviton.Settings
             string raw = (heartbeat.Value.Version ?? string.Empty).Split('-', '+')[0];
             if (Version.TryParse(raw, out Version? parsed) && parsed.CompareTo(new Version(5, 0, 0)) < 0)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.QRlogin.gated", Loc.GetString("QRLoginNotSupported"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.QRlogin.gated", Loc.GetString("QRLoginNotSupported"), GravitonSeverity.Error);
                 e.Handled = true;
                 return;
             }
@@ -215,7 +216,7 @@ namespace Graviton.Settings
         {
             if(!_plugin.Settings.UseBasicAuth)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.basiclogin.notenabled", Loc.GetString("EnableBasicAuth"), GravitonSeverity.Warn));
+                GravitonNotify.Notify("graviton.basiclogin.notenabled", Loc.GetString("EnableBasicAuth"), GravitonSeverity.Warn);
                 e.Handled = true;
                 return;
             }
@@ -260,7 +261,7 @@ namespace Graviton.Settings
             else if (header != null)
             {
                 header.Enabled = false;
-                GravitonNotify.Add(new GravitonNotification("graviton.header.ismalformed", Loc.GetString("CustomHeaderMalformed"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.header.ismalformed", Loc.GetString("CustomHeaderMalformed"), GravitonSeverity.Error);
             }
 
             e.Handled = true;

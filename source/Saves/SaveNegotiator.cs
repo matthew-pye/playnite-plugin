@@ -4,6 +4,7 @@ using Graviton.Models.RomM;
 using Graviton.Models.RomM.Rom;
 using Graviton.Models.RomM.Saves;
 using Graviton.Models.Saves;
+using Graviton.Notifications;
 
 using Playnite;
 
@@ -17,11 +18,11 @@ namespace Graviton.Saves
     {
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
-        private ILogger _logger;
+        private GravitonLogger _logger;
         private IRomMServer _romMServer;
         private SaveController SaveController => _plugin.SaveController!;
 
-        public SaveNegotiator(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer)
+        public SaveNegotiator(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -106,7 +107,7 @@ namespace Graviton.Saves
         {
             if (_plugin.GameSessionHandlers.Count() > 0)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info));
+                GravitonNotify.Notify("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info);
                 return;
             }
 
@@ -127,7 +128,7 @@ namespace Graviton.Saves
 
             if (response == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.syncresponse.null", Loc.GetString("ServerNoResponseSync"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.syncresponse.null", Loc.GetString("ServerNoResponseSync"), GravitonSeverity.Error);
                 return;
             }
             else
@@ -209,14 +210,14 @@ namespace Graviton.Saves
                         case SaveSyncStatus.no_op:
                             rom.LocalSave.Status = SaveStatus.Synced;
                             rom.LocalSave.IsTempRestored = false;
-                            GravitonNotify.Add(new GravitonNotification("graviton.sync.noop", Loc.GetString("NoSyncNeeded", ("GameName", rom.Name!)), GravitonSeverity.Info));
+                            GravitonNotify.Notify("graviton.sync.noop", Loc.GetString("NoSyncNeeded", ("GameName", rom.Name!)), GravitonSeverity.Info);
                             operationCompleted++;
                             break;
 
                         case SaveSyncStatus.conflict:
                             rom.LocalSave.Status = SaveStatus.Conflicted;
                             rom.LocalSave.IsTempRestored = false;
-                            GravitonNotify.Add(new GravitonNotification("graviton.sync.conflicted", Loc.GetString("SyncStillConflicted", ("GameName", rom.Name!)), GravitonSeverity.Warn));
+                            GravitonNotify.Notify("graviton.sync.conflicted", Loc.GetString("SyncStillConflicted", ("GameName", rom.Name!)), GravitonSeverity.Warn);
                             operationFailed++;
                             break;
 
@@ -252,7 +253,7 @@ namespace Graviton.Saves
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.negotiatesaves.failed", Loc.GetString("FailedNegotiateSaves", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                GravitonNotify.Notify("graviton.negotiatesaves.failed", Loc.GetString("FailedNegotiateSaves", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                 return null;
             }
         }
@@ -305,7 +306,7 @@ namespace Graviton.Saves
                     negotiateSave.FileSize = new FileInfo(path).Length;
                     if (negotiateSave.FileSize == 0)
                     {
-                        GravitonNotify.Add(new GravitonNotification("graviton.save.zerobytes", Loc.GetString("SaveFileZeroBytes", ("GameName", rom.Name!)), GravitonSeverity.Error));
+                        GravitonNotify.Notify("graviton.save.zerobytes", Loc.GetString("SaveFileZeroBytes", ("GameName", rom.Name!)), GravitonSeverity.Error);
                         continue;
                     }
 
@@ -344,7 +345,7 @@ namespace Graviton.Saves
                     negotiateSave.FileSize = new FileInfo(packedsavepath).Length;
                     if (negotiateSave.FileSize == 0)
                     {
-                        GravitonNotify.Add(new GravitonNotification("graviton.save.zerobytes", Loc.GetString("SaveFileZeroBytes", ("GameName", rom.Name!)), GravitonSeverity.Error));
+                        GravitonNotify.Notify("graviton.save.zerobytes", Loc.GetString("SaveFileZeroBytes", ("GameName", rom.Name!)), GravitonSeverity.Error);
                         continue;
                     }
 
@@ -397,7 +398,7 @@ namespace Graviton.Saves
                     rom.LocalSave.Status = SaveStatus.MissingFiles;
                     rom.LocalSave.MissingFiles.Add(path);
                     rom.Save();
-                    GravitonNotify.Add(new GravitonNotification("graviton.save.missingfiles", Loc.GetString("SaveFileMissingFiles", ("GameName", rom.Name!)), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.save.missingfiles", Loc.GetString("SaveFileMissingFiles", ("GameName", rom.Name!)), GravitonSeverity.Error);
                     continue;
                 }
 

@@ -66,7 +66,7 @@ namespace Graviton.Settings
             SyncPlatformsButton.IsEnabled = false;
 
             if(await _plugin.Account!.SyncPlatforms())
-                GravitonNotify.Add(new GravitonNotification("graviton.GET.platforms", Loc.GetString("PlatformsSynced", ("PlaformCount", _plugin.Settings.RomMPlatforms.Count)), GravitonSeverity.Success));
+                GravitonNotify.Notify("graviton.GET.platforms", Loc.GetString("PlatformsSynced", ("PlaformCount", _plugin.Settings.RomMPlatforms.Count)), GravitonSeverity.Success);
 
             SyncPlatformsButton.IsEnabled = true;
             e.Handled = true;

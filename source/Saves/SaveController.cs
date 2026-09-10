@@ -1,4 +1,6 @@
-﻿using Playnite;
+﻿using Graviton.Notifications;
+
+using Playnite;
 
 namespace Graviton.Saves
 {
@@ -6,14 +8,14 @@ namespace Graviton.Saves
     {
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
-        private ILogger _logger;
+        private GravitonLogger _logger;
         private IRomMServer _romMServer;
 
         internal SaveDiscovery Discover { get; private set; }
         internal SaveManager Manager { get; private set; }
         internal SaveNegotiator Negotiator { get; private set; }
 
-        public SaveController(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer)
+        public SaveController(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;

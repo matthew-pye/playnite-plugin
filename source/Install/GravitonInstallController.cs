@@ -2,6 +2,7 @@
 using Graviton.Models;
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Rom;
+using Graviton.Notifications;
 
 using Playnite;
 
@@ -18,7 +19,7 @@ namespace Graviton.Install
     {
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
-        private ILogger _logger { get => GravitonPlugin.Logger; }
+        private GravitonLogger _logger { get => GravitonPlugin.Logger; }
 
         public GameInstallInfo GameData;
 
@@ -111,7 +112,7 @@ namespace Graviton.Install
 
                 OnFailed = async ex =>
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.install.failed", Loc.GetString("DownloadFailed", ("GameName", Game.Name), ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                    GravitonNotify.Notify("graviton.install.failed", Loc.GetString("DownloadFailed", ("GameName", Game.Name), ("Error", ex.Message)), GravitonSeverity.Error, ex);
                     var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception("Could not get game to set as installed!");
                     game.InstallState = InstallState.Uninstalled;
                     await _playniteAPI.Library.Games.UpdateAsync(game);

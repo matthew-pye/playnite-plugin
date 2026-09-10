@@ -1,4 +1,6 @@
-﻿using Playnite;
+﻿using Graviton.Notifications;
+
+using Playnite;
 
 namespace Graviton.Install.Downloads
 {
@@ -6,7 +8,7 @@ namespace Graviton.Install.Downloads
     {
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
         private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
-        private ILogger _logger { get => GravitonPlugin.Logger; }
+        private GravitonLogger _logger { get => GravitonPlugin.Logger; }
 
         public RomMDownloadsAppViewItem()
         {

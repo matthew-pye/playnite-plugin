@@ -63,12 +63,21 @@ namespace Graviton
         public void AddHeader(string name, string value)
         {
             if (!httpClient.DefaultRequestHeaders.Contains(name))
+            {
                 httpClient.DefaultRequestHeaders.Add(name, value);
+                GravitonPlugin.Logger?.Trace($"Added header: {name}");
+            }
+
+                
         }
         public void RemoveHeader(string name)
         {
             if (httpClient.DefaultRequestHeaders.Contains(name))
+            {
                 httpClient.DefaultRequestHeaders.Remove(name);
+                GravitonPlugin.Logger?.Trace($"Removed header: {name}");
+            }
+                
         }
 
         public void ConfigureBasicAuth(string username, string password)
@@ -81,6 +90,8 @@ namespace Graviton
                 httpClient.DefaultRequestHeaders.Remove(header.Name);
                 httpClient.DefaultRequestHeaders.Add(header.Name, header.Value);
             }
+
+            GravitonPlugin.Logger?.Trace($"Configured RomMServer to use basic auth");
         }
         public void ConfigureClientToken(string clientToken)
         {
@@ -91,13 +102,15 @@ namespace Graviton
                 httpClient.DefaultRequestHeaders.Remove(header.Name);
                 httpClient.DefaultRequestHeaders.Add(header.Name, header.Value);
             }
+
+            GravitonPlugin.Logger?.Trace($"Configured RomMServer to use client token auth");
         }
 
         private async Task<JsonDocument?> ExecuteAsync(string apiPath, bool PublicEndpoint, Func < Task<HttpResponseMessage>> send, string nofiyType, string locFailedMessage)
         {
             if (_plugin!.Settings.AccountState.LastAuthenticated == null && !PublicEndpoint)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", Loc.GetString("Reauthenticate"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.authenticated.failed", Loc.GetString("Reauthenticate"), GravitonSeverity.Error);
                 _plugin.Settings.AccountState.User = "----";
                 _plugin.Settings.AccountState.UserType = "----";
                 _plugin.Settings.AccountState.LastAuthenticated = null;
@@ -108,8 +121,11 @@ namespace Graviton
             Stream? content = null;
             try
             {
+                GravitonPlugin.Logger?.Trace($"Sending request for {apiPath}");
                 response = await send();
                 content = await response.Content.ReadAsStreamAsync();
+                GravitonPlugin.Logger?.Trace($"Read response from server");
+
                 response.EnsureSuccessStatusCode();
 
                 if (content.Length <= 0)
@@ -136,12 +152,12 @@ namespace Graviton
                     var body = new StreamReader(content!, Encoding.UTF8).ReadToEnd();
                     var displayMessage = ExtractErrorResponse(body);
 
-                    GravitonNotify.Add(new GravitonNotification("graviton.request.4xx", Loc.GetString("ServerResponded", ("Message", displayMessage)), GravitonSeverity.Error));
-                    GravitonPlugin.Logger.Error($"Path: {apiPath}\nRaw Details: {body}");
+                    GravitonNotify.Notify("graviton.request.4xx", Loc.GetString("ServerResponded", ("Message", displayMessage)), GravitonSeverity.Error);
+                    GravitonPlugin.Logger?.Error($"Path: {apiPath}\nRaw Details: {body}");
                 }
                 else
                 {
-                    GravitonNotify.Add(new GravitonNotification(nofiyType, $"{Loc.GetString(locFailedMessage, [("APIPath", apiPath)])} - {ex.Message}", GravitonSeverity.Error, ex));
+                    GravitonNotify.Notify(nofiyType, $"{Loc.GetString(locFailedMessage, [("APIPath", apiPath)])} - {ex.Message}", GravitonSeverity.Error, ex);
                 }
 
                 return null;
@@ -152,7 +168,7 @@ namespace Graviton
         {
             if (_plugin!.Settings.AccountState.LastAuthenticated == null && !PublicEndpoint)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.authenticated.failed", Loc.GetString("Reauthenticate"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.authenticated.failed", Loc.GetString("Reauthenticate"), GravitonSeverity.Error);
                 _plugin.Settings.AccountState.User = "----";
                 _plugin.Settings.AccountState.UserType = "----";
                 _plugin.Settings.AccountState.LastAuthenticated = null;
@@ -161,6 +177,7 @@ namespace Graviton
 
             try
             {
+                GravitonPlugin.Logger?.Trace($"Sending request for {apiPath}");
                 var response = await send();
 
                 if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
@@ -177,7 +194,7 @@ namespace Graviton
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification(nofiyType, $"{Loc.GetString(locFailedMessage, [("APIPath", apiPath)])} - {ex.Message}", GravitonSeverity.Error, ex));
+                GravitonNotify.Notify(nofiyType, $"{Loc.GetString(locFailedMessage, [("APIPath", apiPath)])} - {ex.Message}", GravitonSeverity.Error, ex);
                 return null;
             }
         }

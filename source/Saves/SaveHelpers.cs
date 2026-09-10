@@ -64,14 +64,14 @@ namespace Graviton.Saves
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.packsave.failed", Loc.GetString("PackSaveFailed", ("Path", outputArchivePath)), GravitonSeverity.Error, ex));
+                GravitonNotify.Notify("graviton.packsave.failed", Loc.GetString("PackSaveFailed", ("Path", outputArchivePath)), GravitonSeverity.Error, ex);
                 skippedPaths = localSkippedpaths;
                 return false;
             }
 
             if (missingfiles)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.packsave.missingfiles", Loc.GetString("PackSaveFilesSkipped"), GravitonSeverity.Warn));
+                GravitonNotify.Notify("graviton.packsave.missingfiles", Loc.GetString("PackSaveFilesSkipped"), GravitonSeverity.Warn);
             }
 
             skippedPaths = localSkippedpaths;
@@ -83,7 +83,7 @@ namespace Graviton.Saves
         {
             if (!File.Exists(tempSaveLocation))
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", Loc.GetString("SaveArchiveNotFound", ("SaveLoc", tempSaveLocation)), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.unpacksave.failed", Loc.GetString("SaveArchiveNotFound", ("SaveLoc", tempSaveLocation)), GravitonSeverity.Error);
                 return null;
             }
 
@@ -108,7 +108,7 @@ namespace Graviton.Saves
                     var resolvedPath = Path.GetFullPath(Path.Combine(destinationFull, entry.Key));
                     if (!resolvedPath.StartsWith(destinationFull, StringComparison.OrdinalIgnoreCase))
                     {
-                        GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", Loc.GetString("ArchiveResolvesOutside", ("Entry", entry.Key!)), GravitonSeverity.Error));
+                        GravitonNotify.Notify("graviton.unpacksave.failed", Loc.GetString("ArchiveResolvesOutside", ("Entry", entry.Key!)), GravitonSeverity.Error);
                         return null;
                     }
                     resolvedPaths.Add(resolvedPath);
@@ -118,7 +118,7 @@ namespace Graviton.Saves
 
                 if (fileEntries.Count > 0 && !Directory.EnumerateFileSystemEntries(destinationPath).Any())
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", Loc.GetString("ExtractionEmpty"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.unpacksave.failed", Loc.GetString("ExtractionEmpty"), GravitonSeverity.Error);
                     return null;
                 }
 
@@ -137,7 +137,7 @@ namespace Graviton.Saves
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.unpacksave.failed", Loc.GetString("FailedUnpack", ("SaveLoc", tempSaveLocation)), GravitonSeverity.Error, ex));
+                GravitonNotify.Notify("graviton.unpacksave.failed", Loc.GetString("FailedUnpack", ("SaveLoc", tempSaveLocation)), GravitonSeverity.Error, ex);
                 return null;
             }
         }
@@ -154,7 +154,7 @@ namespace Graviton.Saves
                     {
                         if (!archive.Entries.Any())
                         {
-                            GravitonNotify.Add(new GravitonNotification("graviton.archive.empty", Loc.GetString("ComputeHashArchiveEmpty", ("Path", zipPath)), GravitonSeverity.Error));
+                            GravitonNotify.Notify("graviton.archive.empty", Loc.GetString("ComputeHashArchiveEmpty", ("Path", zipPath)), GravitonSeverity.Error);
                             return null;
                         }
                         foreach (var entry in archive.Entries.Where(e => !e.IsDirectory).OrderBy(e => e.Key, StringComparer.Ordinal))
@@ -184,7 +184,7 @@ namespace Graviton.Saves
                 }
             }
 
-            GravitonNotify.Add(new GravitonNotification("graviton.computehash.failed", Loc.GetString("ComputeHashFailed", ("Path", zipPath)), GravitonSeverity.Error));
+            GravitonNotify.Notify("graviton.computehash.failed", Loc.GetString("ComputeHashFailed", ("Path", zipPath)), GravitonSeverity.Error);
             return null;
         }
 
@@ -208,7 +208,7 @@ namespace Graviton.Saves
                 }
             }
 
-            GravitonNotify.Add(new GravitonNotification("graviton.computehash.failed", Loc.GetString("ComputeHashFailed", ("Path", path)), GravitonSeverity.Error));
+            GravitonNotify.Notify("graviton.computehash.failed", Loc.GetString("ComputeHashFailed", ("Path", path)), GravitonSeverity.Error);
             return null;
         }
 

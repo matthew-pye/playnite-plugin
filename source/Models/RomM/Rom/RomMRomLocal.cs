@@ -141,7 +141,7 @@ namespace Graviton.Models.RomM.Rom
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification($"graviton.write.rom.{Id}", Loc.GetString("ROMDataSaveFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                GravitonNotify.Notify($"graviton.write.rom.{Id}", Loc.GetString("ROMDataSaveFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
             }
         }
 

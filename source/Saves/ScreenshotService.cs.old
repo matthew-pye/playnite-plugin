@@ -74,7 +74,7 @@ namespace Graviton.Saves
         {
             if (!GraphicsCaptureSession.IsSupported())
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.screencap.notsupported", "Cannot setup screenshot capture as this device doesn't support it!", GravitonSeverity.Warn));
+                GravitonNotify.Add("graviton.screencap.notsupported", "Cannot setup screenshot capture as this device doesn't support it!", GravitonSeverity.Warn);
                 return false;
             }
                 
@@ -129,7 +129,7 @@ namespace Graviton.Saves
         {
             if (!IsSetup || Window == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.screencap.notsetup", "Cannot start screenshot capture as setup wasn't completed!", GravitonSeverity.Warn));
+                GravitonNotify.Add("graviton.screencap.notsetup", "Cannot start screenshot capture as setup wasn't completed!", GravitonSeverity.Warn);
                 return;
             }
 

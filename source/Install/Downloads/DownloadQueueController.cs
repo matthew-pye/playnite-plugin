@@ -1,4 +1,6 @@
-﻿using Playnite;
+﻿using Graviton.Notifications;
+
+using Playnite;
 
 using SharpCompress.Archives;
 
@@ -13,7 +15,7 @@ namespace Graviton.Install.Downloads
     {
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
-        private ILogger _logger;
+        private GravitonLogger _logger;
         private IRomMServer _romMServer;
 
         private readonly DownloadQueueViewModel DownloadQueueVM;
@@ -21,10 +23,10 @@ namespace Graviton.Install.Downloads
 
         private readonly System.Collections.Concurrent.ConcurrentDictionary<string, CancellationTokenSource> activeDownloads = new();
 
-        public ILogger Logger => LogManager.GetLogger<GravitonPlugin>();
+        public GravitonLogger? Logger;
         public int MaxConcurrent { get; }
 
-        public DownloadQueueController(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer, DownloadQueueViewModel downloadQueueVM, int maxConcurrent)
+        public DownloadQueueController(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer, DownloadQueueViewModel downloadQueueVM, int maxConcurrent)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -70,7 +72,7 @@ namespace Graviton.Install.Downloads
                 }
                 catch (Exception ex)
                 {
-                    Logger.Warn(ex, "An error occurred while cancelling a download.");
+                    Logger?.Warn(ex, "An error occurred while cancelling a download.");
                 }
             }
         }
@@ -193,7 +195,7 @@ namespace Graviton.Install.Downloads
                     path += "\\" + req.GameName + "\\";
 
                 item.SetStatus(DownloadStatus.Extracting, Loc.GetString("DownloadStatusExtracting"));
-                Logger.Info($"Extracting {req.GamePath}...");
+                Logger?.Info($"Extracting {req.GamePath}...");
 
                 if (req.Use7z && !string.IsNullOrEmpty(req.PathTo7Z) && req.PathTo7Z.EndsWith("7z.exe", StringComparison.OrdinalIgnoreCase))
                 {
@@ -316,7 +318,7 @@ namespace Graviton.Install.Downloads
             }
             catch (Exception ex)
             {
-                Logger.Warn(ex, $"Cleanup failed for {req.GameName} ({req.GameId}).");
+                Logger?.Warn(ex, $"Cleanup failed for {req.GameName} ({req.GameId}).");
                 // don't rethrow - cancel should still succeed
             }
         }

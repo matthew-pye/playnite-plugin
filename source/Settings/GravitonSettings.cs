@@ -75,6 +75,8 @@ namespace Graviton.Settings
 
         [ObservableProperty] private bool _saveStateSyncEnabled = false;
 
+        [ObservableProperty] private bool _debuggingEnabled = false;
+
         [ObservableProperty] private ObservableCollection<EmulatorMapping> _mappings = new ObservableCollection<EmulatorMapping>();
         [ObservableProperty] private ObservableCollection<RomMPlatform> _romMPlatforms = new ObservableCollection<RomMPlatform>();
 
@@ -92,7 +94,7 @@ namespace Graviton.Settings
                 }
                 else
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.host.invalid.scheme", Loc.GetString("InvaildScheme"), GravitonSeverity.Error));
+                    GravitonNotify.Notify("graviton.host.invalid.scheme", Loc.GetString("InvaildScheme"), GravitonSeverity.Error);
                     _host = string.Empty;
                 }
                               
@@ -189,7 +191,9 @@ namespace Graviton.Settings
                 Mappings = JsonSerializer.Deserialize<ObservableCollection<EmulatorMapping>>(JsonSerializer.Serialize(this.Mappings)) ?? this.Mappings,
                 RomMPlatforms = this.RomMPlatforms,
 
-                AccountState = this.AccountState
+                AccountState = this.AccountState,
+
+                DebuggingEnabled = this.DebuggingEnabled,
             };
         }
 

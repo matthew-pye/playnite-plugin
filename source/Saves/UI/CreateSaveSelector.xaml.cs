@@ -102,7 +102,7 @@ namespace Graviton.Saves
         {
             if(SelectedROM == null)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.ROM.null", Playnite.Loc.GetString("SaveNoGameSelected"), GravitonSeverity.Error));
+                GravitonNotify.Notify("graviton.ROM.null", Playnite.Loc.GetString("SaveNoGameSelected"), GravitonSeverity.Error);
                 e.Handled = true;
                 return;
             }

@@ -3,6 +3,7 @@ using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Rom;
 using Graviton.Models.RomM.Saves;
 using Graviton.Models.Saves;
+using Graviton.Notifications;
 
 using Playnite;
 
@@ -17,7 +18,7 @@ namespace Graviton.Saves
     {
         private GravitonPlugin _plugin;
         private IPlayniteApi _playniteAPI;
-        private ILogger _logger;
+        private GravitonLogger _logger;
         private IRomMServer _romMServer;
 
         private SaveController SaveController => _plugin.SaveController!;
@@ -27,7 +28,7 @@ namespace Graviton.Saves
         private EmulatorMapping? Mapping;
         private List<RomMRomLocal>? ROMs;
 
-        public SaveDiscovery(GravitonPlugin plugin, IPlayniteApi playniteAPI, ILogger logger, IRomMServer romMServer)
+        public SaveDiscovery(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -317,7 +318,7 @@ namespace Graviton.Saves
                     }
                     catch (Exception ex)
                     {
-                        GravitonNotify.Add(new GravitonNotification("graviton.deserialize.failed", Loc.GetString("FailedDeserialize", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                        GravitonNotify.Notify("graviton.deserialize.failed", Loc.GetString("FailedDeserialize", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                         continue;
                     }
                 }
@@ -343,7 +344,7 @@ namespace Graviton.Saves
             }
             catch (Exception ex)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.deserialize.failed", Loc.GetString("FailedDeserialize", ("Error", ex.Message)), GravitonSeverity.Error, ex));
+                GravitonNotify.Notify("graviton.deserialize.failed", Loc.GetString("FailedDeserialize", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                 return null;
             }
         }
@@ -455,7 +456,7 @@ namespace Graviton.Saves
 
                 if(noExtentions)
                 {
-                    GravitonNotify.Add(new GravitonNotification("graviton.autodetect.noextentions", Loc.GetString("NoAutoDetectExtensions"), GravitonSeverity.Warn));
+                    GravitonNotify.Notify("graviton.autodetect.noextentions", Loc.GetString("NoAutoDetectExtensions"), GravitonSeverity.Warn);
                 }
 
                 return saves;

@@ -108,7 +108,7 @@ namespace Graviton.Saves
         {
             if (!IsSetup || WindowHandle == IntPtr.Zero)
             {
-                GravitonNotify.Add(new GravitonNotification("graviton.screencap.notsetup", Loc.GetString("ScreenCaptureNotSetup"), GravitonSeverity.Warn));
+                GravitonNotify.Notify("graviton.screencap.notsetup", Loc.GetString("ScreenCaptureNotSetup"), GravitonSeverity.Warn);
                 return Task.CompletedTask;
             }
 
