@@ -32,6 +32,61 @@ namespace Graviton.Status
         }
 
         // Syncing
+        public async Task<List<RomMPlaySession>?> FetchPlaySessions(int? romID = null, DateTime? startAfter = null)
+        {
+            List<RomMPlaySession> playsessions = new();
+
+            int pagesize = 50;
+            int offset = 0;
+            bool hasMoreData = true;
+
+            var url = $"/api/play-sessions?limit={pagesize}";
+
+            if(romID != null)
+                url += $"&rom_id={romID}";
+
+            if (startAfter != null)
+                url += $"&start_after={startAfter}";
+
+            if (_plugin.Settings.ImportPlaysessions == ImportPlaySessions.OnlyThisDevice)
+                url += $"&device_id={_plugin.Settings.AccountState.DeviceID}";
+
+            _logger.Trace($"FetchPlaySessions starting URL is {url}");
+
+            while (hasMoreData)
+            {
+                url += $"&offset={offset}";
+
+                var request = await _romMServer.GETAsync(url);
+                if (request == null)
+                    return null;
+
+                // Check for empty play sessions list
+                if (request.RootElement.GetRawText() == "[]")
+                    break;
+
+                try
+                {
+                    var sessions = request?.RootElement.Deserialize<List<RomMPlaySession>>();
+
+                    if (sessions == null)
+                        break;
+
+                    playsessions.AddRange(sessions);
+
+                    if (sessions?.Count < pagesize)
+                        hasMoreData = false;
+
+                }
+                catch (Exception ex)
+                {
+                    GravitonNotify.Notify("graviton.fetch.playsession", "Failed to get play sessions!", GravitonSeverity.Error, ex);
+                    return null;
+                }
+            }
+
+            return playsessions;
+        }
 
         public async Task PushPlaySession(string GameID, DateTime StopTime, uint SessionLength)
         {
@@ -154,56 +209,6 @@ namespace Graviton.Status
         }
 
         // Play Status
-        public async Task<List<RomMPlaySession>?> FetchPlaySessions(int romID, DateTime? startAfter = null)
-        {
-            List<RomMPlaySession> playsessions = new();
-
-            int pagesize = 50;
-            int offset = 0;
-            bool hasMoreData = true;
-
-            var url = $"/api/play-sessions?rom_id={romID}&limit={pagesize}";
-
-            if (startAfter != null)
-                url += $"&start_after={startAfter}";
-
-            if (_plugin.Settings.ImportPlaysessions == ImportPlaySessions.OnlyThisDevice)
-                url += $"&device_id={_plugin.Settings.AccountState.DeviceID}";
-
-            while (hasMoreData)
-            {
-                url += $"&offset={offset}";
-
-                var request = await _romMServer.GETAsync(url);
-                if (request == null)
-                    return null;
-
-                // Check for empty play sessions list
-                if (request.RootElement.GetRawText() == "[]")
-                    break;
-                try
-                {
-                    var sessions = request?.RootElement.Deserialize<List<RomMPlaySession>>();
-
-                    if (sessions == null)
-                        break;
-
-                    playsessions.AddRange(sessions);
-
-                    if (sessions?.Count < pagesize)
-                        hasMoreData = false;
-
-                }
-                catch (Exception ex)
-                {
-                    GravitonNotify.Notify("graviton.fetch.playsession", "Failed to get play session!", GravitonSeverity.Error, ex);
-                    return null;
-                }                
-            }
-
-            return playsessions;
-        }
-
         public async Task UpdateStatus(Game game)
         {
             if (!GravitonHelper.TryParseGameID(game.LibraryGameId, out var id))

@@ -17,7 +17,7 @@ namespace Graviton.Models.RomM.PlaySessions
         public int ID { get; set; }
 
         [JsonPropertyName("rom_id")]
-        public int ROMID { get; set; }
+        public int? ROMID { get; set; }
 
         [JsonPropertyName("save_slot")]
         public string? SaveSlot { get; set; }

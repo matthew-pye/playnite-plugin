@@ -1,6 +1,7 @@
 ﻿using Graviton.Models;
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Collection;
+using Graviton.Models.RomM.PlaySessions;
 using Graviton.Models.RomM.Rom;
 using Graviton.Notifications;
 
@@ -25,12 +26,13 @@ namespace Graviton.Import
 
         private ImportGamesArgs _args;
         private EmulatorMapping _mapping;
-        private List<RomMRom> _roms;
-        private List<RomMCollection> _collections;
+        private List<RomMRom> _roms = null!;
+        private List<RomMCollection>? _collections;
+        private List<RomMPlaySession>? _sessions;
 
         private static Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
 
-        public GravitonImport(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, ImportGamesArgs args, EmulatorMapping mapping, List<RomMRom> roms, List<RomMCollection> collections)
+        public GravitonImport(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, ImportGamesArgs args, EmulatorMapping mapping)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -38,13 +40,16 @@ namespace Graviton.Import
 
             _args = args;
             _mapping = mapping;
-            _roms = roms;
-            _collections = collections;
+            
         }
 
         // Main library import functions
-        public async Task<(List<Game> NewGames, List<string> ProcessedGames)> ProcessData()
+        public async Task<(List<Game> NewGames, List<string> ProcessedGames)> ProcessData(List<RomMRom> roms, List<RomMCollection>? collections = null, List<RomMPlaySession>? sessions = null)
         {
+            _roms = roms;
+            _collections = collections;
+            _sessions = sessions;
+
             // Add all series, genres, collections, etc to playnite database
             await PreProcessData();
 
@@ -110,18 +115,20 @@ namespace Graviton.Import
             List<AgeRating> ageRatings = new();
             List<Region> regions = new();
 
-            foreach (var collection in _collections)
+            if(_collections != null)
             {
-                if (_args.CancelToken.IsCancellationRequested)
-                    break;
-
-                if (!string.IsNullOrEmpty(collection.Name) && collection.RomIDs.Any(x => _roms.Any(y => y.Id == x)))
+                foreach (var collection in _collections)
                 {
-                    _logger?.Trace($"Adding {collection.Name} to collection list");
-                    categories.Add(new Category(collection.Name.ToLower(), collection.Name));
+                    if (_args.CancelToken.IsCancellationRequested)
+                        break;
+
+                    if (!string.IsNullOrEmpty(collection.Name) && collection.RomIDs.Any(x => _roms.Any(y => y.Id == x)))
+                    {
+                        _logger?.Trace($"Adding {collection.Name} to collection list");
+                        categories.Add(new Category(collection.Name.ToLower(), collection.Name));
+                    }
                 }
             }
-
 
             foreach (var ROM in _roms)
             {
@@ -255,15 +262,13 @@ namespace Graviton.Import
             // Import new game sessions
             if (_args.SessionImport == SessionImportMode.Always && _plugin.Settings.ImportPlaysessions != Models.RomM.PlaySessions.ImportPlaySessions.None)
             {
-                var sessions = await _plugin.StatusController!.FetchPlaySessions(ROM.Id);
-
-                if (sessions != null && sessions.Count > 0)
+                if (_sessions != null && _sessions.Where(x => x.ROMID == ROM.Id).Count() > 0)
                 {
                     var playnitesessions = _playniteAPI.Library.GameSessions.Where(x => x.LibraryId == GravitonPlugin.Id && x.GameId == game.LibraryGameId).ToList();
                     List<GameSession> newsessions = new();
                     _logger?.Trace($"Pulled game sessions from playnite\n{JsonSerializer.Serialize(playnitesessions, new JsonSerializerOptions { WriteIndented = true})}");
 
-                    foreach (var session in sessions)
+                    foreach (var session in _sessions.Where(x => x.ROMID == ROM.Id))
                     {
                         _logger?.Trace($"Checking RomM play session ({session.ID})");
 
@@ -337,13 +342,11 @@ namespace Graviton.Import
                 // Import game sessions
                 if (_args.SessionImport != SessionImportMode.Never && _plugin.Settings.ImportPlaysessions != Models.RomM.PlaySessions.ImportPlaySessions.None)
                 {
-                    var sessions = await _plugin.StatusController!.FetchPlaySessions(ROM.Id);
-
-                    if (sessions != null && sessions.Count > 0)
+                    if (_sessions != null && _sessions.Where(x => x.ROMID == ROM.Id).Count() > 0)
                     {
                         List<GameSession> newsessions = new();
 
-                        foreach (var session in sessions)
+                        foreach (var session in _sessions.Where(x => x.ROMID == ROM.Id))
                         {
                             if (string.IsNullOrEmpty(session.StartTime))
                                 continue;

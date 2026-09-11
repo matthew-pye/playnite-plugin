@@ -63,6 +63,7 @@ namespace Graviton.Import
             GravitonSettingsHandler.SaveSettings(_plugin.PluginDataPath, _plugin.Settings);
 
             var collections = await FetchCollections(args);
+            var sessions = await _plugin.StatusController!.FetchPlaySessions();
 
             string url = BuildGeneralROMUrl();
 
@@ -108,9 +109,8 @@ namespace Graviton.Import
                         rommROMs.Remove(rom);   
                 }
 
-
                 _logger.Debug($"[Import Controller] Creating new import task for {apiPlatform.Name}.");
-                tasks.Add(new GravitonImport(_plugin, _playniteAPI, _logger, args, mapping, rommROMs, collections).ProcessData());
+                tasks.Add(new GravitonImport(_plugin, _playniteAPI, _logger, args, mapping).ProcessData(rommROMs, collections, sessions));
                 processedMappings.Add(mapping);
             }
 
