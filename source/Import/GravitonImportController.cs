@@ -40,6 +40,8 @@ namespace Graviton.Import
 
         public async Task<List<Game>> Import(ImportGamesArgs args)
         {
+            _logger.Info($"Started game importting");
+
             var enabledMappings = _plugin.Settings.Mappings.Where(m => m.Enabled).ToList();
             if (!enabledMappings.Any())
             {
@@ -91,16 +93,19 @@ namespace Graviton.Import
                 }
 
                 // Pull data from server
-                _logger.Debug($"[Import Controller] Started parsing response for {apiPlatform.Name}.");
+                _logger.Trace($"Started parsing response for {apiPlatform.Name}");
                 var rommROMs = await DownloadROMData(args, url, apiPlatform);
 
                 if (args.CancelToken.IsCancellationRequested)
                     break;
 
                 if (rommROMs.Count() <= 0)
+                {
+                    _logger.Info($"Checked {apiPlatform.Name} for ROMs, No ROMs found");
                     continue;
+                }  
                 else
-                    _logger.Debug($"[Import Controller] Finished parsing response for {apiPlatform.Name}.");
+                    _logger.Trace($"Finished parsing response for {apiPlatform.Name} with {rommROMs.Count()} ROMs found");
 
                 // Remove ROMs that are in the exclusion list
                 foreach (var rom in rommROMs.ToList())
@@ -109,7 +114,7 @@ namespace Graviton.Import
                         rommROMs.Remove(rom);   
                 }
 
-                _logger.Debug($"[Import Controller] Creating new import task for {apiPlatform.Name}.");
+                _logger.Trace($"Creating new import task for {apiPlatform.Name}");
                 tasks.Add(new GravitonImport(_plugin, _playniteAPI, _logger, args, mapping).ProcessData(rommROMs, collections, sessions));
                 processedMappings.Add(mapping);
             }
@@ -123,6 +128,8 @@ namespace Graviton.Import
                 games.AddRange(task.Result.NewGames);
                 proccessedgames.AddRange(task.Result.ProcessedGames);
             }
+
+            _logger.Info($"Finished importing games, {games.Count()} new games found");
 
             if (!_plugin.Settings.KeepDeletedGames)
                 await RemoveMissingGames(proccessedgames, processedMappings);
@@ -147,11 +154,12 @@ namespace Graviton.Import
             if (!Directory.Exists($"{_plugin.PluginDataPath}/Platforms/"))
                 Directory.CreateDirectory($"{_plugin.PluginDataPath}/Platforms/");
 
+            _logger.Trace($"Fetching platform icons");
             foreach (var platform in platforms)
             {
                 try
                 {
-                    if(_platformSlugRegex.IsMatch(platform.Slug!))
+                    if (_platformSlugRegex.IsMatch(platform.Slug!))
                     {
                         var rawResponse = await _romMServer.RawGETAsync($"/assets/platforms/{platform.Slug}.svg");
                         if (rawResponse == null || rawResponse.Content == null)
@@ -159,14 +167,18 @@ namespace Graviton.Import
 
                         Stream stream = await rawResponse.Content.ReadAsStreamAsync();
                         var svg = SvgDocument.Open<SvgDocument>(stream);
-                        
+                        _logger.Trace($"Got {platform.Slug}.svg from server");
+
                         var image = svg.Draw();
+                        _logger.Trace($"Converted svg to bitmap");
+
                         image.Save($"{_plugin.PluginDataPath}/Platforms/{platform.Slug}.png", ImageFormat.Png);
+                        _logger.Trace($"Saved bitmap to {_plugin.PluginDataPath}/Platforms/{platform.Slug}.png");
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warn($"[Import Controller] Failed to download/convert platform icon for {platform.Slug}: {ex.Message}");
+                    _logger.Warn($"Failed to download/convert platform icon for {platform.Slug}: {ex.Message}");
                 }
             }
 
@@ -180,7 +192,6 @@ namespace Graviton.Import
 
             options += $"genres_logic=none&";
             options += $"order_by=name&";
-            options += $"with_siblings=true&";
             options += $"with_files=true&";
             options += $"order_dir=asc&";
 
@@ -207,7 +218,7 @@ namespace Graviton.Import
          
         private async Task<List<RomMRom>> DownloadROMData(ImportGamesArgs args, string url, RomMPlatform platform)
         {
-            _logger.Info($"[Import Controller] Starting to fetch games for {platform.Name}.");
+            _logger.Info($"Starting to fetch games for {platform.Name}");
 
             int pagesize = 50;
             int offset = 0;
@@ -235,11 +246,11 @@ namespace Graviton.Import
                     var roms = request?.RootElement.GetProperty("items").Deserialize<List<RomMRom>>() ?? throw new Exception("Deserialize failed");
                     romData.AddRange(roms);
 
-                    _logger.Info($"[Import Controller] Parsed {roms.Count} roms for batch {offset / pagesize + 1}.");         
+                    _logger.Trace($"[Import Controller] Parsed {roms.Count} roms for batch {offset / pagesize + 1}.");         
 
                     if (roms.Count < pagesize)
                     {
-                        _logger.Info($"[Import Controller] Received less than {pagesize} roms for {platform.Name}, assuming no more games.");
+                        _logger.Trace($"[Import Controller] Received less than {pagesize} roms for {platform.Name}, assuming no more games.");
                         hasMoreData = false;
                         break;
                     }
@@ -254,13 +265,16 @@ namespace Graviton.Import
                 }
             }
 
+            _logger.Info($"Fetched {romData.Count()} games for {platform.Name}");
+
             return romData;
         }
 
         private async Task RemoveMissingGames(List<string> ImportedGames, List<EmulatorMapping> processedMappings)
         {
+            _logger.Info($"Started removeal of games that weren't imported");
 
-            _logger.Info($"[Importer] Starting to remove not found games.");
+            int removedGamesCount = 0;
 
             foreach (var game in _plugin.ImportedGames.ToList())
             {
@@ -287,26 +301,30 @@ namespace Graviton.Import
                 if (rootgamerelation != null)
                 {
                     await _playniteAPI.Library.GameRelations.RemoveAsync(rootgamerelation.Id);
+                    _logger.Trace($"Deleted game relation\n{JsonSerializer.Serialize(rootgamerelation, new JsonSerializerOptions { WriteIndented = true })}");
                 }
                 else
                 {
                     var linkedRelations = _playniteAPI.Library.GameRelations.Where(x => x.LinkedGames.Any(y => y == game.Value.PlayniteID)).ToList();
                     foreach (var gamerelation in linkedRelations)
                     {
+                        _logger.Trace($"Removing game ({game.Value.PlayniteID}) from game relation\n{JsonSerializer.Serialize(gamerelation, new JsonSerializerOptions { WriteIndented = true })}");
                         gamerelation.LinkedGames.Remove(game.Value.PlayniteID!);
-                        await _playniteAPI.Library.GameRelations.UpdateAsync(gamerelation);
+                        await _playniteAPI.Library.GameRelations.UpdateAsync(gamerelation);  
                     }
                 }
 
                 await _playniteAPI.Library.Games.RemoveAsync(game.Value.PlayniteID!);
+                _logger.Trace($"Removed {id} from playnite database");
                 _plugin.ImportedGames.TryRemove(game.Key, out _);
-                
-                File.Delete($"{_plugin.PluginDataPath}/Games/{id}.json");
+                _logger.Trace($"Removed {id} from cache");
 
-                _logger.Info($"[Importer] Removing {id}");
+                File.Delete($"{_plugin.PluginDataPath}/Games/{id}.json");
+                _logger.Trace($"Removing {id}");
+                removedGamesCount++;
             }
 
-            _logger.Info($"[Importer] Finished removing not found games");
+            _logger.Info($"Finished removeal of games, removed {removedGamesCount} games");
         }
 
         private async Task<List<RomMCollection>> FetchCollections(ImportGamesArgs args)

@@ -79,28 +79,28 @@ namespace Graviton.Import
                     if (_plugin.ImportedGames.ContainsKey(gameID))
                     {
                         ImportedGamesIDs.Add(gameID);
-                        _logger?.Warn($"[Importer] Failed to re-process already-imported ROM {ROM.Id} ({ROM.Name}), keeping existing entry: {ex.Message}");
+                        _logger?.Warn($"Failed to re-process already-imported ROM {ROM.Id} ({ROM.Name}), keeping existing data: {ex.Message}");
                     }
                     else
                     {
-                        _logger?.Warn($"[Importer] Failed to import new ROM {ROM.Id} ({ROM.Name}), skipping: {ex.Message}");
+                        _logger?.Warn($"Failed to import new ROM {ROM.Id} ({ROM.Name}), skipping: {ex.Message}");
                     }
                     GravitonNotify.Notify($"graviton.ROM.import.failed", "One or more ROMs failed to be imported!", GravitonSeverity.Warn, ex);
                 }
             }
 
-            _logger?.Info($"[Importer] Finished adding new games for {_mapping.RomMPlatform?.Name}");
+            _logger?.Trace($"Finished adding new games for {_mapping.RomMPlatform?.Name}");
 
             if (_plugin.Settings.MergeRevisions)
             {
-                _logger?.Info($"[Importer] Started merging new games for {_mapping.RomMPlatform?.Name}");
+                _logger?.Trace($"Started merging new games for {_mapping.RomMPlatform?.Name}");
                 await GravitonSiblingMerger.MergeSiblings(_plugin, _roms);
 
-                _logger?.Info($"[Importer] Finished merging new games for {_mapping.RomMPlatform?.Name}");
+                _logger?.Trace($"Finished merging new games for {_mapping.RomMPlatform?.Name}");
             }
 
 
-            _logger?.Info($"[Importer] Finished import of ROMs for {_mapping.RomMPlatform?.Name}.");
+            _logger?.Trace($"Finished import of ROMs for {_mapping.MappingId}");
             return (games, ImportedGamesIDs);
         }
 
