@@ -476,7 +476,7 @@ namespace Graviton.Saves
             {
                 foreach (var dir in Directory.EnumerateDirectories(mapping.SavePath, "*", SearchOption.AllDirectories))
                 {
-                    var matchingROM = roms.FirstOrDefault(x => Path.GetFileNameWithoutExtension(x.FileName) == Path.GetFileName(dir));
+                    var matchingROM = roms.FirstOrDefault(x => (Path.GetFileNameWithoutExtension(x.FileName) == Path.GetFileName(dir)) || (x.SaveTarget != null && dir.EndsWith(x.SaveTarget.Replace("/", "\\"))));
                     if (matchingROM == null)
                         continue;
 
@@ -525,6 +525,11 @@ namespace Graviton.Saves
             foreach (var rom in roms.Where(x => x.MappingID == mapping.MappingId))
             {
                 var files = Directory.EnumerateFiles(mapping.SavePath, $"{Path.GetFileNameWithoutExtension(rom.FileName)}.*", SearchOption.AllDirectories).ToList();
+
+                // Add files that match the save target
+                if (rom.SaveTarget != null)
+                    files.AddRange(Directory.EnumerateFiles(mapping.SavePath, $"{rom.SaveTarget}.*", SearchOption.AllDirectories).ToList());
+
                 if (files.Count <= 0)
                     continue;
 

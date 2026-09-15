@@ -67,11 +67,17 @@ namespace Graviton.Import
                 string gameID = $"{ROM.Id}";
                 try
                 {
+                    if (gameID == null)
+                        throw new Exception("ROM has no ID");
+
                     var result = await ProcessROM(ROM, gameID);
+
                     if (result.HasValue)
                     {
-                        ImportedGamesIDs.Add(result.Value.gameID);
-                        if (result.Value.newGame != null) games.Add(result.Value.newGame);
+                        ImportedGamesIDs.Add(gameID);
+
+                        if (result.Value.newGame != null) 
+                            games.Add(result.Value.newGame);
                     }
                 }
                 catch (Exception ex)

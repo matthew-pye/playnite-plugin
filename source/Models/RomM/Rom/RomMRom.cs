@@ -194,6 +194,12 @@ namespace Graviton.Models.RomM.Rom
         [JsonPropertyName("sha1_hash")]
         public string? SHA1 { get; set; }
 
+        [JsonPropertyName("title_id")]
+        public string? TitleID { get; set; }
+
+        [JsonPropertyName("save_target")]
+        public string? SaveTarget { get; set; }
+
         [JsonPropertyName("full_path")]
         public string? FullPath { get; set; }
 
