@@ -71,8 +71,11 @@ namespace Graviton.Import
 
             List<EmulatorMapping> processedMappings = new();
 
+            List<Game> games = new List<Game>();
+            List<string> proccessedgames = new List<string>();
+            Task<(List<Game> NewGames, List<string> ProcessedGames)>? task = null;
+
             // Pull ROM data for each enabled mapping and add the games to playnite
-            List<Task<(List<Game> NewGames, List<string> ProcessedGames)>> tasks = new();
             foreach (var mapping in enabledMappings)
             {
                 if (args.CancelToken.IsCancellationRequested)
@@ -114,19 +117,24 @@ namespace Graviton.Import
                         rommROMs.Remove(rom);   
                 }
 
+                if(task != null)
+                {
+                    var result = await task;
+                    games.AddRange(result.NewGames);
+                    proccessedgames.AddRange(result.ProcessedGames);
+                }
+                   
                 _logger.Trace($"Creating new import task for {apiPlatform.Name}");
-                tasks.Add(new GravitonImport(_plugin, _playniteAPI, _logger, args, mapping).ProcessData(rommROMs, collections, sessions));
+                task = new GravitonImport(_plugin, _playniteAPI, _logger, args, mapping).ProcessData(rommROMs, collections, sessions);
                 processedMappings.Add(mapping);
             }
 
-            await Task.WhenAll(tasks);
-
-            List<Game> games = new List<Game>();
-            List<string> proccessedgames = new List<string>();
-            foreach (var task in tasks)
+            // Complete finale mapping import
+            if (task != null)
             {
-                games.AddRange(task.Result.NewGames);
-                proccessedgames.AddRange(task.Result.ProcessedGames);
+                var result = await task;
+                games.AddRange(result.NewGames);
+                proccessedgames.AddRange(result.ProcessedGames);
             }
 
             _logger.Info($"Finished importing games, {games.Count()} new games found");
