@@ -13,12 +13,13 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Net.Sdk.Compilers.Toolset" Version="9.0.300" PrivateAssets="all" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="SharpCompress" Version="0.36.0" />
     <PackageReference Include="xunit" Version="2.6.6" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.6">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="PlayniteSDK" Version="6.16.0" />
+    <PackageReference Include="PlayniteSDK" Version="6.17.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="protobuf-net" Version="2.0.0.668" />
   </ItemGroup>
@@ -40,6 +41,7 @@
     <Compile Include="..\Models\**\*.cs" Exclude="..\Models\**\GameInstallInfo.cs">
       <Link>Linked\Models\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Compile>
+    <Compile Include="..\PluginVersion.cs" Link="Linked\PluginVersion.cs" />
     <Compile Include="..\Games\RomMGameId.cs" Link="Linked\Games\RomMGameId.cs" />
     <Compile Include="..\Games\RomMGameInfo.cs" Link="Linked\Games\RomMGameInfo.cs" />
     <Compile Include="..\Games\RomMMetadataMapper.cs" Link="Linked\Games\RomMMetadataMapper.cs" />
@@ -51,6 +53,22 @@
     <Compile Include="..\Games\RomMCompletionStatus.cs" Link="Linked\Games\RomMCompletionStatus.cs" />
     <Compile Include="..\Games\RomMHash.cs" Link="Linked\Games\RomMHash.cs" />
     <Compile Include="..\Games\RomMSiblings.cs" Link="Linked\Games\RomMSiblings.cs" />
+    <Compile Include="..\Saves\SaveFileHash.cs" Link="Linked\Saves\SaveFileHash.cs" />
+    <Compile Include="..\Saves\SaveTarget.cs" Link="Linked\Saves\SaveTarget.cs" />
+    <Compile Include="..\Saves\FileSaveTarget.cs" Link="Linked\Saves\FileSaveTarget.cs" />
+    <Compile Include="..\Saves\Handlers\ISaveHandler.cs" Link="Linked\Saves\Handlers\ISaveHandler.cs" />
+    <Compile Include="..\Saves\Handlers\RetroArchConfig.cs" Link="Linked\Saves\Handlers\RetroArchConfig.cs" />
+    <Compile Include="..\Saves\Handlers\RetroArchSaveHandler.cs" Link="Linked\Saves\Handlers\RetroArchSaveHandler.cs" />
+    <Compile Include="..\Saves\Handlers\SaveHandlerRegistry.cs" Link="Linked\Saves\Handlers\SaveHandlerRegistry.cs" />
+  </ItemGroup>
+
+  <!-- The version declarations PluginVersionTests compares. Copied rather than read from the
+       repo so the check does not depend on where the test assembly ends up; the project file
+       lands as .txt so nothing mistakes the copy for a project it should build. -->
+  <ItemGroup>
+    <None Include="..\extension.yaml" Link="Declarations\extension.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\manifests\installer.yaml" Link="Declarations\installer.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\RomM.csproj" Link="Declarations\RomM.csproj.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
