@@ -179,6 +179,12 @@ namespace Graviton.Import
                 case BuiltInGameDataId.TimeToBeatEstimated:
                     return ROM.HLTBMetadata?.MainStory != null ? new TimeToBeat(ROM.HLTBMetadata.MainStory, ROM.HLTBMetadata.MainStoryExtra, ROM.HLTBMetadata.Completionist) : null;
 
+                case BuiltInGameDataId.Publishers:
+                    return ROM.Metadatum?.Publishers;
+
+                case BuiltInGameDataId.Developers:
+                    return ROM.Metadatum?.Developers;
+
                 default:
                     return null;
             }

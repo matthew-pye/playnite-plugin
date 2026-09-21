@@ -19,6 +19,12 @@ namespace Graviton.Models.RomM.Metadata
         [JsonPropertyName("companies")]
         public List<string>? Companies { get; set; }
 
+        [JsonPropertyName("publishers")]
+        public List<string>? Publishers { get; set; }
+
+        [JsonPropertyName("developers")]
+        public List<string>? Developers { get; set; }
+
         [JsonPropertyName("game_modes")]
         public List<string>? Gamemodes { get; set; }
 

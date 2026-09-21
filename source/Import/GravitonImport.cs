@@ -120,6 +120,7 @@ namespace Graviton.Import
             List<Feature> features = new();
             List<AgeRating> ageRatings = new();
             List<Region> regions = new();
+            List<Company> companies = new();
 
             if(_collections != null)
             {
@@ -131,7 +132,7 @@ namespace Graviton.Import
                     if (!string.IsNullOrEmpty(collection.Name) && collection.RomIDs.Any(x => _roms.Any(y => y.Id == x)))
                     {
                         _logger?.Trace($"Adding {collection.Name} to collection list");
-                        categories.Add(new Category(collection.Name.ToLower(), collection.Name));
+                        categories.Add(new Category(collection.Name.ToLowerInvariant(), collection.Name));
                     }
                 }
             }
@@ -152,7 +153,7 @@ namespace Graviton.Import
                 if (!ROM.HasSimpleSingleFile && !ROM.HasNestedSingleFile && !ROM.HasMultipleFiles)
                     ROM.HasMultipleFiles = true;
 
-                var ROMGenres = ROM.Metadatum?.Genres?.Select(x => new Genre(x.ToLower(), x)).ToList();
+                var ROMGenres = ROM.Metadatum?.Genres?.Select(x => new Genre(x.ToLowerInvariant(), x)).ToList();
                 if (ROMGenres != null)
                 {
                     _logger?.Trace($"Adding {string.Join(',', ROMGenres.Select(x => x.Name))} to Genre list");
@@ -160,34 +161,51 @@ namespace Graviton.Import
                 }
                     
 
-                var ROMSeries = ROM.Metadatum?.Franchises?.Select(x => new Series(x.ToLower(), x)).ToList();
+                var ROMSeries = ROM.Metadatum?.Franchises?.Select(x => new Series(x.ToLowerInvariant(), x)).ToList();
                 if (ROMSeries != null)
                 {
                     _logger?.Trace($"Adding {string.Join(',', ROMSeries.Select(x => x.Name))} to Series list");
                     series.AddRange(ROMSeries);
                 }
                     
-                var ROMfeatures = ROM.Metadatum?.Gamemodes?.Select(x => new Feature(x.ToLower(), x)).ToList();
+                var ROMfeatures = ROM.Metadatum?.Gamemodes?.Select(x => new Feature(x.ToLowerInvariant(), x)).ToList();
                 if (ROMfeatures != null)
                 {
                     _logger?.Trace($"Adding {string.Join(',', ROMfeatures.Select(x => x.Name))} to Features list");
                     features.AddRange(ROMfeatures);
                 }
                     
-                var ROMRegions = ROM.Regions?.Select(x => new Region(x.ToLower(), x)).ToList();
+                var ROMRegions = ROM.Regions?.Select(x => new Region(x.ToLowerInvariant(), x)).ToList();
                 if (ROMRegions != null)
                 {
                     _logger?.Trace($"Adding {string.Join(',', ROMRegions.Select(x => x.Name))} to regions list");
                     regions.AddRange(ROMRegions);
                 }
                     
-                var ROMAgeRatings = ROM.IgdbMetadata?.AgeRatings?.Select(x => new AgeRating($"{x.RatingBoard.ToLower()} {x.Rating}", $"{x.RatingBoard} {x.Rating}")).ToList();
+                var ROMAgeRatings = ROM.IgdbMetadata?.AgeRatings?.Select(x => new AgeRating($"{x.RatingBoard.ToLowerInvariant()} {x.Rating}", $"{x.RatingBoard} {x.Rating}")).ToList();
                 if (ROMAgeRatings != null)
                 {
                     _logger?.Trace($"Adding {string.Join(',', ROMAgeRatings.Select(x => x.Name))} to age rating list");
                     ageRatings.AddRange(ROMAgeRatings);
-                }  
+                }
+
+                var ROMPublishers = ROM.Metadatum?.Publishers?.Select(x => new Company(x.ToLowerInvariant(), x));
+                if (ROMPublishers != null)
+                {
+                    _logger?.Trace($"Adding {string.Join(',', ROMPublishers.Select(x => x.Name))} to companies list");
+                    companies.AddRange(ROMPublishers);
+                }
+
+                var ROMDevelopers = ROM.Metadatum?.Developers?.Select(x => new Company(x.ToLowerInvariant(), x));
+                if (ROMDevelopers != null)
+                {
+                    _logger?.Trace($"Adding {string.Join(',', ROMDevelopers.Select(x => x.Name))} to companies list");
+                    companies.AddRange(ROMDevelopers);
+                }
+
             }
+
+            //TODO: Dedup lists to not import multiple of the same metadata
 
             if (genres.Count > 0)
             {
@@ -219,8 +237,13 @@ namespace Graviton.Import
                 _logger?.Trace($"Adding {regions.Count} regions to playnite");
                 await _playniteAPI.Library.Regions.AddAsync(regions);
             }
+            if (companies.Count > 0)
+            {
+                _logger?.Trace($"Adding {companies.Count} companies to playnite");
+                await _playniteAPI.Library.Companies.AddAsync(companies);
+            }
 
-            await _playniteAPI.Library.Platforms.AddAsync(new Platform(_mapping.RomMPlatform!.Name.ToLower(), _mapping.RomMPlatform.Name));
+            await _playniteAPI.Library.Platforms.AddAsync(new Platform(_mapping.RomMPlatform!.Name.ToLowerInvariant(), _mapping.RomMPlatform.Name));
 
         }
 
@@ -329,9 +352,9 @@ namespace Graviton.Import
 
             // Update categories the ROM is in
             if (game.CategoryIds == null)
-                game.CategoryIds = ROM.Metadatum?.Collections?.Select(x => x.ToLower()).ToHashSet();
+                game.CategoryIds = ROM.Metadatum?.Collections?.Select(x => x.ToLowerInvariant()).ToHashSet();
             else
-                game.CategoryIds.AddRange(ROM.Metadatum?.Collections?.Select(x => x.ToLower()).ToHashSet());
+                game.CategoryIds.AddRange(ROM.Metadatum?.Collections?.Select(x => x.ToLowerInvariant()).ToHashSet());
 
             await _playniteAPI.Library.Games.UpdateAsync(game);
             _plugin.ImportedGames[gameID].Resync(ROM);
@@ -419,13 +442,15 @@ namespace Graviton.Import
             if (ROM.HLTBMetadata != null)
                 game.TimeToBeatEstimated = new(ROM.HLTBMetadata.MainStory, ROM.HLTBMetadata.MainStoryExtra, ROM.HLTBMetadata.Completionist);
 
-            game.GenreIds = ROM.Metadatum?.Genres != null ? ROM.Metadatum.Genres.Select(x => x.ToLower()).ToHashSet() : null;
-            game.PlatformIds = new HashSet<string>([_mapping.RomMPlatform!.Name.ToLower() ?? ""]);
-            game.CategoryIds = ROM.Metadatum?.Collections != null ? ROM.Metadatum.Collections.Select(x => x.ToLower()).ToHashSet() : null;
-            game.FeatureIds = ROM.Metadatum?.Gamemodes != null ? ROM.Metadatum.Gamemodes.Select(x => x.ToLower()).ToHashSet() : null;
-            game.SeriesIds = ROM.Metadatum?.Franchises != null ? ROM.Metadatum.Franchises.Select(x => x.ToLower()).ToHashSet() : null;
-            game.RegionIds = ROM.Regions != null ? ROM.Regions.Select(x => x.ToLower()).ToHashSet() : null;
-            game.AgeRatingIds = ROM.IgdbMetadata?.AgeRatings != null ? ROM.IgdbMetadata.AgeRatings.Select(x => $"{x.RatingBoard.ToLower()} {x.Rating}").ToHashSet() : null;
+            game.GenreIds = ROM.Metadatum?.Genres != null ? ROM.Metadatum.Genres.Select(x => x.ToLowerInvariant()).ToHashSet() : null;
+            game.PlatformIds = new HashSet<string>([_mapping.RomMPlatform!.Name.ToLowerInvariant() ?? ""]);
+            game.CategoryIds = ROM.Metadatum?.Collections != null ? ROM.Metadatum.Collections.Select(x => x.ToLowerInvariant()).ToHashSet() : null;
+            game.FeatureIds = ROM.Metadatum?.Gamemodes != null ? ROM.Metadatum.Gamemodes.Select(x => x.ToLowerInvariant()).ToHashSet() : null;
+            game.SeriesIds = ROM.Metadatum?.Franchises != null ? ROM.Metadatum.Franchises.Select(x => x.ToLowerInvariant()).ToHashSet() : null;
+            game.RegionIds = ROM.Regions != null ? ROM.Regions.Select(x => x.ToLowerInvariant()).ToHashSet() : null;
+            game.AgeRatingIds = ROM.IgdbMetadata?.AgeRatings != null ? ROM.IgdbMetadata.AgeRatings.Select(x => $"{x.RatingBoard.ToLowerInvariant()} {x.Rating}").ToHashSet() : null;
+            game.PublisherIds = ROM.Metadatum?.Publishers != null ? ROM.Metadatum?.Publishers.Select(x => x.ToLowerInvariant()).ToHashSet() : null;
+            game.DeveloperIds = ROM.Metadatum?.Developers != null ? ROM.Metadatum?.Developers.Select(x => x.ToLowerInvariant()).ToHashSet() : null;
 
             game.UserScore = (ROM.RomUser?.Rating != null && ROM.RomUser?.Rating > 0) ? ROM.RomUser!.Rating * 10 : -1;
             game.Favorite = ROM.Collections?.Any(x => x.Name == "Favorites") ?? false;
