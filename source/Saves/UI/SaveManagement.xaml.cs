@@ -88,15 +88,15 @@ namespace Graviton.Saves
 
             if (ROMs != null)
             {
-                saves = await SaveController.Discover.Discover(ROMs);
+                saves = await SaveController.Discover.DiscoverSaves(ROMs);
             }
             else if (Mapping != null)
             {
-                saves = await SaveController.Discover.Discover(Mapping);
+                saves = await SaveController.Discover.DiscoverSaves(Mapping);
             }
             else
             {
-                saves = await SaveController.Discover.Discover();
+                saves = await SaveController.Discover.DiscoverSaves();
             }
 
             if (saves == null || saves.Count < 1)

@@ -43,7 +43,9 @@ namespace Graviton.Models
         [ObservableProperty] private string _savePath = "";
         [ObservableProperty] private bool _extractArchivedSaves = true;
         [ObservableProperty] private string _saveStatePath = "";
-              
+
+        [ObservableProperty] private MemoryCardSave? _memoryCardSave = null;
+
         [ObservableProperty] [property: JsonIgnore] private bool _isSelected = false;
 
         [property: JsonIgnore] public bool IsSetup => !string.IsNullOrEmpty(EmulatorId) && 

@@ -9,6 +9,7 @@ using Playnite;
 
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -36,19 +37,19 @@ namespace Graviton.Saves
             _romMServer = romMServer;
         }
 
-        public async Task<List<GravitonSave>?> Discover(EmulatorMapping mapping)
+        public async Task<List<GravitonSave>?> DiscoverSaves(EmulatorMapping mapping)
         {
             Mapping = mapping;
-            return await Discover(true);
+            return await DiscoverSaves(true);
         }
 
-        public async Task<List<GravitonSave>?> Discover(List<RomMRomLocal> roms)
+        public async Task<List<GravitonSave>?> DiscoverSaves(List<RomMRomLocal> roms)
         {
             ROMs = roms;
-            return await Discover(true);
+            return await DiscoverSaves(true);
         }
 
-        public async Task<List<GravitonSave>?> Discover(bool setup = false)
+        public async Task<List<GravitonSave>?> DiscoverSaves(bool setup = false)
         {
             if(!setup)
             {
@@ -261,6 +262,39 @@ namespace Graviton.Saves
             return saves;
         }
 
+        public async Task<List<MemoryCardSave>?> DiscoverMemoryCards(EmulatorMapping mapping)
+        {
+            Mapping = mapping;
+            return await DiscoverMemoryCards(true);
+        }
+
+        public async Task<List<MemoryCardSave>?> DiscoverMemoryCards(List<RomMRomLocal> roms)
+        {
+            ROMs = roms;
+            return await DiscoverMemoryCards(true);
+        }
+
+        public async Task<List<MemoryCardSave>?> DiscoverMemoryCards(bool setup = false)
+        {
+            if (!setup)
+            {
+                Mapping = null;
+                ROMs = null;
+            }
+            List<MemoryCardSave> memoryCards = new();
+
+            var result = await GetLocalMemoryCards();
+            if (result != null)
+                memoryCards.AddRange(result);
+
+            result = await GetRemoteMemoryCards();
+            if (result != null)
+            {
+                
+            }
+                
+            return memoryCards;
+        }
 
         private async Task<List<RomMRomLocal>?> GetLocalSaves()
         {
@@ -289,6 +323,46 @@ namespace Graviton.Saves
             _logger.Debug($"Found {roms.Count} roms with saves");
 
             return roms;
+        }
+        private async Task<List<MemoryCardSave>?> GetLocalMemoryCards()
+        {
+            List<EmulatorMapping> mappings = new();
+
+            if(Mapping != null)
+            {
+                mappings.Add(Mapping);
+            }
+            else if(ROMs != null)
+            {
+                foreach (var rom in ROMs)
+                {
+                    var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
+
+                    if (mapping == null)
+                        continue;
+
+                    if (mappings.Contains(mapping))
+                        continue;
+
+                    mappings.Add(mapping); 
+                }
+            }
+            else
+            {
+                mappings = _plugin.Settings.Mappings.ToList();
+            }
+
+            if (mappings.Count() <= 0 || !mappings.Any(x => x.MemoryCardSave == null))
+                return null;
+
+            List<MemoryCardSave> memoryCards = new();
+            foreach (var mapping in mappings)
+            {
+                if(mapping.MemoryCardSave != null)
+                    memoryCards.Add(mapping.MemoryCardSave);
+            }
+
+            return memoryCards;
         }
 
         private async Task<List<RomMSave>?> GetRemoteSaves()
@@ -347,6 +421,115 @@ namespace Graviton.Saves
                 GravitonNotify.Notify("graviton.deserialize.failed", Loc.GetString("FailedDeserialize", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                 return null;
             }
+        }
+        private async Task<List<MemoryCardSave>?> GetRemoteMemoryCards()
+        {
+            List<EmulatorMapping> mappings = new();
+
+            if (Mapping != null)
+            {
+                mappings.Add(Mapping);
+            }
+            else if (ROMs != null)
+            {
+                foreach (var rom in ROMs)
+                {
+                    var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
+
+                    if (mapping == null)
+                        continue;
+
+                    if (mappings.Contains(mapping))
+                        continue;
+
+                    mappings.Add(mapping);
+                }
+            }
+            else
+            {
+                mappings = _plugin.Settings.Mappings.ToList();
+            }
+
+            if (mappings.Count() <= 0 || !mappings.Any(x => x.MemoryCardSave == null))
+                return null;
+
+            var response = await _romMServer.GETAsync("/api/memory-cards");
+            if (response == null)
+                return null;
+
+            var result = JsonSerializer.Deserialize<List<RomMMemoryCard>>(response);
+            if (result == null)
+                return null;
+
+            List<MemoryCardSave> memoryCards = new();
+            foreach (var card in result)
+            {
+                // Skip memory cards for platforms that have not been imported
+                var mapping = mappings.FirstOrDefault(x => x.RomMPlatform?.Id == card.PlatformID);
+                if (mapping == null)
+                    continue;
+
+                // Fetch all the memory card versions
+                response = await _romMServer.GETAsync($"/api/memory-cards/{card.ID}/versions");
+                if (response == null)
+                    continue;
+
+                var cardVersions = JsonSerializer.Deserialize<List<RomMMemoryCardVersion>>(response);
+                if (cardVersions == null)
+                    return null;
+
+                cardVersions = cardVersions.OrderByDescending(x => DateTime.Parse(x.CreatedAt ?? DateTime.UnixEpoch.ToString())).ToList();
+
+                // Create a memory card history
+                ObservableCollection<MemoryCardSave> cardSaveVersions = new();
+                foreach (var cardVersion in cardVersions.GetRange(1, cardVersions.Count() - 1))
+                {
+                    cardSaveVersions.Add(new()
+                    {
+                        EmulatorMappingID = mapping.MappingId,
+                        MemoryCardID = card.ID,
+                        Status = SaveStatus.ServerOnly,
+                        ContentHash = cardVersion.ContentHash,
+                        IsCurrent = false,
+                        IsHistoric = true,
+                        CreatedAt = DateTime.Parse(cardVersion.CreatedAt ?? DateTime.UnixEpoch.ToString())
+                    });
+                }
+
+                // Update history on already tracked memory card
+                if (mapping.MemoryCardSave?.MemoryCardID == card.ID)
+                {
+                    if(mapping.MemoryCardSave.ContentHash != cardVersions[0].ContentHash)
+                    {
+                        if (mapping.MemoryCardSave.CreatedAt < DateTime.Parse(cardVersions[0].CreatedAt ?? DateTime.UnixEpoch.ToString()))
+                        {
+                            mapping.MemoryCardSave.Status = SaveStatus.RemoteNewer;
+                        }
+                        else
+                        {
+                            mapping.MemoryCardSave.Status = SaveStatus.LocalNewer;
+                        }
+                    }
+
+                    mapping.MemoryCardSave.HistoricSaves = cardSaveVersions;
+                    continue;
+                }
+
+                // Add untrack memory card to the memory card list
+                memoryCards.Add(new()
+                {
+                    EmulatorMappingID = mapping.MappingId,
+                    MemoryCardID = card.ID,
+                    Status = SaveStatus.ServerOnly,
+                    ContentHash = cardVersions[0].ContentHash,
+                    IsCurrent = true,
+                    CreatedAt = DateTime.Parse(cardVersions[0].CreatedAt ?? DateTime.UnixEpoch.ToString()),
+                    HistoricSaves = cardSaveVersions
+                });
+            }
+
+
+            return memoryCards;
         }
 
         public async Task<List<RomMSave>?> GetArchivedSaves()
@@ -479,7 +662,7 @@ namespace Graviton.Saves
                     var matchingROM = roms.FirstOrDefault(x => (Path.GetFileNameWithoutExtension(x.FileName) == Path.GetFileName(dir)) || (x.SaveTarget != null && dir.EndsWith(x.SaveTarget.Replace("/", "\\"))));
                     if (matchingROM == null)
                         continue;
-
+                    
                     if (saves == null)
                         saves = new();
 
@@ -528,8 +711,18 @@ namespace Graviton.Saves
 
                 // Add files that match the save target
                 if (rom.SaveTarget != null)
-                    files.AddRange(Directory.EnumerateFiles(mapping.SavePath, $"{rom.SaveTarget}.*", SearchOption.AllDirectories).ToList());
+                {
+                    files.AddRange(Directory.EnumerateFiles(mapping.SavePath, $"{rom.SaveTarget}.*", SearchOption.AllDirectories));
 
+                    // Add gamecube gci files
+                    if(rom.SaveTarget.Length == 8)
+                    {
+                        var GCID = Encoding.ASCII.GetString(Convert.FromHexString(rom.SaveTarget));
+                        files.AddRange(Directory.EnumerateFiles(mapping.SavePath, $"??-{GCID}-*.gci", SearchOption.AllDirectories));
+                    }
+                    
+                }
+                    
                 if (files.Count <= 0)
                     continue;
 

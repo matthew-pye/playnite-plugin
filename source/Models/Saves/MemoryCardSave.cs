@@ -1,67 +1,30 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Text.Json.Serialization;
 
 namespace Graviton.Models.Saves
 {
-    public enum SaveConflictResolve
-    {
-        [Description("Ask")] Ask,
-        [Description("Prefer Remote")] PreferRemote,
-        [Description("Prefer Local")] PreferLocal
-    }
 
-    public enum SaveLayoutStyle
-    {
-        [Description("Single File")] SingleFile,
-        [Description("Fixed Set")] FixedSet,
-        [Description("Folder")] WholeFolder,
-        [Description("Memory Card")] MemoryCard,
-        [Description("Disabled")] Disabled
-    }
-
-    public enum SaveStatus
-    {
-        Synced,
-        LocalNewer,
-        RemoteNewer,
-        Conflicted,
-        ServerOnly,
-        UntrackedLocal,
-        TempRestored,
-        MissingFiles,
-        Unknown
-    }
-
-    public partial class GravitonSave : ObservableObject
+    public partial class MemoryCardSave : ObservableObject
     {
         [ObservableProperty] private bool _enabled = true;
-        [ObservableProperty] private Guid _localID = Guid.NewGuid();
+        [ObservableProperty] private Guid _EmulatorMappingID;
         [ObservableProperty] private ObservableCollection<string> _sourceFilePaths = new();
         [ObservableProperty] private string _filename = string.Empty;
 
-        [ObservableProperty] private int _rOMID = -1;
-        [ObservableProperty] private int _saveID = -1;
-        [ObservableProperty] private string? _slot = "Autosave";
+        [ObservableProperty] private int _memoryCardID = -1;
 
         [ObservableProperty] private SaveStatus _status;
         [JsonIgnore] private DateTime? _lastSyncedAt;
+        [ObservableProperty] private DateTime? _createdAt;
         [ObservableProperty] private string? _contentHash;
         [ObservableProperty] private long _fileSize;
 
-        [ObservableProperty] private string? _lastSyncedContentHash;
-
-        [ObservableProperty] private string? _serverHash;
-        [ObservableProperty] private DateTime? _serverLastUpdatedAt;
-
-        [ObservableProperty] private bool _isTempRestored = false;
-        [ObservableProperty] private List<string> _missingFiles = new();
 
         public DateTime? LastSyncedAt
         {
-            get => IsHistoric ? ServerLastUpdatedAt : _lastSyncedAt;
+            get => _lastSyncedAt;
             set
             {
                 _lastSyncedAt = value;
@@ -72,7 +35,7 @@ namespace Graviton.Models.Saves
         #region UI Only
         [JsonIgnore] public string GameName { get; set; } = string.Empty;
 
-        [JsonIgnore] public ObservableCollection<GravitonSave>? HistoricSaves { get; set; } = new();
+        [JsonIgnore] public ObservableCollection<MemoryCardSave>? HistoricSaves { get; set; } = new();
 
         [ObservableProperty] [property:JsonIgnore] private bool _isExpanded = false;
         [ObservableProperty] [property:JsonIgnore] private bool _isCurrent = false;
