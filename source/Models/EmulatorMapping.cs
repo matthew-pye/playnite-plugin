@@ -1,9 +1,12 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 using Emunight;
 
+using Graviton.Models.Install;
 using Graviton.Models.RomM.Platform;
 using Graviton.Models.Saves;
+
+using Playnite;
 
 using System.Collections.ObjectModel;
 using System.IO;
@@ -20,11 +23,21 @@ namespace Graviton.Models
 
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
 
+        [JsonConstructor] public EmulatorMapping() { }
+
+        public EmulatorMapping(ObservableCollection<EmulatorBase> emulators, ObservableCollection<RomMPlatform> romMPlatforms)
+        {
+            MappingId = Guid.NewGuid();
+            AvailablePlatforms = romMPlatforms;
+            AvailableEmulators = emulators;
+        }
+
         [ObservableProperty] private Guid _mappingId;
         [ObservableProperty] private bool _enabled = true;
         [ObservableProperty] private bool _autoExtract = false;
         [ObservableProperty] private bool _preferM3U = false;
 
+        // Emulator Config
         [JsonIgnore] private EmulatorBase? _emulator;
         [JsonIgnore] private ObservableCollection<EmulatorBase> _availableEmulators = new();
         [ObservableProperty][NotifyPropertyChangedFor(nameof(IsSetup))] private string? _emulatorId;
@@ -36,32 +49,39 @@ namespace Graviton.Models
         [JsonIgnore] private ObservableCollection<RomMPlatform> _availablePlatforms = new();     
         [ObservableProperty] private int _romMPlatformId = -1;
 
+        // Base Game
         [ObservableProperty][NotifyPropertyChangedFor(nameof(IsSetup))] private string _destinationPath = "";
 
+        // Updates
+        [ObservableProperty] private InstallStyle _updateInstallStyle = InstallStyle.None;
+        [ObservableProperty] private InstallMode _updateInstallMode = InstallMode.SelectOne;
+        [ObservableProperty] private string? _updateInstallPath;
+        [ObservableProperty] private string? _updateCLIDefinitionID;
+        [ObservableProperty] private ObservableCollection<DynamicArgument> _updateCLIUserArgs = new();
+
+        // DLCs
+        [ObservableProperty] private InstallStyle _DLCInstallStyle = InstallStyle.None;
+        [ObservableProperty] private InstallMode _DLCInstallMode = InstallMode.All;
+        [ObservableProperty] private string? _DLCInstallPath;
+        [ObservableProperty] private string? _DLCCLIDefinitionID;
+        [ObservableProperty] private ObservableCollection<DynamicArgument> _DLCCLIUserArgs = new();
+
+        // Saves
         [ObservableProperty] private SaveLayoutStyle _findSaveLayout = SaveLayoutStyle.Disabled;
         [ObservableProperty] private string _findSaveFileExtensions = "";
         [ObservableProperty] private string _savePath = "";
         [ObservableProperty] private bool _extractArchivedSaves = true;
         [ObservableProperty] private string _saveStatePath = "";
-
         [ObservableProperty] private MemoryCardSave? _memoryCardSave = null;
 
+
+        // UI
         [ObservableProperty] [property: JsonIgnore] private bool _isSelected = false;
 
         [property: JsonIgnore] public bool IsSetup => !string.IsNullOrEmpty(EmulatorId) && 
                                                       (IsImportedEmulator ? !string.IsNullOrEmpty(EmulatorProfileId) : true) &&
                                                       RomMPlatformId >= 0 && 
                                                       !string.IsNullOrEmpty(DestinationPath);
-
-        [JsonConstructor]
-        public EmulatorMapping() {}
-
-        public EmulatorMapping(ObservableCollection<EmulatorBase> emulators, ObservableCollection<RomMPlatform> romMPlatforms)
-        {
-            MappingId = Guid.NewGuid();
-            AvailablePlatforms = romMPlatforms;
-            AvailableEmulators = emulators;
-        }
 
         [JsonIgnore]
         public ObservableCollection<EmulatorBase> AvailableEmulators
@@ -200,16 +220,29 @@ namespace Graviton.Models
             }
         }
 
+        [JsonIgnore] ObservableCollection<CLIInstallDefinition> CLIDefinitions => CLIInstallDefinitions.All.ToObservableCollection();
 
-        public string GetDescriptionLines()
+        [JsonIgnore]
+        public CLIInstallDefinition? UpdateCLIDefinition
         {
-            return $"{nameof(EmulatorId)}: {EmulatorId}\n" +
-                   $"{nameof(RomMPlatformId)}: {RomMPlatformId}\n" +
-                   $"{nameof(RomMPlatform)}: {RomMPlatform?.Name ?? "<Unknown>"}\n" +
-                   $"{nameof(DestinationPath)}: {DestinationPath ?? "<Unknown>"}\n" +
-                   $"{nameof(DestinationPathResolved)}: {DestinationPathResolved ?? "<Unknown>"}\n" +
-                   $"{nameof(Emulator)}: {Emulator?.Name ?? "<Unknown>"}\n" +
-                   $"Emulator Install Path: {Emulator?.InstallDir ?? "<Unknown>"}\n";
+            get => CLIInstallDefinitions.Get(UpdateCLIDefinitionID ?? "");
+            set
+            {
+                UpdateCLIDefinitionID = value?.ID;
+                OnPropertyChanged();
+            }
         }
+
+        [JsonIgnore]
+        public CLIInstallDefinition? DLCCLIDefinition
+        {
+            get => CLIInstallDefinitions.Get(DLCCLIDefinitionID ?? "");
+            set
+            {
+                DLCCLIDefinitionID = value?.ID;
+                OnPropertyChanged();
+            }
+        }
+
     }
 }

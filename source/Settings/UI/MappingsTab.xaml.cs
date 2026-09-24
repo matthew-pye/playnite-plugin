@@ -66,7 +66,7 @@ namespace Graviton.Settings
             SyncPlatformsButton.IsEnabled = false;
 
             if(await _plugin.Account!.SyncPlatforms())
-                GravitonNotify.Notify("graviton.GET.platforms", Loc.GetString("PlatformsSynced", ("PlaformCount", _plugin.Settings.RomMPlatforms.Count)), GravitonSeverity.Success);
+                GravitonNotify.Notify("graviton.GET.platforms", Loc.GetString("PlatformsSynced", ("PlatformCount", _plugin.Settings.RomMPlatforms.Count)), GravitonSeverity.Success);
 
             SyncPlatformsButton.IsEnabled = true;
             e.Handled = true;
@@ -83,10 +83,13 @@ namespace Graviton.Settings
         {
             if (SelectedMapping != null)
             {
-                var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync($"{SelectedMapping.GetDescriptionLines()}", Loc.GetString("DeleteMappingConfirmTitle"), Playnite.MessageBoxButtons.YesNoCancel);
+                var response = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("DeleteMappingConfirmation"), Loc.GetString("DeleteMappingTitle"), Playnite.MessageBoxButtons.YesNoCancel);
          
                 if (response == Playnite.MessageBoxResult.Yes)
                 {
+                    // Remove all games associated with the deleted mapping
+                    await GravitonPlugin.PlayniteApi.Library.Games.RemoveAsync(_plugin.ImportedGames.Where(x => x.Value.MappingID == SelectedMapping.MappingId && !string.IsNullOrEmpty(x.Value.PlayniteID)).Select(y => y.Value.PlayniteID!));
+
                     _plugin.Settings.Mappings.Remove(SelectedMapping);
                     MappingOptions.Visibility = Visibility.Collapsed;
                     MappingOptions.DataContext = null;
@@ -124,6 +127,26 @@ namespace Graviton.Settings
 
             if (SelectedMapping != null && path != null)
                 SelectedMapping.SavePath = path[0];
+
+            e.Handled = true;
+        }
+
+        private async void BrowseDLCInstallPath_Click(object sender, RoutedEventArgs e)
+        {
+            var path = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync();
+
+            if (SelectedMapping != null && path != null)
+                SelectedMapping.DLCInstallPath = path[0];
+
+            e.Handled = true;
+        }
+
+        private async void BrowseUpdateInstallPath_Click(object sender, RoutedEventArgs e)
+        {
+            var path = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync();
+
+            if (SelectedMapping != null && path != null)
+                SelectedMapping.UpdateInstallPath = path[0];
 
             e.Handled = true;
         }
