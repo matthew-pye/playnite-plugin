@@ -59,7 +59,7 @@ namespace Graviton.Play
 
             if (string.IsNullOrEmpty(gameID))
             {
-                GravitonNotify.Notify("graviton.gameID.isEmpty", "Game ID is empty, cannot launch game!", GravitonSeverity.Error);
+                GravitonNotify.Notify("graviton.gameID.isEmpty", Loc.GetString("GameIDMissing"), GravitonSeverity.Error);
                 args.CancelStartup = true;
                 return;
             }
@@ -87,7 +87,7 @@ namespace Graviton.Play
             // this means in the 2 other functions GameStarted & GameStopped don't need to check for the keys as the startup will be cancelled if it fails to find them
             if (!args.StartProperties.ContainsKey("ImagePath") || !args.StartProperties.ContainsKey("EmulatorDir"))
             {
-                GravitonNotify.Notify("graviton.gamestarting.propertynotfound", "One or more start properties were not found, cannot launch game!", GravitonSeverity.Info);
+                GravitonNotify.Notify("graviton.gamestarting.propertynotfound", Loc.GetString("StartPropertiesMissing"), GravitonSeverity.Info);
                 args.CancelStartup = true;
                 return;
             }
@@ -118,7 +118,7 @@ namespace Graviton.Play
                 }
                 else
                 {
-                    GravitonNotify.Notify("graviton.gamestarting.profilesettingsnotfound", "Failed to find profile settings for the selected profile, skipping starting script!", GravitonSeverity.Warn);
+                    GravitonNotify.Notify("graviton.gamestarting.profilesettingsnotfound", Loc.GetString("LifecycleProfileSettingsMissing"), GravitonSeverity.Warn);
                 }
 
             }
@@ -132,7 +132,7 @@ namespace Graviton.Play
                 }
                 else
                 {
-                    GravitonNotify.Notify("graviton.gamestarting.emulatornotfound", "Failed to find emulator for the mapping, skipping starting script!", GravitonSeverity.Warn);
+                    GravitonNotify.Notify("graviton.gamestarting.emulatornotfound", Loc.GetString("LifecycleEmulatorMissing"), GravitonSeverity.Warn);
                 }
             }
 
@@ -163,7 +163,7 @@ namespace Graviton.Play
                 }
                 else
                 {
-                    GravitonNotify.Notify("graviton.gamestarting.profilesettingsnotfound", "Failed to find profile settings for the selected profile, skipping starting script!", GravitonSeverity.Warn);
+                    GravitonNotify.Notify("graviton.gamestarting.profilesettingsnotfound", Loc.GetString("LifecycleProfileSettingsMissing"), GravitonSeverity.Warn);
                 }
 
             }
@@ -177,7 +177,7 @@ namespace Graviton.Play
                 }
                 else
                 {
-                    GravitonNotify.Notify("graviton.gamestarting.emulatornotfound", "Failed to find emulator for the mapping, skipping starting script!", GravitonSeverity.Warn);
+                    GravitonNotify.Notify("graviton.gamestarting.emulatornotfound", Loc.GetString("LifecycleEmulatorMissing"), GravitonSeverity.Warn);
                 }
             }
 
@@ -227,7 +227,7 @@ namespace Graviton.Play
                 }
                 else
                 {
-                    GravitonNotify.Notify("graviton.gamestarting.profilesettingsnotfound", "Failed to find profile settings for the selected profile, skipping starting script!", GravitonSeverity.Warn);
+                    GravitonNotify.Notify("graviton.gamestarting.profilesettingsnotfound", Loc.GetString("LifecycleProfileSettingsMissing"), GravitonSeverity.Warn);
                 }
 
             }
@@ -241,7 +241,7 @@ namespace Graviton.Play
                 }
                 else
                 {
-                    GravitonNotify.Notify("graviton.gamestarting.emulatornotfound", "Failed to find emulator for the mapping, skipping starting script!", GravitonSeverity.Warn);
+                    GravitonNotify.Notify("graviton.gamestarting.emulatornotfound", Loc.GetString("LifecycleEmulatorMissing"), GravitonSeverity.Warn);
                 }
             }
 
@@ -291,7 +291,7 @@ namespace Graviton.Play
             var result = await _psRuntime.ExecuteAsync(script, workDir, vars);
 
             if (result.Error != null)
-                GravitonNotify.Notify("graviton.script.error", $"Emulator script failed: {result.Error.Message}", GravitonSeverity.Error);
+                GravitonNotify.Notify("graviton.script.error", Loc.GetString("EmulatorScriptFailed", ("Error", result.Error.Message)), GravitonSeverity.Error);
             
         }
 

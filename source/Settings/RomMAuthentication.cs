@@ -54,7 +54,7 @@ namespace Graviton.Settings
             // Check Host and Client token/UsernamePassword are set!
             if (string.IsNullOrEmpty(_plugin.Settings.Host))
             {
-                GravitonNotify.Notify("graviton.login.host.notset", Loc.GetString("HostNotSet"), GravitonSeverity.Warn);
+                GravitonNotify.Notify("graviton.login.host.notset", Loc.GetString("HostNotConfigured"), GravitonSeverity.Warn);
                 ResetLocalAccountState();
                 return false;
             }
@@ -112,7 +112,7 @@ namespace Graviton.Settings
                 return false;
             }
 
-            GravitonNotify.Notify("graviton.Account.loggedin", Loc.GetString("LoginSuccess"), GravitonSeverity.Success);
+            GravitonNotify.Notify("graviton.Account.loggedin", Loc.GetString("LoginSuccessful"), GravitonSeverity.Success);
 
             if (!(await SyncPlatforms()))
             {
@@ -165,7 +165,7 @@ namespace Graviton.Settings
                   
             try
             {
-                var userinfo = result.RootElement.Deserialize<RomMUser>() ?? throw new Exception("Failed to deserialize UserInfo!");
+                var userinfo = result.RootElement.Deserialize<RomMUser>() ?? throw new Exception(Loc.GetString("AccountUserInfoDeserializeFailed"));
 
                 _plugin.Settings.AccountState.LastAuthenticated = DateTime.UtcNow;
 
@@ -173,15 +173,15 @@ namespace Graviton.Settings
                 {
                     var response = await _romMServer.RawGETAsync($"/api/users/{userinfo.Id}/avatar");
                     if (response == null || response.Content == null|| response.Status != HttpStatusCode.OK)
-                        throw new Exception($"Response from server didn't indicate success ({response?.Status})");
+                        throw new Exception(Loc.GetString("AccountServerResponseFailed", ("Status", response?.Status?.ToString() ?? "?")));
 
                     var imagebytes = await response.Content.ReadAsByteArrayAsync();
 
                     if (imagebytes.Length > 20 * 1024 * 1024) // 20MB cap
-                        throw new Exception("Avatar image exceeds maximum allowed size.");
+                        throw new Exception(Loc.GetString("AccountAvatarTooLarge"));
 
                     if(string.IsNullOrEmpty(_plugin.PluginDataPath))
-                        throw new Exception("Cannot save profile image, PluginData path is unknown!");
+                        throw new Exception(Loc.GetString("AccountProfilePathMissing"));
 
                     File.WriteAllBytes($"{_plugin.PluginDataPath}\\avatar.png", imagebytes);
                     _plugin.Settings.ProfilePath = $"{_plugin.PluginDataPath}\\avatar.png";
@@ -199,7 +199,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Notify("graviton.GET.profileicon.failed", Loc.GetString("GETProfileIconFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
+                GravitonNotify.Notify("graviton.GET.profileicon.failed", Loc.GetString("ProfileIconFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                 _plugin.Settings.ProfilePath = Path.Combine(_plugin.PluginDLLPath, @"profile.png");
             }
 
@@ -224,7 +224,7 @@ namespace Graviton.Settings
 
             if (string.IsNullOrEmpty(_plugin.Settings.Host))
             {
-                GravitonNotify.Notify("graviton.login.host.notset", Loc.GetString("HostNotSet"), GravitonSeverity.Warn);
+                GravitonNotify.Notify("graviton.login.host.notset", Loc.GetString("HostNotConfigured"), GravitonSeverity.Warn);
                 return null;
             }
 
@@ -266,7 +266,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Notify("graviton.login.QR.failed", Loc.GetString("FailedQRSetup", ("Error", ex.Message)), GravitonSeverity.Error, ex);
+                GravitonNotify.Notify("graviton.login.QR.failed", Loc.GetString("QRCodeSetupFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                 return null;
             }
         }
@@ -293,7 +293,7 @@ namespace Graviton.Settings
                         if (response?.Status == HttpStatusCode.OK)
                         {
                             if (response.Content == null)
-                                throw new Exception("Null response from server");
+                                throw new Exception(Loc.GetString("AccountNullResponse"));
 
                             status = response.Status.Value;
                             var stream = await response.Content.ReadAsStreamAsync();
@@ -301,10 +301,10 @@ namespace Graviton.Settings
                             var result = JsonSerializer.Deserialize<RomMPairDeviceResponse>(json);
 
                             if (result == null)
-                                throw new Exception("Failed to deserialize response");
+                                throw new Exception(Loc.GetString("AccountResponseDeserializeFailed"));
 
-                            _plugin.Settings.AccountState.DeviceID = result.DeviceID ?? throw new Exception("Failed to get Device ID");
-                            _plugin.Settings.ClientTokenNP = result.AccessToken ?? throw new Exception("Failed to get Access Token");
+                            _plugin.Settings.AccountState.DeviceID = result.DeviceID ?? throw new Exception(Loc.GetString("AccountDeviceIdMissing"));
+                            _plugin.Settings.ClientTokenNP = result.AccessToken ?? throw new Exception(Loc.GetString("AccountAccessTokenMissing"));
                             await _plugin.Account!.Login();
                             return true;
                         }
@@ -314,37 +314,37 @@ namespace Graviton.Settings
                             var body = await response.Content.ReadAsStringAsync();
                             if (body.Contains("expired_token")) 
                             {
-                                GravitonNotify.Notify("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairExpired"))), GravitonSeverity.Info);
+                                GravitonNotify.Notify("graviton.pair.device.failed", Loc.GetString("PairFailed", ("Error", Loc.GetString("PairExpired"))), GravitonSeverity.Info);
                                 return false;
                             }
                             if (body.Contains("access_denied")) 
                             {
-                                GravitonNotify.Notify("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairWasDenied"))), GravitonSeverity.Warn);
+                                GravitonNotify.Notify("graviton.pair.device.failed", Loc.GetString("PairFailed", ("Error", Loc.GetString("PairWasDenied"))), GravitonSeverity.Warn);
                                 return false;
                             }
                         }
                         else if (response != null)
                         {
-                            throw new Exception($"Unexpected status code: {response.Status}");
+                            throw new Exception(Loc.GetString("AccountUnexpectedStatus", ("Status", response.Status?.ToString() ?? "?")));
                         }
                             
                     }
                     catch (Exception ex)
                     {
-                        GravitonNotify.Notify("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", ex.Message)), GravitonSeverity.Error, ex);
+                        GravitonNotify.Notify("graviton.pair.device.failed", Loc.GetString("PairFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                         return false;
                     }
 
                     intervalMillisecs = pairDevice.Interval * 1000;
                 }
 
-                UIDispatcher.Invoke(() => LoginQRTimer.Text = $"Expires in: {(((expiresin - (DateTime.UtcNow - startTime)).TotalMilliseconds) / 1000).ToString("F1")}s");
+                UIDispatcher.Invoke(() => LoginQRTimer.Text = Loc.GetString("PairExpiresIn", ("Seconds", (((expiresin - (DateTime.UtcNow - startTime)).TotalMilliseconds) / 1000).ToString("F1"))));
 
                 await Task.Delay(100);
                 intervalMillisecs -= 100;
             }
 
-            GravitonNotify.Notify("graviton.pair.device.failed", Loc.GetString("FailedServerPair", ("Error", Loc.GetString("PairExpired"))), GravitonSeverity.Info);
+            GravitonNotify.Notify("graviton.pair.device.failed", Loc.GetString("PairFailed", ("Error", Loc.GetString("PairExpired"))), GravitonSeverity.Info);
             return false;
         }
 
@@ -358,13 +358,13 @@ namespace Graviton.Settings
                 {
                     try
                     {
-                        List<RomMDevice> devices = result.RootElement.Deserialize<List<RomMDevice>>() ?? throw new Exception("Unable to deserialize UserInfo!");
+                        List<RomMDevice> devices = result.RootElement.Deserialize<List<RomMDevice>>() ?? throw new Exception(Loc.GetString("AccountUserInfoDeserializeFailed"));
                         if (devices.Any(x => x.ID == _plugin.Settings.AccountState.DeviceID))
                             return true;
                     }
                     catch (Exception ex)
                     {
-                        GravitonNotify.Notify("graviton.GET.device.failed", Loc.GetString("GETDevicesFailed", ("Error", ex.Message)), GravitonSeverity.Warn, ex);
+                        GravitonNotify.Notify("graviton.GET.device.failed", Loc.GetString("GetDevicesFailed", ("Error", ex.Message)), GravitonSeverity.Warn, ex);
                         return false;
                     }
                 }
@@ -385,15 +385,15 @@ namespace Graviton.Settings
 
             try
             {
-                RomMRegisterDeviceResponse newRomMDevice = request.RootElement.Deserialize<RomMRegisterDeviceResponse>() ?? throw new Exception("Unable to deserialize register device response!");
+                RomMRegisterDeviceResponse newRomMDevice = request.RootElement.Deserialize<RomMRegisterDeviceResponse>() ?? throw new Exception(Loc.GetString("AccountDeviceResponseDeserializeFailed"));
 
                 // Set ID that RomM responds with
-                _plugin.Settings.AccountState.DeviceID = newRomMDevice.DeviceID ?? throw new Exception("Response Device ID is null!");
+                _plugin.Settings.AccountState.DeviceID = newRomMDevice.DeviceID ?? throw new Exception(Loc.GetString("AccountDeviceIdMissing"));
                 return true;
             }
             catch (Exception ex)
             {
-                GravitonNotify.Notify("graviton.POST.device.failed", Loc.GetString("CreateNewDeviceFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
+                GravitonNotify.Notify("graviton.POST.device.failed", Loc.GetString("CreateDeviceFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                 return false;
             }
         }

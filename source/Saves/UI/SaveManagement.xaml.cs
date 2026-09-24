@@ -54,8 +54,6 @@ namespace Graviton.Saves
             DeleteSaveLocal = new(Loc.GetString("DeleteSaveLocal"));
             DeleteSaveTotally = new(Loc.GetString("DeleteSaveBoth"));
 
-            RefreshText.Text = $"\uf46a {Loc.GetString("Refresh")}";
-            RefreshText.FontFamily = Playnite.Fonts.NerdFont;
         }
 
         public async Task Load(List<RomMRomLocal> roms)

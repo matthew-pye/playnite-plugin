@@ -94,7 +94,7 @@ namespace Graviton.Settings
                 }
                 else
                 {
-                    GravitonNotify.Notify("graviton.host.invalid.scheme", Loc.GetString("InvaildScheme"), GravitonSeverity.Error);
+                    GravitonNotify.Notify("graviton.host.invalid.scheme", Loc.GetString("InvalidScheme"), GravitonSeverity.Error);
                     _host = string.Empty;
                 }
                               

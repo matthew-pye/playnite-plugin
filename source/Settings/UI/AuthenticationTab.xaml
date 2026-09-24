@@ -325,15 +325,15 @@
                             </Button>
                         </StackPanel>
 
-                        <TextBlock Margin="5" Grid.Row="3" Text="{loc:LocalizedString Or}" HorizontalAlignment="Left" FontSize="16" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                        <Separator Grid.Row="3" Margin="5,8" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
                         <Grid Margin="5" Grid.Row="4" VerticalAlignment="Bottom">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBox x:Name="ClientTokenBox" Grid.Column="0" Text="{Binding ClientTokenNP, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString ClientTokenLogin}"/>
+                            <TextBox x:Name="ClientTokenBox" Grid.Column="0" Text="{Binding ClientTokenNP, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString LoginWithClientToken}"/>
                             <Button Grid.Column="1" Name="ConnectButton" Click="Click_Authenticate" Margin="5,0,5,0">
-                                <TextBlock Name="AuthButtonText" Text="{loc:LocalizedString AuthButton}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Name="AuthButtonText" Text="{loc:LocalizedString Connect}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             </Button>
                         </Grid>
                     </Grid>
@@ -343,7 +343,7 @@
 
                 <!-- #region Advance Login-->
                 <Border Margin="5" Grid.Column="1" Grid.Row="1" BorderThickness="1" CornerRadius="3" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" VerticalAlignment="Top" HorizontalAlignment="Stretch"/>
-                <Expander Margin="10,15,0,0" Grid.Column="1" Grid.Row="1"  Header="{loc:LocalizedString AdvanceSigninHeader}" FontSize="14">
+                <Expander Margin="10,15,0,0" Grid.Column="1" Grid.Row="1"  Header="{loc:LocalizedString AdvancedSigninHeader}" FontSize="14">
                     <Expander.Style>
                         <Style TargetType="Expander">
                             <Setter Property="Template">
@@ -449,7 +449,7 @@
         </Border>
 
         <!-- #region Advance Options -->
-        <TextBlock Name="AdvanceOptionsText" Text="{loc:LocalizedString AdvanceOptions}" Margin="5,5,5,15" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20" FontWeight="Bold"/>
+        <TextBlock Name="AdvanceOptionsText" Text="{loc:LocalizedString AdvancedOptions}" Margin="5,5,5,15" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20" FontWeight="Bold"/>
 
         <Border Style="{StaticResource Graviton.SettingsCard}">
             <StackPanel>

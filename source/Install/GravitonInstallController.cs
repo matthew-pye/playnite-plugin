@@ -25,7 +25,7 @@ namespace Graviton.Install
 
         private Game Game;
 
-        internal GravitonInstallController(Game game, GameInstallInfo gameData) : base(GravitonPlugin.Id, "Download", game.LibraryGameId ?? throw new Exception("Game doesn't have libraryID!"))
+        internal GravitonInstallController(Game game, GameInstallInfo gameData) : base(GravitonPlugin.Id, "Download", game.LibraryGameId ?? throw new Exception(Loc.GetString("InstallLibraryGameIdMissing")))
         {
             GameData = gameData;
             Game = game;
@@ -39,7 +39,7 @@ namespace Graviton.Install
                 return; 
             }   
 
-            var dstPath = GameData.Mapping?.DestinationPathResolved ?? throw new Exception("Mapped emulator data cannot be found, try removing and re-adding.");
+            var dstPath = GameData.Mapping?.DestinationPathResolved ?? throw new Exception(Loc.GetString("InstallMappingDataMissing"));
 
             var installDir = GameData.InstallPath.Replace(EmulatorMapping.InstallPathToken, dstPath);
         
@@ -52,10 +52,10 @@ namespace Graviton.Install
             // Skip download if the game is already installed
             if (!GameData.HasMultipleFiles && File.Exists(downloadFilePath))
             {
-                var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception("Could not get game to set as installed!");
+                var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception(Loc.GetString("InstallGameDataMissing"));
                 _plugin.ImportedGames.TryGetValue(game.LibraryGameId ?? "", out var romMLocal);
                 if (romMLocal == null)
-                    throw new Exception("Could not get game to be installed!");
+                    throw new Exception(Loc.GetString("InstallROMDataMissing"));
 
                 if (installDir.CompareTo(dstPath, StringComparison.OrdinalIgnoreCase) == 0)
                 {
@@ -98,7 +98,7 @@ namespace Graviton.Install
                 // Callbacks into Playnite install pipeline
                 OnInstalled = async installedArgs =>
                 {
-                    var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception("Could not get game to set as installed!");
+                    var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception(Loc.GetString("InstallGameDataMissing"));
                     game.InstallState = InstallState.Installed;
                     await _playniteAPI.Library.Games.UpdateAsync(game);
 
@@ -113,7 +113,7 @@ namespace Graviton.Install
                 OnFailed = async ex =>
                 {
                     GravitonNotify.Notify("graviton.install.failed", Loc.GetString("DownloadFailed", ("GameName", Game.Name), ("Error", ex.Message)), GravitonSeverity.Error, ex);
-                    var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception("Could not get game to set as installed!");
+                    var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception(Loc.GetString("InstallGameDataMissing"));
                     game.InstallState = InstallState.Uninstalled;
                     await _playniteAPI.Library.Games.UpdateAsync(game);
 
@@ -127,7 +127,7 @@ namespace Graviton.Install
 
         private async Task CancelInstall()
         {
-            var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception("Could not get game to set as installed!");
+            var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception(Loc.GetString("InstallGameDataMissing"));
             game.InstallState = InstallState.Uninstalled;
             await _playniteAPI.Library.Games.UpdateAsync(game);
 

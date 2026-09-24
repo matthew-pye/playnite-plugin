@@ -115,7 +115,7 @@ namespace Graviton.Settings
             }
             catch (Exception ex)
             {
-                GravitonNotify.Notify("graviton.settings.save.failed", Loc.GetString("SettingSaveFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
+                GravitonNotify.Notify("graviton.settings.save.failed", Loc.GetString("SettingsSaveFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
             }
         }
 
@@ -144,7 +144,7 @@ namespace Graviton.Settings
                 }
                 catch (Exception ex)
                 {
-                    GravitonNotify.Notify("graviton.settings.load.failed", Loc.GetString("SettingLoadFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
+                    GravitonNotify.Notify("graviton.settings.load.failed", Loc.GetString("SettingsLoadFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                 }
             }
 

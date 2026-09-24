@@ -142,6 +142,8 @@ namespace Graviton
             PlayniteApi = args.Api ?? throw new Exception("Failed to set playnite instance!");
             Loc.Api = args.Api ?? throw new Exception("Failed to set localization api instance!");
 
+            Models.Install.CLIInstallDefinitions.Initialize();
+
             PluginDataPath = PlayniteApi.UserDataDir;
             PluginDLLPath = args.PluginInstallDir;
 
@@ -349,7 +351,7 @@ namespace Graviton
                 {
 
                     if (!ImportedGames.ContainsKey(args.Game.LibraryGameId ?? ""))
-                        throw new Exception($"Cannot find game with ID: {args.Game.LibraryGameId}");
+                        throw new Exception(Loc.GetString("InstallGameIdNotFound", ("GameID", args.Game.LibraryGameId ?? "")));
 
                     var gameinfo = ImportedGames[args.Game.LibraryGameId!];
 
@@ -366,7 +368,7 @@ namespace Graviton
                     Logger?.Trace($"Created install info\n{JsonSerializer.Serialize(installInfo, new JsonSerializerOptions { WriteIndented = true })}");
 
                     if (installInfo.Mapping == null)
-                        throw new Exception("Couldn't find mapping!");
+                        throw new Exception(Loc.GetString("InstallMappingNotFound"));
 
                     return [new GravitonInstallController(args.Game, installInfo)];
                 }
@@ -513,13 +515,13 @@ namespace Graviton
 
                 if (string.IsNullOrEmpty(Settings.Host))
                 {
-                    GravitonNotify.Notify("graviton.get.appmenuitems", Loc.GetString("HostNotSet"), GravitonSeverity.Error);
+                    GravitonNotify.Notify("graviton.get.appmenuitems", Loc.GetString("HostNotConfigured"), GravitonSeverity.Error);
                     return null;
                 }
 
                 if (!Uri.IsWellFormedUriString(Settings.Host, UriKind.Absolute))
                 {
-                    GravitonNotify.Notify("graviton.get.appmenuitems", Loc.GetString("HostInvaild"), GravitonSeverity.Error);
+                    GravitonNotify.Notify("graviton.get.appmenuitems", Loc.GetString("HostInvalid"), GravitonSeverity.Error);
                     return null;
                 }
 

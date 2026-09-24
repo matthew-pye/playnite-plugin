@@ -91,7 +91,7 @@ namespace Graviton.Import
                     {
                         _logger?.Warn($"Failed to import new ROM {ROM.Id} ({ROM.Name}), skipping: {ex.Message}");
                     }
-                    GravitonNotify.Notify($"graviton.ROM.import.failed", "One or more ROMs failed to be imported!", GravitonSeverity.Warn, ex);
+                    GravitonNotify.Notify($"graviton.ROM.import.failed", Loc.GetString("ROMImportMultipleFailed"), GravitonSeverity.Warn, ex);
                 }
             }
 
@@ -252,7 +252,7 @@ namespace Graviton.Import
             // Skip if ROM has no filename
             if (string.IsNullOrEmpty(ROM.FileName))
             {
-                GravitonNotify.Notify($"graviton.proccess.{ROM.Id}.nofilename", Loc.GetString("NoFileNameWithID", ("ROMID", ROM.Id)), GravitonSeverity.Error);
+                GravitonNotify.Notify($"graviton.proccess.{ROM.Id}.nofilename", Loc.GetString("ROMFileMissing", ("ROMID", ROM.Id)), GravitonSeverity.Error);
                 return null;
             }
 
@@ -283,7 +283,7 @@ namespace Graviton.Import
 
             if (game == null)
             {
-                GravitonNotify.Notify($"graviton.import.updategame.failed", Loc.GetString("ROMUpdateFailed"), GravitonSeverity.Error);
+                GravitonNotify.Notify($"graviton.import.updategame.failed", Loc.GetString("GameUpdateFailed"), GravitonSeverity.Error);
                 _logger?.Error($"Failed to find {_plugin.ImportedGames[gameID].PlayniteID} in playnite database");
                 return new(gameID, null);
             }

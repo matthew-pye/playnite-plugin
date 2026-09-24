@@ -84,7 +84,7 @@ namespace Graviton.Import
                 // Check mapping has an Emulator, Profile & Platform assigned to it
                 if (!mapping.IsSetup)
                 {
-                    GravitonNotify.Notify($"graviton.mapping.incomplete", $"One or more mappings are not fully setup, those mapping have been skipped", GravitonSeverity.Warn);
+                    GravitonNotify.Notify($"graviton.mapping.incomplete", Loc.GetString("IncompleteMappingsSkipped"), GravitonSeverity.Warn);
                     continue;
                 }
 
@@ -249,9 +249,9 @@ namespace Graviton.Import
 
                     var request = await _romMServer.GETAsync(romURL);
                     if(request == null)
-                        throw new Exception("Server returned null data");
+                        throw new Exception(Loc.GetString("ServerReturnedNullData"));
 
-                    var roms = request?.RootElement.GetProperty("items").Deserialize<List<RomMRom>>() ?? throw new Exception("Deserialize failed");
+                    var roms = request?.RootElement.GetProperty("items").Deserialize<List<RomMRom>>() ?? throw new Exception(Loc.GetString("DeserializeFailed"));
                     romData.AddRange(roms);
 
                     _logger.Trace($"[Import Controller] Parsed {roms.Count} roms for batch {offset / pagesize + 1}.");         
@@ -354,7 +354,7 @@ namespace Graviton.Import
                     }
                     catch (Exception ex)
                     {
-                        GravitonNotify.Notify($"graviton.fetchcollection.failed", $"Failed to get manual collections: {ex.Message}", GravitonSeverity.Error, ex);
+                        GravitonNotify.Notify($"graviton.fetchcollection.failed", Loc.GetString("ManualCollectionsFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                     } 
                 }
             }
@@ -375,7 +375,7 @@ namespace Graviton.Import
                     }
                     catch (Exception ex)
                     {
-                        GravitonNotify.Notify($"graviton.fetchcollection.failed", $"Failed to get smart collections: {ex.Message}", GravitonSeverity.Error, ex);
+                        GravitonNotify.Notify($"graviton.fetchcollection.failed", Loc.GetString("SmartCollectionsFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                     }
                 }
             }
@@ -404,7 +404,7 @@ namespace Graviton.Import
 
                     try
                     {
-                        collections.Add(result.RootElement.Deserialize<RomMCollection>() ?? throw new Exception("Failed to deserialze collection"));
+                        collections.Add(result.RootElement.Deserialize<RomMCollection>() ?? throw new Exception(Loc.GetString("DeserializeCollectionFailed")));
                     }
                     catch (Exception)
                     {

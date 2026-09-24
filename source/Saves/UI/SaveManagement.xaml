@@ -56,13 +56,13 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" Grid.Column="0">
                     <Button Name="BackButton" Click="Back_Click" Margin="0,0,10,0" Visibility="Collapsed">
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="&#xf030d;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
                             <TextBlock Name="BackText" Text="{loc:LocalizedString Back}"/>
                         </StackPanel>
                     </Button>
                     <Button Name="RefreshButton" Click="Refresh_Click" Margin="0,0,10,0">
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="&#xf46a;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
                             <TextBlock Name="RefreshText" Text="{loc:LocalizedString Refresh}"/>
                         </StackPanel>
@@ -87,14 +87,14 @@
 
                 <StackPanel Orientation="Horizontal" Grid.Column="2">
                     <Button Name="CreateNewSaveButton" Click="CreateNewSave_Click" Margin="0,0,10,0" HorizontalAlignment="Right">
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="&#xea7f;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
                             <TextBlock Name="CreateNewSaveText" Text="{loc:LocalizedString CreateNewSave}"/>
                         </StackPanel>
                     </Button>
 
                     <Button Name="TrackArchivedSaveButton" Click="TrackArchivedSave_Click" Margin="0,0,10,0" HorizontalAlignment="Right">
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="&#xf1763;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
                             <TextBlock Name="TrackArchivedSaveText" Text="{loc:LocalizedString TrackArchivedSave}"/>
                         </StackPanel>

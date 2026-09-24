@@ -80,7 +80,7 @@ namespace Graviton.Status
                 }
                 catch (Exception ex)
                 {
-                    GravitonNotify.Notify("graviton.fetch.playsession", "Failed to get play sessions!", GravitonSeverity.Error, ex);
+                    GravitonNotify.Notify("graviton.fetch.playsession", Loc.GetString("GetPlaySessionsFailed"), GravitonSeverity.Error, ex);
                     return null;
                 }
             }
@@ -92,7 +92,7 @@ namespace Graviton.Status
         {
             if (!GravitonHelper.TryParseGameID(GameID, out var id))
             {
-                GravitonNotify.Notify("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", GameID)), GravitonSeverity.Error);
+                GravitonNotify.Notify("graviton.update.status.failed", Loc.GetString("GameIDParseFailed", ("GameID", GameID)), GravitonSeverity.Error);
                 return;
             }
 
@@ -133,7 +133,7 @@ namespace Graviton.Status
                 {
                     if (!GravitonHelper.TryParseGameID(updatedGame.OldData.LibraryGameId, out var id))
                     {
-                        GravitonNotify.Notify("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", updatedGame.OldData.LibraryGameId!)), GravitonSeverity.Error);
+                        GravitonNotify.Notify("graviton.update.status.failed", Loc.GetString("GameIDParseFailed", ("GameID", updatedGame.OldData.LibraryGameId!)), GravitonSeverity.Error);
                         continue;
                     }
 
@@ -167,7 +167,7 @@ namespace Graviton.Status
             }
             catch (Exception ex)
             {
-                _logger.Error($"{Loc.GetString("CreateFavoritesFailed")} - {ex}");
+                _logger.Error($"Failed to create favorites collection - {ex}");
                 return null;
             }
         }
@@ -213,7 +213,7 @@ namespace Graviton.Status
         {
             if (!GravitonHelper.TryParseGameID(game.LibraryGameId, out var id))
             {
-                GravitonNotify.Notify("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", game.LibraryGameId!)), GravitonSeverity.Error);
+                GravitonNotify.Notify("graviton.update.status.failed", Loc.GetString("GameIDParseFailed", ("GameID", game.LibraryGameId!)), GravitonSeverity.Error);
                 return;
             }
 
@@ -227,7 +227,7 @@ namespace Graviton.Status
             var status = RomMRomUser.CompletionStatusMap.FirstOrDefault(x => x.Value == playniteStatus).Key;
             if (status == null)
             { 
-                GravitonNotify.Notify("graviton.update.status.failed", Loc.GetString("ConvertStatusFailed", [("$PlayniteStatus", $"{playniteStatus}")]), GravitonSeverity.Error);
+                GravitonNotify.Notify("graviton.update.status.failed", Loc.GetString("CompletionStatusConversionFailed", ("PlayniteStatus", playniteStatus)), GravitonSeverity.Error);
                 return;
             }
 
@@ -249,7 +249,7 @@ namespace Graviton.Status
 
             if (!GravitonHelper.TryParseGameID(GameID, out var id))
             {
-                GravitonNotify.Notify("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", GameID)), GravitonSeverity.Error);
+                GravitonNotify.Notify("graviton.update.status.failed", Loc.GetString("GameIDParseFailed", ("GameID", GameID)), GravitonSeverity.Error);
                 return;
             }
 
@@ -265,7 +265,7 @@ namespace Graviton.Status
             catch (Exception ex) 
             { 
                 if(!token.IsCancellationRequested)
-                    GravitonNotify.Notify("graviton.game.heartbeat.failed", $"{Loc.GetString("GameHeartbeatFailed")} - {ex.Message}", GravitonSeverity.Error, ex); 
+                    GravitonNotify.Notify("graviton.game.heartbeat.failed", $"{Loc.GetString("ActivityHeartbeatFailed")} - {ex.Message}", GravitonSeverity.Error, ex); 
             }
             finally
             {
@@ -308,7 +308,7 @@ namespace Graviton.Status
 
                     if (!GravitonHelper.TryParseGameID(game.LibraryGameId!, out var id))
                     {
-                        GravitonNotify.Notify("graviton.update.status.failed", Loc.GetString("LibraryIdConvertFailed", ("GameID", game.LibraryGameId!)), GravitonSeverity.Error);
+                        GravitonNotify.Notify("graviton.update.status.failed", Loc.GetString("GameIDParseFailed", ("GameID", game.LibraryGameId!)), GravitonSeverity.Error);
                         continue;
                     }
 
@@ -348,7 +348,7 @@ namespace Graviton.Status
             }
             catch (Exception ex)
             {
-                GravitonNotify.Notify("graviton.getuserdata.failed", $"{Loc.GetString("GetUserDataFailed")}", GravitonSeverity.Error, ex);
+                GravitonNotify.Notify("graviton.getuserdata.failed", $"{Loc.GetString("UserDataFailed")}", GravitonSeverity.Error, ex);
             }
 
             return new();

@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using Playnite;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace Graviton.Settings
@@ -12,7 +13,7 @@ namespace Graviton.Settings
 
         Dictionary<string, string[]> PathTo7zFileType = new()
         {
-            { "7Zip Executable", ["7z.exe"]}
+            { Loc.GetString("SevenZipExecutable"), ["7z.exe"]}
         };
 
         public OptionsTab()

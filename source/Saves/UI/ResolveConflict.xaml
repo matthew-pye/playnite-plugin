@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Graviton.Saves.ResolveConflictView"
+<UserControl x:Class="Graviton.Saves.ResolveConflictView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -56,7 +56,7 @@
                     <TextBlock Text="{Binding ServerUpdatedAt}" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
                 </StackPanel>
                 <Button Margin="5" Grid.Column="1" Grid.Row="3" VerticalAlignment="Top" Click="KeepRemote_Click">
-                    <TextBlock Text="{loc:LocalizedString KeepServerSave}" FontFamily="{DynamicResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <TextBlock Text="{loc:LocalizedString KeepRemoteSave}" FontFamily="{DynamicResource NerdFont}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Button>
 
                 <StackPanel Grid.Column="0" Grid.Row="4" Orientation="Horizontal" Margin="10,10,0,5">

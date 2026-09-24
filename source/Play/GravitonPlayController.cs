@@ -35,7 +35,7 @@ namespace Graviton.Play
                 var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == _plugin.ImportedGames[args.Game.LibraryGameId!].MappingID);
                 if (mapping == null)
                 {
-                    GravitonNotify.Notify("graviton.play.nomapping", "Failed to find emulator mapping associated with this game!", GravitonSeverity.Error);
+                    GravitonNotify.Notify("graviton.play.nomapping", Loc.GetString("PlayMappingNotFound"), GravitonSeverity.Error);
                     return [];
                 }
 
@@ -49,7 +49,7 @@ namespace Graviton.Play
                 }
                 else
                 {
-                    GravitonNotify.Notify("graviton.play.noemulatorset", "No emulator is set in the mapping for this game!", GravitonSeverity.Error);
+                    GravitonNotify.Notify("graviton.play.noemulatorset", Loc.GetString("PlayEmulatorNotSet"), GravitonSeverity.Error);
 
                     var profileSettings = (mapping.Emulator as ImportedEmulator)?.ProfileSettings?.FirstOrDefault(x => x.ProfileId == mapping.Profile?.Id);
                     var customEmu = (mapping.Emulator as CustomEmulator);
@@ -82,7 +82,7 @@ namespace Graviton.Play
 
             if (!mapping.IsSetup || emulator == null || mapping.Profile == null)
             {
-                GravitonNotify.Notify("graviton.play.mappingnotsetup", "The mapping associated with this game has not been setup, cannot launch game!", GravitonSeverity.Error);
+                GravitonNotify.Notify("graviton.play.mappingnotsetup", Loc.GetString("PlayMappingIncomplete"), GravitonSeverity.Error);
                 return [];
             }
 
@@ -139,7 +139,7 @@ namespace Graviton.Play
                     return new List<string> { _plugin.ImportedGames[game.LibraryGameId!].InstalledPath! };
                 }
 
-                GravitonNotify.Notify("graviton.getromfiles.unsupported", "Installed game has a filetype that is not supported by the selected emulator/profile", GravitonSeverity.Error);
+                GravitonNotify.Notify("graviton.getromfiles.unsupported", Loc.GetString("InstalledFileUnsupported"), GravitonSeverity.Error);
                 _logger.Info($"Emulator only supports {string.Join(", ", fileTypes)} file extentions");
                 return null;
             }
@@ -162,7 +162,7 @@ namespace Graviton.Play
 
                 if (roms == null || roms.Count <= 0)
                 {
-                    GravitonNotify.Notify("graviton.getromfiles.unsupported", "Could not find a sutiable file that is supported by the selected emulator/profile", GravitonSeverity.Error);
+                    GravitonNotify.Notify("graviton.getromfiles.unsupported", Loc.GetString("LaunchFileNotFound"), GravitonSeverity.Error);
                     _logger.Info($"Selected emulator only supports {string.Join(", ", fileTypes)} file extentions");
                 }
 
@@ -171,7 +171,7 @@ namespace Graviton.Play
             else
             {
                 // Game isn't installed or has been deleted outside of playnite
-                GravitonNotify.Notify("graviton.getromfiles.notinstalled", "Game data not found, please reinstall", GravitonSeverity.Error);
+                GravitonNotify.Notify("graviton.getromfiles.notinstalled", Loc.GetString("GameDataMissing"), GravitonSeverity.Error);
                 game.InstallState = InstallState.Uninstalled;
                 _ = _playniteAPI.Library.Games.UpdateAsync(game);
                 return null;
@@ -183,7 +183,7 @@ namespace Graviton.Play
             var profileSettings = emulator.ProfileSettings?.FirstOrDefault(x => x.ProfileId == profile.Id);
             if(profileSettings == null)
             {
-                GravitonNotify.Notify("graviton.playcontrollers.profilesettingsnotfound", "Failed to find emulator profile settings, cannot launch game!", GravitonSeverity.Error);
+                GravitonNotify.Notify("graviton.playcontrollers.profilesettingsnotfound", Loc.GetString("ProfileSettingsMissing"), GravitonSeverity.Error);
                 return [];
             }
 
@@ -194,7 +194,7 @@ namespace Graviton.Play
             string args = profileSettings.OverrideArguments ? profileSettings.Arguments ?? "" : profile.WindowsData?.StartupArguments ?? "";
             if(string.IsNullOrEmpty(args))
             {
-                GravitonNotify.Notify("graviton.playcontrollers.argsnotfound", "Failed to find startup arguments, please check settings in Emunight!", GravitonSeverity.Error);
+                GravitonNotify.Notify("graviton.playcontrollers.argsnotfound", Loc.GetString("StartupArgumentsMissing"), GravitonSeverity.Error);
                 return [];
             }
 
@@ -238,7 +238,7 @@ namespace Graviton.Play
             string? args = emulator.Arguments;
             if (string.IsNullOrEmpty(args))
             {
-                GravitonNotify.Notify("graviton.playcontrollers.argsnotfound", "Failed to find startup arguments, please check settings in Emunight!", GravitonSeverity.Error);
+                GravitonNotify.Notify("graviton.playcontrollers.argsnotfound", Loc.GetString("StartupArgumentsMissing"), GravitonSeverity.Error);
                 return [];
             }
 
@@ -274,7 +274,7 @@ namespace Graviton.Play
         {
             if (string.IsNullOrEmpty(installDir))
             {
-                GravitonNotify.Notify("graviton.findemulator.noinstalldir", "Install directory is empty cannot find emulator, please check settings in Emunight", GravitonSeverity.Error);
+                GravitonNotify.Notify("graviton.findemulator.noinstalldir", Loc.GetString("EmulatorInstallDirectoryMissing"), GravitonSeverity.Error);
                 return null;
             }
                 
@@ -287,14 +287,14 @@ namespace Graviton.Play
             {
                 if (string.IsNullOrEmpty(profile.WindowsData?.StartupLookupRegex))
                 {
-                    GravitonNotify.Notify("graviton.findemulator.nostartupregex", "Selected profile has no execuatable regex, cannot find emulator", GravitonSeverity.Error);
+                    GravitonNotify.Notify("graviton.findemulator.nostartupregex", Loc.GetString("ExecutablePatternMissing"), GravitonSeverity.Error);
                     return null;
                 }
 
                 var foundExecutable = Directory.EnumerateFiles(installDir, "*.*", SearchOption.TopDirectoryOnly).FirstOrDefault(file => Regex.IsMatch(Path.GetFileName(file), profile.WindowsData.StartupLookupRegex, RegexOptions.IgnoreCase));
                 if (string.IsNullOrEmpty(foundExecutable))
                 {
-                    GravitonNotify.Notify("graviton.findemulator.notfound", "No emulator matching the profile's executable regex was found!", GravitonSeverity.Error);
+                    GravitonNotify.Notify("graviton.findemulator.notfound", Loc.GetString("EmulatorExecutableNotFound"), GravitonSeverity.Error);
                     return null;
                 }
 
@@ -310,7 +310,7 @@ namespace Graviton.Play
                 var foundExecutable = Directory.EnumerateFiles(installDir, "*.*", SearchOption.TopDirectoryOnly).FirstOrDefault(file => Regex.IsMatch(Path.GetFileName(file), overrideExecutable, RegexOptions.IgnoreCase));
                 if (string.IsNullOrEmpty(foundExecutable))
                 {
-                    GravitonNotify.Notify("graviton.findemulator.notfound", "No emulator matching the profile's executable regex was found!", GravitonSeverity.Error);
+                    GravitonNotify.Notify("graviton.findemulator.notfound", Loc.GetString("EmulatorExecutableNotFound"), GravitonSeverity.Error);
                     return null;
                 }
 

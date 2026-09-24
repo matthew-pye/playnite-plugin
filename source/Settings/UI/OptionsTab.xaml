@@ -163,7 +163,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBox Grid.Column="0" x:Name="PathTo7zText" Text="{Binding PathTo7z, Mode=TwoWay}" Margin="0,0,10,0" VerticalContentAlignment="Center" local:Placeholder.Text="{loc:LocalizedString NoExePlaceholder}"/>
                         <Button Grid.Column="1" Click="Browse7zPath_Click">
-                            <TextBlock Name="Browse7zText" Text="{loc:LocalizedString Browse}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <TextBlock Name="Browse7zText" Text="{loc:LocalizedString Browse}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,5"/>
                         </Button>
                     </Grid>
                 </StackPanel>
@@ -224,7 +224,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="SaveSyncEnabledText" Text="{loc:LocalizedString EnableSaveSyncing}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="SaveSyncEnabledText" Text="{loc:LocalizedString Enabled}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding SaveSyncEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
@@ -319,7 +319,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="SaveStateSyncEnabledText" Text="{loc:LocalizedString EnableSaveStateSyncing}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="SaveStateSyncEnabledText" Text="{loc:LocalizedString Enabled}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding SaveStateSyncEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
                 </StackPanel>

@@ -26,7 +26,7 @@ namespace Graviton.Install.Downloads
             {
                 _plugin.ImportedGames.TryGetValue(Game.LibraryGameId ?? "", out var romMLocal);
                 if (romMLocal == null || romMLocal.InstalledPath == null)
-                    throw new Exception("Could not get game to be installed!");
+                    throw new Exception(Loc.GetString("InstallROMDataMissing"));
 
                 if (romMLocal.IsInstalledPathDirectory && Directory.Exists(romMLocal.InstalledPath))
                 {
@@ -41,7 +41,7 @@ namespace Graviton.Install.Downloads
                 }
                 else
                 {
-                    GravitonPlugin.PlayniteApi?.Dialogs.ShowErrorMessageAsync($"\"{Game.Name}\" folder could not be found. Marking as uninstalled.", "Game not found");
+                    GravitonPlugin.PlayniteApi?.Dialogs.ShowErrorMessageAsync(Loc.GetString("GameFolderNotFound", ("GameName", Game.Name)), Loc.GetString("GameNotFoundTitle"));
                     romMLocal.InstalledPath = null;
                     romMLocal.IsInstalledPathDirectory = false;
                 }

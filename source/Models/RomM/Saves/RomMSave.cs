@@ -62,20 +62,20 @@ namespace Graviton.Models.RomM.Saves
                 var difference = DateTime.Now - UpdatedAtParsed;
 
                 if (difference.TotalSeconds < 60)
-                    return $"{difference.TotalSeconds:F0}s ago";
+                    return Playnite.Loc.GetString("TimeSecondsAgo", ("Count", difference.TotalSeconds.ToString("F0")));
 
                 if (difference.TotalMinutes < 60)
-                    return $"{difference.TotalMinutes:F0}m ago";
+                    return Playnite.Loc.GetString("TimeMinutesAgo", ("Count", difference.TotalMinutes.ToString("F0")));
 
                 var daysAgo = (DateTime.Today - UpdatedAtParsed.Date).Days;
 
                 if (daysAgo == 0)
-                    return $"{difference.TotalHours:F0}h ago";
+                    return Playnite.Loc.GetString("TimeHoursAgo", ("Count", difference.TotalHours.ToString("F0")));
 
                 if (daysAgo == 1)
-                    return $"Yesterday, {UpdatedAtParsed.ToLocalTime():t}";
+                    return Playnite.Loc.GetString("TimeYesterday", ("Time", UpdatedAtParsed.ToLocalTime().ToString("t")));
 
-                return $"{daysAgo}d ago";
+                return Playnite.Loc.GetString("TimeDaysAgo", ("Count", daysAgo));
 
             }
         }
@@ -86,11 +86,11 @@ namespace Graviton.Models.RomM.Saves
             get
             {
                 if (FileSize <= 0)
-                    return "Unknown";
+                    return Playnite.Loc.GetString("Unknown");
 
                 if (FileSize < 1000)
                 {
-                    return $"{FileSize} Bytes";
+                    return $"{FileSize} B";
                 }
                 else if (FileSize < 1000000)
                 {

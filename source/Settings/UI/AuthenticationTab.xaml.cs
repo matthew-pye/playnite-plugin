@@ -28,7 +28,7 @@ namespace Graviton.Settings
 
         Dictionary<string, string[]> ImageFileChoices = new Dictionary<string, string[]>()
         {
-            {"Image File", ["*.png","*.jpg", "*.jpeg","*.webp"]}
+            {Loc.GetString("ImageFiles"), ["*.png","*.jpg", "*.jpeg","*.webp"]}
         };
 
         string QRCodeURl = "";

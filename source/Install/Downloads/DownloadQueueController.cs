@@ -130,7 +130,7 @@ namespace Graviton.Install.Downloads
 
             var response = await _romMServer.RawGETAsync(req.DownloadUrl);
             if (response == null || response.Content == null)
-                throw new Exception("Null response from server");
+                throw new Exception(Loc.GetString("DownloadServerNullResponse"));
 
             var totalBytes = response.Content.Headers.ContentLength;
             item.SetProgress(0, totalBytes ?? 1, !totalBytes.HasValue);
@@ -181,10 +181,10 @@ namespace Graviton.Install.Downloads
             var path = Path.TrimEndingDirectorySeparator(req.InstallDir);
             var mappingPath = Path.TrimEndingDirectorySeparator(req.MappingDir);
 
-            var game = _playniteAPI.Library.Games.Get(req.GameId) ?? throw new Exception("Could not get game to be installed!");
+            var game = _playniteAPI.Library.Games.Get(req.GameId) ?? throw new Exception(Loc.GetString("InstallROMDataMissing"));
             _plugin.ImportedGames.TryGetValue(game.LibraryGameId ?? "", out var romMLocal);
             if(romMLocal == null)
-                throw new Exception("Could not get game to be installed!");
+                throw new Exception(Loc.GetString("InstallROMDataMissing"));
 
             // Extract if needed (we treat extract as 0..100 in its own bar)
             // This check may need changing in the case where a user has multiple archive files 
@@ -268,7 +268,7 @@ namespace Graviton.Install.Downloads
                 process?.WaitForExit();
                 if (process?.ExitCode != 0)
                 {
-                    throw new Exception($"7z extraction failed for {archivePath} with exit code {process?.ExitCode}.");
+                    throw new Exception(Loc.GetString("ArchiveExtractionFailed", ("Path", archivePath), ("ExitCode", process?.ExitCode.ToString() ?? "?")));
                 }
             }
         }

@@ -582,7 +582,7 @@ namespace Graviton.Saves
                 }
                 else
                 {
-                    save.ROMName = " -- UNKNOWN GAME --";
+                    save.ROMName = Loc.GetString("UnknownGame");
                 }
             }
 
