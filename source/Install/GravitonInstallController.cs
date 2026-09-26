@@ -39,6 +39,8 @@ namespace Graviton.Install
                 return; 
             }   
 
+
+
             var dstPath = GameData.Mapping?.DestinationPathResolved ?? throw new Exception(Loc.GetString("InstallMappingDataMissing"));
 
             var installDir = GameData.InstallPath.Replace(EmulatorMapping.InstallPathToken, dstPath);

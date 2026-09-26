@@ -155,7 +155,7 @@
         <!-- #endregion -->
 
         <!-- #region Mapping Options -->
-        <Grid Name="MappingOptions" Grid.Column="1" Visibility="Collapsed">
+        <Grid Name="MappingOptions" Grid.Column="1" Visibility="Visible">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -345,9 +345,10 @@
                             </Grid>
 
                             <Separator Margin="5,5" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
+                            
+                            <!-- #region Updates -->
                             <TextBlock Name="UpdateText" Text="{loc:LocalizedString Updates}" Style="{StaticResource Graviton.SettingsSubHeader}" TextTrimming="CharacterEllipsis"/>
 
-                            <!-- #region Updates -->   
                             <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -363,7 +364,7 @@
                                 </ComboBox>
                             </Grid>
 
-                            <Grid>
+                            <Grid> <!-- Update CLI selector -->
                                 <Grid.Style>
                                     <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -382,7 +383,112 @@
                                 <ComboBox VerticalContentAlignment="Center" Grid.Column="1" Grid.Row="2" MinWidth="200" ItemsSource="{Binding CLIDefinitions}" DisplayMemberPath="Name" SelectedItem="{Binding UpdateCLIDefinition, Mode=TwoWay}"/>
                             </Grid>
 
-                            <Grid>
+                            <!-- Update CLI user args -->
+                            <ItemsControl ItemsSource="{Binding UpdateCLIUserArgs, Mode=TwoWay}">
+                                <ItemsControl.Style>
+                                    <Style TargetType="ItemsControl">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding UpdateCLIUserArgs.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding UpdateCLIUserArgs}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ItemsControl.Style>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="1" Name="UpdateCLIArgsNameText" Text="{Binding Name}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0" Style="{StaticResource {x:Type TextBlock}}"/>
+                                            <TextBox Grid.Column="2" Width="200" x:Name="UpdateCLIArgsValueText" Text="{Binding Value, Mode=TwoWay}" local:Placeholder.Text="-" Style="{StaticResource {x:Type TextBox}}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Grid> <!-- Update TitleID selector -->
+                                <Grid.Style>
+                                    <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding UpdateInstallStyle}" Value="TitleIDFolder">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Column="0" Grid.Row="0" Name="UpdateTitleIDDefinitionText" Text="{loc:LocalizedString TitleIDInstaller}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0" ToolTip="{loc:LocalizedString TitleIDDefinitionTooltip}"/>
+                                <ComboBox  Grid.Column="1" Grid.Row="0" MinWidth="200" VerticalContentAlignment="Center" ItemsSource="{Binding TitleIDDefinitions}" DisplayMemberPath="Name" SelectedItem="{Binding UpdateTitleIDDefinition, Mode=TwoWay}"/>
+                                <TextBox Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Right" x:Name="UpdateTitleIDArgs" Text="{Binding UpdateTitleIDDefinition.RuntimeArgs, Mode=OneWay}" local:Placeholder.Text="{loc:LocalizedString ArgumentsPlaceholder}" IsEnabled="False"/>
+                            </Grid>
+
+                            <Grid> <!-- Update Install Path -->
+                                <Grid.Style>
+                                    <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding UpdateInstallStyle}" Value="ExternalFolder">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding UpdateInstallStyle}" Value="TitleIDFolder">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Column="0" Name="UpdatePathText" Text="{loc:LocalizedString InstallPath}" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,15,0"/>
+                                <TextBox Grid.Column="1" x:Name="UpdateInstallPathBox" Text="{Binding UpdateInstallPath, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString InstallPathPlaceholder}"/>
+                                <Button Grid.Column="2" Click="BrowseUpdateInstallPath_Click">
+                                    <TextBlock Name="BrowseUpdatePathText" Text="{loc:LocalizedString Browse}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,5"/>
+                                </Button>
+
+                                <StackPanel Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" VerticalAlignment="Center" HorizontalAlignment="Right" Orientation="Horizontal" Margin="5,5,15,5">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding UpdateTitleIDDefinition.PathNote}" Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding UpdateTitleIDDefinition.PathNote}" Value=" ">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding UpdateTitleIDDefinition.PathNote}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                    <TextBlock  Name="UpdatePathNoteIcon" Text="&#xf449;" FontFamily="{DynamicResource NerdFont}" FontSize="12" TextWrapping="Wrap" Margin="0,0,2,0"/>
+                                    <TextBlock  Name="UpdatePathNote" Text="{Binding UpdateTitleIDDefinition.PathNote}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid>  <!-- Update Install Mode -->
                                 <Grid.Style>
                                     <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
                                         <Setter Property="IsEnabled" Value="True"/>
@@ -393,7 +499,7 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Grid.Style>
-                                
+
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -408,50 +514,13 @@
                                 </ComboBox>
                             </Grid>
 
-                            <Grid>
-                                <Grid.Style>
-                                    <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
-                                        <Setter Property="IsEnabled" Value="True"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding UpdateInstallStyle}" Value="None">
-                                                <Setter Property="IsEnabled" Value="False"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Grid.Style>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Name="UpdatePathText" Text="{loc:LocalizedString InstallPath}" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,15,0"/>
-                                <Grid Grid.Column="1">
-                                    <TextBox x:Name="UpdateInstallPathBox" Text="{Binding UpdateInstallPath, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString InstallPathPlaceholder}"/>
-                                    <TextBlock x:Name="UpdateInstallPathPlaceholderText" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="{DynamicResource Graviton.SubText.Colour}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="{x:Type TextBlock}">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Text, ElementName=UpdateInstallPathBox}" Value="">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </Grid>
-                                <Button Grid.Column="2" Click="BrowseUpdateInstallPath_Click">
-                                    <TextBlock Name="BrowseUpdatePathText" Text="{loc:LocalizedString Browse}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,5"/>
-                                </Button>
-                            </Grid>
-
-                           
                             <!--#endregion-->
 
                             <Separator Margin="10,5" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
-                            <TextBlock Name="DLCText" Text="{loc:LocalizedString DLC}" Style="{StaticResource Graviton.SettingsSubHeader}" TextTrimming="CharacterEllipsis"/>
 
                             <!-- #region DLC -->
+                            <TextBlock Name="DLCText" Text="{loc:LocalizedString DLC}" Style="{StaticResource Graviton.SettingsSubHeader}" TextTrimming="CharacterEllipsis"/>
+                            
                             <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -467,7 +536,7 @@
                                 </ComboBox>
                             </Grid>
 
-                            <Grid>
+                            <Grid> <!-- DLC CLI selector -->
                                 <Grid.Style>
                                     <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -486,7 +555,112 @@
                                 <ComboBox VerticalContentAlignment="Center" Grid.Column="1" Grid.Row="2" MinWidth="200" Tag="{loc:LocalizedString None}" ItemsSource="{Binding CLIDefinitions}" DisplayMemberPath="Name" SelectedItem="{Binding DLCCLIDefinition, Mode=TwoWay}"/>
                             </Grid>
 
-                            <Grid>
+                            <!-- DLC CLI User args -->
+                            <ItemsControl ItemsSource="{Binding DLCCLIUserArgs, Mode=TwoWay}">
+                                <ItemsControl.Style>
+                                    <Style TargetType="ItemsControl">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DLCCLIUserArgs.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding DLCCLIUserArgs}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ItemsControl.Style>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="1" Name="UpdateCLIArgsNameText" Text="{Binding Name}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0" Style="{StaticResource {x:Type TextBlock}}"/>
+                                            <TextBox Grid.Column="2" Width="200" x:Name="UpdateCLIArgsValueText" Text="{Binding Value, Mode=TwoWay}" local:Placeholder.Text="-" Style="{StaticResource {x:Type TextBox}}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Grid> <!-- DLC TitleID selector -->
+                                <Grid.Style>
+                                    <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DLCInstallStyle}" Value="TitleIDFolder">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Column="0" Grid.Row="0" Name="DLCTitleIDDefinitionText" Text="{loc:LocalizedString TitleIDInstaller}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0" ToolTip="{loc:LocalizedString TitleIDDefinitionTooltip}"/>
+                                <ComboBox  Grid.Column="1" Grid.Row="0" MinWidth="200" VerticalContentAlignment="Center" ItemsSource="{Binding TitleIDDefinitions}" DisplayMemberPath="Name" SelectedItem="{Binding DLCTitleIDDefinition, Mode=TwoWay}"/>
+                                <TextBox Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Right" x:Name="DLCTitleIDArgs" Text="{Binding DLCTitleIDDefinition.RuntimeArgs, Mode=OneWay}" local:Placeholder.Text="{loc:LocalizedString ArgumentsPlaceholder}" IsEnabled="False"/>
+                            </Grid>
+
+                             <Grid> <!-- DLC install path -->
+                                <Grid.Style>
+                                    <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DLCInstallStyle}" Value="ExternalFolder">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding DLCInstallStyle}" Value="TitleIDFolder">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Column="0" Name="DLCInstallPathText" Text="{loc:LocalizedString InstallPath}" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,15,0"/>
+                                <TextBox Grid.Column="1" x:Name="DLCInstallPathBox" Text="{Binding DLCInstallPath, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString InstallPathPlaceholder}"/>
+                                <Button Grid.Column="2" Click="BrowseDLCInstallPath_Click">
+                                    <TextBlock Name="BrowseDLCPathText" Text="{loc:LocalizedString Browse}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,5"/>
+                                </Button>
+
+                                <StackPanel Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" VerticalAlignment="Center" HorizontalAlignment="Right" Orientation="Horizontal" Margin="5,5,15,5">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DLCTitleIDDefinition.PathNote}" Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding DLCTitleIDDefinition.PathNote}" Value=" ">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding DLCTitleIDDefinition.PathNote}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                    <TextBlock  Name="DLCPathNoteIcon" Text="&#xf449;" FontFamily="{DynamicResource NerdFont}" FontSize="12" TextWrapping="Wrap" Margin="0,0,2,0"/>
+                                    <TextBlock  Name="DLCPathNote" Text="{Binding DLCTitleIDDefinition.PathNote}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid> <!-- DLC install mode -->
                                 <Grid.Style>
                                     <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
                                         <Setter Property="IsEnabled" Value="True"/>
@@ -509,43 +683,6 @@
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
-                            </Grid>
-
-                            <Grid>
-                                <Grid.Style>
-                                    <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
-                                        <Setter Property="IsEnabled" Value="True"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding DLCInstallStyle}" Value="None">
-                                                <Setter Property="IsEnabled" Value="False"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Grid.Style>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Name="DLCInstallPathText" Text="{loc:LocalizedString InstallPath}" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,15,0"/>
-                                <Grid Grid.Column="1">
-                                    <TextBox x:Name="DLCInstallPathBox" Text="{Binding DLCInstallPath, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString InstallPathPlaceholder}"/>
-                                    <TextBlock x:Name="DLCInstallPathPlaceholderText" IsHitTestVisible="False" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0" Foreground="{DynamicResource Graviton.SubText.Colour}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="{x:Type TextBlock}">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Text, ElementName=DLCInstallPathBox}" Value="">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </Grid>
-                                <Button Grid.Column="2" Click="BrowseDLCInstallPath_Click">
-                                    <TextBlock Name="BrowseDLCPathText" Text="{loc:LocalizedString Browse}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,5"/>
-                                </Button>
                             </Grid>
 
                             <!--#endregion-->

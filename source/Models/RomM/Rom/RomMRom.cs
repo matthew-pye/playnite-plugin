@@ -12,10 +12,22 @@ namespace Graviton.Models.RomM.Rom
         Other = 1
     }
 
+    public class RomMArchiveMembers
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        [JsonPropertyName("size")]
+        public long? Size { get; set; }
+
+        [JsonPropertyName("md5_hash")]
+        public string? MD5 { get; set; }
+    }
+
     public class RomMFile
     {
         [JsonPropertyName("id")]
-        public int? Id { get; set; }
+        public int Id { get; set; }
 
         [JsonPropertyName("file_name")]
         public string FileName { get; set; } = string.Empty;
@@ -37,6 +49,9 @@ namespace Graviton.Models.RomM.Rom
 
         [JsonPropertyName("category")]
         public string Category { get; set; } = string.Empty;
+
+        [JsonPropertyName("archive_members")]
+        public List<RomMArchiveMembers>? ArchiveMembers { get; set; }
 
     }
 

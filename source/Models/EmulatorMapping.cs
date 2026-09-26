@@ -53,17 +53,19 @@ namespace Graviton.Models
         [ObservableProperty][NotifyPropertyChangedFor(nameof(IsSetup))] private string _destinationPath = "";
 
         // Updates
-        [ObservableProperty] private InstallStyle _updateInstallStyle = InstallStyle.None;
+        [ObservableProperty] private InstallShapes _updateInstallStyle = InstallShapes.None;
         [ObservableProperty] private InstallMode _updateInstallMode = InstallMode.SelectOne;
         [ObservableProperty] private string? _updateInstallPath;
-        [ObservableProperty] private string? _updateCLIDefinitionID;
+        [ObservableProperty] private string? _updateTitleIDDefinitionID = null;
+        [ObservableProperty] private string? _updateCLIDefinitionID = null;
         [ObservableProperty] private ObservableCollection<DynamicArgument> _updateCLIUserArgs = new();
 
         // DLCs
-        [ObservableProperty] private InstallStyle _DLCInstallStyle = InstallStyle.None;
+        [ObservableProperty] private InstallShapes _DLCInstallStyle = InstallShapes.None;
         [ObservableProperty] private InstallMode _DLCInstallMode = InstallMode.All;
         [ObservableProperty] private string? _DLCInstallPath;
-        [ObservableProperty] private string? _DLCCLIDefinitionID;
+        [ObservableProperty] private string? _DLCTitleIDDefinitionID = null;
+        [ObservableProperty] private string? _DLCCLIDefinitionID = null;
         [ObservableProperty] private ObservableCollection<DynamicArgument> _DLCCLIUserArgs = new();
 
         // Saves
@@ -220,15 +222,54 @@ namespace Graviton.Models
             }
         }
 
-        [JsonIgnore] ObservableCollection<CLIInstallDefinition> CLIDefinitions => CLIInstallDefinitions.All.ToObservableCollection();
+        [JsonIgnore]
+        public IReadOnlyList<TitleIDInstallDefinition?> TitleIDDefinitions => TitleIDInstallDefinitions.All;
+
+        [JsonIgnore]
+        public TitleIDInstallDefinition? UpdateTitleIDDefinition
+        {
+            get => TitleIDInstallDefinitions.Get(UpdateTitleIDDefinitionID);
+            set
+            {
+                if (value?.ID != UpdateTitleIDDefinitionID)
+                {
+                    UpdateTitleIDDefinitionID = value?.ID;
+                }
+
+                OnPropertyChanged();
+            }
+        }
+
+        [JsonIgnore]
+        public TitleIDInstallDefinition? DLCTitleIDDefinition
+        {
+            get => TitleIDInstallDefinitions.Get(DLCTitleIDDefinitionID);
+            set
+            {
+                if (value?.ID != DLCTitleIDDefinitionID)
+                {
+                    DLCTitleIDDefinitionID = value?.ID;
+                }
+
+                OnPropertyChanged();
+            }
+        }
+
+        [JsonIgnore]
+        public IReadOnlyList<CLIInstallDefinition?> CLIDefinitions => CLIInstallDefinitions.All;
 
         [JsonIgnore]
         public CLIInstallDefinition? UpdateCLIDefinition
         {
-            get => CLIInstallDefinitions.Get(UpdateCLIDefinitionID ?? "");
+            get => CLIInstallDefinitions.Get(UpdateCLIDefinitionID);
             set
             {
-                UpdateCLIDefinitionID = value?.ID;
+                if (value?.ID != UpdateCLIDefinitionID)
+                {
+                    UpdateCLIDefinitionID = value?.ID;
+                    UpdateCLIUserArgs = value?.DynamicArgsTemplate?.Select(x => x.Clone()).ToObservableCollection() ?? new();
+                }
+
                 OnPropertyChanged();
             }
         }
@@ -236,10 +277,15 @@ namespace Graviton.Models
         [JsonIgnore]
         public CLIInstallDefinition? DLCCLIDefinition
         {
-            get => CLIInstallDefinitions.Get(DLCCLIDefinitionID ?? "");
+            get => CLIInstallDefinitions.Get(DLCCLIDefinitionID);
             set
             {
-                DLCCLIDefinitionID = value?.ID;
+                if (value?.ID != DLCCLIDefinitionID)
+                {
+                    DLCCLIDefinitionID = value?.ID;
+                    DLCCLIUserArgs = value?.DynamicArgsTemplate?.Select(x => x.Clone()).ToObservableCollection() ?? new();
+                }
+
                 OnPropertyChanged();
             }
         }

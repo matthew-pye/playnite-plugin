@@ -116,7 +116,7 @@
                     <Border x:Name="Border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" SnapsToDevicePixels="True">
                         <Grid>
                             <TextBlock x:Name="PlaceholderText" Text="{Binding Path=(local:Placeholder.Text), RelativeSource={RelativeSource TemplatedParent}}" Foreground="{DynamicResource Graviton.SubSubText.Colour}" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed"/>
-                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -231,7 +231,7 @@
     <!-- #region ComboBox -->
     <Style TargetType="{x:Type ComboBoxItem}">
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
-        <Setter Property="Padding" Value="2,5" />
+        <Setter Property="Padding" Value="5,5" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="Template">
             <Setter.Value>
@@ -254,7 +254,7 @@
         <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Graviton.TransparentBackground.Colour}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="5, 5" />
+        <Setter Property="Padding" Value="5,5" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="Template">
             <Setter.Value>
@@ -363,7 +363,7 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CaretBrush" Value="{DynamicResource Graviton.Text.Colour}" />
         <Setter Property="SelectionBrush" Value="{DynamicResource Graviton.SubText.Colour}" />
-        <Setter Property="Padding" Value="2,5" />
+        <Setter Property="Padding" Value="5,5" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">

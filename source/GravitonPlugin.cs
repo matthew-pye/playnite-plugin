@@ -3,6 +3,7 @@
 using Graviton.Import;
 using Graviton.Install;
 using Graviton.Install.Downloads;
+using Graviton.Models.Install;
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Rom;
 using Graviton.Notifications;
@@ -142,8 +143,6 @@ namespace Graviton
             PlayniteApi = args.Api ?? throw new Exception("Failed to set playnite instance!");
             Loc.Api = args.Api ?? throw new Exception("Failed to set localization api instance!");
 
-            Models.Install.CLIInstallDefinitions.Initialize();
-
             PluginDataPath = PlayniteApi.UserDataDir;
             PluginDLLPath = args.PluginInstallDir;
 
@@ -162,6 +161,9 @@ namespace Graviton
 
             GravitonNotify.Initialize(Instance, PlayniteApi, Logger);
             Logger.Info("Notifications Initialized");
+
+            CLIInstallDefinitions.Initialize();
+            TitleIDInstallDefinitions.Initialize();
 
             await PlayniteApi.Library.Sources.AddAsync(new Source(Id, "Graviton"));
             Logger.Info("Added Graviton to sources");
