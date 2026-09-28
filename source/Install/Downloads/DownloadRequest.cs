@@ -1,30 +1,15 @@
-﻿
-using Playnite;
-
-using static Playnite.InstallController;
-
-namespace Graviton.Install.Downloads
+﻿namespace Graviton.Install.Downloads
 {
     public class DownloadRequest
     {
-        public string GameId { get; set; } = string.Empty;
-        public string GameName { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+
         public string DownloadUrl { get; set; } = string.Empty;
-        public string MappingDir { get; set; } = string.Empty;
-        public string InstallDir { get; set; } = string.Empty;
-        public string GamePath { get; set; } = string.Empty;       // full path to the downloaded file on disk
-        public bool HasMultipleFiles { get; set; }  // whether archive contains multiple top-level files
-        public bool AutoExtract { get; set; } = true;
-        public bool Use7z { get; set; } = false;
-        public string PathTo7Z { get; set; } = "";
+        public string DownloadPath { get; set; } = string.Empty;
 
-
-        /// Optional function used after extraction to build rom list for Playnite
-        public Func<List<Game>>? BuildRoms { get; set; }
-
-        // Callbacks
-        public Action<GameInstalledArgs>? OnInstalled { get; set; }
-        public Action? OnCancelled { get; set; }
-        public Action<Exception>? OnFailed { get; set; }
+        public Func<DownloadQueueItem, DownloadRequest, Task> OnDownloadComplete { get; set; } = async (item, req) => { };
+        public Func<Task> OnCancelled { get; set; } = async () => { };
+        public Func<Exception, Task> OnFailed { get; set; } = async (ex) => { };
     }
 }

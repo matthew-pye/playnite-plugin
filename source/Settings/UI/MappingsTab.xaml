@@ -105,7 +105,7 @@
 
             <ObjectDataProvider x:Key="InstallStyleValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
                 <ObjectDataProvider.MethodParameters>
-                    <x:Type TypeName="installmodel:InstallStyle"/>
+                    <x:Type TypeName="installmodel:InstallShapes"/>
                 </ObjectDataProvider.MethodParameters>
             </ObjectDataProvider>
 

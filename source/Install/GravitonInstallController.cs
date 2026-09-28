@@ -37,22 +37,22 @@ namespace Graviton.Install
             {
                 await CancelInstall();
                 return; 
-            }   
+            }
 
+            await DownloadInstallROM();
+        }
 
-
+        private async Task DownloadInstallROM()
+        {
             var dstPath = GameData.Mapping?.DestinationPathResolved ?? throw new Exception(Loc.GetString("InstallMappingDataMissing"));
 
             var installDir = GameData.InstallPath.Replace(EmulatorMapping.InstallPathToken, dstPath);
-        
-            // If RomM indicates multiple files, we download as an archive name (zip) into the install folder.
-            // Otherwise we download the single ROM file.
-            var downloadFilePath = GameData.HasMultipleFiles
-                ? Path.Combine(installDir, GameData.FileName + ".zip")
-                : Path.Combine(installDir, GameData.FileName);
+
+            var tempDir = Path.Combine(_plugin.PluginDataPath, "temp", Game.Id.ToString());
+            var tempPath = Path.Combine(tempDir, (GameData.HasMultipleFiles ? GameData.FileName + ".zip" : GameData.FileName));
 
             // Skip download if the game is already installed
-            if (!GameData.HasMultipleFiles && File.Exists(downloadFilePath))
+            if (!GameData.HasMultipleFiles && File.Exists(Path.Combine(installDir, GameData.FileName)))
             {
                 var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception(Loc.GetString("InstallGameDataMissing"));
                 _plugin.ImportedGames.TryGetValue(game.LibraryGameId ?? "", out var romMLocal);
@@ -61,7 +61,8 @@ namespace Graviton.Install
 
                 if (installDir.CompareTo(dstPath, StringComparison.OrdinalIgnoreCase) == 0)
                 {
-                    romMLocal.InstalledPath = downloadFilePath;
+                    romMLocal.InstalledPath = Path.Combine(installDir, GameData.FileName);
+                    romMLocal.IsInstalledPathDirectory = false;
                 }
                 else
                 {
@@ -74,9 +75,9 @@ namespace Graviton.Install
                 await _playniteAPI.Library.Games.UpdateAsync(game);
 
                 await GameInstalledAsync(new()
-                { 
+                {
                     InstallDirectory = installDir,
-                    InstallSize = (ulong)(new FileInfo(downloadFilePath).Length),
+                    InstallSize = (ulong)(new FileInfo(Path.Combine(installDir, GameData.FileName)).Length),
                 });
 
                 return;
@@ -84,27 +85,65 @@ namespace Graviton.Install
 
             var req = new DownloadRequest
             {
-                GameId = Game.Id,
-                GameName = Game.Name,
+                Id = Game.Id,
+                DisplayName = Game.Name,
 
                 DownloadUrl = GameData.DownloadURL,
-                MappingDir = dstPath.Replace(EmulatorMapping.InstallPathToken, dstPath),
-                InstallDir = installDir,
-                GamePath = downloadFilePath,
-                Use7z = _plugin.Settings.Use7z,
-                PathTo7Z = _plugin.Settings.PathTo7z,
+                DownloadPath = tempPath,
 
-                HasMultipleFiles = GameData.HasMultipleFiles,
-                AutoExtract = GameData.Mapping != null && GameData.Mapping.AutoExtract,
-
-                // Callbacks into Playnite install pipeline
-                OnInstalled = async installedArgs =>
+                OnDownloadComplete = async (item, req) =>
                 {
-                    var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception(Loc.GetString("InstallGameDataMissing"));
+
+                    var game = _playniteAPI.Library.Games.Get(req.Id) ?? throw new Exception(Loc.GetString("InstallROMDataMissing"));
+                    _plugin.ImportedGames.TryGetValue(game.LibraryGameId ?? "", out var romMLocal);
+                    if (romMLocal == null)
+                        throw new Exception(Loc.GetString("InstallROMDataMissing"));
+
+                    Directory.CreateDirectory(installDir);
+
+                    // Extract if needed (we treat extract as 0..100 in its own bar)
+                    // This check may need changing in the case where a user has multiple archive files 
+                    if (romMLocal.HasMultipleFiles || (GameData.Mapping.AutoExtract && ArchiveExtractor.IsFileCompressed(req.DownloadPath)))
+                    {
+
+                        item.SetStatus(DownloadStatus.Extracting, Loc.GetString("DownloadStatusExtracting"));
+                        _logger?.Info($"Extracting {req.DownloadPath}...");
+
+                        if (_plugin.Settings.Use7z && !string.IsNullOrEmpty(_plugin.Settings.PathTo7z) && _plugin.Settings.PathTo7z.EndsWith("7z.exe", StringComparison.OrdinalIgnoreCase))
+                        {
+                            ArchiveExtractor.ExtractArchiveWith7z(_plugin.Settings.PathTo7z, req.DownloadPath, installDir, item, item.Cts.Token);
+                        }
+                        else
+                        {
+                            ArchiveExtractor.ExtractArchiveWithEntryProgress(req.DownloadPath, installDir, item, item.Cts.Token);
+                        }
+                        try { File.Delete(req.DownloadPath); } catch { }
+
+                        romMLocal.InstalledPath = installDir;
+                        romMLocal.IsInstalledPathDirectory = true;
+                    }
+                    else if (File.Exists(req.DownloadPath))
+                    {
+                        var installedPath = Path.Combine(installDir, Path.GetFileName(req.DownloadPath));
+
+                        File.Copy(req.DownloadPath, installedPath, true);
+
+                        romMLocal.InstalledPath = installedPath;
+                        romMLocal.IsInstalledPathDirectory = false;
+                    }
+
+                    romMLocal.Save();
                     game.InstallState = InstallState.Installed;
                     await _playniteAPI.Library.Games.UpdateAsync(game);
 
-                    await GameInstalledAsync(installedArgs);
+                    if (File.Exists(req.DownloadPath))
+                        File.Delete(req.DownloadPath);
+
+                    await GameInstalledAsync(new()
+                    {
+                        InstallDirectory = romMLocal.InstalledPath,
+                    });
+
                 },
 
                 OnCancelled = async () =>

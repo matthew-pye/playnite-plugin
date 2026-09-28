@@ -21,7 +21,7 @@ namespace Graviton.Install.Downloads
             var item = btn.Tag as DownloadQueueItem;
             if (item != null)
             {
-                controller.Cancel(item.GameId);
+                controller.Cancel(item.Id);
             }
         }
     }

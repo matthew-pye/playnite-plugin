@@ -2,12 +2,8 @@
 
 using Playnite;
 
-using SharpCompress.Archives;
-
-using System.Diagnostics;
 using System.IO;
-
-using static Playnite.InstallController;
+using System.Net.Http;
 
 namespace Graviton.Install.Downloads
 {
@@ -45,13 +41,13 @@ namespace Graviton.Install.Downloads
         {
             var item = new DownloadQueueItem
             {
-                GameId = req.GameId,
-                GameName = req.GameName,
+                Id = req.Id,
+                DisplayName = req.DisplayName,
                 QueuedOn = DateTime.Now,
                 Cts = new CancellationTokenSource()
             };
 
-            activeDownloads[item.GameId] = item.Cts;
+            activeDownloads[item.Id] = item.Cts;
 
             item.SetStatus(DownloadStatus.Queued, Loc.GetString("DownloadStatusQueued"));
             item.SetProgress(0, 1, true);
@@ -62,9 +58,9 @@ namespace Graviton.Install.Downloads
             Task.Run(async () => await ProcessItem(item, req));
         }
 
-        public void Cancel(string gameId)
+        public void Cancel(string Id)
         {
-            if (activeDownloads.TryGetValue(gameId, out var cts))
+            if (activeDownloads.TryGetValue(Id, out var cts))
             {
                 try
                 {
@@ -83,12 +79,17 @@ namespace Graviton.Install.Downloads
 
             try
             {
-                await DownloadAndInstall(item, req).ConfigureAwait(false);
+                await Download(item, req).ConfigureAwait(false);
+
+                item.SetStatus(DownloadStatus.Installing, Loc.GetString("Installing"));
+                item.SetProgress(item.ProgressMaximum, item.ProgressMaximum, false);
+
+                await req.OnDownloadComplete.Invoke(item, req);
 
                 item.SetStatus(DownloadStatus.Completed, Loc.GetString("DownloadStatusCompleted"));
                 item.SetProgress(item.ProgressMaximum, item.ProgressMaximum, false);
 
-                await Task.Delay(1000).ConfigureAwait(false);
+                await Task.Delay(5000).ConfigureAwait(false);
 
                 RemoveFromList(item);
             }
@@ -99,9 +100,7 @@ namespace Graviton.Install.Downloads
 
                 TryCleanupPartialInstall(req);
 
-                req.OnCancelled?.Invoke();
-
-                await Task.Delay(500).ConfigureAwait(false);
+                await req.OnCancelled.Invoke();
                 RemoveFromList(item);
             }
             catch (Exception ex)
@@ -109,19 +108,17 @@ namespace Graviton.Install.Downloads
                 item.SetStatus(DownloadStatus.Failed, Loc.GetString("DownloadStatusFailed"));
                 TryCleanupPartialInstall(req);
 
-                req.OnFailed?.Invoke(ex);
-
-                await Task.Delay(1500).ConfigureAwait(false);
+                await req.OnFailed.Invoke(ex);
                 RemoveFromList(item);
             }
             finally
             {
-                activeDownloads.TryRemove(item.GameId, out _);
+                activeDownloads.TryRemove(item.Id, out _);
                 concurrencyGate.Release();
             }
         }
 
-        private async Task DownloadAndInstall(DownloadQueueItem item, DownloadRequest req)
+        private async Task Download(DownloadQueueItem item, DownloadRequest req)
         {
             var ct = item.Cts.Token;
 
@@ -132,10 +129,18 @@ namespace Graviton.Install.Downloads
             if (response == null || response.Content == null)
                 throw new Exception(Loc.GetString("DownloadServerNullResponse"));
 
+            if (response.Status == null || (int)response.Status < 200 || (int)response.Status >= 300)
+            {
+                throw new HttpRequestException($"Download request returned HTTP {(int?)response.Status} ({response.Status})");
+            }
+
             var totalBytes = response.Content.Headers.ContentLength;
             item.SetProgress(0, totalBytes ?? 1, !totalBytes.HasValue);
 
-            Directory.CreateDirectory(req.InstallDir);
+            var downloadDirectory = Path.GetDirectoryName(req.DownloadPath);
+
+            if (!string.IsNullOrEmpty(downloadDirectory))
+                Directory.CreateDirectory(downloadDirectory);
 
             byte[] buffer = new byte[1024 * 256];
             long downloaded = 0;
@@ -143,7 +148,7 @@ namespace Graviton.Install.Downloads
             const long uiUpdateThreshold = 1024 * 512; // 512KB
 
             using (var httpStream = response.Content.ReadAsStream())
-            using (var fileStream = new FileStream(req.GamePath, FileMode.Create, FileAccess.Write, FileShare.None, buffer.Length, true))
+            using (var fileStream = new FileStream(req.DownloadPath, FileMode.Create, FileAccess.Write, FileShare.None, buffer.Length, true))
             {
                 while (true)
                 {
@@ -176,127 +181,7 @@ namespace Graviton.Install.Downloads
                         }
                     }
                 }
-            }
-  
-            var path = Path.TrimEndingDirectorySeparator(req.InstallDir);
-            var mappingPath = Path.TrimEndingDirectorySeparator(req.MappingDir);
-
-            var game = _playniteAPI.Library.Games.Get(req.GameId) ?? throw new Exception(Loc.GetString("InstallROMDataMissing"));
-            _plugin.ImportedGames.TryGetValue(game.LibraryGameId ?? "", out var romMLocal);
-            if(romMLocal == null)
-                throw new Exception(Loc.GetString("InstallROMDataMissing"));
-
-            // Extract if needed (we treat extract as 0..100 in its own bar)
-            // This check may need changing in the case where a user has multiple archive files 
-            if (req.HasMultipleFiles || (req.AutoExtract && IsFileCompressed(req.GamePath)))
-            {
-                // If InstallPath is the same as the mapping path add place the extracted contents in a folder with the name of the game
-                if (path.CompareTo(mappingPath, StringComparison.OrdinalIgnoreCase) == 0)
-                    path += "\\" + req.GameName + "\\";
-
-                item.SetStatus(DownloadStatus.Extracting, Loc.GetString("DownloadStatusExtracting"));
-                Logger?.Info($"Extracting {req.GamePath}...");
-
-                if (req.Use7z && !string.IsNullOrEmpty(req.PathTo7Z) && req.PathTo7Z.EndsWith("7z.exe", StringComparison.OrdinalIgnoreCase))
-                {
-                    ExtractArchiveWith7z(req.PathTo7Z, req.GamePath, req.InstallDir, item, ct);
-                }
-                else
-                {
-                    ExtractArchiveWithEntryProgress(req.GamePath, req.InstallDir, item, ct);
-                }
-                try { File.Delete(req.GamePath); } catch { }
-
-                romMLocal.InstalledPath = path;
-                romMLocal.IsInstalledPathDirectory = true;
-            }
-            else if (path.CompareTo(mappingPath, StringComparison.OrdinalIgnoreCase) == 0)
-            {
-                romMLocal.InstalledPath = req.GamePath;
-            }
-            else
-            {
-                romMLocal.InstalledPath = path;
-                romMLocal.IsInstalledPathDirectory = true;
-            }
-
-            romMLocal.Save();
-
-            // Build rom list + signal installed
-            var roms = req.BuildRoms != null ? req.BuildRoms() : null;
-
-            req.OnInstalled?.Invoke(new GameInstalledArgs
-            {
-                InstallDirectory = req.InstallDir,
-                //InstallSize = req.
-            });
-        }
-
-        private static bool IsFileCompressed(string filePath)
-        {
-            if (Path.GetExtension(filePath).Equals(".iso", StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            return ArchiveFactory.IsArchive(filePath, out var type);
-        }
-
-
-        private void ExtractArchiveWith7z(string pathTo7z, string archivePath, string installDir, DownloadQueueItem item, CancellationToken ct)
-        {
-            if (archivePath == null || archivePath.Contains("../") || archivePath.Contains(@"..\"))
-            {
-                throw new ArgumentException("Invalid archive path");
-            }
-            if (installDir == null || installDir.Contains("../") || installDir.Contains(@"..\"))
-            {
-                throw new ArgumentException("Invalid install directory path");
-            }
-
-            ProcessStartInfo startInfo = new ProcessStartInfo
-            {
-                FileName = pathTo7z,
-                Arguments = $"x \"{archivePath.Replace("\"", "\\\"")}\" -o\"{installDir.Replace("\"", "\\\"")}\" -y",
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            ct.ThrowIfCancellationRequested();
-            using (Process? process = Process.Start(startInfo))
-            { 
-                process?.WaitForExit();
-                if (process?.ExitCode != 0)
-                {
-                    throw new Exception(Loc.GetString("ArchiveExtractionFailed", ("Path", archivePath), ("ExitCode", process?.ExitCode.ToString() ?? "?")));
-                }
-            }
-        }
-        private void ExtractArchiveWithEntryProgress(string archivePath, string installDir, DownloadQueueItem item, CancellationToken ct)
-        {
-            using (var archive = ArchiveFactory.OpenArchive(archivePath))
-            {
-                var entries = archive.Entries.Where(e => !e.IsDirectory).ToList();
-                int total = entries.Count;
-                int done = 0;
-
-                if (!Directory.Exists(installDir))
-                    Directory.CreateDirectory(installDir);
-
-                item.SetProgress(0, Math.Max(1, total), false);
-
-                foreach (var entry in entries)
-                {
-                    ct.ThrowIfCancellationRequested();
-
-                    entry.WriteToDirectory(installDir);
-
-                    done++;
-                    item.SetProgress(done, total, false);
-                    var pct = total > 0 ? (double)done / total * 100.0 : 100.0;
-                    item.SetStatus(DownloadStatus.Extracting, Loc.GetString("DownloadStatusExtractingPct", ("Percent", pct.ToString("0"))));
-                }
-            }
+            }     
         }
 
         private void RemoveFromList(DownloadQueueItem item)
@@ -311,15 +196,16 @@ namespace Graviton.Install.Downloads
             try
             {
                 // delete partial downloaded file first
-                SafeDeleteFileWithRetry(req.GamePath);
+                SafeDeleteFileWithRetry(req.DownloadPath);
 
                 // delete folder (recursively) if it exists
-                SafeDeleteDirectoryWithRetry(req.InstallDir);
+                var tempDir = Path.GetDirectoryName(req.DownloadPath);
+                if (!string.IsNullOrEmpty(tempDir))
+                    SafeDeleteDirectoryWithRetry(tempDir);
             }
             catch (Exception ex)
             {
-                Logger?.Warn(ex, $"Cleanup failed for {req.GameName} ({req.GameId}).");
-                // don't rethrow - cancel should still succeed
+                Logger?.Warn(ex, $"Cleanup failed for {req.DisplayName}.");
             }
         }
 

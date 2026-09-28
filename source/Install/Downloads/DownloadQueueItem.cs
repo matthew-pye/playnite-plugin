@@ -6,6 +6,7 @@ namespace Graviton.Install.Downloads
     {
         Queued,
         Downloading,
+        Installing,
         Extracting,
         Completed,
         Failed,
@@ -14,8 +15,8 @@ namespace Graviton.Install.Downloads
 
     public class DownloadQueueItem : ObservableObject
     {
-        public string GameId { get; set; } = string.Empty;
-        public string GameName { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
         public string StatusText { get; set; } = string.Empty;
         public DownloadStatus Status { get; set; }
 
