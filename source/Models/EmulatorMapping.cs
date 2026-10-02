@@ -53,7 +53,7 @@ namespace Graviton.Models
         [ObservableProperty][NotifyPropertyChangedFor(nameof(IsSetup))] private string _destinationPath = "";
 
         // Updates
-        [ObservableProperty] private InstallShapes _updateInstallStyle = InstallShapes.None;
+        [ObservableProperty] private InstallStyles _updateInstallStyle = InstallStyles.None;
         [ObservableProperty] private InstallMode _updateInstallMode = InstallMode.SelectOne;
         [ObservableProperty] private string? _updateInstallPath;
         [ObservableProperty] private string? _updateTitleIDDefinitionID = null;
@@ -61,7 +61,7 @@ namespace Graviton.Models
         [ObservableProperty] private ObservableCollection<DynamicArgument> _updateCLIUserArgs = new();
 
         // DLCs
-        [ObservableProperty] private InstallShapes _DLCInstallStyle = InstallShapes.None;
+        [ObservableProperty] private InstallStyles _DLCInstallStyle = InstallStyles.None;
         [ObservableProperty] private InstallMode _DLCInstallMode = InstallMode.All;
         [ObservableProperty] private string? _DLCInstallPath;
         [ObservableProperty] private string? _DLCTitleIDDefinitionID = null;

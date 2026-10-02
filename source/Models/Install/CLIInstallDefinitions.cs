@@ -47,7 +47,7 @@ namespace Graviton.Models.Install
                     ["Vita3K.exe"],
                     [".pkg"],
                     "--pkg \"{FilePath}\"",
-                    [new("zrif.key", Loc.GetString("CLIArgumentZRIF"), " --zrif \"{arg}\"")]
+                    [new("zrif.key", Loc.GetString("CLIArgumentZRIF"), " --zrif \"{Arg}\"")]
                     ),
                 new( // Experimental
                     "vita3k.install-arc",

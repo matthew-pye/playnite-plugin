@@ -11,5 +11,8 @@
         public Func<DownloadQueueItem, DownloadRequest, Task> OnDownloadComplete { get; set; } = async (item, req) => { };
         public Func<Task> OnCancelled { get; set; } = async () => { };
         public Func<Exception, Task> OnFailed { get; set; } = async (ex) => { };
+
+        public TaskCompletionSource<bool> InstallCompletion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task? WaitForInstall { get; set; }
     }
 }

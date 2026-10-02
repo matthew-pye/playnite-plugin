@@ -84,31 +84,6 @@ namespace Graviton.Models.Install
                 child.FindMatchingRoots(shapes, matches);
         }
 
-        private bool MatchesShape(IReadOnlyCollection<string> paths)
-        {
-            return paths.All(HasRelativePath);
-        }
-
-        private bool HasRelativePath(string relativePath)
-        {
-            // Check to see if the shape is looking for a folder name
-            var expectsDirectory = relativePath.EndsWith('/');
-
-            var parts = relativePath.Replace('\\', '/').Trim('/').Split('/',StringSplitOptions.RemoveEmptyEntries);
-
-            RomMFileTree? current = this;
-
-            foreach (var part in parts)
-            {
-                current = current.Children.FirstOrDefault(x => x.Name.Equals(part, StringComparison.OrdinalIgnoreCase));
-
-                if (current == null)
-                    return false;
-            }
-
-            return expectsDirectory ? current.IsDirectory : !current.IsDirectory;
-        }
-
         public List<int> CollectFileIDs()
         {
             var ids = new List<int>();

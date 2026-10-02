@@ -53,9 +53,6 @@ namespace Graviton.Install.Downloads
                 GravitonNotify.Notify("graviton.uninstall.failed", Loc.GetString("UninstallFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                 return;
             }
-            
-
-            //Game.Roms.Clear();
 
             await GameUninstalledAsync(new GameUninstalledArgs());
         }

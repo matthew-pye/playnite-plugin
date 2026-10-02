@@ -2,11 +2,11 @@
 
 namespace Graviton.Models.Install
 {
-    public enum InstallShapes
+    public enum InstallStyles
     {
         None,
-        ExternalFolder,
-        TitleIDFolder,
+        Folder,
+        MappedFolder,
         CLI
 
     }

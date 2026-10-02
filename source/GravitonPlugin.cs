@@ -342,7 +342,6 @@ namespace Graviton
             return await StatusController!.GetAchievements(args);
         }
 
-        #region Game Session
         public override async Task<List<InstallController>> GetInstallActionsAsync(GetInstallActionsArgs args)
         {
             if (args.Game.LibraryId == Id)
@@ -351,7 +350,6 @@ namespace Graviton
 
                 try
                 {
-
                     if (!ImportedGames.ContainsKey(args.Game.LibraryGameId ?? ""))
                         throw new Exception(Loc.GetString("InstallGameIdNotFound", ("GameID", args.Game.LibraryGameId ?? "")));
 
@@ -384,6 +382,31 @@ namespace Graviton
             return [];
         }
 
+        public override async Task<List<UninstallController>> GetUninstallActionsAsync(GetUninstallActionsArgs args)
+        {
+            if (args.Game.LibraryId == Id)
+            {
+                Logger?.Trace($"Started getting uninstall actions");
+
+                try
+                {
+                    if (!ImportedGames.ContainsKey(args.Game.LibraryGameId ?? ""))
+                        throw new Exception(Loc.GetString("InstallGameIdNotFound", ("GameID", args.Game.LibraryGameId ?? "")));
+
+                    return [new GravitonUninstallController(args.Game)];
+
+                }
+                catch (Exception ex)
+                {
+                    GravitonNotify.Notify("graviton.install.idmalformed", Loc.GetString("InstallFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
+                    return [];
+                }
+            }
+
+            return [];
+        }
+
+        #region Game Session
         public override async Task<List<PlayController>> GetPlayActionsAsync(GetPlayActionsArgs args)
         {    
             if (args.Game.LibraryId == Id && ImportedGames.ContainsKey(args.Game.LibraryGameId!))

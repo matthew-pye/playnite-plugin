@@ -1,4 +1,7 @@
-﻿using Graviton.Models.Notifications;
+﻿using Graviton.Install;
+using Graviton.Models.Notifications;
+
+using Playnite;
 
 using System.Windows;
 using System.Windows.Controls;
@@ -160,6 +163,102 @@ namespace Graviton.Settings
 
             GravitonNotify.Notify("graviton.dev.login.test", "Reverted login status", GravitonSeverity.Info);
             testInProgress = false;
+        }
+
+        private void SequentialCandidateSelector_Click(object sender, RoutedEventArgs e)
+        {
+            var window = GravitonPlugin.PlayniteApi.CreateWindow(new WindowCreationOptions
+            {
+                ShowMinimizeButton = false,
+                ShowMaximizeButton = true,
+                ShowCloseButton = true,
+                DefaultWidth = 800,
+                DefaultHeight = 450
+            });
+
+            List<UpdateDLCCandidate> candidates = new()
+            {
+                new("v1.1", [1,2,3], null, 1245363),
+                new("v1.2", [1,2,3], null, 43634),
+                new("v1.3", [1,2,3], null, 3463463463),
+                new("v1.4", [1,2,3], null, 344),
+                new("v2.0", [1,2,3], null, 347433476),
+                new("v2.3", [1,2,3], null, 34634),
+                new("v3.1", [1,2,3], null, 4585346389342),
+                new("v3.3", [1,2,3], null, 5685),
+            };
+
+            var selector = new CandidateSelector(candidates, Models.Install.InstallMode.Sequential, "Updates");
+
+            window.Title = $"Install Updates";
+            window.Content = selector;
+            window.Owner = GravitonPlugin.PlayniteApi.GetLastActiveWindow();
+            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            window.ShowDialog();
+        }
+
+        private void SelectManyCandidateSelector_Click(object sender, RoutedEventArgs e)
+        {
+            var window = GravitonPlugin.PlayniteApi.CreateWindow(new WindowCreationOptions
+            {
+                ShowMinimizeButton = false,
+                ShowMaximizeButton = true,
+                ShowCloseButton = true,
+                DefaultWidth = 800,
+                DefaultHeight = 450
+            });
+
+            List<UpdateDLCCandidate> candidates = new()
+            {
+                new("v1.1", [1,2,3], null, 1245363),
+                new("v1.2", [1,2,3], null, 43634),
+                new("v1.3", [1,2,3], null, 3463463463),
+                new("v1.4", [1,2,3], null, 344),
+                new("v2.0", [1,2,3], null, 347433476),
+                new("v2.3", [1,2,3], null, 34634),
+                new("v3.1", [1,2,3], null, 4585346389342),
+                new("v3.3", [1,2,3], null, 5685),
+            };
+
+            var selector = new CandidateSelector(candidates, Models.Install.InstallMode.SelectMany, "Updates");
+
+            window.Title = $"Install Updates";
+            window.Content = selector;
+            window.Owner = GravitonPlugin.PlayniteApi.GetLastActiveWindow();
+            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            window.ShowDialog();
+        }
+
+        private void SelectOneCandidateSelector_Click(object sender, RoutedEventArgs e)
+        {
+            var window = GravitonPlugin.PlayniteApi.CreateWindow(new WindowCreationOptions
+            {
+                ShowMinimizeButton = false,
+                ShowMaximizeButton = true,
+                ShowCloseButton = true,
+                DefaultWidth = 800,
+                DefaultHeight = 450
+            });
+
+            List<UpdateDLCCandidate> candidates = new()
+            {
+                new("v1.1", [1,2,3], null, 1245363),
+                new("v1.2", [1,2,3], null, 43634),
+                new("v1.3", [1,2,3], null, 3463463463),
+                new("v1.4", [1,2,3], null, 344),
+                new("v2.0", [1,2,3], null, 347433476),
+                new("v2.3", [1,2,3], null, 34634),
+                new("v3.1", [1,2,3], null, 4585346389342),
+                new("v3.3", [1,2,3], null, 5685),
+            };
+
+            var selector = new CandidateSelector(candidates, Models.Install.InstallMode.SelectOne, "Updates");
+
+            window.Title = $"Install Updates";
+            window.Content = selector;
+            window.Owner = GravitonPlugin.PlayniteApi.GetLastActiveWindow();
+            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            window.ShowDialog();
         }
     }
 }

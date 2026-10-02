@@ -270,7 +270,7 @@ namespace Graviton.Play
             return controllers;
         }
         
-        private string? FindEmulatorExecutable(string installDir, EmulatorProfile profile, string overrideExecutable = "")
+        public string? FindEmulatorExecutable(string installDir, EmulatorProfile profile, string overrideExecutable = "")
         {
             if (string.IsNullOrEmpty(installDir))
             {

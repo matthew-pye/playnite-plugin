@@ -105,7 +105,7 @@
 
             <ObjectDataProvider x:Key="InstallStyleValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
                 <ObjectDataProvider.MethodParameters>
-                    <x:Type TypeName="installmodel:InstallShapes"/>
+                    <x:Type TypeName="installmodel:InstallStyles"/>
                 </ObjectDataProvider.MethodParameters>
             </ObjectDataProvider>
 
@@ -155,7 +155,7 @@
         <!-- #endregion -->
 
         <!-- #region Mapping Options -->
-        <Grid Name="MappingOptions" Grid.Column="1" Visibility="Visible">
+        <Grid Name="MappingOptions" Grid.Column="1" Visibility="Collapsed">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -418,7 +418,7 @@
                                     <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding UpdateInstallStyle}" Value="TitleIDFolder">
+                                            <DataTrigger Binding="{Binding UpdateInstallStyle}" Value="MappedFolder">
                                                 <Setter Property="Visibility" Value="Visible"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -442,10 +442,10 @@
                                     <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding UpdateInstallStyle}" Value="ExternalFolder">
+                                            <DataTrigger Binding="{Binding UpdateInstallStyle}" Value="Folder">
                                                 <Setter Property="Visibility" Value="Visible"/>
                                             </DataTrigger>
-                                            <DataTrigger Binding="{Binding UpdateInstallStyle}" Value="TitleIDFolder">
+                                            <DataTrigger Binding="{Binding UpdateInstallStyle}" Value="MappedFolder">
                                                 <Setter Property="Visibility" Value="Visible"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -590,7 +590,7 @@
                                     <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding DLCInstallStyle}" Value="TitleIDFolder">
+                                            <DataTrigger Binding="{Binding DLCInstallStyle}" Value="MappedFolder">
                                                 <Setter Property="Visibility" Value="Visible"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -614,10 +614,10 @@
                                     <Style TargetType="Grid" BasedOn="{StaticResource Graviton.SettingsToggleRow}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding DLCInstallStyle}" Value="ExternalFolder">
+                                            <DataTrigger Binding="{Binding DLCInstallStyle}" Value="Folder">
                                                 <Setter Property="Visibility" Value="Visible"/>
                                             </DataTrigger>
-                                            <DataTrigger Binding="{Binding DLCInstallStyle}" Value="TitleIDFolder">
+                                            <DataTrigger Binding="{Binding DLCInstallStyle}" Value="MappedFolder">
                                                 <Setter Property="Visibility" Value="Visible"/>
                                             </DataTrigger>
                                         </Style.Triggers>

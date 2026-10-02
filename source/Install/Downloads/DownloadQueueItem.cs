@@ -7,6 +7,7 @@ namespace Graviton.Install.Downloads
         Queued,
         Downloading,
         Installing,
+        Waiting,
         Extracting,
         Completed,
         Failed,

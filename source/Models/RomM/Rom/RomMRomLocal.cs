@@ -17,6 +17,9 @@ namespace Graviton.Models.RomM.Rom
         public string DownloadURL { get; set; }
         public string InstallPath { get; set; }
 
+        public string SaveTarget { get; set; }
+        public string TitleID { get; set; }
+
         public int PatchFileID { get; set; }
 
         public EmulatorMapping? Mapping { get; set; }

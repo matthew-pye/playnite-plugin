@@ -77,6 +77,20 @@
 
         <Border Grid.Column="1" Grid.RowSpan="100" BorderThickness="1" CornerRadius="3" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Width="1" HorizontalAlignment="Right" Margin="0,0,-1,0"/>
 
+        <TextBlock x:Name="UITests" Text="UI Tests" Grid.Row="0" Grid.Column="2" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Margin="5,5,10,5"/>
+
+        <Button Click="SequentialCandidateSelector_Click" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock Text="Sequential Candidate selector"/>
+        </Button>
+
+        <Button Click="SelectManyCandidateSelector_Click" Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock Text="Select Many Candidate selector"/>
+        </Button>
+
+        <Button Click="SelectOneCandidateSelector_Click" Grid.Row="3" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5">
+            <TextBlock Text="Select One Candidate selector"/>
+        </Button>
+
     </Grid>
 
 </UserControl>

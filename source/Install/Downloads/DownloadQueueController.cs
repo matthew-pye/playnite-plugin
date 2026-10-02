@@ -75,23 +75,59 @@ namespace Graviton.Install.Downloads
 
         private async Task ProcessItem(DownloadQueueItem item, DownloadRequest req)
         {
+            bool downloadFailed = false;
+
             await concurrencyGate.WaitAsync().ConfigureAwait(false);
 
             try
             {
                 await Download(item, req).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                item.SetStatus(DownloadStatus.Canceled, Loc.GetString("DownloadStatusCanceled"));
+                item.SetProgress(0, 1, false);
 
-                item.SetStatus(DownloadStatus.Installing, Loc.GetString("Installing"));
-                item.SetProgress(item.ProgressMaximum, item.ProgressMaximum, false);
+                TryCleanupPartialInstall(req);
 
+                req.InstallCompletion.TrySetCanceled();
+                await req.OnCancelled.Invoke();
+                
+                await Task.Delay(3000).ConfigureAwait(false);
+                downloadFailed = true;
+            }
+            catch (Exception ex)
+            {
+                item.SetStatus(DownloadStatus.Failed, Loc.GetString("DownloadStatusFailed"));
+                TryCleanupPartialInstall(req);
+
+                req.InstallCompletion.TrySetException(ex);
+                await req.OnFailed.Invoke(ex);
+                
+                await Task.Delay(3000).ConfigureAwait(false);
+                downloadFailed = true;
+            }
+            finally 
+            {
+                concurrencyGate.Release();
+            }
+
+            // Exit if download failed
+            if (downloadFailed)
+            {
+                activeDownloads.TryRemove(item.Id, out _);
+                RemoveFromList(item);
+                return;
+            }
+               
+            try
+            {
                 await req.OnDownloadComplete.Invoke(item, req);
 
                 item.SetStatus(DownloadStatus.Completed, Loc.GetString("DownloadStatusCompleted"));
                 item.SetProgress(item.ProgressMaximum, item.ProgressMaximum, false);
 
-                await Task.Delay(5000).ConfigureAwait(false);
-
-                RemoveFromList(item);
+                req.InstallCompletion.TrySetResult(true);
             }
             catch (OperationCanceledException)
             {
@@ -101,7 +137,8 @@ namespace Graviton.Install.Downloads
                 TryCleanupPartialInstall(req);
 
                 await req.OnCancelled.Invoke();
-                RemoveFromList(item);
+
+                req.InstallCompletion.TrySetCanceled();
             }
             catch (Exception ex)
             {
@@ -109,12 +146,15 @@ namespace Graviton.Install.Downloads
                 TryCleanupPartialInstall(req);
 
                 await req.OnFailed.Invoke(ex);
-                RemoveFromList(item);
+
+                req.InstallCompletion.TrySetException(ex);
             }
             finally
             {
                 activeDownloads.TryRemove(item.Id, out _);
-                concurrencyGate.Release();
+
+                await Task.Delay(3000).ConfigureAwait(false);
+                RemoveFromList(item);
             }
         }
 
