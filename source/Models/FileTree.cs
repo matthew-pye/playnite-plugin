@@ -1,6 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
+using Graviton.Models.Install;
+
 using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 
 namespace Graviton.Models
 {
@@ -23,20 +26,41 @@ namespace Graviton.Models
         private bool HasRelativePath(string relativePath)
         {
             var expectsDirectory = relativePath.EndsWith('/');
-
             var parts = relativePath.Replace('\\', '/').Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
 
             FileTreeNode<TNode>? current = this;
 
             foreach (var part in parts)
             {
-                current = current.Children.FirstOrDefault(x => x.Name.Equals(part, StringComparison.OrdinalIgnoreCase));
+                current = current.Children.FirstOrDefault(x => NameMatches(x.Name, part));
 
                 if (current == null)
                     return false;
             }
 
             return expectsDirectory ? current.IsDirectory : !current.IsDirectory;
+        }
+
+        private static bool NameMatches(string actual, string pattern)
+        {
+            if (pattern.StartsWith(TitleIDInstallDefinitions.RegexPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var regex = pattern.Substring(TitleIDInstallDefinitions.RegexPrefix.Length);
+                
+                if (string.IsNullOrEmpty(regex))
+                    return false;
+
+                try
+                {
+                    return Regex.IsMatch(actual, regex, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                }
+                catch (ArgumentException)
+                {
+                    return false;
+                }
+            }
+
+            return actual.Equals(pattern, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

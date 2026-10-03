@@ -3,9 +3,11 @@
 using System.IO;
 
 namespace Graviton.Models.Install
-{ 
+{
     internal static class TitleIDInstallDefinitions
     {
+        public static string RegexPrefix = "{!RGX!}";
+
         private static readonly List<TitleIDInstallDefinition> Definitions = new();
 
         internal static IReadOnlyList<TitleIDInstallDefinition> All => Definitions;
@@ -36,7 +38,9 @@ namespace Graviton.Models.Install
                     ["cemu.exe"],
                     "{FolderPath}\\0005000e\\{TitleID}\\",
                     "Select Cemu's mlc01\\usr\\title folder.",
-                    []
+                    [
+                        new (["code/", "content/", "meta/"])
+                    ]
                 ),
                 new(
                     "cemu.dlc",
@@ -45,13 +49,15 @@ namespace Graviton.Models.Install
                     ["cemu.exe"],
                     "{FolderPath}\\0005000c\\{TitleID}\\",
                     "Select Cemu's mlc01\\usr\\title folder.",
-                    []
+                    [
+                        new (["code/", "content/", "meta/"])
+                    ]
                 ),
                 
                 // Xenia
                 new(
-                    "xenia.update",
-                    "Xenia - Update",
+                    "xenia.tuupdate",
+                    "Xenia - TU Update",
                     ["xenia", "xenia_edge"],
                     [
                         "xenia.exe",
@@ -61,22 +67,27 @@ namespace Graviton.Models.Install
                     ],
                     "{FolderPath}\\{TitleID}\\000B0000\\",
                     "Select Xenia's content root folder, usually Documents\\Xenia.",
-                    []
-                ),
-                new(
-                    "xenia.dlc",
-                    "Xenia - DLC",
-                    ["xenia", "xenia_edge"],
                     [
-                        "xenia.exe",
-                        "xenia_canary.exe",
-                        "xenia_canary_netplay.exe",
-                        "xenia_edge.exe"
-                    ],
-                    "{FolderPath}\\{TitleID}\\00000002\\",
-                    "Select Xenia's content root folder, usually Documents\\Xenia.",
-                    []
+                        new ([@"{!RGX!}^TU_[A-Z0-9]{7}_[0-9]{13}\."])
+                    ]
                 ),
+                
+                //new( // This will require looking into STFS extraction and building of package headers or have the xenia team expose `Install Content` through the CLI
+                //    "xenia.dlc",
+                //    "Xenia - DLC",
+                //    ["xenia", "xenia_edge"],
+                //    [
+                //        "xenia.exe",
+                //        "xenia_canary.exe",
+                //        "xenia_canary_netplay.exe",
+                //        "xenia_edge.exe"
+                //    ],
+                //    "{FolderPath}\\{TitleID}\\",
+                //    "Select Xenia's content root folder, usually Documents\\Xenia.",
+                //    [
+                //        new (["00000002/"]),
+                //    ]
+                //),
                 
                 // shadPS4
                 new(
@@ -86,16 +97,20 @@ namespace Graviton.Models.Install
                     ["shadPS4.exe", "shadPS4QtLauncher.exe"],
                     "{FolderPath}\\{TitleID}-UPDATE\\",
                     "Select the folder containing your installed shadPS4 games.",
-                    []
+                    [
+                        new (["sce_sys/param.sfo"])
+                    ]
                 ),
                 new(
                     "shadps4.dlc",
                     "shadPS4 - DLC",
                     ["shadps4"],
                     ["shadPS4.exe", "shadPS4QtLauncher.exe"],
-                    "{FolderPath}\\{TitleID}\\",
+                    "{FolderPath}\\{TitleID}-{CandidateName}\\",
                     "Select shadPS4's add-on content folder.",
-                    []
+                    [
+                        new (["sce_sys/param.sfo"])
+                    ]
                 ),
 
             ]);

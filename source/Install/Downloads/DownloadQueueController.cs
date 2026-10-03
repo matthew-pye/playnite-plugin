@@ -122,6 +122,13 @@ namespace Graviton.Install.Downloads
                
             try
             {
+                if (req.WaitForInstall != null)
+                {
+                    item.SetProgress(0, 1, true);
+                    item.SetStatus(DownloadStatus.Waiting, Loc.GetString("DownloadStatusWaiting"));
+                    await req.WaitForInstall.WaitAsync(item.Cts.Token);
+                }
+
                 await req.OnDownloadComplete.Invoke(item, req);
 
                 item.SetStatus(DownloadStatus.Completed, Loc.GetString("DownloadStatusCompleted"));
@@ -136,18 +143,17 @@ namespace Graviton.Install.Downloads
 
                 TryCleanupPartialInstall(req);
 
+                req.InstallCompletion.TrySetCanceled();
                 await req.OnCancelled.Invoke();
 
-                req.InstallCompletion.TrySetCanceled();
             }
             catch (Exception ex)
             {
                 item.SetStatus(DownloadStatus.Failed, Loc.GetString("DownloadStatusFailed"));
                 TryCleanupPartialInstall(req);
 
-                await req.OnFailed.Invoke(ex);
-
                 req.InstallCompletion.TrySetException(ex);
+                await req.OnFailed.Invoke(ex); 
             }
             finally
             {

@@ -12,6 +12,18 @@ namespace Graviton.Models.RomM.Rom
         Other = 1
     }
 
+    public static class RomMCategory
+    {
+        public static readonly string Update = "update";
+        public static readonly string DLC = "dlc";
+        public static readonly string Patch = "patch";
+        public static readonly string Hack = "hack";
+        public static readonly string Translation = "translation";
+        public static readonly string Demo = "demo";
+        public static readonly string Prototype = "prototype";
+
+    }
+
     public class RomMArchiveMembers
     {
         [JsonPropertyName("name")]

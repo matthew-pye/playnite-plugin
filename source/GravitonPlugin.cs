@@ -363,7 +363,10 @@ namespace Graviton
                         DownloadURL = gameinfo.DownloadURL ?? "",
                         InstallPath = gameinfo.InstallPath ?? "",
                         PatchFileID = gameinfo.PatchFileId,
-                        Mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId == gameinfo.MappingID)
+                        Mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId == gameinfo.MappingID),
+                        SaveTarget = gameinfo.SaveTarget,
+                        TitleID = gameinfo.TitleID,
+
                     };
                     Logger?.Trace($"Created install info\n{JsonSerializer.Serialize(installInfo, new JsonSerializerOptions { WriteIndented = true })}");
 

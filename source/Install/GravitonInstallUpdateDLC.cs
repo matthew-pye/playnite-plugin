@@ -15,15 +15,16 @@ namespace Graviton.Install
         public IReadOnlyCollection<int> FileIDs { get; set; }
         public long FileSize { get; set; } = 0;
         public string? CandidateRoot { get; set; }
-
+        public string? SingleFileRelativePath { get; set; }
         public bool IsSelected { get; set; } = false;
 
-        public UpdateDLCCandidate(string name, string filename, IReadOnlyCollection<int> fileIDs, string? candidateRoot = null, long size = 0)
+        public UpdateDLCCandidate(string name, string filename, IReadOnlyCollection<int> fileIDs, string? candidateRoot = null, string? relativePath = null, long size = 0)
         {
             Name = name;
             FileName = filename;
             FileIDs = fileIDs;
             CandidateRoot = candidateRoot;
+            SingleFileRelativePath = relativePath;
             FileSize = size;
         }
 
@@ -75,15 +76,14 @@ namespace Graviton.Install
                 CLIInstallDefinition? CLIInstaller = null;
                 TitleIDInstallDefinition? titleIDInstaller = null;
 
-                if (category == "update")
+                if (category == RomMCategory.Update)
                 {
                     installshape = mapping.UpdateInstallStyle;
                     CLIInstaller = mapping.UpdateCLIDefinition;
                     titleIDInstaller = mapping.UpdateTitleIDDefinition;
                 }
                     
-
-                if(category == "dlc")   
+                if(category == RomMCategory.DLC)   
                 {
                     installshape = mapping.DLCInstallStyle;
                     CLIInstaller = mapping.DLCCLIDefinition;
@@ -92,18 +92,25 @@ namespace Graviton.Install
 
                 if(installshape == InstallStyles.Folder)
                 {
-                    if (category == "update")
+                    if (category == RomMCategory.Update)
                     {
+                        var files = ROM.Files.Where(x => x.Category == RomMCategory.Update).ToList();
+                        var size = files.Sum(x => x.FileSize ?? 0);
 
-                    }
-                    else if (category == "dlc")
-                    {
-                        var files = ROM.Files.Where(x => x.Category == "dlc").ToList();
-
-                        if(files.Count == 1)
-                            return [new("DLC", files[0].FileName, [.. files.Select(y => y.Id)])];
+                        if (files.Count == 1)
+                            return [new(RomMCategory.Update, files[0].FileName, [.. files.Select(y => y.Id)], null, null, size)];
                         else
-                            return [new("DLC", $"{ROM.Name}-DLC.zip", [.. files.Select(y => y.Id)])];
+                            return [new(RomMCategory.Update, $"{ROM.Name}-Update.zip", [.. files.Select(y => y.Id)], null, null, size)];
+                    }
+                    else if (category == RomMCategory.DLC)
+                    {
+                        var files = ROM.Files.Where(x => x.Category == RomMCategory.DLC).ToList();
+                        var size = files.Sum(x => x.FileSize ?? 0);
+
+                        if (files.Count == 1)
+                            return [new(RomMCategory.DLC, files[0].FileName, [.. files.Select(y => y.Id)], null, null, size)];
+                        else
+                            return [new(RomMCategory.DLC, $"{ROM.Name}-DLC.zip", [.. files.Select(y => y.Id)], null, null, size)];
 
 
                     }
@@ -129,6 +136,7 @@ namespace Graviton.Install
                                 Path.GetFileNameWithoutExtension(file.FileName),
                                 file.FileName,
                                 [file.Id],
+                                null,
                                 null,
                                 file.FileSize ?? 0
                                 ));
@@ -163,42 +171,53 @@ namespace Graviton.Install
                         }
                         
                         if(fileIDs.Count == 1)
+                        {
+                            var file = updatefiles.First(x => x.Id == fileIDs[0]);
+
+                            var relativePath = Path.GetRelativePath(Path.Combine(ROM.FullPath, match.FullPath), file.FullPath);
+
                             candidates.Add(new(
-                            match.Name,
-                            updatefiles.First(x => x.Id == fileIDs[0]).FileName,
-                            fileIDs,
-                            match.FullPath,
-                            candidateSize
+                                                match.Name,
+                                                file.FileName,
+                                                fileIDs,
+                                                null,
+                                                relativePath,
+                                                candidateSize
                             ));
+                        }     
                         else
+                        {
                             candidates.Add(new(
-                            match.Name,
-                            $"{match.Name}.zip",
-                            fileIDs,
-                            match.FullPath,
-                            candidateSize
-                            ));
-
-
+                                               match.Name,
+                                               $"{match.Name}.zip",
+                                               fileIDs,
+                                               match.FullPath,
+                                               null,
+                                               candidateSize
+                           ));
+                        }    
                     }
 
-                    // Check if archive files have the category shape we are looking for
-                    var archiveFiles = updatefiles.Where(x => x.Category == category && x.ArchiveMembers != null).ToList();
-                    if (archiveFiles != null && archiveFiles.Count > 0)
+                    // Check if archive files have the shape we are looking for
+                    var archiveFiles = updatefiles.Where(x => x.ArchiveMembers != null).ToList();
+                    if (archiveFiles.Count > 0)
                     {
                         foreach (var file in archiveFiles)
                         {
                             var arcFileTree = ArchiveMemberTree.Build(file.ArchiveMembers!);
                             var arcMatches = ArchiveMemberTree.FindMatchingRoots(arcFileTree, titleIDInstaller.InstallShapes);
 
-                            foreach (var match in matches)
+                            foreach (var match in arcMatches)
                             {
+                                var isArchiveRoot = string.IsNullOrEmpty(match.FullPath);
+
                                 candidates.Add(new(
-                                    match.Name,
-                                    file.FileName,
-                                    [file.Id],
-                                    match.FullPath,
-                                    file.FileSize ?? 0
+                                                   isArchiveRoot ? Path.GetFileNameWithoutExtension(file.FileName) : match.Name,
+                                                   file.FileName,
+                                                   [file.Id],
+                                                   isArchiveRoot ? null : match.FullPath,
+                                                   null,
+                                                   file.FileSize ?? 0
                                 ));
                             }
                         }

@@ -63,10 +63,10 @@ namespace Graviton.Install
                 Task? previousInstallTask = null;
 
                 if (GameData.Mapping?.UpdateInstallStyle != InstallStyles.None)
-                    previousInstallTask = await BuildUpdateDLCRequests(rom, "update", previousInstallTask);
+                    previousInstallTask = await BuildUpdateDLCRequests(rom, RomMCategory.Update, previousInstallTask);
 
                 if (GameData.Mapping?.DLCInstallStyle != InstallStyles.None)
-                    previousInstallTask = await BuildUpdateDLCRequests(rom, "dlc", previousInstallTask);
+                    previousInstallTask = await BuildUpdateDLCRequests(rom, RomMCategory.DLC, previousInstallTask);
 
             }
             catch (Exception)
@@ -165,7 +165,7 @@ namespace Graviton.Install
                     {
                         var installedPath = Path.Combine(installDir, Path.GetFileName(req.DownloadPath));
 
-                        File.Copy(req.DownloadPath, installedPath, true);
+                        CopyFileWithProgress(req.DownloadPath, installedPath, item, item.Cts.Token);
 
                         romMLocal.InstalledPath = installedPath;
                         romMLocal.IsInstalledPathDirectory = false;
@@ -252,7 +252,7 @@ namespace Graviton.Install
                 return previousInstall;
             }
 
-            var installmode = category == "update" ? GameData.Mapping.UpdateInstallMode : GameData.Mapping.DLCInstallMode;
+            var installmode = category == RomMCategory.Update ? GameData.Mapping.UpdateInstallMode : GameData.Mapping.DLCInstallMode;
 
             if (installmode != InstallMode.All)
             {
@@ -271,14 +271,14 @@ namespace Graviton.Install
             foreach (var candidate in candidates.Where(x => x.IsSelected))
             {
                 var reqID = Guid.NewGuid().ToString();
-                var installStyle = category == "update" ? GameData.Mapping.UpdateInstallStyle : GameData.Mapping.DLCInstallStyle;
+                var installStyle = category == RomMCategory.Update ? GameData.Mapping.UpdateInstallStyle : GameData.Mapping.DLCInstallStyle;
 
                 var req = new DownloadRequest
                 {
                     Id = reqID,
                     DisplayName = $"{Game.Name} - {candidate.Name}",
 
-                    DownloadUrl = $"/api/roms/{ROM.Id}/content/{candidate.Name}?file_ids={string.Join(',', candidate.FileIDs)}",
+                    DownloadUrl = $"/api/roms/{ROM.Id}/content/{Uri.EscapeDataString(candidate.Name)}?file_ids={string.Join(',', candidate.FileIDs)}",
                     DownloadPath = Path.Combine(_plugin.PluginDataPath, "temp", reqID, candidate.FileName),
 
                     // In CLI mode candidates should be installed one after the other 
@@ -286,19 +286,7 @@ namespace Graviton.Install
 
                     OnDownloadComplete = async (item, req) =>
                     {
-                        if (req.WaitForInstall != null)
-                        {
-                            item.SetProgress(0, 1, true);
-                            item.SetStatus(DownloadStatus.Waiting, Loc.GetString("DownloadStatusWaiting"));
-                            await req.WaitForInstall;
-                        }
-                           
                         await InstallCandidate(item, req, candidate, installStyle, category);
-                    },
-
-                    OnCancelled = async () =>
-                    {
-
                     },
 
                     OnFailed = async ex =>
@@ -323,11 +311,11 @@ namespace Graviton.Install
 
             if (style == InstallStyles.Folder || style == InstallStyles.MappedFolder)
             {
-                if (category == "update" && !string.IsNullOrEmpty(GameData.Mapping?.UpdateInstallPath))
+                if (category == RomMCategory.Update && !string.IsNullOrEmpty(GameData.Mapping?.UpdateInstallPath))
                 {
                     installPath = Path.Combine(GameData.Mapping.UpdateInstallPath, Game.Name);
                 }
-                else if (category == "dlc" && !string.IsNullOrEmpty(GameData.Mapping?.DLCInstallPath))
+                else if (category == RomMCategory.DLC && !string.IsNullOrEmpty(GameData.Mapping?.DLCInstallPath))
                 {
                     installPath = Path.Combine(GameData.Mapping.DLCInstallPath, Game.Name);
                 }
@@ -351,8 +339,8 @@ namespace Graviton.Install
                     {
                         if(!Directory.Exists(installPath))
                             Directory.CreateDirectory(installPath!);
-                        
-                        File.Copy(req.DownloadPath, Path.Combine(installPath!, Path.GetFileName(req.DownloadPath)), true);
+
+                        CopyFileWithProgress(req.DownloadPath, Path.Combine(installPath!, Path.GetFileName(req.DownloadPath)), item, item.Cts.Token);
                     }    
                     else
                         ArchiveExtractor.ExtractArchiveWithEntryProgress(req.DownloadPath, installPath!, item, item.Cts.Token);
@@ -380,8 +368,8 @@ namespace Graviton.Install
 
             var mapping = GameData.Mapping!;
 
-            CLIInstallDefinition? definition = category == "update" ? GameData.Mapping?.UpdateCLIDefinition : category == "dlc" ? GameData.Mapping?.DLCCLIDefinition : null;
-            List<DynamicArgument>? dynamicArgs = category == "update" ? GameData.Mapping?.UpdateCLIUserArgs.ToList() : category == "dlc" ? GameData.Mapping?.DLCCLIUserArgs.ToList() : null;
+            CLIInstallDefinition? definition = category == RomMCategory.Update ? GameData.Mapping?.UpdateCLIDefinition : category == RomMCategory.DLC ? GameData.Mapping?.DLCCLIDefinition : null;
+            List<DynamicArgument>? dynamicArgs = category == RomMCategory.Update ? GameData.Mapping?.UpdateCLIUserArgs.ToList() : category == RomMCategory.DLC ? GameData.Mapping?.DLCCLIUserArgs.ToList() : null;
 
             if (definition == null)
                 throw new Exception("Could not find definition for the category");
@@ -468,12 +456,41 @@ namespace Graviton.Install
 
         private void MappedFolderInstall(DownloadQueueItem item, DownloadRequest req, UpdateDLCCandidate candidate, string category, string workingPath)
         {
-            if (candidate.FileIDs.Count > 1)
+            TitleIDInstallDefinition? definition = category == RomMCategory.Update ? GameData.Mapping?.UpdateTitleIDDefinition : category == RomMCategory.DLC ? GameData.Mapping?.DLCTitleIDDefinition : null;
+            string? installPath = category == RomMCategory.Update ? GameData.Mapping?.UpdateInstallPath : category == RomMCategory.DLC ? GameData.Mapping?.DLCInstallPath : null;
+
+            if (definition == null)
+                throw new Exception("Could not find definition for the category");
+
+            if (installPath == null)
+                throw new Exception("No install path set for the category");
+
+            var installLocation = definition.RuntimeArgs.Replace("{FolderPath}", installPath)
+                                                        .Replace("{TitleID}", GameData.TitleID)
+                                                        .Replace("{SaveTarget}", GameData.SaveTarget)
+                                                        .Replace("{CandidateName}", candidate.Name);
+
+            if (string.IsNullOrEmpty(candidate.SingleFileRelativePath))
+            {
                 ArchiveExtractor.ExtractArchiveWithEntryProgress(req.DownloadPath, workingPath, item, item.Cts.Token);
 
+                if (!string.IsNullOrEmpty(candidate.CandidateRoot))
+                    workingPath = Path.Combine(workingPath, candidate.CandidateRoot);
 
+                if (!Directory.Exists(workingPath))
+                    throw new DirectoryNotFoundException($"Candidate root was not found after extraction: {workingPath}");
+                
+                CopyDirectoryWithProgress(workingPath, installLocation, item, item.Cts.Token);
+            }
+            else
+            {
+                installLocation = Path.Combine(installLocation, candidate.SingleFileRelativePath);
 
-            // TODO
+                if (!Directory.Exists(Path.GetDirectoryName(installLocation)))
+                    Directory.CreateDirectory(Path.GetDirectoryName(installLocation)!);
+
+                CopyFileWithProgress(req.DownloadPath, installLocation, item, item.Cts.Token);
+            }
         }
 
         #endregion
@@ -485,6 +502,63 @@ namespace Graviton.Install
             await _playniteAPI.Library.Games.UpdateAsync(game);
 
             await GameInstallationCancelledAsync(new GameInstallationCancelledArgs());
+        }
+
+        private void CopyFileWithProgress(string source, string destination, DownloadQueueItem item, CancellationToken token)
+        {
+            item.SetStatus(DownloadStatus.Installing, Loc.GetString("DownloadStatusInstalling"));
+
+            const int bufferSize = 1024 * 1024;
+
+            using var sourceStream = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, FileOptions.SequentialScan);
+            using var destinationStream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize, FileOptions.SequentialScan);
+
+            var buffer = new byte[bufferSize];
+
+            long totalBytes = sourceStream.Length;
+            long copiedBytes = 0;
+
+            int read;
+
+            while ((read = sourceStream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                token.ThrowIfCancellationRequested();
+
+                destinationStream.Write(buffer, 0, read);
+                copiedBytes += read;
+
+                item.SetProgress(copiedBytes, totalBytes, false);
+                item.SetStatus(DownloadStatus.Installing, Loc.GetString("DownloadStatusInstallingPct", ("$Percent", (double)copiedBytes / totalBytes * 100)));
+            }
+        }
+
+        private void CopyDirectoryWithProgress(string sourceDirectory, string destinationDirectory, DownloadQueueItem item, CancellationToken token)
+        {
+            if (!Directory.Exists(sourceDirectory))
+                throw new DirectoryNotFoundException($"Source directory does not exist: {sourceDirectory}");
+
+            item.SetStatus(DownloadStatus.Installing, Loc.GetString("DownloadStatusInstalling"));
+
+            var files = Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories).ToList();
+
+            int currentFileCount = 0;
+            item.SetProgress(currentFileCount, files.Count, false);
+            foreach (var sourceFile in files)
+            {
+                token.ThrowIfCancellationRequested();
+
+                var relativePath = Path.GetRelativePath(sourceDirectory, sourceFile);
+                var destinationFile = Path.Combine(destinationDirectory, relativePath);
+
+                if (!string.IsNullOrEmpty(Path.GetDirectoryName(destinationFile)))
+                    Directory.CreateDirectory(Path.GetDirectoryName(destinationFile)!);
+
+                File.Copy(sourceFile, destinationFile, true);
+
+                currentFileCount++;
+                item.SetProgress(currentFileCount, files.Count, false);
+                item.SetStatus(DownloadStatus.Installing, Loc.GetString("DownloadStatusInstallingRatio", ("$Current", currentFileCount), ("$Max", files.Count)));
+            }
         }
     }
 }

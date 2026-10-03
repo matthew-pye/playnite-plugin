@@ -60,9 +60,27 @@ namespace Graviton.Models.Install
 
         public static List<ArchiveMemberTree> FindMatchingRoots(IEnumerable<ArchiveMemberTree> roots, IReadOnlyCollection<UpdateDLCShape> shapes)
         {
+            var rootList = roots.ToList();
             var matches = new List<ArchiveMemberTree>();
 
-            foreach (var root in roots)
+            var archiveRoot = new ArchiveMemberTree
+            {
+                Name = string.Empty,
+                FullPath = string.Empty,
+                IsDirectory = true
+            };
+
+            foreach (var root in rootList)
+                archiveRoot.Children.Add(root);
+
+            // Check if the archive root itself matches the shape we are looking for
+            if (shapes.Any(x => archiveRoot.MatchesShape(x.paths)))
+            {
+                matches.Add(archiveRoot);
+                return matches;
+            }
+
+            foreach (var root in rootList)
                 root.FindMatchingRoots(shapes, matches);
 
             return matches;
