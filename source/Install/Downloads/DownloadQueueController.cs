@@ -88,7 +88,7 @@ namespace Graviton.Install.Downloads
                 item.SetStatus(DownloadStatus.Canceled, Loc.GetString("DownloadStatusCanceled"));
                 item.SetProgress(0, 1, false);
 
-                TryCleanupPartialInstall(req);
+                TryCleanupTempDirectory(req);
 
                 req.InstallCompletion.TrySetCanceled();
                 await req.OnCancelled.Invoke();
@@ -99,7 +99,7 @@ namespace Graviton.Install.Downloads
             catch (Exception ex)
             {
                 item.SetStatus(DownloadStatus.Failed, Loc.GetString("DownloadStatusFailed"));
-                TryCleanupPartialInstall(req);
+                TryCleanupTempDirectory(req);
 
                 req.InstallCompletion.TrySetException(ex);
                 await req.OnFailed.Invoke(ex);
@@ -141,8 +141,6 @@ namespace Graviton.Install.Downloads
                 item.SetStatus(DownloadStatus.Canceled, Loc.GetString("DownloadStatusCanceled"));
                 item.SetProgress(0, 1, false);
 
-                TryCleanupPartialInstall(req);
-
                 req.InstallCompletion.TrySetCanceled();
                 await req.OnCancelled.Invoke();
 
@@ -150,13 +148,13 @@ namespace Graviton.Install.Downloads
             catch (Exception ex)
             {
                 item.SetStatus(DownloadStatus.Failed, Loc.GetString("DownloadStatusFailed"));
-                TryCleanupPartialInstall(req);
 
                 req.InstallCompletion.TrySetException(ex);
                 await req.OnFailed.Invoke(ex); 
             }
             finally
             {
+                TryCleanupTempDirectory(req);
                 activeDownloads.TryRemove(item.Id, out _);
 
                 await Task.Delay(3000).ConfigureAwait(false);
@@ -237,7 +235,7 @@ namespace Graviton.Install.Downloads
             UIDispatcher.Invoke(() => DownloadQueueVM.Items.Remove(item));
         }
 
-        private void TryCleanupPartialInstall(DownloadRequest req)
+        private void TryCleanupTempDirectory(DownloadRequest req)
         {
             try
             {

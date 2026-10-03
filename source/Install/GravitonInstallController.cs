@@ -273,13 +273,16 @@ namespace Graviton.Install
                 var reqID = Guid.NewGuid().ToString();
                 var installStyle = category == RomMCategory.Update ? GameData.Mapping.UpdateInstallStyle : GameData.Mapping.DLCInstallStyle;
 
+                // Remove any invaild characters from candidate filename
+                var candidateFilename = string.Concat(candidate.FileName.Select(x => Path.GetInvalidFileNameChars().Contains(x) ? '_' : x));
+
                 var req = new DownloadRequest
                 {
                     Id = reqID,
                     DisplayName = $"{Game.Name} - {candidate.Name}",
 
                     DownloadUrl = $"/api/roms/{ROM.Id}/content/{Uri.EscapeDataString(candidate.Name)}?file_ids={string.Join(',', candidate.FileIDs)}",
-                    DownloadPath = Path.Combine(_plugin.PluginDataPath, "temp", reqID, candidate.FileName),
+                    DownloadPath = Path.Combine(_plugin.PluginDataPath, "temp", reqID, candidateFilename),
 
                     // In CLI mode candidates should be installed one after the other 
                     WaitForInstall = (installStyle == InstallStyles.CLI) || (installmode == InstallMode.Sequential) ? previousInstall : null,
