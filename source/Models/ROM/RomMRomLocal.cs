@@ -1,17 +1,21 @@
-﻿using Graviton.Models.Notifications;
+﻿using Graviton.Models.Install;
+using Graviton.Models.Notifications;
+using Graviton.Models.RomM.Rom;
 using Graviton.Models.Saves;
 
 using Playnite;
 
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json;
 
-namespace Graviton.Models.RomM.Rom
+namespace Graviton.Models.ROM
 {
   
     public struct GameInstallInfo
     {
         public int Id { get; set; }
+        public string GameName { get; set; }
         public string FileName { get; set; }
         public bool HasMultipleFiles { get; set; }
         public string DownloadURL { get; set; }
@@ -47,7 +51,10 @@ namespace Graviton.Models.RomM.Rom
         public Guid MappingID { get; set; }
 
         public GravitonSave? LocalSave { get; set; }
-        public LocalSaveState SaveStates { get; set; } = new();
+        //public LocalSaveState SaveStates { get; set; } = new();
+
+        public ObservableCollection<UpdateDLCCandidate> UpdateCandidates { get; set; } = new();
+        public ObservableCollection<UpdateDLCCandidate> DLCCandidates { get; set; } = new();
 
         public static RomMRomLocal? Build(Guid MappingID, RomMRom ROM, string PlayniteID = "")
         {

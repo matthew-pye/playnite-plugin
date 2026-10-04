@@ -1,6 +1,6 @@
 ﻿using Graviton.Models;
 using Graviton.Models.Notifications;
-using Graviton.Models.RomM.Rom;
+using Graviton.Models.ROM;
 using Graviton.Models.Saves;
 
 using System.Collections.ObjectModel;

@@ -1,11 +1,12 @@
 ﻿using Emunight;
 
+using Graviton.GameEdit;
 using Graviton.Import;
 using Graviton.Install;
 using Graviton.Install.Downloads;
 using Graviton.Models.Install;
 using Graviton.Models.Notifications;
-using Graviton.Models.RomM.Rom;
+using Graviton.Models.ROM;
 using Graviton.Notifications;
 using Graviton.Play;
 using Graviton.Saves;
@@ -342,6 +343,14 @@ namespace Graviton
             return await StatusController!.GetAchievements(args);
         }
 
+        public override async Task<GameEditSessionHandler?> GetGameEditHandlerAsync(GetGameEditHandlerArgs args)
+        {
+            if (args.Games.Count != 1 || args.Games[0].LibraryId != Id)
+                return null;
+
+            return new GravitonGameEditHandler(this, PlayniteApi, Logger, args.Games[0]);
+        }
+
         public override async Task<List<InstallController>> GetInstallActionsAsync(GetInstallActionsArgs args)
         {
             if (args.Game.LibraryId == Id)
@@ -359,6 +368,7 @@ namespace Graviton
                     {
                         Id = gameinfo.Id,
                         FileName = gameinfo.FileName ?? "",
+                        GameName = gameinfo.Name ?? "",
                         HasMultipleFiles = gameinfo.HasMultipleFiles,
                         DownloadURL = gameinfo.DownloadURL ?? "",
                         InstallPath = gameinfo.InstallPath ?? "",

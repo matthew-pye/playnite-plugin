@@ -1,7 +1,5 @@
 ﻿using Graviton.Models.Install;
 
-using Playnite;
-
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,11 +20,11 @@ namespace Graviton.Install
         private UpdateDLCCandidate? _draggedItem;
         private int _lastDragTargetIndex = -1;
 
-        public CandidateSelector(List<UpdateDLCCandidate> candidates, InstallMode mode, string category)
+        public CandidateSelector(ObservableCollection<UpdateDLCCandidate> candidates, InstallMode mode, string category)
         {
             InitializeComponent();
 
-            Candidates = candidates.ToObservableCollection();
+            Candidates = candidates;
             InstallMode = mode;
             Category = category;
             MainGrid.DataContext = this;

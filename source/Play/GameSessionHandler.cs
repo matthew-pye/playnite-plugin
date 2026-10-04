@@ -2,7 +2,7 @@
 
 using Graviton.Models;
 using Graviton.Models.Notifications;
-using Graviton.Models.RomM.Rom;
+using Graviton.Models.ROM;
 using Graviton.Notifications;
 using Graviton.Saves;
 

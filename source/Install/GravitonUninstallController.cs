@@ -1,4 +1,5 @@
-﻿using Graviton.Models.Notifications;
+﻿using Graviton.Models.Install;
+using Graviton.Models.Notifications;
 using Graviton.Notifications;
 
 using Playnite;
@@ -56,5 +57,37 @@ namespace Graviton.Install.Downloads
 
             await GameUninstalledAsync(new GameUninstalledArgs());
         }
+
+        public static async Task UninstallCandidate(UpdateDLCCandidate candidate)
+        {
+            try
+            {
+                foreach (var path in candidate.InstalledTopPaths.ToList())
+                {
+                    if (Directory.Exists(path))
+                    {
+                        Directory.Delete(path, true);
+                    }
+                    else if (File.Exists(path))
+                    {
+                        File.Delete(path);
+                    }
+                }
+
+                candidate.InstalledTopPaths.Clear();
+                candidate.InstalledFileIDs.Clear();
+                candidate.Status = InstallStatus.NotInstalled;
+                candidate.InstalledSize = 0;
+
+            }
+            catch (Exception ex)
+            {
+                GravitonNotify.Notify("graviton.uninstall.failed", Loc.GetString("UninstallFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
+                return;
+            }
+
+
+        }
+
     }
 }

@@ -1,65 +1,29 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-
-using Graviton.Models;
+﻿using Graviton.Models;
 using Graviton.Models.Install;
+using Graviton.Models.ROM;
 using Graviton.Models.RomM.Rom;
 
+using System.Collections.ObjectModel;
 using System.IO;
 
 namespace Graviton.Install
 {
-    public class UpdateDLCCandidate : ObservableObject
-    {
-        public string Name { get; set; }
-        public string FileName { get; set; } 
-        public IReadOnlyCollection<int> FileIDs { get; set; }
-        public long FileSize { get; set; } = 0;
-        public string? CandidateRoot { get; set; }
-        public string? SingleFileRelativePath { get; set; }
-        public bool IsSelected { get; set; } = false;
-
-        public UpdateDLCCandidate(string name, string filename, IReadOnlyCollection<int> fileIDs, string? candidateRoot = null, string? relativePath = null, long size = 0)
-        {
-            Name = name;
-            FileName = filename;
-            FileIDs = fileIDs;
-            CandidateRoot = candidateRoot;
-            SingleFileRelativePath = relativePath;
-            FileSize = size;
-        }
-
-        public string FileSizeUI
-        {
-            get
-            {
-                if (FileSize <= 0)
-                    return Playnite.Loc.GetString("Unknown");
-
-                if (FileSize < 1000)
-                {
-                    return $"{FileSize} B";
-                }
-                else if (FileSize < 1000000)
-                {
-                    return $"{((float)FileSize / 1000).ToString("F1")}KB";
-                }
-                else if (FileSize < 1000000000)
-                {
-                    return $"{((float)FileSize / 1000000).ToString("F1")}MB";
-                }
-                else
-                {
-                    return $"{((float)FileSize / 1000000000).ToString("F1")}GB";
-                }
-            }
-        }
-
-    }
-
     public static class InstallUpdateDLC
-    { 
+    {
+        public static async Task<RomMRomLocal> RefreshCandidates(EmulatorMapping mapping, RomMRom ROM, RomMRomLocal LocalROM)
+        {
+            var updates = await FindCategoryCandidates(mapping, ROM, RomMCategory.Update) ?? [];
+            MergeCandidates(LocalROM.UpdateCandidates, updates, RomMCategory.Update);
 
-        public static async Task<List<UpdateDLCCandidate>?> FindCategoryCandidates(EmulatorMapping mapping, RomMRom ROM, string category)
+            var dlc = await FindCategoryCandidates(mapping, ROM, RomMCategory.DLC) ?? [];
+            MergeCandidates(LocalROM.DLCCandidates, dlc, RomMCategory.DLC);
+
+            LocalROM.Save();
+
+            return LocalROM;
+        }
+
+        private static async Task<List<UpdateDLCCandidate>?> FindCategoryCandidates(EmulatorMapping mapping, RomMRom ROM, string category)
         {
             try
             {
@@ -98,9 +62,9 @@ namespace Graviton.Install
                         var size = files.Sum(x => x.FileSize ?? 0);
 
                         if (files.Count == 1)
-                            return [new(RomMCategory.Update, files[0].FileName, [.. files.Select(y => y.Id)], null, null, size)];
+                            return [new(RomMCategory.Update, files[0].FileName, category, [.. files.Select(y => y.Id)], null, null, size)];
                         else
-                            return [new(RomMCategory.Update, $"{ROM.Name}-Update.zip", [.. files.Select(y => y.Id)], null, null, size)];
+                            return [new(RomMCategory.Update, $"{ROM.Name}-Update.zip", category, [.. files.Select(y => y.Id)], null, null, size)];
                     }
                     else if (category == RomMCategory.DLC)
                     {
@@ -108,9 +72,9 @@ namespace Graviton.Install
                         var size = files.Sum(x => x.FileSize ?? 0);
 
                         if (files.Count == 1)
-                            return [new(RomMCategory.DLC, files[0].FileName, [.. files.Select(y => y.Id)], null, null, size)];
+                            return [new(RomMCategory.DLC, files[0].FileName, category, [.. files.Select(y => y.Id)], null, null, size)];
                         else
-                            return [new(RomMCategory.DLC, $"{ROM.Name}-DLC.zip", [.. files.Select(y => y.Id)], null, null, size)];
+                            return [new(RomMCategory.DLC, $"{ROM.Name}-DLC.zip", category, [.. files.Select(y => y.Id)], null, null, size)];
 
 
                     }
@@ -135,6 +99,7 @@ namespace Graviton.Install
                             new(
                                 Path.GetFileNameWithoutExtension(file.FileName),
                                 file.FileName,
+                                category,
                                 [file.Id],
                                 null,
                                 null,
@@ -179,6 +144,7 @@ namespace Graviton.Install
                             candidates.Add(new(
                                                 match.Name,
                                                 file.FileName,
+                                                category,
                                                 fileIDs,
                                                 null,
                                                 relativePath,
@@ -190,6 +156,7 @@ namespace Graviton.Install
                             candidates.Add(new(
                                                match.Name,
                                                $"{match.Name}.zip",
+                                               category,
                                                fileIDs,
                                                match.FullPath,
                                                null,
@@ -214,6 +181,7 @@ namespace Graviton.Install
                                 candidates.Add(new(
                                                    isArchiveRoot ? Path.GetFileNameWithoutExtension(file.FileName) : match.Name,
                                                    file.FileName,
+                                                   category,
                                                    [file.Id],
                                                    isArchiveRoot ? null : match.FullPath,
                                                    null,
@@ -235,10 +203,44 @@ namespace Graviton.Install
             }
         }
 
-
-        public static async Task<List<UpdateDLCCandidate>?> CandidateSelection(List<UpdateDLCCandidate> candidates)
+        private static void MergeCandidates(ObservableCollection<UpdateDLCCandidate> existing, List<UpdateDLCCandidate> discovered, string category)
         {
-            return null;
+            foreach (var candidate in discovered)
+            {
+                candidate.Category = category;
+
+                var old = existing.FirstOrDefault(x => x.Category == category && 
+                                                       x.Name.Equals(candidate.Name, StringComparison.OrdinalIgnoreCase) && 
+                                                       string.Equals(x.CandidateRoot, candidate.CandidateRoot, StringComparison.OrdinalIgnoreCase));
+
+                old ??= existing.FirstOrDefault(x => x.FileIDs.Intersect(candidate.FileIDs).Any());
+
+                if (old == null)
+                    continue;
+
+                candidate.InstalledFileIDs = old.InstalledFileIDs.ToList();
+                candidate.InstalledTopPaths = old.InstalledTopPaths.ToList();
+                candidate.InstalledSize = old.InstalledSize;
+                candidate.PreviousInstallStyle = old.PreviousInstallStyle;
+
+                var current = candidate.FileIDs.ToHashSet();
+                var installed = candidate.InstalledFileIDs.ToHashSet();
+
+                if (candidate.InstalledFileIDs.Count == 0)
+                    candidate.Status = InstallStatus.NotInstalled;
+                else if (current.IsSubsetOf(installed))
+                    candidate.Status = InstallStatus.Installed;
+                else if (current.Overlaps(installed))
+                    candidate.Status = InstallStatus.PartialInstalled;
+                else
+                    candidate.Status = InstallStatus.NotInstalled;  
+            }
+
+            existing.Clear();
+
+            foreach (var candidate in discovered)
+                existing.Add(candidate);
         }
+
     }
 }

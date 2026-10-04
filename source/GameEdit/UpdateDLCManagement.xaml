@@ -1,0 +1,279 @@
+﻿<UserControl x:Class="Graviton.GameEdit.UpdateDLCManagement"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:s="clr-namespace:Graviton.Settings"
+             xmlns:sav="clr-namespace:Graviton.Saves"     
+             xmlns:msav="clr-namespace:Graviton.Models.Saves"     
+             xmlns:m="clr-namespace:Graviton.Models"
+             xmlns:playnite="clr-namespace:Playnite;assembly=Playnite.SDK"
+             xmlns:loc="clr-namespace:Playnite"
+             d:DesignHeight="450" d:DesignWidth="800"
+             mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Graviton;component/ThemingDefaults.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Name="MainGrid" Canvas.Left="0" Canvas.Top="0" Width="{Binding ActualWidth, ElementName=SettingsCanvas}" Height="{Binding ActualHeight, ElementName=SettingsCanvas}" >
+
+        <ScrollViewer Margin="5" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" BorderThickness="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Style="{StaticResource Graviton.SettingsSectionHeader}" Text="{loc:LocalizedString UpdateDLCTitle}" />
+
+                <Separator Grid.Row="1" Margin="2,5" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
+
+                <Grid Grid.Row="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <Button Name="RefreshButton" Click="Refresh_Click" Margin="0,0,10,0" Grid.Row="0" Grid.Column="1">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Text="&#xf46a;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
+                            <TextBlock Name="RefreshText" Text="{loc:LocalizedString Refresh}"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <!--#region Update -->
+                    <TextBlock Grid.Row="0" Style="{StaticResource Graviton.SettingsSubHeader}" Text="{loc:LocalizedString Updates}" />
+                    <Border Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Graviton.SettingsCard}">
+                        <StackPanel>
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="{loc:LocalizedString NoUpdates}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource Graviton.SettingsHelperText}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Game.UpdateCandidates.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <ListBox ItemsSource="{Binding Game.UpdateCandidates}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="3*"/>
+                                                <ColumnDefinition Width="1*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" >
+                                                <TextBlock Text="{Binding Name}" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding InstalledSizeUI}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                                                    <TextBlock Text=" / " FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                                                    <TextBlock Text="{Binding FileSizeUI}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <TextBlock Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Status}" Value="NotInstalled">
+                                                                <Setter Property="Text" Value="{loc:LocalizedString NotInstalled}"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="PartialInstalled">
+                                                                <Setter Property="Text" Value="{loc:LocalizedString PartialInstalled}"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Warn.Colour}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="Installed">
+                                                                <Setter Property="Text" Value="{loc:LocalizedString Installed}"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Success.Colour}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+
+                                            <Border Grid.Column="2" Margin="10,0,10,0" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" CornerRadius="6" HorizontalAlignment="Right">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <Button Grid.Column="0" Style="{StaticResource Graviton.SplitButtonLeft}" Click="Install_Click">
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <TextBlock Text="&#xf46a;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
+                                                            <TextBlock>
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                                        <Setter Property="Text" Value="{loc:LocalizedString Install}"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Status}" Value="Installed">
+                                                                                <Setter Property="Text" Value="{loc:LocalizedString Uninstall}"/>
+                                                                            </DataTrigger>
+
+                                                                            <DataTrigger Binding="{Binding Status}" Value="PartialInstalled">
+                                                                                <Setter Property="Text" Value="{loc:LocalizedString Uninstall}"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </Button>
+
+                                                    <Border Grid.Column="1" Width="1" HorizontalAlignment="Left" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
+
+                                                    <Button x:Name="CandidateMenuButton" Grid.Column="1" Style="{StaticResource Graviton.SplitButtonRight}" Click="CandidateMenu_Click">
+                                                        <TextBlock Text="▼" FontSize="10"  VerticalAlignment="Center"/>
+                                                        <Button.ContextMenu>
+                                                            <ContextMenu>
+                                                                <MenuItem Header="{loc:LocalizedString Reinstall}"  Click="Reinstall_Click"/>
+                                                            </ContextMenu>
+                                                        </Button.ContextMenu>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            
+                        </StackPanel>
+                    </Border>
+                    <!--#endregion-->
+
+                    <!--#region DLC -->
+                    <TextBlock Grid.Row="2" Style="{StaticResource Graviton.SettingsSubHeader}" Text="{loc:LocalizedString DLC}" />
+                    <Border Grid.Row="3" Grid.ColumnSpan="2" Style="{StaticResource Graviton.SettingsCard}">
+                        <StackPanel>
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="{loc:LocalizedString NoDLC}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource Graviton.SettingsHelperText}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Game.DLCCandidates.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <ListBox ItemsSource="{Binding Game.DLCCandidates}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="3*"/>
+                                                <ColumnDefinition Width="1*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" >
+                                                <TextBlock Text="{Binding Name}" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding InstalledSizeUI}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                                                    <TextBlock Text=" / " FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                                                    <TextBlock Text="{Binding FileSizeUI}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}"/>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <TextBlock Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Status}" Value="NotInstalled">
+                                                                <Setter Property="Text" Value="{loc:LocalizedString NotInstalled}"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="PartialInstalled">
+                                                                <Setter Property="Text" Value="{loc:LocalizedString PartialInstalled}"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Warn.Colour}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Status}" Value="Installed">
+                                                                <Setter Property="Text" Value="{loc:LocalizedString Installed}"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Success.Colour}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+
+                                            <Border Grid.Column="2" Margin="10,0,10,0" BorderBrush="{DynamicResource Graviton.TransparentBackground.Colour}" BorderThickness="1" CornerRadius="6" HorizontalAlignment="Right">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <Button Grid.Column="0" Style="{StaticResource Graviton.SplitButtonLeft}" Click="Install_Click">
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <TextBlock Text="&#xf46a;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
+                                                            <TextBlock>
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                                        <Setter Property="Text" Value="{loc:LocalizedString Install}"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Status}" Value="Installed">
+                                                                                <Setter Property="Text" Value="{loc:LocalizedString Uninstall}"/>
+                                                                            </DataTrigger>
+
+                                                                            <DataTrigger Binding="{Binding Status}" Value="PartialInstalled">
+                                                                                <Setter Property="Text" Value="{loc:LocalizedString Uninstall}"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </Button>
+
+                                                    <Border Grid.Column="1" Width="1" HorizontalAlignment="Left" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
+
+                                                    <Button x:Name="CandidateMenuButton" Grid.Column="1" Style="{StaticResource Graviton.SplitButtonRight}" Click="CandidateMenu_Click">
+                                                        <TextBlock Text="▼" FontSize="10"  VerticalAlignment="Center"/>
+                                                        <Button.ContextMenu>
+                                                            <ContextMenu>
+                                                                <MenuItem Header="{loc:LocalizedString Reinstall}"  Click="Reinstall_Click"/>
+                                                            </ContextMenu>
+                                                        </Button.ContextMenu>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                    </Border>
+                    <!--#endregion-->
+                    
+                </Grid>
+                
+            </Grid>
+        </ScrollViewer>
+
+
+    </Grid>
+</UserControl>

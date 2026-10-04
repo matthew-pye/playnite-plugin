@@ -4,7 +4,6 @@ using Graviton.Models.RomM.Rom;
 
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Text.RegularExpressions;
 
 namespace Graviton.Models.Install
 {

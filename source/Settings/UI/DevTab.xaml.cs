@@ -1,8 +1,11 @@
 ﻿using Graviton.Install;
+using Graviton.Models.Install;
 using Graviton.Models.Notifications;
+using Graviton.Models.RomM.Rom;
 
 using Playnite;
 
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -176,16 +179,16 @@ namespace Graviton.Settings
                 DefaultHeight = 450
             });
 
-            List<UpdateDLCCandidate> candidates = new()
+            ObservableCollection<UpdateDLCCandidate> candidates = new()
             {
-                new("v1.1", "v1.1", [1,2,3], null, null, 1245363),
-                new("v1.2", "v1.2", [1,2,3], null, null, 43634),
-                new("v1.3", "v1.3", [1,2,3], null, null, 3463463463),
-                new("v1.4", "v1.4", [1,2,3], null, null, 344),
-                new("v2.0", "v2.0", [1,2,3], null, null, 347433476),
-                new("v2.3", "v2.3", [1,2,3], null, null, 34634),
-                new("v3.1", "v3.1", [1,2,3], null, null, 4585346389342),
-                new("v3.3", "v3.3", [1,2,3], null, null, 5685),
+                new("v1.1", "v1.1", RomMCategory.Update, [1,2,3], null, null, 1245363),
+                new("v1.2", "v1.2", RomMCategory.Update, [1,2,3], null, null, 43634),
+                new("v1.3", "v1.3", RomMCategory.Update, [1,2,3], null, null, 3463463463),
+                new("v1.4", "v1.4", RomMCategory.Update, [1,2,3], null, null, 344),
+                new("v2.0", "v2.0", RomMCategory.Update, [1,2,3], null, null, 347433476),
+                new("v2.3", "v2.3", RomMCategory.Update, [1,2,3], null, null, 34634),
+                new("v3.1", "v3.1", RomMCategory.Update, [1,2,3], null, null, 4585346389342),
+                new("v3.3", "v3.3", RomMCategory.Update, [1,2,3], null, null, 5685),
             };
 
             var selector = new CandidateSelector(candidates, Models.Install.InstallMode.Sequential, "Updates");
@@ -208,16 +211,16 @@ namespace Graviton.Settings
                 DefaultHeight = 450
             });
 
-            List<UpdateDLCCandidate> candidates = new()
+            ObservableCollection<UpdateDLCCandidate> candidates = new()
             {
-                new("v1.1", "v1.1", [1,2,3], null, null, 1245363),
-                new("v1.2", "v1.2", [1,2,3], null, null, 43634),
-                new("v1.3", "v1.3", [1,2,3], null, null, 3463463463),
-                new("v1.4", "v1.4", [1,2,3], null, null, 344),
-                new("v2.0", "v2.0", [1,2,3], null, null, 347433476),
-                new("v2.3", "v2.3", [1,2,3], null, null, 34634),
-                new("v3.1", "v3.1", [1,2,3], null, null, 4585346389342),
-                new("v3.3", "v3.3", [1,2,3], null, null, 5685),
+                new("v1.1", "v1.1", RomMCategory.Update, [1,2,3], null, null, 1245363),
+                new("v1.2", "v1.2", RomMCategory.Update, [1,2,3], null, null, 43634),
+                new("v1.3", "v1.3", RomMCategory.Update, [1,2,3], null, null, 3463463463),
+                new("v1.4", "v1.4", RomMCategory.Update, [1,2,3], null, null, 344),
+                new("v2.0", "v2.0", RomMCategory.Update, [1,2,3], null, null, 347433476),
+                new("v2.3", "v2.3", RomMCategory.Update, [1,2,3], null, null, 34634),
+                new("v3.1", "v3.1", RomMCategory.Update, [1,2,3], null, null, 4585346389342),
+                new("v3.3", "v3.3", RomMCategory.Update, [1,2,3], null, null, 5685),
             };
 
             var selector = new CandidateSelector(candidates, Models.Install.InstallMode.SelectMany, "Updates");
@@ -240,16 +243,16 @@ namespace Graviton.Settings
                 DefaultHeight = 450
             });
 
-            List<UpdateDLCCandidate> candidates = new()
+            ObservableCollection<UpdateDLCCandidate> candidates = new()
             {
-                new("v1.1", "v1.1", [1,2,3], null, null, 1245363),
-                new("v1.2", "v1.2", [1,2,3], null, null, 43634),
-                new("v1.3", "v1.3", [1,2,3], null, null, 3463463463),
-                new("v1.4", "v1.4", [1,2,3], null, null, 344),
-                new("v2.0", "v2.0", [1,2,3], null, null, 347433476),
-                new("v2.3", "v2.3", [1,2,3], null, null, 34634),
-                new("v3.1", "v3.1", [1,2,3], null, null, 4585346389342),
-                new("v3.3", "v3.3", [1,2,3], null, null, 5685),
+                new("v1.1", "v1.1", RomMCategory.Update, [1,2,3], null, null, 1245363),
+                new("v1.2", "v1.2", RomMCategory.Update, [1,2,3], null, null, 43634),
+                new("v1.3", "v1.3", RomMCategory.Update, [1,2,3], null, null, 3463463463),
+                new("v1.4", "v1.4", RomMCategory.Update, [1,2,3], null, null, 344),
+                new("v2.0", "v2.0", RomMCategory.Update, [1,2,3], null, null, 347433476),
+                new("v2.3", "v2.3", RomMCategory.Update, [1,2,3], null, null, 34634),
+                new("v3.1", "v3.1", RomMCategory.Update, [1,2,3], null, null, 4585346389342),
+                new("v3.3", "v3.3", RomMCategory.Update, [1,2,3], null, null, 5685),
             };
 
             var selector = new CandidateSelector(candidates, Models.Install.InstallMode.SelectOne, "Updates");
