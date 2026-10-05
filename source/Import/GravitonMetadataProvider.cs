@@ -1,4 +1,5 @@
 ﻿using Graviton.Models.RomM;
+using Graviton.Models.RomM.Collection;
 using Graviton.Models.RomM.Rom;
 using Graviton.Notifications;
 
@@ -17,6 +18,9 @@ namespace Graviton.Import
         private IRomMServer _romMServer;
 
         private RomMRom? ROM = null;
+        private List<RomMCollection>? _collections;
+        private List<RomMCollection>? _smartCollections;
+
         private static (DateTime, RomMUser?) UserData;
 
         public GravitonMetadataProviderGameSession(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer, Game game) : base(game) 
@@ -52,7 +56,9 @@ namespace Graviton.Import
                         UserData.Item2 = JsonSerializer.Deserialize<RomMUser>(result);
                         UserData.Item1 = DateTime.UtcNow;
                     }
-                    
+
+                    _collections = _plugin.Settings.AddCollectiontoPlayniteCategory ? await _plugin.ImportController?.FetchManualCollections()! : null;
+                    _smartCollections = _plugin.Settings.AddSmartCollectiontoPlayniteCategory ? await _plugin.ImportController?.FetchSmartCollections()! : null;
 
                     return true;
                 }
@@ -90,7 +96,25 @@ namespace Graviton.Import
                 case BuiltInGameDataId.Platforms:
                     return ROM.PlatformName;
                 case BuiltInGameDataId.Categories:
-                    return ROM.Metadatum?.Collections;
+                    {
+                        List<string> collections = new();
+
+                        if (_plugin.Settings.AddMetadataProviderCollections)
+                            collections.AddRange(ROM.Metadatum?.Collections ?? []);
+                        
+                        if(_plugin.Settings.AddCollectiontoPlayniteCategory && _collections != null)
+                        {
+                            collections.AddRange(_collections.Select(x => x.Name ?? "").ToList());
+                        }
+
+                        if (_plugin.Settings.AddSmartCollectiontoPlayniteCategory && _smartCollections != null)
+                        {
+                            collections.AddRange(_smartCollections.Select(x => x.Name ?? "").ToList());
+                        }
+
+                        return collections;
+                    }
+                    
                 case BuiltInGameDataId.Series:
                     return ROM.Metadatum?.Franchises;
                 case BuiltInGameDataId.AgeRating:

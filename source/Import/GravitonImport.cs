@@ -29,6 +29,7 @@ namespace Graviton.Import
         private EmulatorMapping _mapping;
         private List<RomMRom> _roms = null!;
         private List<RomMCollection>? _collections;
+        private List<RomMCollection>? _smartCollections;
         private List<RomMPlaySession>? _sessions;
 
         private static Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
@@ -45,10 +46,11 @@ namespace Graviton.Import
         }
 
         // Main library import functions
-        public async Task<(List<Game> NewGames, List<string> ProcessedGames)> ProcessData(List<RomMRom> roms, List<RomMCollection>? collections = null, List<RomMPlaySession>? sessions = null)
+        public async Task<(List<Game> NewGames, List<string> ProcessedGames)> ProcessData(List<RomMRom> roms, List<RomMCollection>? collections = null, List<RomMCollection>? smartCollections = null, List<RomMPlaySession>? sessions = null)
         {
             _roms = roms;
             _collections = collections;
+            _smartCollections = smartCollections;
             _sessions = sessions;
 
             // Add all series, genres, collections, etc to playnite database
@@ -138,6 +140,21 @@ namespace Graviton.Import
                 }
             }
 
+            if (_smartCollections != null)
+            {
+                foreach (var collection in _smartCollections)
+                {
+                    if (_args.CancelToken.IsCancellationRequested)
+                        break;
+
+                    if (!string.IsNullOrEmpty(collection.Name) && collection.RomIDs.Any(x => _roms.Any(y => y.Id == x)))
+                    {
+                        _logger?.Trace($"Adding {collection.Name} to collection list");
+                        categories.Add(new Category(collection.Name.ToLowerInvariant(), collection.Name));
+                    }
+                }
+            }
+
             foreach (var ROM in _roms)
             {
                 if (_args.CancelToken.IsCancellationRequested)
@@ -206,7 +223,7 @@ namespace Graviton.Import
 
             }
 
-            //TODO: Dedup lists to not import multiple of the same metadata
+            //TODO: Dedup lists to not import multiple of the same metadata (Low priority)
 
             if (genres.Count > 0)
             {
@@ -369,12 +386,6 @@ namespace Graviton.Import
                 game.Favorite = ROM.Collections.Any(x => x.Name == "Favorites");
             }
 
-            // Update categories the ROM is in
-            if (game.CategoryIds == null)
-                game.CategoryIds = ROM.Metadatum?.Collections?.Select(x => x.ToLowerInvariant()).ToHashSet();
-            else
-                game.CategoryIds.AddRange(ROM.Metadatum?.Collections?.Select(x => x.ToLowerInvariant()).ToHashSet());
-
             await _playniteAPI.Library.Games.UpdateAsync(game);
             _plugin.ImportedGames[gameID].Resync(ROM);
 
@@ -423,7 +434,10 @@ namespace Graviton.Import
                 }
 
                 await _playniteAPI.Library.Games.AddAsync(importedGame);
-                RomMRomLocal.Build(_mapping.MappingId, ROM, importedGame.Id);
+                var localROM = RomMRomLocal.Build(_mapping.MappingId, ROM, importedGame.Id);
+
+                if (localROM == null)
+                    _logger.Info($"Failed the to create local cache for {ROM.Id}.");
 
                 return new(gameID, importedGame);
             }
@@ -463,7 +477,7 @@ namespace Graviton.Import
 
             game.GenreIds = ROM.Metadatum?.Genres != null ? ROM.Metadatum.Genres.Select(x => x.ToLowerInvariant()).ToHashSet() : null;
             game.PlatformIds = new HashSet<string>([_mapping.RomMPlatform!.Name.ToLowerInvariant() ?? ""]);
-            game.CategoryIds = ROM.Metadatum?.Collections != null ? ROM.Metadatum.Collections.Select(x => x.ToLowerInvariant()).ToHashSet() : null;
+            game.CategoryIds = GetCollectionCategoryIds(ROM);
             game.FeatureIds = ROM.Metadatum?.Gamemodes != null ? ROM.Metadatum.Gamemodes.Select(x => x.ToLowerInvariant()).ToHashSet() : null;
             game.SeriesIds = ROM.Metadatum?.Franchises != null ? ROM.Metadatum.Franchises.Select(x => x.ToLowerInvariant()).ToHashSet() : null;
             game.RegionIds = ROM.Regions != null ? ROM.Regions.Select(x => x.ToLowerInvariant()).ToHashSet() : null;
@@ -554,5 +568,42 @@ namespace Graviton.Import
             }
         }
 
+        private HashSet<string> GetCollectionCategoryIds(RomMRom ROM)
+        {
+            var categories = new HashSet<string>();
+
+            if (_plugin.Settings.AddMetadataProviderCollections && ROM.Metadatum?.Collections != null)
+            {
+                foreach (var collection in ROM.Metadatum.Collections)
+                {
+                    if (!string.IsNullOrWhiteSpace(collection)) 
+                        categories.Add(collection.ToLowerInvariant());
+                }
+            }
+
+            if (_plugin.Settings.AddCollectiontoPlayniteCategory && _collections != null)
+            {
+                foreach (var collection in _collections)
+                {
+                    if (!string.IsNullOrWhiteSpace(collection.Name) && collection.RomIDs.Contains(ROM.Id))
+                    {
+                        categories.Add(collection.Name.ToLowerInvariant());
+                    }
+                }
+            }
+
+            if (_plugin.Settings.AddSmartCollectiontoPlayniteCategory && _smartCollections != null)
+            {
+                foreach (var collection in _smartCollections)
+                {
+                    if (!string.IsNullOrWhiteSpace(collection.Name) && collection.RomIDs.Contains(ROM.Id))
+                    {
+                        categories.Add(collection.Name.ToLowerInvariant());
+                    }
+                }
+            }
+
+            return categories;
+        }
     }
 }

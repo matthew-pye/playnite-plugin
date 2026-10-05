@@ -57,7 +57,7 @@ namespace Graviton.Import
                 _plugin.ImportInProgress = false;
                 return new List<Game>();
             }
-                
+
             _plugin.Settings.RomMPlatforms = apiPlatforms.ToObservableCollection();
             foreach (var mapping in _plugin.Settings.Mappings)
             {
@@ -65,8 +65,17 @@ namespace Graviton.Import
             }
             GravitonSettingsHandler.SaveSettings(_plugin.PluginDataPath, _plugin.Settings);
 
-            var collections = await FetchCollections(args);
+            var collections = _plugin.Settings.AddCollectiontoPlayniteCategory ? await FetchManualCollections() : null;
+            if (args.CancelToken.IsCancellationRequested)
+                return [];
+
+            var smartCollections = _plugin.Settings.AddSmartCollectiontoPlayniteCategory ? await FetchSmartCollections() : null;
+            if (args.CancelToken.IsCancellationRequested)
+                return [];
+
             var sessions = await _plugin.StatusController!.FetchPlaySessions();
+            if (args.CancelToken.IsCancellationRequested)
+                return [];
 
             string url = BuildGeneralROMUrl();
 
@@ -107,7 +116,7 @@ namespace Graviton.Import
                 {
                     _logger.Info($"Checked {apiPlatform.Name} for ROMs, No ROMs found");
                     continue;
-                }  
+                }
                 else
                     _logger.Trace($"Finished parsing response for {apiPlatform.Name} with {rommROMs.Count()} ROMs found");
 
@@ -115,18 +124,18 @@ namespace Graviton.Import
                 foreach (var rom in rommROMs.ToList())
                 {
                     if (args.Exclusions?.Any(x => x.GameId == rom.Id.ToString()) ?? false)
-                        rommROMs.Remove(rom);   
+                        rommROMs.Remove(rom);
                 }
 
-                if(task != null)
+                if (task != null)
                 {
                     var result = await task;
                     games.AddRange(result.NewGames);
                     proccessedgames.AddRange(result.ProcessedGames);
                 }
-                   
+
                 _logger.Trace($"Creating new import task for {apiPlatform.Name}");
-                task = new GravitonImport(_plugin, _playniteAPI, _logger, args, mapping).ProcessData(rommROMs, collections, sessions);
+                task = new GravitonImport(_plugin, _playniteAPI, _logger, args, mapping).ProcessData(rommROMs, collections, smartCollections, sessions);
                 processedMappings.Add(mapping);
             }
 
@@ -147,136 +156,6 @@ namespace Graviton.Import
             var sessionsstring = JsonSerializer.Serialize(_playniteAPI.Library.GameSessions, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText($"{_plugin.PluginDataPath}/temp/sessions.json", sessionsstring);
             return games;
-        }
-
-        public async Task<List<RomMPlatform>?> FetchPlatforms()
-        {
-            var result = await _romMServer.GETAsync("/api/platforms");
-            if (result == null)
-            {
-                _plugin.Settings.AccountState.LastAuthenticated = null;
-                return null;
-            }
-                
-            var platforms = result.RootElement.Deserialize<List<RomMPlatform>>() ?? throw new Exception("Failed to deseralize plaforms from server!");
-
-            if (!Directory.Exists($"{_plugin.PluginDataPath}/Platforms/"))
-                Directory.CreateDirectory($"{_plugin.PluginDataPath}/Platforms/");
-
-            _logger.Trace($"Fetching platform icons");
-            foreach (var platform in platforms)
-            {
-                try
-                {
-                    if (_platformSlugRegex.IsMatch(platform.Slug!))
-                    {
-                        var rawResponse = await _romMServer.RawGETAsync($"/assets/platforms/{platform.Slug}.svg");
-                        if (rawResponse == null || rawResponse.Content == null)
-                            throw new Exception("Failed to get response from server");
-
-                        Stream stream = await rawResponse.Content.ReadAsStreamAsync();
-                        var svg = SvgDocument.Open<SvgDocument>(stream);
-                        _logger.Trace($"Got {platform.Slug}.svg from server");
-
-                        var image = svg.Draw();
-                        _logger.Trace($"Converted svg to bitmap");
-
-                        image.Save($"{_plugin.PluginDataPath}/Platforms/{platform.Slug}.png", ImageFormat.Png);
-                        _logger.Trace($"Saved bitmap to {_plugin.PluginDataPath}/Platforms/{platform.Slug}.png");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.Warn($"Failed to download/convert platform icon for {platform.Slug}: {ex.Message}");
-                }
-            }
-
-            return platforms;
-        }
-
-        private string BuildGeneralROMUrl()
-        {
-            string url = $"/api/roms";
-            string options = "?";
-
-            options += $"genres_logic=none&";
-            options += $"order_by=name&";
-            options += $"with_files=true&";
-            options += $"order_dir=asc&";
-
-            if (_plugin.Settings.SkipMissingFiles)
-            {
-                options += "missing=false&";
-            }
-
-            // Exclude genres from import
-            if(!string.IsNullOrEmpty(_plugin.Settings.ExcludeGenres))
-            {
-                List<string> excludeGenres = _plugin.Settings.ExcludeGenres.TrimEnd(' ').TrimEnd(';').Split(';').ToList();
-                if (excludeGenres.Count > 0)
-                {
-                    foreach (var genre in excludeGenres)
-                    {
-                        options += $"genres={HttpUtility.UrlEncode(genre)}&";
-                    }
-                }
-            }
-
-            return url + options;
-        }
-         
-        private async Task<List<RomMRom>> DownloadROMData(ImportGamesArgs args, string url, RomMPlatform platform)
-        {
-            _logger.Info($"Starting to fetch games for {platform.Name}");
-
-            int pagesize = 50;
-            int offset = 0;
-            bool hasMoreData = true;
-
-            var romData = new List<RomMRom>();
-
-            url += $"platform_ids={platform.Id}&";
-            url += $"limit={pagesize}&";
-
-            // Download data from RomM server
-            while (hasMoreData)
-            {
-                if (args.CancelToken.IsCancellationRequested)
-                    break;
-                
-                try
-                {
-                    var romURL = url + $"offset={offset}";
-
-                    var request = await _romMServer.GETAsync(romURL);
-                    if(request == null)
-                        throw new Exception(Loc.GetString("ServerReturnedNullData"));
-
-                    var roms = request?.RootElement.GetProperty("items").Deserialize<List<RomMRom>>() ?? throw new Exception(Loc.GetString("DeserializeFailed"));
-                    romData.AddRange(roms);
-
-                    _logger.Trace($"[Import Controller] Parsed {roms.Count} roms for batch {offset / pagesize + 1}.");         
-
-                    if (roms.Count < pagesize)
-                    {
-                        _logger.Trace($"[Import Controller] Received less than {pagesize} roms for {platform.Name}, assuming no more games.");
-                        hasMoreData = false;
-                        break;
-                    }
-
-                    offset += pagesize;
-                }
-                catch (Exception ex)
-                {
-                    romData.Clear();
-                    GravitonNotify.Notify($"graviton.GET.roms.{platform.Id}.failed", Loc.GetString("DownloadROMDataFailed", ("PlatformName", platform.Name), ("Error", ex.Message)), GravitonSeverity.Error, ex);
-                    hasMoreData = false;
-                }
-            }
-
-            _logger.Info($"Fetched {romData.Count()} games for {platform.Name}");
-
-            return romData;
         }
 
         private async Task RemoveMissingGames(List<string> ImportedGames, List<EmulatorMapping> processedMappings)
@@ -319,7 +198,7 @@ namespace Graviton.Import
                     {
                         _logger.Trace($"Removing game ({game.Value.PlayniteID}) from game relation\n{JsonSerializer.Serialize(gamerelation, new JsonSerializerOptions { WriteIndented = true })}");
                         gamerelation.LinkedGames.Remove(game.Value.PlayniteID!);
-                        await _playniteAPI.Library.GameRelations.UpdateAsync(gamerelation);  
+                        await _playniteAPI.Library.GameRelations.UpdateAsync(gamerelation);
                     }
                 }
 
@@ -336,88 +215,180 @@ namespace Graviton.Import
             _logger.Info($"Finished removeal of games, removed {removedGamesCount} games");
         }
 
-        private async Task<List<RomMCollection>> FetchCollections(ImportGamesArgs args)
+
+        private string BuildGeneralROMUrl()
+        {
+            string url = $"/api/roms";
+            string options = "?";
+
+            options += $"genres_logic=none&";
+            options += $"order_by=name&";
+            options += $"with_files=true&";
+            options += $"order_dir=asc&";
+
+            if (_plugin.Settings.SkipMissingFiles)
+            {
+                options += "missing=false&";
+            }
+
+            // Exclude genres from import
+            if (!string.IsNullOrEmpty(_plugin.Settings.ExcludeGenres))
+            {
+                List<string> excludeGenres = _plugin.Settings.ExcludeGenres.TrimEnd(' ').TrimEnd(';').Split(';').ToList();
+                if (excludeGenres.Count > 0)
+                {
+                    foreach (var genre in excludeGenres)
+                    {
+                        options += $"genres={HttpUtility.UrlEncode(genre)}&";
+                    }
+                }
+            }
+
+            return url + options;
+        }
+
+        private async Task<List<RomMRom>> DownloadROMData(ImportGamesArgs args, string url, RomMPlatform platform)
+        {
+            _logger.Info($"Starting to fetch games for {platform.Name}");
+
+            int pagesize = 50;
+            int offset = 0;
+            bool hasMoreData = true;
+
+            var romData = new List<RomMRom>();
+
+            url += $"platform_ids={platform.Id}&";
+            url += $"limit={pagesize}&";
+
+            // Download data from RomM server
+            while (hasMoreData)
+            {
+                if (args.CancelToken.IsCancellationRequested)
+                    break;
+
+                try
+                {
+                    var romURL = url + $"offset={offset}";
+
+                    var request = await _romMServer.GETAsync(romURL);
+                    if (request == null)
+                        throw new Exception(Loc.GetString("ServerReturnedNullData"));
+
+                    var roms = request?.RootElement.GetProperty("items").Deserialize<List<RomMRom>>() ?? throw new Exception(Loc.GetString("DeserializeFailed"));
+                    romData.AddRange(roms);
+
+                    _logger.Trace($"[Import Controller] Parsed {roms.Count} roms for batch {offset / pagesize + 1}.");
+
+                    if (roms.Count < pagesize)
+                    {
+                        _logger.Trace($"[Import Controller] Received less than {pagesize} roms for {platform.Name}, assuming no more games.");
+                        hasMoreData = false;
+                        break;
+                    }
+
+                    offset += pagesize;
+                }
+                catch (Exception ex)
+                {
+                    romData.Clear();
+                    GravitonNotify.Notify($"graviton.GET.roms.{platform.Id}.failed", Loc.GetString("DownloadROMDataFailed", ("PlatformName", platform.Name), ("Error", ex.Message)), GravitonSeverity.Error, ex);
+                    hasMoreData = false;
+                }
+            }
+
+            _logger.Info($"Fetched {romData.Count()} games for {platform.Name}");
+
+            return romData;
+        }
+
+
+        public async Task<List<RomMPlatform>?> FetchPlatforms()
+        {
+            var result = await _romMServer.GETAsync("/api/platforms");
+            if (result == null)
+            {
+                _plugin.Settings.AccountState.LastAuthenticated = null;
+                return null;
+            }
+
+            var platforms = result.RootElement.Deserialize<List<RomMPlatform>>() ?? throw new Exception("Failed to deseralize plaforms from server!");
+
+            if (!Directory.Exists($"{_plugin.PluginDataPath}/Platforms/"))
+                Directory.CreateDirectory($"{_plugin.PluginDataPath}/Platforms/");
+
+            _logger.Trace($"Fetching platform icons");
+            foreach (var platform in platforms)
+            {
+                try
+                {
+                    if (_platformSlugRegex.IsMatch(platform.Slug!))
+                    {
+                        var rawResponse = await _romMServer.RawGETAsync($"/assets/platforms/{platform.Slug}.svg");
+                        if (rawResponse == null || rawResponse.Content == null)
+                            throw new Exception("Failed to get response from server");
+
+                        Stream stream = await rawResponse.Content.ReadAsStreamAsync();
+                        var svg = SvgDocument.Open<SvgDocument>(stream);
+                        _logger.Trace($"Got {platform.Slug}.svg from server");
+
+                        var image = svg.Draw();
+                        _logger.Trace($"Converted svg to bitmap");
+
+                        image.Save($"{_plugin.PluginDataPath}/Platforms/{platform.Slug}.png", ImageFormat.Png);
+                        _logger.Trace($"Saved bitmap to {_plugin.PluginDataPath}/Platforms/{platform.Slug}.png");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn($"Failed to download/convert platform icon for {platform.Slug}: {ex.Message}");
+                }
+            }
+
+            return platforms;
+        }
+
+        public async Task<List<RomMCollection>> FetchManualCollections()
         {
             List<RomMCollection> collections = new List<RomMCollection>();
-            if (_plugin.Settings.AddCollectiontoPlayniteCategory)
-            {
-                if (args.CancelToken.IsCancellationRequested)
-                    return collections;
 
-                var result = await _romMServer.GETAsync("/api/collections");
-                if (result != null)
+            var result = await _romMServer.GETAsync("/api/collections");
+            if (result != null)
+            {
+                try
                 {
-                    try
-                    {
-                        var manualcollections = result.RootElement.Deserialize<List<RomMCollection>>();
-                        if (manualcollections != null)
-                            collections.AddRange(manualcollections);
-                    }
-                    catch (Exception ex)
-                    {
-                        GravitonNotify.Notify($"graviton.fetchcollection.failed", Loc.GetString("ManualCollectionsFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
-                    } 
+                    var manualcollections = result.RootElement.Deserialize<List<RomMCollection>>();
+                    if (manualcollections != null)
+                        collections.AddRange(manualcollections);
                 }
-            }
-
-            if(_plugin.Settings.AddSmartCollectiontoPlayniteCategory)
-            {
-                if (args.CancelToken.IsCancellationRequested)
-                    return collections;
-
-                var result = await _romMServer.GETAsync("/api/collections/smart");
-                if (result != null)
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        var manualcollections = result.RootElement.Deserialize<List<RomMCollection>>();
-                        if (manualcollections != null)
-                            collections.AddRange(manualcollections);
-                    }
-                    catch (Exception ex)
-                    {
-                        GravitonNotify.Notify($"graviton.fetchcollection.failed", Loc.GetString("SmartCollectionsFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
-                    }
-                }
-            }
-
-            if (_plugin.Settings.AddVirtualCollectiontoPlayniteCategory)
-            {
-                if (args.CancelToken.IsCancellationRequested)
-                    return collections;
-
-                var result = await _romMServer.GETAsync("/api/collections/virtual/identifiers");
-                if (result == null)
-                    return collections;
-
-                var collectionIDs = result.RootElement.Deserialize<List<string>>();
-                if(collectionIDs == null)
-                    return collections;
-
-                foreach (var id in collectionIDs)
-                {
-                    if (args.CancelToken.IsCancellationRequested)
-                        break;
-
-                    result = await _romMServer.GETAsync($"/api/collections/virtual/{id}");
-                    if (result == null)
-                        continue;
-
-                    try
-                    {
-                        collections.Add(result.RootElement.Deserialize<RomMCollection>() ?? throw new Exception(Loc.GetString("DeserializeCollectionFailed")));
-                    }
-                    catch (Exception)
-                    {
-                        continue;
-                    }
+                    GravitonNotify.Notify($"graviton.fetchcollection.failed", Loc.GetString("ManualCollectionsFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
                 }
             }
 
             return collections;
         }
 
+        public async Task<List<RomMCollection>> FetchSmartCollections()
+        {
+            List<RomMCollection> collections = new List<RomMCollection>();
 
+            var result = await _romMServer.GETAsync("/api/collections/smart");
+            if (result != null)
+            {
+                try
+                {
+                    var manualcollections = result.RootElement.Deserialize<List<RomMCollection>>();
+                    if (manualcollections != null)
+                        collections.AddRange(manualcollections);
+                }
+                catch (Exception ex)
+                {
+                    GravitonNotify.Notify($"graviton.fetchcollection.failed", Loc.GetString("SmartCollectionsFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
+                }
+            }
 
+            return collections;
+        }
     }
 }

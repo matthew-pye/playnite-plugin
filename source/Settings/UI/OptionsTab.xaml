@@ -109,8 +109,8 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Name="AddVirtualCollectionText" Text="{loc:LocalizedString AddVirtualCollection}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                            <ToggleButton Grid.Column="1" IsChecked="{Binding AddVirtualCollectiontoPlayniteCategory, Mode=TwoWay}" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="0" Name="AddMetadataProviderCollectionsText" Text="{loc:LocalizedString AddMetadataProviderCollections}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <ToggleButton Grid.Column="1" IsChecked="{Binding AddMetadataProviderCollections, Mode=TwoWay}" VerticalAlignment="Center"/>
                         </Grid>
 
                         <Grid Style="{StaticResource Graviton.SettingsToggleRow}">

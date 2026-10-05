@@ -48,8 +48,8 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _mergeRevisions = false;
         [ObservableProperty] private bool _skipMissingFiles = false;
         [ObservableProperty] private bool _keepDeletedGames = false;
+        [ObservableProperty] private bool _addMetadataProviderCollections = true;
         [ObservableProperty] private bool _addCollectiontoPlayniteCategory = true;
-        [ObservableProperty] private bool _addVirtualCollectiontoPlayniteCategory = true;
         [ObservableProperty] private bool _addSmartCollectiontoPlayniteCategory = true;
         [ObservableProperty] private bool _importGamePatchesAsSiblings = false;
         [ObservableProperty] private ImportPlaySessions _importPlaysessions = ImportPlaySessions.All;
@@ -163,9 +163,9 @@ namespace Graviton.Settings
                 SkipMissingFiles = this.SkipMissingFiles,
                 KeepDeletedGames = this.KeepDeletedGames,
                 ImportGamePatchesAsSiblings = this.ImportGamePatchesAsSiblings,
+                AddMetadataProviderCollections = this.AddMetadataProviderCollections,
                 AddCollectiontoPlayniteCategory = this.AddCollectiontoPlayniteCategory,
                 AddSmartCollectiontoPlayniteCategory = this.AddSmartCollectiontoPlayniteCategory,
-                AddVirtualCollectiontoPlayniteCategory = this.AddVirtualCollectiontoPlayniteCategory,
                 ImportPlaysessions = this.ImportPlaysessions,
 
                 Use7z = this.Use7z,
