@@ -171,9 +171,9 @@ namespace Graviton.Settings
 
                 if (!string.IsNullOrEmpty(userinfo.IconPath) && _iconPathRegex.IsMatch(userinfo.IconPath))
                 {
-                    var response = await _romMServer.RawGETAsync($"/api/users/{userinfo.Id}/avatar");
+                    using var response = await _romMServer.RawGETAsync($"/api/users/{userinfo.Id}/avatar");
                     if (response == null || response.Content == null|| response.Status != HttpStatusCode.OK)
-                        throw new Exception(Loc.GetString("AccountServerResponseFailed", ("Status", response?.Status?.ToString() ?? "?")));
+                        throw new Exception(Loc.GetString("AccountServerResponseFailed", ("Status", response?.Status.ToString() ?? "?")));
 
                     var imagebytes = await response.Content.ReadAsByteArrayAsync();
 
@@ -287,7 +287,7 @@ namespace Graviton.Settings
 
                     try
                     {
-                        response = await _romMServer.RawPOSTAsync($"/api/auth/device/token", deviceCode);
+                        response = await _romMServer.RawPOSTAsync($"/api/auth/device/token", deviceCode, true);
 
                         // If server responds OK the user has completed the login
                         if (response?.Status == HttpStatusCode.OK)
@@ -295,7 +295,7 @@ namespace Graviton.Settings
                             if (response.Content == null)
                                 throw new Exception(Loc.GetString("AccountNullResponse"));
 
-                            status = response.Status.Value;
+                            status = response.Status;
                             var stream = await response.Content.ReadAsStreamAsync();
                             var json = await JsonDocument.ParseAsync(stream);
                             var result = JsonSerializer.Deserialize<RomMPairDeviceResponse>(json);
@@ -325,7 +325,7 @@ namespace Graviton.Settings
                         }
                         else if (response != null)
                         {
-                            throw new Exception(Loc.GetString("AccountUnexpectedStatus", ("Status", response.Status?.ToString() ?? "?")));
+                            throw new Exception(Loc.GetString("AccountUnexpectedStatus", ("Status", response.Status.ToString() ?? "?")));
                         }
                             
                     }

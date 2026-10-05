@@ -26,6 +26,8 @@ namespace Graviton.Settings
 
         [ObservableProperty] private GravitonPluginSettings settings = new();
 
+        private List<string> _originalHeaders = [];
+
         public GravitonSettingsHandler(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server) 
         {
             _plugin = plugin;
@@ -41,6 +43,8 @@ namespace Graviton.Settings
 
         public override async Task BeginEditAsync(BeginEditArgs args)
         {
+            _originalHeaders = _plugin.Settings.CustomHeaders.Select(x => x.Name).Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+
             Settings = _plugin.Settings.Clone();
             InEditingMode = true;
 
@@ -87,14 +91,24 @@ namespace Graviton.Settings
         {
             _logger?.Trace($"Ended settings edit");
 
-            _plugin.Settings = Settings;
-            SaveSettings(_playniteAPI.UserDataDir, Settings);
-            foreach (var header in Settings.CustomHeaders.Where(x => x.Enabled))
+            // Remove all the original headers
+            foreach (var name in _originalHeaders)
+            {
+                _romMServer.RemoveHeader(name);
+            }
+
+            // Add new or updated header to HTTPClient
+            foreach (var header in Settings.CustomHeaders.Where(x => x.Enabled && !string.IsNullOrWhiteSpace(x.Name) && !string.IsNullOrWhiteSpace(x.Value)))
             {
                 _romMServer.RemoveHeader(header.Name);
                 _romMServer.AddHeader(header.Name, header.Value);
             }
+
+            _plugin.Settings = Settings;
+            SaveSettings(_playniteAPI.UserDataDir, Settings);
+
             InEditingMode = false;
+
             await Task.CompletedTask;
         }
 

@@ -277,6 +277,12 @@ namespace Graviton.Settings
 
             e.Handled = true;
         }
+
+        private void ServerAddressBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            _plugin.Settings.AccountState.LastAuthenticated = null;
+            _plugin.Settings.AccountState.AuthenticateFailed = null;
+        }
     }
 
     public class InvertBoolConverter : IValueConverter

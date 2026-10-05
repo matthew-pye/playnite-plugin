@@ -12,10 +12,22 @@ using System.Text.Json;
 
 namespace Graviton
 {
-    public class RawClientResponse
+    public sealed class RawClientResponse : IDisposable
     {
-        public HttpStatusCode? Status = null;
-        public HttpContent? Content = null;
+        private readonly HttpResponseMessage _response;
+
+        public HttpStatusCode Status => _response.StatusCode;
+        public HttpContent Content => _response.Content;
+
+        public RawClientResponse(HttpResponseMessage response)
+        {
+            _response = response;
+        }
+
+        public void Dispose()
+        {
+            _response.Dispose();
+        }
     }
 
     public interface IRomMServer
@@ -180,17 +192,17 @@ namespace Graviton
                 GravitonPlugin.Logger?.Trace($"Sending request for {apiPath}");
                 var response = await send();
 
-                if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
+                if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                 {
                     _plugin.Account!.ResetLocalAccountState();
                     _plugin.Settings.AccountState.AuthenticateFailed = response.StatusCode;
                 }
-                else
+                else if (response.IsSuccessStatusCode)
                 {
                     _plugin.Settings.AccountState.AuthenticateFailed = HttpStatusCode.OK;
                 }
 
-                return new() { Status = response.StatusCode, Content = response.Content };
+                return new RawClientResponse(response);
             }
             catch (Exception ex)
             {

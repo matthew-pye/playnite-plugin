@@ -173,7 +173,7 @@ namespace Graviton.Install.Downloads
             if (response == null || response.Content == null)
                 throw new Exception(Loc.GetString("DownloadServerNullResponse"));
 
-            if (response.Status == null || (int)response.Status < 200 || (int)response.Status >= 300)
+            if ((int)response.Status < 200 || (int)response.Status >= 300)
             {
                 throw new HttpRequestException($"Download request returned HTTP {(int?)response.Status} ({response.Status})");
             }

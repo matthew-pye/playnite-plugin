@@ -294,7 +294,24 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBox x:Name="ServerAddressBox" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Margin="10,5,10,10" Text="{Binding Host, Mode=TwoWay}" VerticalAlignment="Center" local:Placeholder.Text="{loc:LocalizedString ServerText}"/>
+                    <StackPanel Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Margin="10,5,10,10" VerticalAlignment="Center">
+                        <TextBox x:Name="ServerAddressBox" Text="{Binding Host, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString ServerText}" TextChanged="ServerAddressBox_TextChanged"/>
+                        <StackPanel Orientation="Horizontal" Margin="5,3,5,5">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HTTPInUse}" Value="false">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+
+                            <TextBlock Name="HTTPInUseIcon" Text="&#xf449;" FontFamily="{StaticResource NerdFont}" Foreground="{DynamicResource Graviton.Warn.Colour}" Margin="0,0,5,0"/>
+                            <TextBlock Name="HTTPInUseText" Text="{loc:LocalizedString HTTPInUse}" HorizontalAlignment="Left" Foreground="{DynamicResource Graviton.Warn.Colour}"/>
+                        </StackPanel>
+                    </StackPanel>
 
                     <!-- #region QR Code -->
                     <Border BorderThickness="1" CornerRadius="8" ClipToBounds="True" BorderBrush="{DynamicResource Graviton.DarkTransparentBackground.Colour}" Background="{DynamicResource Graviton.DarkTransparentBackground.Colour}" Margin="10" Grid.Row="1" Grid.Column="0" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}">

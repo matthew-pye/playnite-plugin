@@ -91,16 +91,20 @@ namespace Graviton.Settings
                 if(Uri.TryCreate(value, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
                 {
                     _host = value.TrimEnd('/');
+                    HTTPInUse = uri.Scheme == Uri.UriSchemeHttp;
                 }
                 else
                 {
                     GravitonNotify.Notify("graviton.host.invalid.scheme", Loc.GetString("InvalidScheme"), GravitonSeverity.Error);
                     _host = string.Empty;
+                    HTTPInUse = false;
                 }
                               
                 OnPropertyChanged();
             }
         }
+
+        [ObservableProperty] [JsonIgnore] public bool _hTTPInUse = false;
 
         public string ProfilePath
         {
@@ -117,30 +121,30 @@ namespace Graviton.Settings
         [JsonIgnore]
         public string UsernameNP
         {
-            get => string.IsNullOrEmpty(Username) ? string.Empty : UnProtect(Username);
+            get => string.IsNullOrEmpty(Username) ? string.Empty : GravitonSecurity.UnProtect(Username);
             set
             {
-                Username = string.IsNullOrEmpty(value) ? string.Empty : Protect(value);
+                Username = string.IsNullOrEmpty(value) ? string.Empty : GravitonSecurity.Protect(value);
                 OnPropertyChanged();
             }
         }
         [JsonIgnore]
         public string PasswordNP
         {
-            get => string.IsNullOrEmpty(Password) ? string.Empty : UnProtect(Password);
+            get => string.IsNullOrEmpty(Password) ? string.Empty : GravitonSecurity.UnProtect(Password);
             set
             {
-                Password = string.IsNullOrEmpty(value) ? string.Empty : Protect(value);
+                Password = string.IsNullOrEmpty(value) ? string.Empty : GravitonSecurity.Protect(value);
                 OnPropertyChanged();
             }
         }
         [JsonIgnore]
         public string ClientTokenNP
         {
-            get => string.IsNullOrEmpty(ClientToken) ? string.Empty : UnProtect(ClientToken);
+            get => string.IsNullOrEmpty(ClientToken) ? string.Empty : GravitonSecurity.UnProtect(ClientToken);
             set
             {
-                ClientToken = string.IsNullOrEmpty(value) ? string.Empty : Protect(value);
+                ClientToken = string.IsNullOrEmpty(value) ? string.Empty : GravitonSecurity.Protect(value);
                 OnPropertyChanged();
             }
         }
@@ -154,7 +158,7 @@ namespace Graviton.Settings
                 UseBasicAuth = this.UseBasicAuth,
                 UsernameNP = this.UsernameNP,
                 PasswordNP = this.PasswordNP,
-                CustomHeaders = this.CustomHeaders,
+                CustomHeaders = JsonSerializer.Deserialize<ObservableCollection<CustomHTTPHeader>>(JsonSerializer.Serialize(this.CustomHeaders)) ?? this.CustomHeaders,
 
                 ProfilePath = this.ProfilePath,
                 
@@ -196,19 +200,22 @@ namespace Graviton.Settings
                 DebuggingEnabled = this.DebuggingEnabled,
             };
         }
+    }
 
-        private string Protect(string PlainText)
+    public class GravitonSecurity
+    {
+        public static string Protect(string PlainText)
         {
-            if (string.IsNullOrEmpty(PlainText)) 
+            if (string.IsNullOrEmpty(PlainText))
                 return string.Empty;
 
             byte[] encrypted = ProtectedData.Protect(Encoding.UTF8.GetBytes(PlainText), Encoding.UTF8.GetBytes(GravitonPlugin.ExternalIdType), DataProtectionScope.CurrentUser);
             return Convert.ToBase64String(encrypted);
         }
 
-        private string UnProtect(string ProtectedText)
+        public static string UnProtect(string ProtectedText)
         {
-            if (string.IsNullOrEmpty(ProtectedText)) 
+            if (string.IsNullOrEmpty(ProtectedText))
                 return string.Empty;
 
             try
@@ -217,7 +224,7 @@ namespace Graviton.Settings
                     Encoding.UTF8.GetBytes(GravitonPlugin.ExternalIdType), DataProtectionScope.CurrentUser);
                 return Encoding.UTF8.GetString(decrypted);
             }
-            catch (System.Security.Cryptography.CryptographicException ex)
+            catch (CryptographicException ex)
             {
                 GravitonPlugin.Logger?.Error($"Failed to decrypt credential: {ex.Message}");
                 return string.Empty;
