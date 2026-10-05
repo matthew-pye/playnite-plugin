@@ -31,9 +31,39 @@ namespace Graviton.Install.Downloads
 
                 if (romMLocal.IsInstalledPathDirectory && Directory.Exists(romMLocal.InstalledPath))
                 {
+                    var collidingROM = _plugin.ImportedGames.Where(x => x.Value.InstalledPath == romMLocal.InstalledPath).ToList();
+
+                    if (collidingROM.Count > 0)
+                    {
+                        var result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("OverlappingROMInstallsWarn"), button: MessageBoxButtons.YesNoCancel, severity: MessageBoxSeverity.Warning);
+
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            foreach (var rom in collidingROM)
+                            {
+                                var game = _playniteAPI.Library.Games.FirstOrDefault(x => x.Id == rom.Value.PlayniteID);
+                                if (game == null)
+                                    continue;
+
+                                game.InstallState = InstallState.Uninstalled;
+                                await _playniteAPI.Library.Games.UpdateAsync(game);
+
+                                rom.Value.InstalledPath = null;
+                                rom.Value.IsInstalledPathDirectory = false;
+                                rom.Value.Save();
+                            }
+                        }
+                        else if(result == MessageBoxResult.No) { }
+                        else
+                        {
+                            return;
+                        } 
+                    }
+
                     Directory.Delete(romMLocal.InstalledPath, true);
                     romMLocal.InstalledPath = null;
                     romMLocal.IsInstalledPathDirectory = false;
+                    
                 }
                 else if(!romMLocal.IsInstalledPathDirectory && File.Exists(romMLocal.InstalledPath))
                 {

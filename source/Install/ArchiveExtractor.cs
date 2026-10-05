@@ -19,7 +19,7 @@ namespace Graviton.Install.Downloads
             return ArchiveFactory.IsArchive(filePath, out var type);
         }
 
-        public static void ExtractArchiveWith7z(string pathTo7z, string archivePath, string installDir, DownloadQueueItem item, CancellationToken ct)
+        public static async void ExtractArchiveWith7z(string pathTo7z, string archivePath, string installDir, DownloadQueueItem item, CancellationToken ct)
         {
             if (archivePath == null || archivePath.Contains("../") || archivePath.Contains(@"..\"))
             {
@@ -41,8 +41,27 @@ namespace Graviton.Install.Downloads
             ct.ThrowIfCancellationRequested();
             using (Process? process = Process.Start(startInfo))
             {
-                process?.WaitForExit();
-                if (process?.ExitCode != 0)
+                if(process == null)
+                    throw new Exception(Loc.GetString("ProcessFailedToStart"));
+
+                while (!process!.HasExited)
+                {
+                    if (ct.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            process.Kill(true);
+                        }
+                        catch {}
+
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    // Wait 100ms before again checking if process has exited
+                    await Task.Delay(100, ct);
+                }
+
+                if (process.ExitCode != 0)
                 {
                     throw new Exception(Loc.GetString("ArchiveExtractionFailed", ("Path", archivePath), ("ExitCode", process?.ExitCode.ToString() ?? "?")));
                 }
@@ -50,14 +69,18 @@ namespace Graviton.Install.Downloads
         }
         public static void ExtractArchiveWithEntryProgress(string archivePath, string installDir, DownloadQueueItem item, CancellationToken ct)
         {
-            using (var archive = ArchiveFactory.OpenArchive(archivePath))
+            var createdFiles = new List<string>();
+
+            try
             {
+                using var archive = ArchiveFactory.OpenArchive(archivePath);
+
                 var entries = archive.Entries.Where(e => !e.IsDirectory).ToList();
+
                 int total = entries.Count;
                 int done = 0;
 
-                if (!Directory.Exists(installDir))
-                    Directory.CreateDirectory(installDir);
+                Directory.CreateDirectory(installDir);
 
                 item.SetProgress(0, Math.Max(1, total), false);
 
@@ -65,7 +88,17 @@ namespace Graviton.Install.Downloads
                 {
                     ct.ThrowIfCancellationRequested();
 
+                    if (entry.Key == null)
+                        continue;
+
+                    var destination = Path.Combine(installDir, entry.Key);
+
+                    var existed = File.Exists(destination);
+
                     entry.WriteToDirectory(installDir);
+
+                    if (!existed && File.Exists(destination))
+                        createdFiles.Add(destination);
 
                     done++;
                     item.SetProgress(done, total, false);
@@ -73,28 +106,77 @@ namespace Graviton.Install.Downloads
                     item.SetStatus(DownloadStatus.Extracting, Loc.GetString("DownloadStatusExtractingPct", ("Percent", pct.ToString("0"))));
                 }
             }
+            catch
+            {
+                CleanupCreatedFiles(createdFiles);
+                throw;
+            }
         }
 
         public static void ExtractArchive(string archivePath, string installDir, CancellationToken ct)
         {
-            using (var archive = ArchiveFactory.OpenArchive(archivePath))
+            var createdFiles = new List<string>();
+
+            try
             {
+                using var archive = ArchiveFactory.OpenArchive(archivePath);
+
                 var entries = archive.Entries.Where(e => !e.IsDirectory).ToList();
+
                 int total = entries.Count;
                 int done = 0;
 
-                if (!Directory.Exists(installDir))
-                    Directory.CreateDirectory(installDir);
+                Directory.CreateDirectory(installDir);
+
 
                 foreach (var entry in entries)
                 {
                     ct.ThrowIfCancellationRequested();
 
+                    if (entry.Key == null)
+                        continue;
+
+                    var destination = Path.Combine(installDir, entry.Key);
+                    var existed = File.Exists(destination);
+
                     entry.WriteToDirectory(installDir);
 
+                    if (!existed && File.Exists(destination))
+                        createdFiles.Add(destination);
+
                     done++;
-                    var pct = total > 0 ? (double)done / total * 100.0 : 100.0;
                 }
+            }
+            catch
+            {
+                CleanupCreatedFiles(createdFiles);
+                throw;
+            }
+        }
+
+        public static void CleanupCreatedFiles(IEnumerable<string> files)
+        {
+            foreach (var file in files.Reverse())
+            {
+                try
+                {
+                    if (File.Exists(file))
+                        File.Delete(file);
+                }
+                catch { }
+            }
+
+            var directories = files.Select(Path.GetDirectoryName).Where(x => !string.IsNullOrEmpty(x)).Distinct(StringComparer.OrdinalIgnoreCase).OrderByDescending(x => x!.Length);
+
+            foreach (var directory in directories)
+            {
+                try
+                {
+                    if (Directory.Exists(directory) && !Directory.EnumerateFileSystemEntries(directory!).Any())
+                        Directory.Delete(directory!);
+                    
+                }
+                catch { }
             }
         }
     }

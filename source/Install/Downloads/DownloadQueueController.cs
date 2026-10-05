@@ -169,7 +169,7 @@ namespace Graviton.Install.Downloads
             item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloading"));
             item.SetProgress(0, 1, true);
 
-            var response = await _romMServer.RawGETAsync(req.DownloadUrl);
+            using var response = await _romMServer.RawGETAsync(req.DownloadUrl);
             if (response == null || response.Content == null)
                 throw new Exception(Loc.GetString("DownloadServerNullResponse"));
 
