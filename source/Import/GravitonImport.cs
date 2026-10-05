@@ -282,11 +282,29 @@ namespace Graviton.Import
 
             var game = _playniteAPI.Library.Games.Get(_plugin.ImportedGames[gameID].PlayniteID!);
 
+            // Try to recover imported game
             if (game == null)
             {
-                GravitonNotify.Notify($"graviton.import.updategame.failed", Loc.GetString("GameUpdateFailed"), GravitonSeverity.Error);
-                _logger?.Error($"Failed to find {_plugin.ImportedGames[gameID].PlayniteID} in playnite database");
-                return new(gameID, null);
+                game = _playniteAPI.Library.Games.FirstOrDefault(x => x.LibraryId == GravitonPlugin.Id && x.LibraryGameId == gameID);
+
+                if (game == null)
+                {
+                    // Failed to find previously imported game remove data and reimport
+                    _logger?.Warn($"Failed to find cached Playnite game {_plugin.ImportedGames[gameID].PlayniteID} for RomM ROM {gameID}; re-importing");
+
+                    _plugin.ImportedGames.TryRemove(gameID, out _);
+
+                    if(File.Exists($"{GravitonPlugin.Instance.PluginDataPath}/Games/{gameID}.json"))
+                        File.Delete($"{GravitonPlugin.Instance.PluginDataPath}/Games/{gameID}.json");
+
+                    return await ImportNewGame(ROM, gameID);
+                }
+                else
+                {
+                    _logger?.Warn($"Recovered stale Playnite ID for RomM ROM {gameID}: " + $"{_plugin.ImportedGames[gameID].PlayniteID} -> {game.Id}");
+                    _plugin.ImportedGames[gameID].PlayniteID = game.Id;
+                    _plugin.ImportedGames[gameID].Save();
+                }   
             }
 
             // Import new game sessions

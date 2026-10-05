@@ -55,9 +55,9 @@ namespace Graviton.Status
 
             while (hasMoreData)
             {
-                url += $"&offset={offset}";
+                var currentURL = url + $"&offset={offset}";
 
-                var request = await _romMServer.GETAsync(url);
+                var request = await _romMServer.GETAsync(currentURL);
                 if (request == null)
                     return null;
 
@@ -83,6 +83,8 @@ namespace Graviton.Status
                     GravitonNotify.Notify("graviton.fetch.playsession", Loc.GetString("GetPlaySessionsFailed"), GravitonSeverity.Error, ex);
                     return null;
                 }
+
+                offset += pagesize;
             }
 
             return playsessions;

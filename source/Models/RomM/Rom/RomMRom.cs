@@ -14,6 +14,7 @@ namespace Graviton.Models.RomM.Rom
 
     public static class RomMCategory
     {
+        public static readonly string Game = "game";
         public static readonly string Update = "update";
         public static readonly string DLC = "dlc";
         public static readonly string Patch = "patch";

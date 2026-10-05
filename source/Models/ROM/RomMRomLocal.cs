@@ -86,7 +86,7 @@ namespace Graviton.Models.ROM
             }
             else
             {
-                var fileIDs = ROM.Files.Where(x => x.Category == "game").Select(y => y.Id.ToString()).ToList();
+                var fileIDs = ROM.Files.Where(x => x.Category == RomMCategory.Game).Select(y => y.Id.ToString()).ToList();
 
                 if(fileIDs == null || fileIDs.Count() <= 0)
                 {
@@ -128,7 +128,7 @@ namespace Graviton.Models.ROM
             }
             else
             {
-                var fileIDs = ROM.Files.Where(x => x.Category == "game").Select(y => y.Id.ToString()).ToList();
+                var fileIDs = ROM.Files.Where(x => x.Category == RomMCategory.Game).Select(y => y.Id.ToString()).ToList();
 
                 if (fileIDs == null || fileIDs.Count() <= 0)
                 {
@@ -170,7 +170,7 @@ namespace Graviton.Models.ROM
                 return null;
 
             if (ROM.Files.Count > 1)
-                return ROM.Files.Where(x => x.Category == "Game").OrderBy(f => f.FullPath.Count(c => c == '/')).FirstOrDefault();
+                return ROM.Files.Where(x => x.Category == RomMCategory.Game).OrderBy(f => f.FullPath.Count(c => c == '/')).FirstOrDefault();
 
             return ROM.Files.FirstOrDefault();
         }
