@@ -41,92 +41,107 @@ namespace Graviton.Import
 
         public async Task<List<Game>> Import(ImportGamesArgs args)
         {
-            _logger.Info($"Started game importting");
-
-            var enabledMappings = _plugin.Settings.Mappings.Where(m => m.Enabled).ToList();
-            if (!enabledMappings.Any())
+            try
             {
-                GravitonNotify.Notify($"graviton.emulators.notconfigured", Loc.GetString("NoEmulatorsConfigured"), GravitonSeverity.Warn);
-                _plugin.ImportInProgress = false;
-                return new List<Game>();
-            }
+                _logger.Info($"Started game importting");
 
-            IList<RomMPlatform>? apiPlatforms = await FetchPlatforms();
-            if (apiPlatforms == null)
-            {
-                _plugin.ImportInProgress = false;
-                return new List<Game>();
-            }
+                var enabledMappings = _plugin.Settings.Mappings.Where(m => m.Enabled).ToList();
+                if (!enabledMappings.Any())
+                {
+                    GravitonNotify.Notify($"graviton.emulators.notconfigured", Loc.GetString("NoEmulatorsConfigured"), GravitonSeverity.Warn);
+                    _plugin.ImportInProgress = false;
+                    return new List<Game>();
+                }
 
-            _plugin.Settings.RomMPlatforms = apiPlatforms.ToObservableCollection();
-            foreach (var mapping in _plugin.Settings.Mappings)
-            {
-                mapping.AvailablePlatforms = _plugin.Settings.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
-            }
-            GravitonSettingsHandler.SaveSettings(_plugin.PluginDataPath, _plugin.Settings);
+                IList<RomMPlatform>? apiPlatforms = await FetchPlatforms();
+                if (apiPlatforms == null)
+                {
+                    _plugin.ImportInProgress = false;
+                    return new List<Game>();
+                }
 
-            var collections = _plugin.Settings.AddCollectiontoPlayniteCategory ? await FetchManualCollections() : null;
-            if (args.CancelToken.IsCancellationRequested)
-                return [];
+                _plugin.Settings.RomMPlatforms = apiPlatforms.ToObservableCollection();
+                foreach (var mapping in _plugin.Settings.Mappings)
+                {
+                    mapping.AvailablePlatforms = _plugin.Settings.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
+                }
+                GravitonSettingsHandler.SaveSettings(_plugin.PluginDataPath, _plugin.Settings);
 
-            var smartCollections = _plugin.Settings.AddSmartCollectiontoPlayniteCategory ? await FetchSmartCollections() : null;
-            if (args.CancelToken.IsCancellationRequested)
-                return [];
-
-            var sessions = await _plugin.StatusController!.FetchPlaySessions();
-            if (args.CancelToken.IsCancellationRequested)
-                return [];
-
-            string url = BuildGeneralROMUrl();
-
-            List<EmulatorMapping> processedMappings = new();
-
-            List<Game> games = new List<Game>();
-            List<string> proccessedgames = new List<string>();
-            Task<(List<Game> NewGames, List<string> ProcessedGames)>? task = null;
-
-            // Pull ROM data for each enabled mapping and add the games to playnite
-            foreach (var mapping in enabledMappings)
-            {
+                var collections = _plugin.Settings.AddCollectiontoPlayniteCategory ? await FetchManualCollections() : null;
                 if (args.CancelToken.IsCancellationRequested)
-                    break;
+                    return [];
 
-                // Check mapping has an Emulator, Profile & Platform assigned to it
-                if (!mapping.IsSetup)
-                {
-                    GravitonNotify.Notify($"graviton.mapping.incomplete", Loc.GetString("IncompleteMappingsSkipped"), GravitonSeverity.Warn);
-                    continue;
-                }
-
-                RomMPlatform? apiPlatform = apiPlatforms.FirstOrDefault(p => p.Id == mapping.RomMPlatformId);
-                if (apiPlatform == null)
-                {
-                    GravitonNotify.Notify($"graviton.platform.{mapping.RomMPlatform!.Id}.notfound", Loc.GetString("PlatformNotFound", ("PlatformName", mapping.RomMPlatform.Name), ("PlatformID", mapping.RomMPlatformId)), GravitonSeverity.Error);
-                    continue;
-                }
-
-                // Pull data from server
-                _logger.Trace($"Started parsing response for {apiPlatform.Name}");
-                var rommROMs = await DownloadROMData(args, url, apiPlatform);
-
+                var smartCollections = _plugin.Settings.AddSmartCollectiontoPlayniteCategory ? await FetchSmartCollections() : null;
                 if (args.CancelToken.IsCancellationRequested)
-                    break;
+                    return [];
 
-                if (rommROMs.Count() <= 0)
+                var sessions = await _plugin.StatusController!.FetchPlaySessions();
+                if (args.CancelToken.IsCancellationRequested)
+                    return [];
+
+                string url = BuildGeneralROMUrl();
+
+                List<EmulatorMapping> processedMappings = new();
+
+                List<Game> games = new List<Game>();
+                List<string> proccessedgames = new List<string>();
+                Task<(List<Game> NewGames, List<string> ProcessedGames)>? task = null;
+
+                // Pull ROM data for each enabled mapping and add the games to playnite
+                foreach (var mapping in enabledMappings)
                 {
-                    _logger.Info($"Checked {apiPlatform.Name} for ROMs, No ROMs found");
-                    continue;
-                }
-                else
-                    _logger.Trace($"Finished parsing response for {apiPlatform.Name} with {rommROMs.Count()} ROMs found");
+                    if (args.CancelToken.IsCancellationRequested)
+                        break;
 
-                // Remove ROMs that are in the exclusion list
-                foreach (var rom in rommROMs.ToList())
-                {
-                    if (args.Exclusions?.Any(x => x.GameId == rom.Id.ToString()) ?? false)
-                        rommROMs.Remove(rom);
+                    // Check mapping has an Emulator, Profile & Platform assigned to it
+                    if (!mapping.IsSetup)
+                    {
+                        GravitonNotify.Notify($"graviton.mapping.incomplete", Loc.GetString("IncompleteMappingsSkipped"), GravitonSeverity.Warn);
+                        continue;
+                    }
+
+                    RomMPlatform? apiPlatform = apiPlatforms.FirstOrDefault(p => p.Id == mapping.RomMPlatformId);
+                    if (apiPlatform == null)
+                    {
+                        GravitonNotify.Notify($"graviton.platform.{mapping.RomMPlatform!.Id}.notfound", Loc.GetString("PlatformNotFound", ("PlatformName", mapping.RomMPlatform.Name), ("PlatformID", mapping.RomMPlatformId)), GravitonSeverity.Error);
+                        continue;
+                    }
+
+                    // Pull data from server
+                    _logger.Trace($"Started parsing response for {apiPlatform.Name}");
+                    var rommROMs = await DownloadROMData(args, url, apiPlatform);
+
+                    if (args.CancelToken.IsCancellationRequested)
+                        break;
+
+                    if (rommROMs.Count() <= 0)
+                    {
+                        _logger.Info($"Checked {apiPlatform.Name} for ROMs, No ROMs found");
+                        continue;
+                    }
+                    else
+                        _logger.Trace($"Finished parsing response for {apiPlatform.Name} with {rommROMs.Count()} ROMs found");
+
+                    // Remove ROMs that are in the exclusion list
+                    foreach (var rom in rommROMs.ToList())
+                    {
+                        if (args.Exclusions?.Any(x => x.GameId == rom.Id.ToString()) ?? false)
+                            rommROMs.Remove(rom);
+                    }
+
+                    if (task != null)
+                    {
+                        var result = await task;
+                        games.AddRange(result.NewGames);
+                        proccessedgames.AddRange(result.ProcessedGames);
+                    }
+
+                    _logger.Trace($"Creating new import task for {apiPlatform.Name}");
+                    task = new GravitonImport(_plugin, _playniteAPI, _logger, args, mapping).ProcessData(rommROMs, collections, smartCollections, sessions);
+                    processedMappings.Add(mapping);
                 }
 
+                // Complete finale mapping import
                 if (task != null)
                 {
                     var result = await task;
@@ -134,28 +149,20 @@ namespace Graviton.Import
                     proccessedgames.AddRange(result.ProcessedGames);
                 }
 
-                _logger.Trace($"Creating new import task for {apiPlatform.Name}");
-                task = new GravitonImport(_plugin, _playniteAPI, _logger, args, mapping).ProcessData(rommROMs, collections, smartCollections, sessions);
-                processedMappings.Add(mapping);
-            }
+                _logger.Info($"Finished importing games, {games.Count()} new games found");
 
-            // Complete finale mapping import
-            if (task != null)
+                if (!_plugin.Settings.KeepDeletedGames)
+                    await RemoveMissingGames(proccessedgames, processedMappings);
+
+                _plugin.ImportInProgress = false;
+                var sessionsstring = JsonSerializer.Serialize(_playniteAPI.Library.GameSessions, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText($"{_plugin.PluginDataPath}/temp/sessions.json", sessionsstring);
+                return games;
+            }
+            finally
             {
-                var result = await task;
-                games.AddRange(result.NewGames);
-                proccessedgames.AddRange(result.ProcessedGames);
+                _plugin.ImportInProgress = false;
             }
-
-            _logger.Info($"Finished importing games, {games.Count()} new games found");
-
-            if (!_plugin.Settings.KeepDeletedGames)
-                await RemoveMissingGames(proccessedgames, processedMappings);
-
-            _plugin.ImportInProgress = false;
-            var sessionsstring = JsonSerializer.Serialize(_playniteAPI.Library.GameSessions, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText($"{_plugin.PluginDataPath}/temp/sessions.json", sessionsstring);
-            return games;
         }
 
         private async Task RemoveMissingGames(List<string> ImportedGames, List<EmulatorMapping> processedMappings)
@@ -174,15 +181,24 @@ namespace Graviton.Import
 
                 if (File.Exists($"{_plugin.PluginDataPath}/Games/{id}.json"))
                 {
-                    var gamejson = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{_plugin.PluginDataPath}/Games/{id}.json"));
-
-                    var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == gamejson?.MappingID);
-                    if (mapping != null)
+                    try
                     {
-                        // Don't remove games from mappings that are disabled or where skipped on import
-                        if (!mapping.Enabled || !processedMappings.Contains(mapping))
-                            continue;
+                        var gamejson = JsonSerializer.Deserialize<RomMRomLocal>(File.ReadAllText($"{_plugin.PluginDataPath}/Games/{id}.json"));
+
+                        var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == gamejson?.MappingID);
+                        if (mapping != null)
+                        {
+                            // Don't remove games from mappings that are disabled or where skipped on import
+                            if (!mapping.Enabled || !processedMappings.Contains(mapping))
+                                continue;
+                        }
                     }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn($"Failed to read cached ROM data for {id} while checking removed games: {ex.Message}");
+                        continue;
+                    }
+                    
                 }
 
                 var rootgamerelation = _playniteAPI.Library.GameRelations.FirstOrDefault(x => x.PrimaryGame == game.Value.PlayniteID);

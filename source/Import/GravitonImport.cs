@@ -280,7 +280,7 @@ namespace Graviton.Import
             {
                 if (await UpdatedDeletedGame(ROM))
                 {
-                    return new(gameID, null);
+                    return await UpdateGame(ROM, gameID);
                 }
             }
 
@@ -401,52 +401,54 @@ namespace Graviton.Import
             var importedGame = await GenerateGame(ROM);
             if (importedGame != null)
             {
-                // Import game sessions
-                if (_args.SessionImport != SessionImportMode.Never && _plugin.Settings.ImportPlaysessions != Models.RomM.PlaySessions.ImportPlaySessions.None)
-                {
-                    if (_sessions != null && _sessions.Where(x => x.ROMID == ROM.Id).Count() > 0)
-                    {
-                        List<GameSession> newsessions = new();
-
-                        foreach (var session in _sessions.Where(x => x.ROMID == ROM.Id))
-                        {
-                            if (string.IsNullOrEmpty(session.StartTime))
-                                continue;
-
-                            var sessiondate = DateTimeOffset.Parse(session.StartTime, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
-                            sessiondate = sessiondate.AddMilliseconds(-sessiondate.Millisecond);
-
-                            GameSession newssession = new(importedGame.LibraryGameId!, GravitonPlugin.Id, session.ID.ToString())
-                            {
-                                Date = sessiondate,
-                                Length = (uint)(session.Duration / 1000)
-                            };
-
-                            if (importedGame.SessionIds == null)
-                                importedGame.SessionIds = new();
-
-                            importedGame.SessionIds.Add(newssession.Id);
-                            importedGame.PlayTime += (uint)(session.Duration / 1000);
-
-                            newsessions.Add(newssession);
-
-                        }
-
-                        await _playniteAPI.Library.GameSessions.AddAsync(newsessions);
-                    }
-                }
-
-                await _playniteAPI.Library.Games.AddAsync(importedGame);
+                
                 var localrom = RomMRomLocal.Build(_mapping.MappingId, ROM, importedGame.Id);
 
                 if (localrom == null)
                 {
                     _logger.Error($"Failed to create local cache for {ROM.Id}");
+                    return null;
                 } 
                 else
                 {
                     await InstallUpdateDLC.RefreshCandidates(_mapping, ROM, localrom);
                     localrom.Save();
+                    await _playniteAPI.Library.Games.AddAsync(importedGame);
+
+                    // Import game sessions
+                    if (_args.SessionImport != SessionImportMode.Never && _plugin.Settings.ImportPlaysessions != Models.RomM.PlaySessions.ImportPlaySessions.None)
+                    {
+                        if (_sessions != null && _sessions.Where(x => x.ROMID == ROM.Id).Count() > 0)
+                        {
+                            List<GameSession> newsessions = new();
+
+                            foreach (var session in _sessions.Where(x => x.ROMID == ROM.Id))
+                            {
+                                if (string.IsNullOrEmpty(session.StartTime))
+                                    continue;
+
+                                var sessiondate = DateTimeOffset.Parse(session.StartTime, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+                                sessiondate = sessiondate.AddMilliseconds(-sessiondate.Millisecond);
+
+                                GameSession newssession = new(importedGame.LibraryGameId!, GravitonPlugin.Id, session.ID.ToString())
+                                {
+                                    Date = sessiondate,
+                                    Length = (uint)(session.Duration / 1000)
+                                };
+
+                                if (importedGame.SessionIds == null)
+                                    importedGame.SessionIds = new();
+
+                                importedGame.SessionIds.Add(newssession.Id);
+                                importedGame.PlayTime += (uint)(session.Duration / 1000);
+
+                                newsessions.Add(newssession);
+
+                            }
+
+                            await _playniteAPI.Library.GameSessions.AddAsync(newsessions);
+                        }
+                    }
                 }
                    
                 return new(gameID, importedGame);
@@ -562,12 +564,16 @@ namespace Graviton.Import
             {
                 var game = _playniteAPI.Library.Games.Get(oldgame.Value.PlayniteID!)!;
 
-                game.LibraryGameId = $"{ROM.Id}";
-                oldgame.Value.Id = ROM.Id;
-                await _playniteAPI.Library.Games.UpdateAsync(game);
-                _logger?.Trace($"Updated old ID ({oldgame.Value.Id}) to new ID ({ROM.Id})");
-
+                _logger?.Trace($"Updating old ID ({oldgame.Value.Id}) to new ID ({ROM.Id})");
                 _plugin.ImportedGames.TryRemove(oldgame.Key, out _);
+
+                if (File.Exists($"{_plugin.PluginDataPath}\\Games\\{oldgame.Value.Id}.json"))
+                    File.Delete($"{_plugin.PluginDataPath}\\Games\\{oldgame.Value.Id}.json");
+
+                oldgame.Value.Id = ROM.Id;
+                game.LibraryGameId = $"{ROM.Id}";
+                await _playniteAPI.Library.Games.UpdateAsync(game);
+
                 oldgame.Value.Save();
 
                 return true;
