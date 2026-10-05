@@ -1,4 +1,5 @@
-﻿using Graviton.Models;
+﻿using Graviton.Install;
+using Graviton.Models;
 using Graviton.Models.Notifications;
 using Graviton.Models.ROM;
 using Graviton.Models.RomM.Collection;
@@ -223,7 +224,7 @@ namespace Graviton.Import
 
             }
 
-            //TODO: Dedup lists to not import multiple of the same metadata (Low priority)
+            //TODO: Dedup lists to not import multiple of the same metadata
 
             if (genres.Count > 0)
             {
@@ -386,6 +387,8 @@ namespace Graviton.Import
                 game.Favorite = ROM.Collections.Any(x => x.Name == "Favorites");
             }
 
+            await InstallUpdateDLC.RefreshCandidates(_mapping, ROM, _plugin.ImportedGames[gameID]);
+
             await _playniteAPI.Library.Games.UpdateAsync(game);
             _plugin.ImportedGames[gameID].Resync(ROM);
 
@@ -434,11 +437,18 @@ namespace Graviton.Import
                 }
 
                 await _playniteAPI.Library.Games.AddAsync(importedGame);
-                var localROM = RomMRomLocal.Build(_mapping.MappingId, ROM, importedGame.Id);
+                var localrom = RomMRomLocal.Build(_mapping.MappingId, ROM, importedGame.Id);
 
-                if (localROM == null)
-                    _logger.Info($"Failed the to create local cache for {ROM.Id}.");
-
+                if (localrom == null)
+                {
+                    _logger.Error($"Failed to create local cache for {ROM.Id}");
+                } 
+                else
+                {
+                    await InstallUpdateDLC.RefreshCandidates(_mapping, ROM, localrom);
+                    localrom.Save();
+                }
+                   
                 return new(gameID, importedGame);
             }
             else

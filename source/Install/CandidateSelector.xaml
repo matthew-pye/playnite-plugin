@@ -172,7 +172,7 @@
                         <TextBlock Name="CancelText" Text="{loc:LocalizedString Cancel}" Margin="2"/>
                     </Button>
                     <Button Name="InstallButton"  Click="Install_Click" Margin="5,0">
-                        <TextBlock Name="InstallText" Text="{loc:LocalizedString InstallSelected}" Margin="2"/>
+                        <TextBlock Name="InstallText" Text="{loc:LocalizedString Install}" Margin="2"/>
                     </Button>
                 </StackPanel>
                

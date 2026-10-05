@@ -16,7 +16,7 @@ namespace Graviton.Install.Downloads
 
         private Game Game;
 
-        internal GravitonUninstallController(Game game) : base("", "Uninstall", game.Id)
+        internal GravitonUninstallController(Game game) : base("", Loc.GetString("Uninstall"), game.Id)
         {
             Game = game;
         }

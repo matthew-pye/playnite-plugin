@@ -231,7 +231,7 @@ namespace Graviton.Install
             var installStyle = category == RomMCategory.Update ? installInfo.Mapping!.UpdateInstallStyle : installInfo.Mapping!.DLCInstallStyle;
 
             // Remove any invaild characters from candidate filename
-            var candidateFilename = string.Concat(candidate.FileName.Select(x => Path.GetInvalidFileNameChars().Contains(x) ? '_' : x));
+            var candidateFilename = SanitizeString(candidate.FileName);
 
             var req = new DownloadRequest
             {
@@ -331,7 +331,7 @@ namespace Graviton.Install
                 var installStyle = category == RomMCategory.Update ? GameData.Mapping.UpdateInstallStyle : GameData.Mapping.DLCInstallStyle;
 
                 // Remove any invaild characters from candidate filename
-                var candidateFilename = string.Concat(candidate.FileName.Select(x => Path.GetInvalidFileNameChars().Contains(x) ? '_' : x));
+                var candidateFilename = SanitizeString(candidate.FileName);
 
                 var req = new DownloadRequest
                 {
@@ -375,25 +375,7 @@ namespace Graviton.Install
 
         private static async Task InstallCandidate(DownloadQueueItem item, DownloadRequest req, UpdateDLCCandidate candidate, InstallStyles style, GameInstallInfo installInfo, string category)
         {
-            string? installPath = null;
-
-            if (style == InstallStyles.Folder || style == InstallStyles.MappedFolder)
-            {
-                if (category == RomMCategory.Update && !string.IsNullOrEmpty(installInfo.Mapping?.UpdateInstallPath))
-                {
-                    installPath = Path.Combine(installInfo.Mapping.UpdateInstallPath, installInfo.GameName);
-                }
-                else if (category == RomMCategory.DLC && !string.IsNullOrEmpty(installInfo.Mapping?.DLCInstallPath))
-                {
-                    installPath = Path.Combine(installInfo.Mapping.DLCInstallPath, installInfo.GameName);
-                }
-
-                if (string.IsNullOrEmpty(installPath))
-                {
-                    throw new Exception($"Failed to install candidate as no install path as set/found for {category}");
-                }
-            }
-
+            
             string workingPath = Path.Combine(Path.GetDirectoryName(req.DownloadPath)!, "extracted", req.Id);
 
             switch (style)
@@ -402,6 +384,25 @@ namespace Graviton.Install
                     return;
 
                 case InstallStyles.Folder:
+
+                    string? installPath = null;
+
+                    if (style == InstallStyles.Folder || style == InstallStyles.MappedFolder)
+                    {
+                        if (category == RomMCategory.Update && !string.IsNullOrEmpty(installInfo.Mapping?.UpdateInstallPath))
+                        {
+                            installPath = Path.Combine(installInfo.Mapping.UpdateInstallPath, SanitizeString(installInfo.GameName));
+                        }
+                        else if (category == RomMCategory.DLC && !string.IsNullOrEmpty(installInfo.Mapping?.DLCInstallPath))
+                        {
+                            installPath = Path.Combine(installInfo.Mapping.DLCInstallPath, SanitizeString(installInfo.GameName));
+                        }
+
+                        if (string.IsNullOrEmpty(installPath))
+                        {
+                            throw new Exception($"Failed to install candidate as no install path as set/found for {category}");
+                        }
+                    }
 
                     if (candidate.FileIDs.Count == 1)
                     {
@@ -545,7 +546,7 @@ namespace Graviton.Install
             var installLocation = definition.RuntimeArgs.Replace("{FolderPath}", installPath)
                                                         .Replace("{TitleID}", installInfo.TitleID)
                                                         .Replace("{SaveTarget}", installInfo.SaveTarget)
-                                                        .Replace("{CandidateName}", candidate.Name);
+                                                        .Replace("{CandidateName}", SanitizeString(candidate.Name));
 
             if (string.IsNullOrEmpty(candidate.SingleFileRelativePath))
             {
@@ -579,6 +580,9 @@ namespace Graviton.Install
             item.SetStatus(DownloadStatus.Installing, Loc.GetString("DownloadStatusInstalling"));
 
             const int bufferSize = 1024 * 1024;
+
+            if (!string.IsNullOrEmpty(Path.GetDirectoryName(destination)))
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
 
             using var sourceStream = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, FileOptions.SequentialScan);
             using var destinationStream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize, FileOptions.SequentialScan);
@@ -646,6 +650,14 @@ namespace Graviton.Install
             }
 
             return paths;
+        }
+
+        private static string SanitizeString(string value)
+        {
+            var invalid = Path.GetInvalidFileNameChars();
+            var sanitized = string.Concat(value.Where(c => !invalid.Contains(c))).Trim();
+
+            return string.IsNullOrWhiteSpace(sanitized) ? "Unnamed" : sanitized;
         }
     }
 }

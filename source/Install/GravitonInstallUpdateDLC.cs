@@ -3,6 +3,8 @@ using Graviton.Models.Install;
 using Graviton.Models.ROM;
 using Graviton.Models.RomM.Rom;
 
+using Playnite;
+
 using System.Collections.ObjectModel;
 using System.IO;
 
@@ -62,9 +64,9 @@ namespace Graviton.Install
                         var size = files.Sum(x => x.FileSize ?? 0);
 
                         if (files.Count == 1)
-                            return [new(RomMCategory.Update, files[0].FileName, category, [.. files.Select(y => y.Id)], null, null, size)];
+                            return [new(Path.GetFileName(files[0].FileName), files[0].FileName, category, [.. files.Select(y => y.Id)], null, null, size)];
                         else
-                            return [new(RomMCategory.Update, $"{ROM.Name}-Update.zip", category, [.. files.Select(y => y.Id)], null, null, size)];
+                            return [new("Update Folder", $"{ROM.Name}-Update.zip", category, [.. files.Select(y => y.Id)], null, null, size)];
                     }
                     else if (category == RomMCategory.DLC)
                     {
@@ -72,9 +74,9 @@ namespace Graviton.Install
                         var size = files.Sum(x => x.FileSize ?? 0);
 
                         if (files.Count == 1)
-                            return [new(RomMCategory.DLC, files[0].FileName, category, [.. files.Select(y => y.Id)], null, null, size)];
+                            return [new(Path.GetFileName(files[0].FileName), files[0].FileName, category, [.. files.Select(y => y.Id)], null, null, size)];
                         else
-                            return [new(RomMCategory.DLC, $"{ROM.Name}-DLC.zip", category, [.. files.Select(y => y.Id)], null, null, size)];
+                            return [new("DLC Folder", $"{ROM.Name}-DLC.zip", category, [.. files.Select(y => y.Id)], null, null, size)];
 
 
                     }
@@ -197,8 +199,8 @@ namespace Graviton.Install
                 return null;
             }
             catch (Exception ex)
-            {
-                GravitonNotify.Notify("graviton.findcadidate.failed", $"Failed to find {category} candidates: {ex.Message}", Models.Notifications.GravitonSeverity.Error, ex);
+            { 
+                GravitonNotify.Notify("graviton.findcadidate.failed", Loc.GetString("CandidateDiscoveryFailed", ("Category", category), ("Error", ex.Message)), Models.Notifications.GravitonSeverity.Error, ex);
                 return null;
             }
         }

@@ -32,7 +32,14 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Style="{StaticResource Graviton.SettingsSectionHeader}" Text="{loc:LocalizedString UpdateDLCTitle}" />
+                <TextBlock Grid.Row="0" Style="{StaticResource Graviton.SettingsSectionHeader}" Text="{loc:LocalizedString UpdateDLCSection}" VerticalAlignment="Center"/>
+
+                <Button Name="RefreshButton" Click="Refresh_Click" Margin="5,5,10,10" Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="&#xf46a;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0" FontSize="18"/>
+                        <TextBlock Name="RefreshText" Text="{loc:LocalizedString Refresh}" FontSize="18"/>
+                    </StackPanel>
+                </Button>
 
                 <Separator Grid.Row="1" Margin="2,5" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
 
@@ -48,16 +55,9 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     
-                    <Button Name="RefreshButton" Click="Refresh_Click" Margin="0,0,10,0" Grid.Row="0" Grid.Column="1">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock Text="&#xf46a;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
-                            <TextBlock Name="RefreshText" Text="{loc:LocalizedString Refresh}"/>
-                        </StackPanel>
-                    </Button>
-                    
                     <!--#region Update -->
                     <TextBlock Grid.Row="0" Style="{StaticResource Graviton.SettingsSubHeader}" Text="{loc:LocalizedString Updates}" />
-                    <Border Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Graviton.SettingsCard}">
+                    <Border Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Graviton.SettingsCard}" Padding="2">
                         <StackPanel>
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="{loc:LocalizedString NoUpdates}">
                                 <TextBlock.Style>
@@ -73,12 +73,22 @@
                             </TextBlock>
 
                             <ListBox ItemsSource="{Binding Game.UpdateCandidates}">
+                                <ListBox.Style>
+                                    <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Game.DLCCandidates.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ListBox.Style>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="3*"/>
-                                                <ColumnDefinition Width="1*"/>
+                                                <ColumnDefinition Width="5*"/>
+                                                <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
 
@@ -91,7 +101,7 @@
                                                 </StackPanel>
                                             </StackPanel>
 
-                                            <TextBlock Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                            <TextBlock Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                                         <Style.Triggers>
@@ -121,7 +131,6 @@
 
                                                     <Button Grid.Column="0" Style="{StaticResource Graviton.SplitButtonLeft}" Click="Install_Click">
                                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                            <TextBlock Text="&#xf46a;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
                                                             <TextBlock>
                                                                 <TextBlock.Style>
                                                                     <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
@@ -165,7 +174,7 @@
 
                     <!--#region DLC -->
                     <TextBlock Grid.Row="2" Style="{StaticResource Graviton.SettingsSubHeader}" Text="{loc:LocalizedString DLC}" />
-                    <Border Grid.Row="3" Grid.ColumnSpan="2" Style="{StaticResource Graviton.SettingsCard}">
+                    <Border Grid.Row="3" Grid.ColumnSpan="2" Style="{StaticResource Graviton.SettingsCard}" Padding="2">
                         <StackPanel>
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="{loc:LocalizedString NoDLC}">
                                 <TextBlock.Style>
@@ -181,12 +190,22 @@
                             </TextBlock>
 
                             <ListBox ItemsSource="{Binding Game.DLCCandidates}">
+                                <ListBox.Style>
+                                    <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Game.DLCCandidates.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ListBox.Style>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="3*"/>
-                                                <ColumnDefinition Width="1*"/>
+                                                <ColumnDefinition Width="5*"/>
+                                                <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
 
@@ -199,7 +218,7 @@
                                                 </StackPanel>
                                             </StackPanel>
 
-                                            <TextBlock Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                            <TextBlock Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                                         <Style.Triggers>
@@ -229,7 +248,6 @@
 
                                                     <Button Grid.Column="0" Style="{StaticResource Graviton.SplitButtonLeft}" Click="Install_Click">
                                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                            <TextBlock Text="&#xf46a;" FontFamily="{StaticResource NerdFont}" Margin="0,0,4,0"/>
                                                             <TextBlock>
                                                                 <TextBlock.Style>
                                                                     <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">

@@ -37,7 +37,7 @@ namespace Graviton.Models.Install
                     ["cemu"],
                     ["cemu.exe"],
                     "{FolderPath}\\0005000e\\{TitleID}\\",
-                    "Select Cemu's mlc01\\usr\\title folder.",
+                    Loc.GetString("CemuTitleIDPathNote"),
                     [
                         new (["code/", "content/", "meta/"])
                     ]
@@ -48,7 +48,7 @@ namespace Graviton.Models.Install
                     ["cemu"],
                     ["cemu.exe"],
                     "{FolderPath}\\0005000c\\{TitleID}\\",
-                    "Select Cemu's mlc01\\usr\\title folder.",
+                    Loc.GetString("CemuTitleIDPathNote"),
                     [
                         new (["code/", "content/", "meta/"])
                     ]
@@ -66,7 +66,7 @@ namespace Graviton.Models.Install
                         "xenia_edge.exe"
                     ],
                     "{FolderPath}\\{TitleID}\\000B0000\\",
-                    "Select Xenia's content root folder, usually Documents\\Xenia.",
+                    Loc.GetString("XeniaTitleIDPathNote"),
                     [
                         new ([@"{!RGX!}^TU_[A-Z0-9]{7}_[0-9]{13}\."])
                     ]
@@ -83,7 +83,7 @@ namespace Graviton.Models.Install
                 //        "xenia_edge.exe"
                 //    ],
                 //    "{FolderPath}\\{TitleID}\\",
-                //    "Select Xenia's content root folder, usually Documents\\Xenia.",
+                //    Loc.GetString("XeniaTitleIDPathNote"),
                 //    [
                 //        new (["00000002/"]),
                 //    ]
@@ -96,7 +96,7 @@ namespace Graviton.Models.Install
                     ["shadps4"],
                     ["shadPS4.exe", "shadPS4QtLauncher.exe"],
                     "{FolderPath}\\{TitleID}-UPDATE\\",
-                    "Select the folder containing your installed shadPS4 games.",
+                    Loc.GetString("ShadPS4UpdatePathNote"),
                     [
                         new (["sce_sys/param.sfo"])
                     ]
@@ -107,7 +107,7 @@ namespace Graviton.Models.Install
                     ["shadps4"],
                     ["shadPS4.exe", "shadPS4QtLauncher.exe"],
                     "{FolderPath}\\{TitleID}-{CandidateName}\\",
-                    "Select shadPS4's add-on content folder.",
+                    Loc.GetString("ShadPS4DLCPathNote"),
                     [
                         new (["sce_sys/param.sfo"])
                     ]

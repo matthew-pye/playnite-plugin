@@ -16,7 +16,7 @@ namespace Graviton.GameEdit
 {
     public partial class UpdateDLCManagement : UserControl
     {
-        public RomMRomLocal Game;
+        public RomMRomLocal Game { get; }
 
         public UpdateDLCManagement(RomMRomLocal game)
         {
@@ -124,8 +124,6 @@ namespace Graviton.GameEdit
                             await GravitonUninstallController.UninstallCandidate(collision);
                         }
                     }
-
-                    return;
                 }
                     
                 await GravitonUninstallController.UninstallCandidate(candidate);
@@ -159,7 +157,7 @@ namespace Graviton.GameEdit
             }
             catch (Exception ex)
             {
-                GravitonNotify.Notify("graviton.updatedlc.refresh.failed", $"Failed to refresh Update/DLC candidates: {ex.Message}", GravitonSeverity.Error, ex);
+                GravitonNotify.Notify("graviton.updatedlc.refresh.failed", Loc.GetString("CandidateRefreshFailed", ("Error", ex.Message)), GravitonSeverity.Error, ex);
             }
             finally
             {

@@ -204,7 +204,7 @@ namespace Graviton.Play
             {
                 var controller = new AutomaticFilePlayController(new FileGameAction
                 {
-                    Name = files.Count > 1 ? $"Launch {Path.GetFileName(file)}" : "Launch",
+                    Name = files.Count > 1 ? $"{Loc.GetString("Launch")} {Path.GetFileName(file)}" : Loc.GetString("Launch"),
                     Path = executablePath,
                     IsPlayAction = true,
                     Arguments = _emunightAPI.ExpandVariables(args, game, Path.GetDirectoryName(executablePath), file, true),
@@ -248,7 +248,7 @@ namespace Graviton.Play
             {
                 var controller = new AutomaticFilePlayController(new FileGameAction
                 {
-                    Name = files.Count > 1 ? $"Launch {Path.GetFileName(file)}" : "Launch",
+                    Name = files.Count > 1 ? $"{Loc.GetString("Launch")} {Path.GetFileName(file)}" : Loc.GetString("Launch"),
                     Path = emulator.StartupPath,
                     Arguments = _emunightAPI.ExpandVariables(args, game, Path.GetDirectoryName(emulator.StartupPath), file, true),
                     TrackingOptions =

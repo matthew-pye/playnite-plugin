@@ -8,8 +8,8 @@ namespace Graviton.Models.Install
 {
     public partial class UpdateDLCCandidate : ObservableObject
     {
-        public string Name { get; set; }
-        public string FileName { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
         public string? Category { get; set; }
 
         public IReadOnlyCollection<int> FileIDs { get; set; } = [];
@@ -38,6 +38,8 @@ namespace Graviton.Models.Install
             SingleFileRelativePath = relativePath;
             Size = size;
         }
+
+        public UpdateDLCCandidate() {}
 
         [JsonIgnore]
         public string FileSizeUI

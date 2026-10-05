@@ -27,6 +27,16 @@ FilePaths = File Paths
 FolderLabel = Folder
 RemoveTooltip = Remove
 Unknown = Unknown
+Install = Install
+Uninstall = Uninstall
+Reinstall = Reinstall
+Launch = Launch
+Default = Default
+Files = files
+CandidatesFound = candidates found
+Installed = Installed
+NotInstalled = Not installed
+PartialInstalled = Partially installed
 
 # SettingsTabControl
 GameIsRunningWarning = Cannot change settings while a game is running
@@ -111,12 +121,19 @@ InstallModeTooltip =
     - All: Installs all available files
 CLIDefinitionTooltip = Select the command Graviton will use to install this content through the emulator.
 InstallPathPlaceholder = Select an install folder
+TitleIDInstaller = Title ID layout
+TitleIDDefinitionTooltip = Choose how Graviton maps title IDs to the emulator's install folders.
+ArgumentsPlaceholder = Install path template
+CemuTitleIDPathNote = Select Cemu's mlc01\usr\title folder.
+XeniaTitleIDPathNote = Select Xenia's content root folder, usually Documents\Xenia.
+ShadPS4UpdatePathNote = Select the folder containing your installed shadPS4 games.
+ShadPS4DLCPathNote = Select shadPS4's add-on content folder.
 
 # Enum display values
-InstallStyle_None = None
-InstallStyle_ExternalFolder = External folder
-InstallStyle_TitleIDFolder = Title ID folder
-InstallStyle_CLI = CLI
+InstallStyles_None = None
+InstallStyles_Folder = Folder
+InstallStyles_MappedFolder = Title ID folder
+InstallStyles_CLI = CLI
 InstallMode_SelectOne = Select one
 InstallMode_SelectMany = Select multiple
 InstallMode_Sequential = Sequential
@@ -129,6 +146,7 @@ SaveLayoutStyle_Disabled = Disabled
 CLIInstallRPCS3PKG = RPCS3 - Install PKG
 CLIInstallVita3KPKG = Vita3K - Install PKG
 CLIInstallVita3KArchive = Vita3K - Install Archive
+CLIInstallAzaharCIA = Azahar - Install CIA
 CLIArgumentZRIF = ZRIF License Key
 
 # OptionsTab
@@ -147,7 +165,7 @@ KeepPrivateNotesSynced = Keep private notes in sync with RomM
 KeepPublicNotesSynced = Keep public notes in sync with RomM
 SaveSync = Save Sync
 DownloadSaveOnLaunch = Download save on game launch
-UploadSaveOnFinished = Upload save after game finished
+UploadSaveOnFinished = Upload save after the game closes
 SaveConflictsLabel = Save conflicts
 AutoCleanOldSaves = Auto-clean old saves on server, keeping the newest
 SaveStateSync = Save State Sync
@@ -156,10 +174,10 @@ ScreenshotTitle = Screenshots
 EnableScreenshots = Enable in-game screenshot capture for saves
 MaxResolutionTitle = Max screenshot resolution
 SecondsBeforeTitle = Screenshot timing
-SecondsBeforeSubTitle = Grabs a screenshot X seconds before you save, so the shot doesn't catch a save-in-progress overlay
-AddCollection = Create Playnite category from manual collection
-AddVirtualCollection = Create Playnite category from virtual collection
-AddSmartCollection = Create Playnite category with smart collection
+SecondsBeforeSubTitle = Takes a screenshot before the save so it doesn't capture a save-in-progress overlay
+AddCollection = Import manual RomM collections as Playnite categories
+AddSmartCollection = Import smart RomM collections as Playnite categories
+AddMetadataProviderCollections = Import metadata provider collections as Playnite categories
 ImportPlaySessions = Import play sessions
 DebuggingTitle = Debugging
 EnableDebugging = Enable debugging
@@ -306,6 +324,22 @@ ExtractionEmpty = Extraction reported success, but the archive is empty.
 FailedUnpack = Could not extract the save archive at {$SaveLoc}.
 SaveIsNull = Save is null, skipping.
 
+# Update / DLC
+UpdateDLCSection = Updates & DLC
+NoUpdates = No updates found
+NoDLC = No DLC found
+CandidateUninstallAYS = Uninstall this content?
+WarnCLIInstalled = This content was installed through the emulator's command line, so Graviton can't remove the installed files. Continue and mark it as not installed?
+WarnCandidateOverlap =
+    Other installed content uses some of the same files or folders as this item.
+
+    Do you want to uninstall the overlapping content as well?
+
+    Choose Yes to uninstall the overlapping content first.
+    Choose No to uninstall only this item. This may leave the overlapping content in a broken state.
+CandidateDiscoveryFailed = Could not find {$Category} candidates: {$Error}
+CandidateRefreshFailed = Could not refresh update/DLC candidates: {$Error}
+
 # Plugin Main
 InstallFailed = Installation failed: {$Error}
 OpenRomMLibrary = Open RomM library
@@ -324,7 +358,6 @@ HEADFailed = HEAD request failed for {$APIPath}
 ROMFileMissing = A file for ROM ID {$ROMID} could not be found on the RomM server.
 ROMImportFailed = Could not import {$GameName} [ID: {$ROMID}], skipping.
 SaveROMDataFailed = Could not save game data: {$Error}
-GameUpdateFailed = One or more games could not be updated.
 ROMImportMultipleFailed = One or more games could not be imported.
 
 # Import controller
@@ -336,7 +369,6 @@ ManualCollectionsFailed = Could not get manual collections: {$Error}
 SmartCollectionsFailed = Could not get smart collections: {$Error}
 ServerReturnedNullData = Server returned null data.
 DeserializeFailed = Deserialization failed.
-DeserializeCollectionFailed = Failed to deserialize collection.
 
 # Account
 HeartbeatFailed = Server heartbeat request failed.
