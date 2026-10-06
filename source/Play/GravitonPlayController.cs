@@ -108,11 +108,47 @@ namespace Graviton.Play
                 return [];
             }
 
-            var roms = GetPossibleLaunchFiles(args.Game, emulator.FileTypes);
+            List<string>? roms = null;
+
+            bool isPS3Mapping = mapping.RomMPlatform?.Slug?.Equals("ps3", StringComparison.OrdinalIgnoreCase) == true;
+
+            // Specific check for PS3 mappings
+            if (isPS3Mapping)
+            {
+                if (!_plugin.ImportedGames.TryGetValue(args.Game.LibraryGameId!, out var rom))
+                    return [];
+                
+
+                var installedPath = rom.InstalledPath;
+
+                if (installedPath == null)
+                {
+                    GravitonNotify.Notify("graviton.getromfiles.notinstalled", Loc.GetString("GameDataMissing"), GravitonSeverity.Error);
+
+                    args.Game.InstallState = InstallState.Uninstalled;
+                    _ = _playniteAPI.Library.Games.UpdateAsync(args.Game);
+                    return [];
+                }
+
+                if (rom.IsInstalledPathDirectory)
+                {
+                    var eboot = Directory.EnumerateFiles(installedPath, "EBOOT.BIN", SearchOption.AllDirectories)
+                                         .FirstOrDefault(x => x.Replace('\\', '/').EndsWith("/PS3_GAME/USRDIR/EBOOT.BIN", StringComparison.OrdinalIgnoreCase));
+
+                    if (eboot != null)
+                        roms = [eboot];  
+                }
+                else
+                {
+                    roms = [installedPath];
+                }
+            }
+
+            roms ??= GetPossibleLaunchFiles(args.Game, emulator.FileTypes);
 
             if (roms == null || roms.Count <= 0)
                 return [];
-
+            
 
             return GenerateCustomEmulatorPlayControllers(args.Game, roms, emulator);
         }
