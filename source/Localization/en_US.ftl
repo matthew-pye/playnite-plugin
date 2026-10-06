@@ -64,6 +64,7 @@ ServerVersionLabel = Server Ver.
 OpenInBrowser = Open in browser
 ClientTokenAddressFailed = Cannot open the client token page because the RomM server address is not set.
 ImageFiles = Image files
+HTTPInUse = HTTP connections are not encrypted. Login details, tokens and other data may be visible on the network.
 
 # MappingsTab
 MappingsTitle = Mappings
@@ -273,6 +274,7 @@ SaveStatusServerOnly = New on server
 SaveStatusUntrackedLocal = New on disk
 SaveStatusTempRestored = Temp restored
 SaveStatusMissingFiles = Missing files
+SaveStatusServerDeleted = Deleted from server
 StatConflicts = Conflicts
 LastSyncedNever = Never synced
 FoundOnDisk = Found on disk
@@ -295,7 +297,7 @@ DeserializeResponseFailed = Could not read the server response.
 DownloadROMNotFound = Could not find the ROM for this save.
 DownloadMappingNotFound = Could not find the mapping for this save.
 DownloadServerDataFailed = Could not get the save data from the server.
-DownloadHashFailed = Downloaded save failed integrity verification.
+DownloadHashFailed = The downloaded save failed integrity verification.
 DownloadUnpackFailed = Could not extract the downloaded save.
 SaveAlreadyTrackedDownload = A save is already being tracked for this game.
 DownloadExtractionPathFailed = Could not set the save extraction path.
@@ -323,6 +325,13 @@ ArchiveResolvesOutside = Archive entry '{$Entry}' resolves outside the destinati
 ExtractionEmpty = Extraction reported success, but the archive is empty.
 FailedUnpack = Could not extract the save archive at {$SaveLoc}.
 SaveIsNull = Save is null, skipping.
+DeleteLocalSaveFailed = Could not delete the local save.
+RemoteSaveDeletedTitle = Save deleted from RomM
+RemoteSaveDeletedPrompt =
+    The save for {$GameName} was deleted from RomM, but a local copy still exists.
+
+    Do you want to upload the local copy as a new save or delete it?
+ReuploadDeletedSave = Upload as new save
 
 # Update / DLC
 UpdateDLCSection = Updates & DLC
@@ -339,6 +348,14 @@ WarnCandidateOverlap =
     Choose No to uninstall only this item. This may leave the overlapping content in a broken state.
 CandidateDiscoveryFailed = Could not find {$Category} candidates: {$Error}
 CandidateRefreshFailed = Could not refresh update/DLC candidates: {$Error}
+DragToolTip = Drag items to change the install order.
+OverlappingROMInstallsWarn =
+    Another imported game uses the same install folder.
+
+    Do you want to mark the other game as uninstalled too?
+
+    Choose Yes to uninstall both games.
+    Choose No to uninstall only this game. This may remove files used by the other game.
 
 # Plugin Main
 InstallFailed = Installation failed: {$Error}
@@ -431,6 +448,7 @@ InstallGameIdNotFound = Game ID {$GameID} could not be found.
 InstallMappingNotFound = The emulator mapping for this game could not be found.
 DownloadServerNullResponse = The server returned an empty download response.
 ArchiveExtractionFailed = Archive extraction failed for {$Path} with exit code {$ExitCode}.
+ProcessFailedToStart = Could not start the extraction process.
 
 # Play Controller
 PlayMappingNotFound = Could not find the emulator mapping for this game.

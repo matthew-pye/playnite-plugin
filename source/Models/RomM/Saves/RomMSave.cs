@@ -7,7 +7,8 @@ namespace Graviton.Models.RomM.Saves
         upload,
         download,
         conflict,
-        no_op
+        no_op,
+        delete
     }
 
     public class RomMSave

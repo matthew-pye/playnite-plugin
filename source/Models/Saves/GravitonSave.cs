@@ -29,6 +29,7 @@ namespace Graviton.Models.Saves
         RemoteNewer,
         Conflicted,
         ServerOnly,
+        ServerDeleted,
         UntrackedLocal,
         TempRestored,
         MissingFiles,

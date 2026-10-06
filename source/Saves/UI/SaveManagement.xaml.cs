@@ -348,7 +348,54 @@ namespace Graviton.Saves
 
                     e.Handled = true;
                     return;
+                case SaveStatus.ServerDeleted:
+                    {
+                        var rom = _plugin.ImportedGames.FirstOrDefault(x => x.Value.LocalSave?.LocalID == save.LocalID).Value;
+                        if (rom == null)
+                        {
+                            GravitonNotify.Notify("graviton.rom.notfound", Loc.GetString("ROMNotFoundForSave"), GravitonSeverity.Error);
+                            e.Handled = true;
+                            return;
+                        }
 
+                        var deleteLocal = new MessageBoxResponse(Loc.GetString("DeleteSaveLocal"));
+                        var reupload = new MessageBoxResponse(Loc.GetString("ReuploadDeletedSave"), isDefault: true);
+                        var cancel = new MessageBoxResponse(Loc.GetString("Cancel"), isCancel: true);
+
+                        var messageresponse = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("RemoteSaveDeletedPrompt", ("GameName", rom.Name!)), Loc.GetString("RemoteSaveDeletedTitle"), MessageBoxSeverity.Warning,
+                            new List<MessageBoxResponse>
+                            {
+                                        reupload,
+                                        deleteLocal,
+                                        cancel
+                            },
+                            new List<MessageBoxOption>());
+
+                        if (messageresponse == reupload)
+                        {
+                            var uploadresult = await SaveController.Manager.Upload(save, false);
+
+                            if (uploadresult.Status == SaveStatus.Synced)
+                            {
+                                uploadresult.IsTempRestored = false;
+                            }
+                            else
+                            {
+                                uploadresult.Status = SaveStatus.ServerDeleted;
+                            }
+
+                            break;
+                        }
+
+                        if (messageresponse == deleteLocal)
+                        {
+                            await SaveController.Manager.DeleteLocalSave(rom);
+
+                            break;
+                        }
+
+                        return;
+                    }
                 default:
                     GravitonNotify.Notify("graviton.save.unknown", Loc.GetString("SaveStatusUnknownWarning"), GravitonSeverity.Warn);
                     e.Handled = true;

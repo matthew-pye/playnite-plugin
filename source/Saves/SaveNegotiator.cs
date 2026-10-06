@@ -87,6 +87,10 @@ namespace Graviton.Saves
                             rom.LocalSave.Status = SaveStatus.Conflicted;
                             break;
 
+                        case SaveSyncStatus.delete:
+                            rom.LocalSave.Status = SaveStatus.ServerDeleted;
+                            break;
+
                         default:
                             rom.LocalSave.Status = SaveStatus.Unknown;
                             break;
@@ -194,8 +198,9 @@ namespace Graviton.Saves
                                     rom.LocalSave.HistoricSaves.Add(savecopy); 
                                 }
                             }
-                            
-                            rom.LocalSave.SaveID = operation.SaveID;
+
+                            if (operation.SaveID.HasValue)
+                                rom.LocalSave.SaveID = operation.SaveID.Value;
                             rom.LocalSave.Status = SaveStatus.RemoteNewer;
                             rom.LocalSave.ServerHash = operation.ServerContentHash;
 
@@ -220,6 +225,67 @@ namespace Graviton.Saves
                             GravitonNotify.Notify("graviton.sync.conflicted", Loc.GetString("SyncStillConflicted", ("GameName", rom.Name!)), GravitonSeverity.Warn);
                             operationFailed++;
                             break;
+
+                        case SaveSyncStatus.delete:
+                            {
+                                rom.LocalSave.Status = SaveStatus.ServerDeleted;
+
+                                var deleteLocal = new MessageBoxResponse(Loc.GetString("DeleteSaveLocal"));
+                                var reupload = new MessageBoxResponse(Loc.GetString("ReuploadDeletedSave"), isDefault: true);
+                                var cancel = new MessageBoxResponse(Loc.GetString("Cancel"), isCancel: true);
+
+                                var messageresponse = await _playniteAPI.Dialogs.ShowMessageAsync(Loc.GetString("RemoteSaveDeletedPrompt", ("GameName", rom.Name!)), Loc.GetString("RemoteSaveDeletedTitle"), MessageBoxSeverity.Warning,
+                                    new List<MessageBoxResponse>
+                                    {
+                                        reupload,
+                                        deleteLocal,
+                                        cancel
+                                    },
+                                    new List<MessageBoxOption>());
+
+                                if (messageresponse == reupload)
+                                {
+                                    // Treat it as a new server save, not the deleted server record.
+                                    rom.LocalSave.SaveID = -1;
+                                    rom.LocalSave.Status = SaveStatus.LocalNewer;
+
+                                    var uploadresult = await SaveController.Manager.Upload(rom.LocalSave, false, screenshot, operation);
+
+                                    if (uploadresult.Status == SaveStatus.Synced)
+                                    {
+                                        rom.LocalSave.IsTempRestored = false;
+                                        operationCompleted++;
+                                    }
+                                    else
+                                    {
+                                        rom.LocalSave.Status = SaveStatus.ServerDeleted;
+                                        operationFailed++;
+                                    }
+
+                                    break;
+                                }
+
+                                if (messageresponse == deleteLocal)
+                                {
+                                    var deleted = await SaveController.Manager.DeleteLocalSave(rom);
+
+                                    if (deleted)
+                                    {
+                                        operationCompleted++;
+                                    }
+                                    else
+                                    {
+                                        rom.LocalSave.Status = SaveStatus.ServerDeleted;
+                                        operationFailed++;
+                                    }
+
+                                    break;
+                                }
+
+                                rom.LocalSave.Status = SaveStatus.ServerDeleted;
+                                operationFailed++;
+                                break;
+                            }
 
                         default:
                             rom.LocalSave.Status = SaveStatus.Unknown;

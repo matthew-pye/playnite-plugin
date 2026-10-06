@@ -519,6 +519,44 @@ namespace Graviton.Saves
             await _romMServer.POSTAsync($"/api/saves/{saveID}/untrack", deviceid);
         }
 
+        public async Task<bool> DeleteLocalSave(RomMRomLocal rom)
+        {
+            if (rom.LocalSave == null)
+                return false;
+
+            var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
+
+            if (mapping == null)
+            {
+                GravitonNotify.Notify("graviton.save.delete.failed", Loc.GetString("UploadMappingNotFound"), GravitonSeverity.Error);
+                return false;
+            }
+
+            try
+            {
+                foreach (var sourcePath in rom.LocalSave.SourceFilePaths)
+                {
+                    var path = sourcePath.Replace(EmulatorMapping.SavePathToken, mapping.SavePath);
+
+                    if (File.Exists(path))
+                        File.Delete(path);
+                    else if (Directory.Exists(path))
+                        Directory.Delete(path, true);
+                    
+                }
+
+                rom.LocalSave = null;
+                rom.Save();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                GravitonNotify.Notify("graviton.save.delete.failed", Loc.GetString("DeleteLocalSaveFailed"), GravitonSeverity.Error, ex);
+                return false;
+            }
+        }
+
         private async Task<SaveSyncStatus> AutoConflictResolve(GravitonSave save, RomMRomLocal rom, string localFilePath, bool isPacked, RomMNegotiateOperations? operation = null)
         {
             string? localHash = null;
@@ -544,7 +582,8 @@ namespace Graviton.Saves
             if (operation != null)
             {
                 save.ServerHash = operation.ServerContentHash;
-                save.SaveID = operation.SaveID;
+                if (operation.SaveID.HasValue)
+                    save.SaveID = operation.SaveID.Value;
                 if (DateTime.TryParse(operation.ServerUpdatedAt, out var updatedAt))
                     save.ServerLastUpdatedAt = updatedAt;
             }
