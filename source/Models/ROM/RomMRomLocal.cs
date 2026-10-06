@@ -82,7 +82,7 @@ namespace Graviton.Models.ROM
                 }
 
                 toSave.FileName = Path.GetFileName(romfile.FileName);
-                toSave.DownloadURL = $"/api/roms/{ROM.Id}/content/{romfile.FileName}";
+                toSave.DownloadURL = $"/api/roms/{ROM.Id}/content/{Uri.EscapeDataString(romfile.FileName)}";
             }
             else
             {
@@ -95,7 +95,7 @@ namespace Graviton.Models.ROM
                 }
 
                 toSave.FileName = Path.GetFileName(ROM.FileName);
-                toSave.DownloadURL = $"/api/roms/{ROM.Id}/content/{ROM.FileName}?file_ids={string.Join(',', fileIDs)}";
+                toSave.DownloadURL = $"/api/roms/{ROM.Id}/content/{Uri.EscapeDataString(ROM.FileName)}?file_ids={string.Join(',', fileIDs)}";
             }
             toSave.MappingID = MappingID;
 
@@ -124,7 +124,7 @@ namespace Graviton.Models.ROM
                 }
 
                FileName = Path.GetFileName(romfile.FileName);
-               DownloadURL = $"/api/roms/{ROM.Id}/content/{romfile.FileName}";
+               DownloadURL = $"/api/roms/{ROM.Id}/content/{Uri.EscapeDataString(romfile.FileName)}";
             }
             else
             {
@@ -137,7 +137,7 @@ namespace Graviton.Models.ROM
                 }
 
                 FileName = Path.GetFileName(ROM.FileName);
-                DownloadURL = $"/api/roms/{ROM.Id}/content/{ROM.FileName}?file_ids={string.Join(',', fileIDs)}";
+                DownloadURL = $"/api/roms/{ROM.Id}/content/{Uri.EscapeDataString(ROM.FileName)}?file_ids={string.Join(',', fileIDs)}";
             }   
 
             Save();

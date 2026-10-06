@@ -23,5 +23,11 @@ namespace Graviton.Models
                 OnPropertyChanged();
             }
         }
+
+        public string ProtectedValue
+        {
+            get => _value;
+            private set => _value = value ?? "";
+        }
     }
 }

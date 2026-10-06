@@ -98,7 +98,7 @@ namespace Graviton.Saves
                 }
 
                 var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
-                if (mapping != null)
+                if (mapping != null && rom.LocalSave != null)
                     rom.LocalSave.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, rom.LocalSave.SourceFilePaths.ToList());
 
                 rom.Save();
@@ -295,7 +295,7 @@ namespace Graviton.Saves
                 }
 
                 var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
-                if (mapping != null)
+                if (mapping != null && rom.LocalSave != null)
                     rom.LocalSave.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, rom.LocalSave.SourceFilePaths.ToList());
 
             }

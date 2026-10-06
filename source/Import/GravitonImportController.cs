@@ -122,12 +122,10 @@ namespace Graviton.Import
                     else
                         _logger.Trace($"Finished parsing response for {apiPlatform.Name} with {rommROMs.Count()} ROMs found");
 
+
                     // Remove ROMs that are in the exclusion list
-                    foreach (var rom in rommROMs.ToList())
-                    {
-                        if (args.Exclusions?.Any(x => x.GameId == rom.Id.ToString()) ?? false)
-                            rommROMs.Remove(rom);
-                    }
+                    var excludedIds = args.Exclusions?.Select(x => x.GameId).ToHashSet() ?? [];
+                    rommROMs.RemoveAll(x => excludedIds.Contains(x.Id.ToString()));
 
                     if (task != null)
                     {
@@ -155,8 +153,13 @@ namespace Graviton.Import
                     await RemoveMissingGames(proccessedgames, processedMappings);
 
                 _plugin.ImportInProgress = false;
-                var sessionsstring = JsonSerializer.Serialize(_playniteAPI.Library.GameSessions, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText($"{_plugin.PluginDataPath}/temp/sessions.json", sessionsstring);
+
+                if(_plugin.Settings.DebuggingEnabled)
+                {
+                    var sessionsstring = JsonSerializer.Serialize(_playniteAPI.Library.GameSessions, new JsonSerializerOptions { WriteIndented = true });
+                    File.WriteAllText($"{_plugin.PluginDataPath}/temp/sessions.json", sessionsstring);
+                }
+                
                 return games;
             }
             finally
@@ -267,7 +270,7 @@ namespace Graviton.Import
         {
             _logger.Info($"Starting to fetch games for {platform.Name}");
 
-            int pagesize = 50;
+            int pagesize = 100;
             int offset = 0;
             bool hasMoreData = true;
 
@@ -339,7 +342,7 @@ namespace Graviton.Import
                 {
                     if (_platformSlugRegex.IsMatch(platform.Slug!))
                     {
-                        var rawResponse = await _romMServer.RawGETAsync($"/assets/platforms/{platform.Slug}.svg");
+                        using var rawResponse = await _romMServer.RawGETAsync($"/assets/platforms/{platform.Slug}.svg");
                         if (rawResponse == null || rawResponse.Content == null)
                             throw new Exception("Failed to get response from server");
 

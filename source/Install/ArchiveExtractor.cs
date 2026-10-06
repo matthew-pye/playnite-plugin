@@ -19,7 +19,7 @@ namespace Graviton.Install.Downloads
             return ArchiveFactory.IsArchive(filePath, out var type);
         }
 
-        public static async void ExtractArchiveWith7z(string pathTo7z, string archivePath, string installDir, DownloadQueueItem item, CancellationToken ct)
+        public static async Task ExtractArchiveWith7z(string pathTo7z, string archivePath, string installDir, DownloadQueueItem item, CancellationToken ct)
         {
             if (archivePath == null || archivePath.Contains("../") || archivePath.Contains(@"..\"))
             {

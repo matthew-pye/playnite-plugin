@@ -158,7 +158,7 @@ namespace Graviton.Install
 
                         if (_plugin.Settings.Use7z && !string.IsNullOrEmpty(_plugin.Settings.PathTo7z) && _plugin.Settings.PathTo7z.EndsWith("7z.exe", StringComparison.OrdinalIgnoreCase))
                         {
-                            ArchiveExtractor.ExtractArchiveWith7z(_plugin.Settings.PathTo7z, req.DownloadPath, installDir, item, item.Cts.Token);
+                            await ArchiveExtractor.ExtractArchiveWith7z(_plugin.Settings.PathTo7z, req.DownloadPath, installDir, item, item.Cts.Token);
                         }
                         else
                         {
@@ -429,7 +429,7 @@ namespace Graviton.Install
                     break;
 
                 case InstallStyles.CLI:
-                    CLIInstall(item, req, candidate, installInfo, category, workingPath);
+                    await CLIInstall(item, req, candidate, installInfo, category, workingPath);
                     break;
 
                 default:
@@ -437,7 +437,7 @@ namespace Graviton.Install
             }
         }
 
-        private static void CLIInstall(DownloadQueueItem item, DownloadRequest req, UpdateDLCCandidate candidate, GameInstallInfo installInfo, string category, string workingPath)
+        private static async Task CLIInstall(DownloadQueueItem item, DownloadRequest req, UpdateDLCCandidate candidate, GameInstallInfo installInfo, string category, string workingPath)
         {
             // Check downloaded file need to be extracted by check the number of files IDs in the download URL
             if(candidate.FileIDs.Count > 1)
@@ -516,8 +516,27 @@ namespace Graviton.Install
                 {
                     process.Start();
 
-                    string output = process.StandardOutput.ReadToEnd();
-                    string error = process.StandardError.ReadToEnd();
+                    var outputTask = process.StandardOutput.ReadToEndAsync();
+                    var errorTask = process.StandardError.ReadToEndAsync();
+
+                    while (!process.HasExited)
+                    {
+                        if (item.Cts.IsCancellationRequested)
+                        {
+                            try
+                            {
+                                process.Kill(true);
+                            }
+                            catch {}
+
+                            item.Cts.Token.ThrowIfCancellationRequested();
+                        }
+
+                        await Task.Delay(100, item.Cts.Token);
+                    }
+
+                    var output = await outputTask;
+                    var error = await errorTask;
 
                     process.WaitForExit();
 

@@ -336,6 +336,7 @@ namespace Graviton.Settings
                     }
 
                     intervalMillisecs = pairDevice.Interval * 1000;
+                    response?.Dispose();
                 }
 
                 UIDispatcher.Invoke(() => LoginQRTimer.Text = Loc.GetString("PairExpiresIn", ("Seconds", (((expiresin - (DateTime.UtcNow - startTime)).TotalMilliseconds) / 1000).ToString("F1"))));

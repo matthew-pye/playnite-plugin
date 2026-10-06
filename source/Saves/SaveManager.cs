@@ -61,7 +61,7 @@ namespace Graviton.Saves
             
             if (save.SourceFilePaths.Count > 1 || (!File.Exists(savePath) && Directory.Exists(savePath)))
             {
-                savePath = $"{_plugin.PluginDataPath}/temp/{save.Filename}";
+                savePath = $"{_plugin.PluginDataPath}/temp/{Path.GetFileName(save.Filename)}";
                 isPacked = true;
 
                 List<string>? skippedPaths = null;
@@ -96,7 +96,7 @@ namespace Graviton.Saves
             savecontent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             content.Add(savecontent, "saveFile", Path.GetFileName(savePath));
 
-            var response = await _romMServer.RawPOSTAsync($"/api/saves?rom_id={rom.Id}&slot={save.Slot}&autocleanup={_plugin.Settings.AutoCleanupSaves}&autocleanup_limit={_plugin.Settings.AutoCleanupSavesLimit}&device_id={_plugin.Settings.AccountState.DeviceID}&overwrite={overwrite}", content);
+            using var response = await _romMServer.RawPOSTAsync($"/api/saves?rom_id={rom.Id}&slot={save.Slot}&autocleanup={_plugin.Settings.AutoCleanupSaves}&autocleanup_limit={_plugin.Settings.AutoCleanupSavesLimit}&device_id={_plugin.Settings.AccountState.DeviceID}&overwrite={overwrite}", content);
 
             if (response?.Status == HttpStatusCode.Conflict)
             {
@@ -225,7 +225,7 @@ namespace Graviton.Saves
                 return save;
             }
 
-            var savedata = await _romMServer.RawGETAsync($"/api/saves/{save.SaveID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
+            using var savedata = await _romMServer.RawGETAsync($"/api/saves/{save.SaveID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
             if (savedata == null || savedata.Status != HttpStatusCode.OK)
             {
                 GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadServerDataFailed"), GravitonSeverity.Error);
@@ -235,7 +235,7 @@ namespace Graviton.Saves
             if (!Directory.Exists($"{_plugin.PluginDataPath}/temp/"))
                 Directory.CreateDirectory($"{_plugin.PluginDataPath}/temp/");
 
-            var tempDir = $"{_plugin.PluginDataPath}/temp/{save.Filename}";
+            var tempDir = $"{_plugin.PluginDataPath}/temp/{Path.GetFileName(save.Filename)}";
             
             using var ms = new MemoryStream();
             savedata.Content!.ReadAsStream().CopyTo(ms);
@@ -327,7 +327,7 @@ namespace Graviton.Saves
                 await UntrackSave(rom.LocalSave.SaveID);
             }
 
-            var savedata = await _romMServer.RawGETAsync($"/api/saves/{save.SaveID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
+            using var savedata = await _romMServer.RawGETAsync($"/api/saves/{save.SaveID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
             if (savedata == null || savedata.Status != HttpStatusCode.OK)
             {
                 GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadServerDataFailed"), GravitonSeverity.Error);
@@ -337,7 +337,7 @@ namespace Graviton.Saves
             if (!Directory.Exists($"{_plugin.PluginDataPath}/temp/"))
                 Directory.CreateDirectory($"{_plugin.PluginDataPath}/temp/");
 
-            var tempDir = $"{_plugin.PluginDataPath}/temp/{save.Filename}";
+            var tempDir = $"{_plugin.PluginDataPath}/temp/{Path.GetFileName(save.Filename)}";
 
             using var ms = new MemoryStream();
             savedata.Content!.ReadAsStream().CopyTo(ms);
@@ -423,7 +423,7 @@ namespace Graviton.Saves
                 return null;
             }
 
-            var savedata = await _romMServer.RawGETAsync($"/api/saves/{save.ID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
+            using var savedata = await _romMServer.RawGETAsync($"/api/saves/{save.ID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");
             if (savedata == null || savedata.Status != HttpStatusCode.OK)
             {
                 GravitonNotify.Notify("graviton.download.failed", Loc.GetString("DownloadServerDataFailed"), GravitonSeverity.Error);
@@ -433,7 +433,7 @@ namespace Graviton.Saves
             if (!Directory.Exists($"{_plugin.PluginDataPath}/temp/"))
                 Directory.CreateDirectory($"{_plugin.PluginDataPath}/temp/");
 
-            var tempDir = $"{_plugin.PluginDataPath}/temp/{save.FileName}";
+            var tempDir = $"{_plugin.PluginDataPath}/temp/{Path.GetFileName(save.FileName)}";
 
             using var ms = new MemoryStream();
             savedata.Content!.ReadAsStream().CopyTo(ms);
@@ -457,7 +457,7 @@ namespace Graviton.Saves
             }
             else
             {
-                var savelocation = Path.Combine(mapping.SavePath, save.FileName ?? "");
+                var savelocation = Path.Combine(mapping.SavePath, Path.GetFileName(save.FileName) ?? "");
                 File.Move(tempDir, savelocation, true);
                 newsave.SourceFilePaths = new() { savelocation.Replace(mapping.SavePath, EmulatorMapping.SavePathToken) };
             }

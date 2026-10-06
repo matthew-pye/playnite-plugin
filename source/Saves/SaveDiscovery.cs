@@ -647,7 +647,6 @@ namespace Graviton.Saves
 
 
         }
-
         private async Task<List<GravitonSave>?> GetAutoDetectedSavesForMapping(EmulatorMapping mapping, List<RomMRomLocal> roms, List<GravitonSave> currectSaveList)
         {
             if (mapping.FindSaveLayout == SaveLayoutStyle.Disabled)
@@ -705,20 +704,25 @@ namespace Graviton.Saves
             
             var extensions = mapping.FindSaveFileExtensions.Split(';');
 
+            var allFiles = Directory.EnumerateFiles(mapping.SavePath, "*", SearchOption.AllDirectories).ToList();
+
             foreach (var rom in roms.Where(x => x.MappingID == mapping.MappingId))
             {
-                var files = Directory.EnumerateFiles(mapping.SavePath, $"{Path.GetFileNameWithoutExtension(rom.FileName)}.*", SearchOption.AllDirectories).ToList();
+                var files = allFiles.Where(x =>  Path.GetFileNameWithoutExtension(x).Equals(rom.FileName, StringComparison.OrdinalIgnoreCase)).ToList();
 
                 // Add files that match the save target
                 if (rom.SaveTarget != null)
                 {
-                    files.AddRange(Directory.EnumerateFiles(mapping.SavePath, $"{rom.SaveTarget}.*", SearchOption.AllDirectories));
+                    files.AddRange(allFiles.Where(x => Path.GetFileNameWithoutExtension(x).Equals(rom.SaveTarget, StringComparison.OrdinalIgnoreCase)));
 
                     // Add gamecube gci files
-                    if(rom.SaveTarget.Length == 8)
+                    if (rom.SaveTarget.Length == 8)
                     {
                         var GCID = Encoding.ASCII.GetString(Convert.FromHexString(rom.SaveTarget));
-                        files.AddRange(Directory.EnumerateFiles(mapping.SavePath, $"??-{GCID}-*.gci", SearchOption.AllDirectories));
+
+                        Regex GCIRegex = new Regex($@"^..-{Regex.Escape(GCID)}-.*\.gci$", RegexOptions.IgnoreCase);
+
+                        files.AddRange(allFiles.Where(x => GCIRegex.IsMatch(Path.GetFileName(x))));
                     }
                     
                 }
@@ -726,12 +730,14 @@ namespace Graviton.Saves
                 if (files.Count <= 0)
                     continue;
 
+                files = files.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
                 // Ignore files that are already being tracked by other saves
                 foreach (var file in files.ToList())
                 {
                     if (currectSaveList.SelectMany(x => x.SourceFilePaths).Any(y => IsAlreadyTracked(mapping.SavePath, file, y)))
                         files.Remove(file);
-                    else if (!extensions.Any(x => file.EndsWith("." + x, StringComparison.OrdinalIgnoreCase)))
+                    else if (!extensions.Any(x => file.EndsWith("." + x, StringComparison.OrdinalIgnoreCase) || (x == "<none>" && !Path.HasExtension(file))))
                         files.Remove(file);
                 }
 

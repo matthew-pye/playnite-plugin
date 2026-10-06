@@ -118,25 +118,27 @@ namespace Graviton.Import
         {
             _logger?.Trace($"Started pre-processing roms for {_mapping.MappingId}");
 
-            List<Genre> genres = new();
-            List<Category> categories = new();
-            List<Series> series = new();
-            List<Feature> features = new();
-            List<AgeRating> ageRatings = new();
-            List<Region> regions = new();
-            List<Company> companies = new();
+            Dictionary<string, Genre> genres = new();
+            Dictionary<string, Category> categories = new();
+            Dictionary<string, Series> series = new();
+            Dictionary<string, Feature> features = new();
+            Dictionary<string, AgeRating> ageRatings = new();
+            Dictionary<string, Region> regions = new();
+            Dictionary<string, Company> companies = new();
 
-            if(_collections != null)
+            var romIds = _roms.Select(x => x.Id).ToHashSet();
+
+            if (_collections != null)
             {
                 foreach (var collection in _collections)
                 {
                     if (_args.CancelToken.IsCancellationRequested)
                         break;
 
-                    if (!string.IsNullOrEmpty(collection.Name) && collection.RomIDs.Any(x => _roms.Any(y => y.Id == x)))
+                    if (!string.IsNullOrEmpty(collection.Name) && collection.RomIDs.Any(romIds.Contains))
                     {
                         _logger?.Trace($"Adding {collection.Name} to collection list");
-                        categories.Add(new Category(collection.Name.ToLowerInvariant(), collection.Name));
+                        categories.TryAdd(collection.Name.ToLowerInvariant(), new Category(collection.Name.ToLowerInvariant(), collection.Name));
                     }
                 }
             }
@@ -148,10 +150,10 @@ namespace Graviton.Import
                     if (_args.CancelToken.IsCancellationRequested)
                         break;
 
-                    if (!string.IsNullOrEmpty(collection.Name) && collection.RomIDs.Any(x => _roms.Any(y => y.Id == x)))
+                    if (!string.IsNullOrEmpty(collection.Name) && collection.RomIDs.Any(romIds.Contains))
                     {
                         _logger?.Trace($"Adding {collection.Name} to collection list");
-                        categories.Add(new Category(collection.Name.ToLowerInvariant(), collection.Name));
+                        categories.TryAdd(collection.Name.ToLowerInvariant(), new Category(collection.Name.ToLowerInvariant(), collection.Name));
                     }
                 }
             }
@@ -176,7 +178,11 @@ namespace Graviton.Import
                 if (ROMGenres != null)
                 {
                     _logger?.Trace($"Adding {string.Join(',', ROMGenres.Select(x => x.Name))} to Genre list");
-                    genres.AddRange(ROMGenres);
+
+                    foreach (var genre in ROMGenres)
+                    {
+                        genres.TryAdd(genre.Id, genre);
+                    }
                 }
                     
 
@@ -184,82 +190,99 @@ namespace Graviton.Import
                 if (ROMSeries != null)
                 {
                     _logger?.Trace($"Adding {string.Join(',', ROMSeries.Select(x => x.Name))} to Series list");
-                    series.AddRange(ROMSeries);
+
+                    foreach (var romseries in ROMSeries)
+                    {
+                        series.TryAdd(romseries.Id, romseries);
+                    }
                 }
                     
                 var ROMfeatures = ROM.Metadatum?.Gamemodes?.Select(x => new Feature(x.ToLowerInvariant(), x)).ToList();
                 if (ROMfeatures != null)
                 {
                     _logger?.Trace($"Adding {string.Join(',', ROMfeatures.Select(x => x.Name))} to Features list");
-                    features.AddRange(ROMfeatures);
+                    foreach (var feature in ROMfeatures)
+                    {
+                        features.TryAdd(feature.Id, feature);
+                    }
                 }
                     
                 var ROMRegions = ROM.Regions?.Select(x => new Region(x.ToLowerInvariant(), x)).ToList();
                 if (ROMRegions != null)
                 {
                     _logger?.Trace($"Adding {string.Join(',', ROMRegions.Select(x => x.Name))} to regions list");
-                    regions.AddRange(ROMRegions);
+                    foreach (var region in ROMRegions)
+                    {
+                        regions.TryAdd(region.Id, region);
+                    }
                 }
                     
                 var ROMAgeRatings = ROM.IgdbMetadata?.AgeRatings?.Select(x => new AgeRating($"{x.RatingBoard.ToLowerInvariant()} {x.Rating}", $"{x.RatingBoard} {x.Rating}")).ToList();
                 if (ROMAgeRatings != null)
                 {
                     _logger?.Trace($"Adding {string.Join(',', ROMAgeRatings.Select(x => x.Name))} to age rating list");
-                    ageRatings.AddRange(ROMAgeRatings);
+                    foreach (var rating in ROMAgeRatings)
+                    {
+                        ageRatings.TryAdd(rating.Id, rating);
+                    }
                 }
 
                 var ROMPublishers = ROM.Metadatum?.Publishers?.Select(x => new Company(x.ToLowerInvariant(), x));
                 if (ROMPublishers != null)
                 {
                     _logger?.Trace($"Adding {string.Join(',', ROMPublishers.Select(x => x.Name))} to companies list");
-                    companies.AddRange(ROMPublishers);
+                    foreach (var publisher in ROMPublishers)
+                    {
+                        companies.TryAdd(publisher.Id, publisher);
+                    }
                 }
 
                 var ROMDevelopers = ROM.Metadatum?.Developers?.Select(x => new Company(x.ToLowerInvariant(), x));
                 if (ROMDevelopers != null)
                 {
                     _logger?.Trace($"Adding {string.Join(',', ROMDevelopers.Select(x => x.Name))} to companies list");
-                    companies.AddRange(ROMDevelopers);
+                    foreach (var dev in ROMDevelopers)
+                    {
+                        companies.TryAdd(dev.Id, dev);
+                    }
                 }
 
             }
 
-            //TODO: Dedup lists to not import multiple of the same metadata
-
             if (genres.Count > 0)
             {
                 _logger?.Trace($"Adding {genres.Count} genres to playnite");
-                await _playniteAPI.Library.Genres.AddAsync(genres);
+                await _playniteAPI.Library.Genres.AddAsync(genres.Values);
             }
             if (categories.Count > 0)
             {
                 _logger?.Trace($"Adding {categories.Count} categories to playnite");
-                await _playniteAPI.Library.Categories.AddAsync(categories);
+                await _playniteAPI.Library.Categories.AddAsync(categories.Values);
             }
             if (series.Count > 0)
             {
                 _logger?.Trace($"Adding {series.Count} series to playnite");
-                await _playniteAPI.Library.Series.AddAsync(series);
+                await _playniteAPI.Library.Series.AddAsync(series.Values);
             }
             if (features.Count > 0)
             {
                 _logger?.Trace($"Adding {features.Count} features to playnite");
-                await _playniteAPI.Library.Features.AddAsync(features);
+                await _playniteAPI.Library.Features.AddAsync(features.Values);
             }
             if (ageRatings.Count > 0)
             {
                 _logger?.Trace($"Adding {ageRatings.Count} age ratings to playnite");
-                await _playniteAPI.Library.AgeRatings.AddAsync(ageRatings);
+                await _playniteAPI.Library.AgeRatings.AddAsync(ageRatings.Values);
             }
             if (regions.Count > 0)
             {
                 _logger?.Trace($"Adding {regions.Count} regions to playnite");
-                await _playniteAPI.Library.Regions.AddAsync(regions);
+                await _playniteAPI.Library.Regions.AddAsync(regions.Values);
             }
             if (companies.Count > 0)
             {
                 _logger?.Trace($"Adding {companies.Count} companies to playnite");
-                await _playniteAPI.Library.Companies.AddAsync(companies);
+                await _playniteAPI.Library.Companies.AddAsync(companies.Values);
             }
 
             await _playniteAPI.Library.Platforms.AddAsync(new Platform(_mapping.RomMPlatform!.Name.ToLowerInvariant(), _mapping.RomMPlatform.Name));
@@ -328,13 +351,15 @@ namespace Graviton.Import
             // Import new game sessions
             if (_args.SessionImport == SessionImportMode.Always && _plugin.Settings.ImportPlaysessions != Models.RomM.PlaySessions.ImportPlaySessions.None)
             {
-                if (_sessions != null && _sessions.Where(x => x.ROMID == ROM.Id).Count() > 0)
+                var sessions = _sessions?.Where(x => x.ROMID == ROM.Id);
+
+                if (sessions != null && sessions.Count() > 0)
                 {
                     var playnitesessions = _playniteAPI.Library.GameSessions.Where(x => x.LibraryId == GravitonPlugin.Id && x.GameId == game.LibraryGameId).ToList();
                     List<GameSession> newsessions = new();
                     _logger?.Trace($"Pulled game sessions from playnite\n{JsonSerializer.Serialize(playnitesessions, new JsonSerializerOptions { WriteIndented = true})}");
 
-                    foreach (var session in _sessions.Where(x => x.ROMID == ROM.Id))
+                    foreach (var session in sessions)
                     {
                         _logger?.Trace($"Checking RomM play session ({session.ID})");
 
