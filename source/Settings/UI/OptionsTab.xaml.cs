@@ -20,7 +20,7 @@ namespace Graviton.Settings
         {
             InitializeComponent();
 
-            OptionsPanel.IsEnabled = _plugin.GameSessionHandlers.Count() <= 0;
+            OptionsPanel.IsEnabled = (_plugin.GameSessionHandler == null) || (!_plugin.GameSessionHandler.IsAGameRunning);
         }
 
         private async void Browse7zPath_Click(object sender, RoutedEventArgs e)

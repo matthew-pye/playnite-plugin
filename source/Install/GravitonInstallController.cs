@@ -411,16 +411,15 @@ namespace Graviton.Install
 
                         var filePath = Path.Combine(installPath!, Path.GetFileName(req.DownloadPath));
 
-                        candidate.InstalledTopPaths = [filePath];
                         CopyFileWithProgress(req.DownloadPath, filePath, item, item.Cts.Token);
-                        
+                        candidate.InstalledTopPaths = [filePath];
                     }    
                     else
                     {
                         ArchiveExtractor.ExtractArchiveWithEntryProgress(req.DownloadPath, workingPath, item, item.Cts.Token);
 
-                        candidate.InstalledTopPaths = GetInstalledTopPaths(workingPath, installPath!);
                         CopyDirectoryWithProgress(workingPath, installPath!, item, item.Cts.Token);
+                        candidate.InstalledTopPaths = GetInstalledTopPaths(workingPath, installPath!);
                     }
                         
                     break;
@@ -558,8 +557,8 @@ namespace Graviton.Install
                 if (!Directory.Exists(workingPath))
                     throw new DirectoryNotFoundException($"Candidate root was not found after extraction: {workingPath}");
 
-                candidate.InstalledTopPaths = GetInstalledTopPaths(workingPath, installLocation);
                 CopyDirectoryWithProgress(workingPath, installLocation, item, item.Cts.Token);
+                candidate.InstalledTopPaths = GetInstalledTopPaths(workingPath, installLocation);
             }
             else
             {
@@ -568,8 +567,8 @@ namespace Graviton.Install
                 if (!Directory.Exists(Path.GetDirectoryName(installLocation)))
                     Directory.CreateDirectory(Path.GetDirectoryName(installLocation)!);
 
-                candidate.InstalledTopPaths = new([installLocation]);
                 CopyFileWithProgress(req.DownloadPath, installLocation, item, item.Cts.Token);
+                candidate.InstalledTopPaths = new([installLocation]);
             }
         }
 

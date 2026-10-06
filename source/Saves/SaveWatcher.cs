@@ -35,7 +35,9 @@ namespace Graviton.Saves
                         NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
                         Filter = Path.GetFileName(path),
                     };
+                    watcher.Created += OnChanged;
                     watcher.Changed += OnChanged;
+                    watcher.Renamed += OnChanged;
                     FileWatchers.Add(watcher);
                 }
                 else if (Directory.Exists(path))
@@ -46,7 +48,9 @@ namespace Graviton.Saves
                         IncludeSubdirectories = true,
                         NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
                     };
+                    watcher.Created += OnChanged;
                     watcher.Changed += OnChanged;
+                    watcher.Renamed += OnChanged;
                     FileWatchers.Add(watcher);
                 }
                 else

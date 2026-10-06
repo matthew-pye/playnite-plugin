@@ -37,7 +37,7 @@ namespace Graviton.Settings
         {
             InitializeComponent();
 
-            AuthPanel.IsEnabled = _plugin.GameSessionHandlers.Count() <= 0;
+            AuthPanel.IsEnabled = (_plugin.GameSessionHandler == null) || (!_plugin.GameSessionHandler.IsAGameRunning);
 
             RomMPassword.Password = _plugin.Settings.PasswordNP;
             RomMPassword.PasswordChanged += (_, _) =>

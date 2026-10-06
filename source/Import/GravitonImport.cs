@@ -346,6 +346,7 @@ namespace Graviton.Import
 
                         _logger?.Trace($"Parsed session date {session.StartTime} -> {sessiondate}");
 
+                        // Check if a playnite session and RomM session overlap as playnite can auto creates sessions during game lifetime
                         var playnitesession = playnitesessions.FirstOrDefault(x => x.Date.HasValue && DateTimeOffset.Compare(x.Date.Value.AddMilliseconds(-x.Date.Value.Millisecond), sessiondate) == 0);
 
                         // Check to see if session has already been imported if not add it

@@ -93,7 +93,9 @@ namespace Graviton.Saves
 
                 using var archive = ArchiveFactory.OpenArchive(tempSaveLocation);
 
-                var destinationFull = Path.GetFullPath(destinationPath);
+                var destinationFull = Path.GetFullPath(destinationPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                var destinationRoot = destinationFull + Path.DirectorySeparatorChar;
+
                 var fileEntries = archive.Entries.Where(e => !e.IsDirectory).ToList();
 
                 var resolvedPaths = new List<string>(fileEntries.Count);
@@ -106,9 +108,9 @@ namespace Graviton.Saves
                     }
 
                     var resolvedPath = Path.GetFullPath(Path.Combine(destinationFull, entry.Key));
-                    if (!resolvedPath.StartsWith(destinationFull, StringComparison.OrdinalIgnoreCase))
+                    if (!resolvedPath.StartsWith(destinationRoot,StringComparison.OrdinalIgnoreCase))
                     {
-                        GravitonNotify.Notify("graviton.unpacksave.failed", Loc.GetString("ArchiveResolvesOutside", ("Entry", entry.Key!)), GravitonSeverity.Error);
+                        GravitonNotify.Notify("graviton.unpacksave.failed", Loc.GetString("ArchiveResolvesOutside", ("Entry", entry.Key)), GravitonSeverity.Error);
                         return null;
                     }
                     resolvedPaths.Add(resolvedPath);

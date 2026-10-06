@@ -36,7 +36,7 @@ namespace Graviton.Saves
 
         public async Task<GravitonSave> Upload(GravitonSave save, bool overwrite = false, byte[]? screenshot = null, RomMNegotiateOperations? operation = null)
         {
-            if (_plugin.GameSessionHandlers.Count() > 0)
+            if (_plugin.GameSessionHandler != null && _plugin.GameSessionHandler.IsAGameRunning)
             {
                 GravitonNotify.Notify("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info);
                 return save;
@@ -90,9 +90,6 @@ namespace Graviton.Saves
                 return save;
             }
 
-            if (save.SaveID != -1)
-                await UntrackSave(save.SaveID);
-
             var content = new MultipartFormDataContent();
             
             var savecontent = new ByteArrayContent(savebytes);
@@ -138,7 +135,7 @@ namespace Graviton.Saves
                 if (result == null)
                     throw new Exception();
 
-                if(screenshot != null && !string.IsNullOrEmpty(result.FileName))
+                if (screenshot != null && !string.IsNullOrEmpty(result.FileName))
                 {
                     content = new MultipartFormDataContent();
 
@@ -156,6 +153,9 @@ namespace Graviton.Saves
                 var savecopy = JsonSerializer.Deserialize<GravitonSave>(JsonSerializer.Serialize(save));
                 if(savecopy != null)
                 {
+                    if (savecopy.SaveID != -1 && savecopy.SaveID != result.ID)
+                        await UntrackSave(savecopy.SaveID);
+
                     // Dont add historic save if the historic save list already contains this save just update it
                     var historicsave = save.HistoricSaves.FirstOrDefault(x => x.SaveID == savecopy.SaveID);
                     if (historicsave == null)
@@ -165,7 +165,7 @@ namespace Graviton.Saves
                         save.HistoricSaves.Add(savecopy);
                     }
                 }
-                    
+
                 save.SaveID = result.ID;
                 save.Status = SaveStatus.Synced;
                 save.IsCurrent = true;
@@ -205,7 +205,7 @@ namespace Graviton.Saves
 
         public async Task<GravitonSave> Download(GravitonSave save, bool skipSavingROM = false)
         {
-            if (_plugin.GameSessionHandlers.Count() > 0)
+            if (_plugin.GameSessionHandler != null && _plugin.GameSessionHandler.IsAGameRunning)
             {
                 GravitonNotify.Notify("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info);
                 return save;
@@ -295,7 +295,7 @@ namespace Graviton.Saves
 
         public async Task<GravitonSave> TrackNewRemoteSave(GravitonSave save)
         {
-            if (_plugin.GameSessionHandlers.Count() > 0)
+            if (_plugin.GameSessionHandler != null && _plugin.GameSessionHandler.IsAGameRunning)
             {
                 GravitonNotify.Notify("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info);
                 return save;
@@ -321,10 +321,10 @@ namespace Graviton.Saves
                 if(result == Playnite.MessageBoxResult.No)
                 {
                     GravitonNotify.Notify("graviton.download.failed", Loc.GetString("SaveAlreadyTrackedDownload"), GravitonSeverity.Info);
-                    return save;
+                    return rom.LocalSave;
                 }
 
-                await UntrackSave(save.SaveID);
+                await UntrackSave(rom.LocalSave.SaveID);
             }
 
             var savedata = await _romMServer.RawGETAsync($"/api/saves/{save.SaveID}/content?device_id={_plugin.Settings.AccountState.DeviceID}&optimistic=false");

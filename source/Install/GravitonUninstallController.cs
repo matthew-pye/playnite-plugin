@@ -31,7 +31,7 @@ namespace Graviton.Install.Downloads
 
                 if (romMLocal.IsInstalledPathDirectory && Directory.Exists(romMLocal.InstalledPath))
                 {
-                    var collidingROM = _plugin.ImportedGames.Where(x => x.Value.InstalledPath == romMLocal.InstalledPath).ToList();
+                    var collidingROM = _plugin.ImportedGames.Where(x => x.Value.InstalledPath == romMLocal.InstalledPath && x.Value.PlayniteID != romMLocal.PlayniteID).ToList();
 
                     if (collidingROM.Count > 0)
                     {

@@ -105,7 +105,7 @@ namespace Graviton.Saves
 
         public async Task NegotiateSave(RomMRomLocal rom, byte[]? screenshot = null)
         {
-            if (_plugin.GameSessionHandlers.Count() > 0)
+            if (_plugin.GameSessionHandler != null && _plugin.GameSessionHandler.IsAGameRunning)
             {
                 GravitonNotify.Notify("graviton.sync.cannotstart", Loc.GetString("SyncCannotStart"), GravitonSeverity.Info);
                 return;
@@ -168,7 +168,7 @@ namespace Graviton.Saves
 
                             var result = await SaveController.Manager.Upload(rom.LocalSave!, false, screenshot, operation);
 
-                            if(saveID == result.SaveID)
+                            if(result.Status != SaveStatus.Synced)
                             {
                                 operationFailed++;
                                 break;

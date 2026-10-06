@@ -94,7 +94,9 @@ namespace Graviton.GameEdit
                 if (result == Playnite.MessageBoxResult.OK)
                 {
                     candidate.InstalledFileIDs.Clear();
-                    candidate.Status = Install.InstallStatus.NotInstalled;
+                    candidate.InstalledTopPaths.Clear();
+                    candidate.InstalledSize = 0;
+                    candidate.Status = InstallStatus.NotInstalled;
                 }
             }
             else
@@ -103,12 +105,12 @@ namespace Graviton.GameEdit
                 if (result != Playnite.MessageBoxResult.Yes)
                     return;
 
-                var candidateList = candidate.Category == RomMCategory.Update ? Game.UpdateCandidates : candidate.Category == RomMCategory.DLC ? Game.DLCCandidates : null;
+                List<UpdateDLCCandidate> candidateList = [..Game.UpdateCandidates, ..Game.DLCCandidates];
 
                 if (candidateList == null)
                     return;
 
-                var collisions = candidateList.Where(x => x != candidate && x.InstalledTopPaths.Any(y => candidate.InstalledTopPaths.Contains(y))).ToList();
+                var collisions = candidateList.Where(x => x != candidate && x.InstalledTopPaths.Any(y => candidate.InstalledTopPaths.Contains(y, StringComparer.OrdinalIgnoreCase))).ToList();
 
                 if (collisions.Count > 0)
                 {
@@ -138,15 +140,23 @@ namespace Graviton.GameEdit
             {
                 RefreshButton.IsEnabled = false;
 
+                UpdateLoadingBar.Visibility = Visibility.Visible;
+                DLCLoadingBar.Visibility = Visibility.Visible;
+
+                NoUpdateText.Visibility = Visibility.Collapsed;
+                UpdateListBox.Visibility = Visibility.Collapsed;
+                NoDLCText.Visibility = Visibility.Collapsed;
+                DLCListBox.Visibility = Visibility.Collapsed;
+
                 var response = await GravitonPlugin.RomMServer.GETAsync($"/api/roms/{Game.Id}");
 
                 if (response == null)
-                    return;
+                    throw new Exception("No Response from server");
 
                 var rom = JsonSerializer.Deserialize<RomMRom>(response);
 
                 if (rom == null)
-                    return;
+                    throw new Exception("Failed to deserialize ROM");
 
                 var mapping = GravitonPlugin.Instance.Settings.Mappings.FirstOrDefault(x => x.MappingId == Game.MappingID);
 
@@ -162,6 +172,15 @@ namespace Graviton.GameEdit
             finally
             {
                 RefreshButton.IsEnabled = true;
+
+                UpdateLoadingBar.Visibility = Visibility.Collapsed;
+                DLCLoadingBar.Visibility = Visibility.Collapsed;
+
+                NoDLCText.Visibility = Game.DLCCandidates.Count < 1 ? Visibility.Visible : Visibility.Collapsed;
+                DLCListBox.Visibility = Game.DLCCandidates.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+                NoUpdateText.Visibility = Game.UpdateCandidates.Count < 1 ? Visibility.Visible : Visibility.Collapsed;
+                UpdateListBox.Visibility = Game.UpdateCandidates.Count > 0 ? Visibility.Visible : Visibility.Collapsed; 
             }
         }
     }

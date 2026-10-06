@@ -64,9 +64,24 @@
 
                 <Separator Margin="5,10" Grid.Row="1" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
 
-                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,20">
-                    <TextBlock Name="CandidatesNumber" Margin="5,5,0,0" Text="{Binding Candidates.Count}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}" VerticalAlignment="Center"/>
-                    <TextBlock Name="CandidatesFoundText" Margin="5,5,0,0" Text="{loc:LocalizedString CandidatesFound}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}" VerticalAlignment="Center"/>
+                <StackPanel Grid.Row="2" Margin="0,0,0,20">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Name="CandidatesNumber" Margin="5,5,0,0" Text="{Binding Candidates.Count}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}" VerticalAlignment="Center"/>
+                        <TextBlock Name="CandidatesFoundText" Margin="5,5,0,0" Text="{loc:LocalizedString CandidatesFound}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Graviton.SubText.Colour}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <TextBlock Text="{loc:LocalizedString DragToolTip}" FontSize="12" Foreground="{DynamicResource Graviton.SubSubText.Colour}" Margin="5,10,5,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding InstallMode}" Value="Sequential">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
 
                 <ListBox Name="CandidateListbox" ItemsSource="{Binding Candidates, Mode=TwoWay}" Grid.Row="3" AllowDrop="True" MouseMove="CandidateList_MouseMove" DragOver="CandidateList_DragOver" Drop="CandidateList_Drop">

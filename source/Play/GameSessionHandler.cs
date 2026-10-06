@@ -136,9 +136,6 @@ namespace Graviton.Play
                 }
             }
 
-            // Start activity session on RomM
-            if (_plugin.Settings.KeepStatusSynced)
-                _ = _plugin.StatusController?.StartActivityHeartbeat(gameID!);
 
             IsAGameRunning = true;
         }
@@ -181,15 +178,21 @@ namespace Graviton.Play
                 }
             }
 
+            // Start activity session on RomM
+            if (_plugin.Settings.KeepStatusSynced)
+                _ = _plugin.StatusController?.StartActivityHeartbeat(GameID!);
+
             // Start screenshot capture for save screenshots
-            if (ROM.LocalSave != null && _plugin.Settings.CaptureScreenshots)
+            if (ROM.LocalSave != null && _plugin.Settings.SaveSyncEnabled && _plugin.Settings.CaptureScreenshots)
             {
                 if (ROM.LocalSave.SourceFilePaths.Count > 0 && Mapping != null)
                 {
                     var paths = ROM.LocalSave.SourceFilePaths.Select(x => x.Replace(EmulatorMapping.SavePathToken, Mapping.SavePath)).ToList();
 
                     SaveWatcher!.Setup(paths);
-                    await ScreenshotCapture!.Setup(args.StartedArgs.StartedProcessId, _plugin.Settings.SecondsBeforeSave);
+
+                    var maxFrames = Math.Max(1, _plugin.Settings.SecondsBeforeSave);
+                    await ScreenshotCapture!.Setup(args.StartedArgs.StartedProcessId, maxFrames);
 
                     await ScreenshotCapture.Start();
                     await SaveWatcher.Start();
@@ -245,15 +248,13 @@ namespace Graviton.Play
                 }
             }
 
-            // Stop screenshot capture and check to see if save needs uploading
+            // Stop screenshot capture
+            _ = SaveWatcher!.Stop();
+            await ScreenshotCapture!.Stop();
+
+            // Check to see if save needs uploading
             if (_plugin.Settings.SaveSyncEnabled && ROM.LocalSave != null)
             {
-                if (_plugin.Settings.CaptureScreenshots)
-                {
-                    _ = SaveWatcher!.Stop();
-                    await ScreenshotCapture!.Stop();
-                }
-
                 if (_plugin.Settings.UploadSaveOnFinished)
                 {
                     if (ROM.LocalSave.IsTempRestored)
@@ -273,7 +274,13 @@ namespace Graviton.Play
 
         public async Task GameCancelled(OnGameStartupCancelledEventArgs args)
         {
+            IsAGameRunning = false;
+
+            await SaveWatcher.Stop();
+            await ScreenshotCapture.Stop();
+
             _psRuntime?.Dispose();
+            _psRuntime = null;
         }
 
         private async Task RunLifecycleScriptAsync(string? script, Game game, string? romPath, string? emulatorDir)

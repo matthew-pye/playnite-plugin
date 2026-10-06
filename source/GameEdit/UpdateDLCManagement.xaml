@@ -59,7 +59,7 @@
                     <TextBlock Grid.Row="0" Style="{StaticResource Graviton.SettingsSubHeader}" Text="{loc:LocalizedString Updates}" />
                     <Border Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Graviton.SettingsCard}" Padding="2">
                         <StackPanel>
-                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="{loc:LocalizedString NoUpdates}">
+                            <TextBlock Name="NoUpdateText" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{loc:LocalizedString NoUpdates}">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource Graviton.SettingsHelperText}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -72,12 +72,14 @@
                                 </TextBlock.Style>
                             </TextBlock>
 
-                            <ListBox ItemsSource="{Binding Game.UpdateCandidates}">
+                            <ProgressBar Name="UpdateLoadingBar" Margin="10" Width="Auto" Height="4" IsIndeterminate="True" Visibility="Collapsed"/>
+
+                            <ListBox Name="UpdateListBox" ItemsSource="{Binding Game.UpdateCandidates}">
                                 <ListBox.Style>
                                     <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
                                         <Setter Property="Visibility" Value="Visible"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Game.DLCCandidates.Count}" Value="0">
+                                            <DataTrigger Binding="{Binding Game.UpdateCandidates.Count}" Value="0">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -152,7 +154,17 @@
 
                                                     <Border Grid.Column="1" Width="1" HorizontalAlignment="Left" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
 
-                                                    <Button x:Name="CandidateMenuButton" Grid.Column="1" Style="{StaticResource Graviton.SplitButtonRight}" Click="CandidateMenu_Click">
+                                                    <Button x:Name="CandidateMenuButton" Grid.Column="1" Click="CandidateMenu_Click">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button" BasedOn="{StaticResource Graviton.SplitButtonRight}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="NotInstalled">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
                                                         <TextBlock Text="▼" FontSize="10"  VerticalAlignment="Center"/>
                                                         <Button.ContextMenu>
                                                             <ContextMenu>
@@ -176,7 +188,7 @@
                     <TextBlock Grid.Row="2" Style="{StaticResource Graviton.SettingsSubHeader}" Text="{loc:LocalizedString DLC}" />
                     <Border Grid.Row="3" Grid.ColumnSpan="2" Style="{StaticResource Graviton.SettingsCard}" Padding="2">
                         <StackPanel>
-                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="{loc:LocalizedString NoDLC}">
+                            <TextBlock Name="NoDLCText" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{loc:LocalizedString NoDLC}">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource Graviton.SettingsHelperText}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -189,7 +201,9 @@
                                 </TextBlock.Style>
                             </TextBlock>
 
-                            <ListBox ItemsSource="{Binding Game.DLCCandidates}">
+                            <ProgressBar Name="DLCLoadingBar" Margin="10" Width="Auto" Height="4" IsIndeterminate="True" Visibility="Collapsed"/>
+
+                            <ListBox Name="DLCListBox" ItemsSource="{Binding Game.DLCCandidates}">
                                 <ListBox.Style>
                                     <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
                                         <Setter Property="Visibility" Value="Visible"/>
@@ -269,7 +283,17 @@
 
                                                     <Border Grid.Column="1" Width="1" HorizontalAlignment="Left" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
 
-                                                    <Button x:Name="CandidateMenuButton" Grid.Column="1" Style="{StaticResource Graviton.SplitButtonRight}" Click="CandidateMenu_Click">
+                                                    <Button x:Name="CandidateMenuButton" Grid.Column="1" Click="CandidateMenu_Click">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button" BasedOn="{StaticResource Graviton.SplitButtonRight}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="NotInstalled">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
                                                         <TextBlock Text="▼" FontSize="10"  VerticalAlignment="Center"/>
                                                         <Button.ContextMenu>
                                                             <ContextMenu>
