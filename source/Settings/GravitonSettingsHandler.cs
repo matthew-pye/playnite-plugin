@@ -83,6 +83,8 @@ namespace Graviton.Settings
             }
             _logger?.Trace($"Restored old headers");
 
+            _romMServer.ConfigureTimeout(_plugin.Settings.ServerTimeout);
+
             _logger?.Trace($"Cancelled settings edit");
             await Task.CompletedTask;
         }
@@ -103,6 +105,8 @@ namespace Graviton.Settings
                 _romMServer.RemoveHeader(header.Name);
                 _romMServer.AddHeader(header.Name, header.Value);
             }
+
+            _romMServer.ConfigureTimeout(Settings.ServerTimeout);
 
             _plugin.Settings = Settings;
             SaveSettings(_playniteAPI.UserDataDir, Settings);

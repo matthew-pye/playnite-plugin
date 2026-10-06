@@ -36,6 +36,7 @@ namespace Graviton
         void RemoveHeader(string name);
         void ConfigureBasicAuth(string username, string password);
         void ConfigureClientToken(string clientToken);
+        void ConfigureTimeout(int seconds);
 
         Task<JsonDocument?> GETAsync(string APIPath, bool PublicEndpoint = false);
         Task<JsonDocument?> POSTAsync(string APIPath, HttpContent content, bool PublicEndpoint = false);
@@ -64,12 +65,12 @@ namespace Graviton
 
         public RomMServer(GravitonPlugin plugin)
         {
+            _plugin = plugin;
+
             httpClient.DefaultRequestHeaders.Accept.Clear();
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            httpClient.Timeout = TimeSpan.FromSeconds(30); // Make user editable
-
-            _plugin = plugin;
+            httpClient.Timeout = TimeSpan.FromSeconds(_plugin.Settings.ServerTimeout);
         }
 
         public void AddHeader(string name, string value)
@@ -116,6 +117,24 @@ namespace Graviton
             }
 
             GravitonPlugin.Logger?.Trace($"Configured RomMServer to use client token auth");
+        }
+
+        public void ConfigureTimeout(int seconds)
+        {
+            var newClient = new HttpClient()
+            {
+                Timeout = TimeSpan.FromSeconds(seconds),
+            };
+
+            newClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            newClient.DefaultRequestHeaders.Authorization = httpClient.DefaultRequestHeaders.Authorization;
+
+            foreach (var header in _plugin!.Settings.CustomHeaders.Where(x => x.Enabled))
+            {
+                newClient.DefaultRequestHeaders.Add(header.Name, header.Value);
+            }
+
+            httpClient = newClient;
         }
 
         private async Task<JsonDocument?> ExecuteAsync(string apiPath, bool PublicEndpoint, Func < Task<HttpResponseMessage>> send, string nofiyType, string locFailedMessage)

@@ -2,7 +2,8 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime"
                     xmlns:local="clr-namespace:Graviton"
-                    xmlns:playnite="clr-namespace:Playnite;assembly=Playnite.SDK">
+                    xmlns:playnite="clr-namespace:Playnite;assembly=Playnite.SDK"
+                    xmlns:psdk="clr-namespace:Playnite.Desktop;assembly=Playnite.SDK">
 
     <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
     <local:ImageCacheConverter x:Key="imageCacheConverter" />
@@ -625,5 +626,103 @@
         <Setter Property="Padding" Value="8,5"/>
     </Style>
     <!-- #endregion -->
+
+    <!-- #region NumericUpDown -->
+    <Style x:Key="Graviton.NumericUpDown"
+       TargetType="{x:Type psdk:NumericUpDown}">
+
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Graviton.TransparentBackground.Colour}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="5,5" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Height" Value="36" />
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type psdk:NumericUpDown}">
+                    <Border x:Name="Border"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="6"
+                        SnapsToDevicePixels="True">
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="24" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox x:Name="textbox"
+                                 Grid.Column="0"
+                                 Background="Transparent"
+                                 Foreground="{TemplateBinding Foreground}"
+                                 BorderThickness="0"
+                                 Padding="{TemplateBinding Padding}"
+                                 FontSize="{TemplateBinding FontSize}"
+                                 FontWeight="{TemplateBinding FontWeight}"
+                                 CaretBrush="{DynamicResource Graviton.Text.Colour}"
+                                 SelectionBrush="{DynamicResource Graviton.SubText.Colour}"
+                                 VerticalContentAlignment="Center" />
+
+                            <Grid Grid.Column="1"
+                              Margin="0,2,2,2">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <RepeatButton Grid.Row="0"
+                                          Command="{x:Static psdk:NumericUpDown.IncreaseCommand}"
+                                          CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          Padding="0"
+                                          Focusable="False">
+                                    <TextBlock Text="▲"
+                                           Foreground="{DynamicResource Graviton.SubText.Colour}"
+                                           FontSize="7"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                                </RepeatButton>
+
+                                <RepeatButton Grid.Row="1"
+                                          Command="{x:Static psdk:NumericUpDown.DecreaseCommand}"
+                                          CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          Padding="0"
+                                          Focusable="False">
+                                    <TextBlock Text="▼"
+                                           Foreground="{DynamicResource Graviton.SubText.Colour}"
+                                           FontSize="7"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                                </RepeatButton>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource Graviton.Text.Colour}" />
+                        </Trigger>
+
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource Graviton.Text.Colour}" />
+                        </Trigger>
+
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Border" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!--#endregion -->
     
 </ResourceDictionary>

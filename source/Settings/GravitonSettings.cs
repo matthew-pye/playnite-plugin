@@ -41,6 +41,7 @@ namespace Graviton.Settings
         [ObservableProperty] private string _username = "";
         [ObservableProperty] private string _password = "";
         [ObservableProperty] private ObservableCollection<CustomHTTPHeader> _customHeaders = new ObservableCollection<CustomHTTPHeader>();
+        [ObservableProperty] private int _serverTimeout = 30;
 
         private string _profilePath = ""; 
  
@@ -68,7 +69,7 @@ namespace Graviton.Settings
         [ObservableProperty] private SaveConflictResolve _saveConflictStyle = SaveConflictResolve.Ask;
         [ObservableProperty] private bool _autoCleanupSaves = true;
         [ObservableProperty] private int _autoCleanupSavesLimit = 10;
-
+       
         [ObservableProperty] private bool _captureScreenshots = false;
         [ObservableProperty] private int _secondsBeforeSave = 15;
         [ObservableProperty] private ScreenshotResolution _screenshotResolution = ScreenshotResolution.P1080;

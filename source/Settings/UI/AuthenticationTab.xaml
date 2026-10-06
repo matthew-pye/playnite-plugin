@@ -7,6 +7,7 @@
              xmlns:s="clr-namespace:Graviton.Settings"
              xmlns:loc="clr-namespace:Playnite"
              xmlns:local="clr-namespace:Graviton"
+             xmlns:psdk="clr-namespace:Playnite.Desktop;assembly=Playnite.SDK"
              mc:Ignorable="d"
              d:DesignHeight="900" d:DesignWidth="1600">
 
@@ -49,7 +50,7 @@
                     <Border Grid.Row="0" Grid.Column="0" CornerRadius="6" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,10,5,5">
                         <Border.Style>
                             <Style TargetType="Border">
-                                <Setter Property="Background" Value="{DynamicResource Graviton.Trace.Colour}"/>
+                                <Setter Property="Background" Value="{DynamicResource Graviton.SuccessBackground.Colour}"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
                                         <Setter Property="Background" Value="{DynamicResource Graviton.SuccessBackground.Colour}"/>
@@ -76,7 +77,7 @@
                             <Ellipse Width="6" Height="6" Margin="5">
                                 <Ellipse.Style>
                                     <Style TargetType="Ellipse">
-                                        <Setter Property="Fill" Value="{DynamicResource Graviton.Warn.Colour}"/>
+                                        <Setter Property="Fill" Value="{DynamicResource Graviton.Success.Colour}"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
                                                 <Setter Property="Fill" Value="{DynamicResource Graviton.Success.Colour}"/>
@@ -101,36 +102,38 @@
                                 </Ellipse.Style>
                             </Ellipse>
                             <TextBlock FontSize="12" Margin="0,2,5,2">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="Reconnecting..."/>
-                                        <Setter Property="Foreground" Value="{DynamicResource Graviton.Warn.Colour}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="OK">
-                                                <Setter Property="Text" Value="Logged In"/>
-                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Success.Colour}"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Unauthorized">
-                                                <Setter Property="Text" Value="Logged Out"/>
-                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Forbidden">
-                                                <Setter Property="Text" Value="Logged Out"/>
-                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
-                                            </DataTrigger>
-                                            <MultiDataTrigger>
-                                                <MultiDataTrigger.Conditions>
-                                                    <Condition Binding="{Binding AccountState.AuthenticateFailed}" Value="{x:Null}" />
-                                                    <Condition Binding="{Binding AccountState.UserID}" Value="-1" />
-                                                </MultiDataTrigger.Conditions>
-                                                <MultiDataTrigger.Setters>
-                                                    <Setter Property="Text" Value="Not Logged In"/>
-                                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}"/>
-                                                </MultiDataTrigger.Setters>
-                                            </MultiDataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="Logged In"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource Graviton.Success.Colour}"/>
+
+                                    <Style.Triggers>
+
+                                        <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Unauthorized">
+                                            <Setter Property="Text" Value="Logged Out"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
+                                        </DataTrigger>
+
+                                        <DataTrigger Binding="{Binding AccountState.AuthenticateFailed}" Value="Forbidden">
+                                            <Setter Property="Text" Value="Logged Out"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource Graviton.Error.Colour}"/>
+                                        </DataTrigger>
+
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding AccountState.AuthenticateFailed}" Value="{x:Null}"/>
+                                                <Condition Binding="{Binding AccountState.UserID}" Value="-1"/>
+                                            </MultiDataTrigger.Conditions>
+
+                                            <MultiDataTrigger.Setters>
+                                                <Setter Property="Text" Value="Not Logged In"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource Graviton.Text.Colour}"/>
+                                            </MultiDataTrigger.Setters>
+                                        </MultiDataTrigger>
+
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
                             </TextBlock>
                         </StackPanel>
                     </Border>
@@ -467,6 +470,13 @@
 
         <!-- #region Advance Options -->
         <TextBlock Name="AdvanceOptionsText" Text="{loc:LocalizedString AdvancedOptions}" Margin="5,5,5,15" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20" FontWeight="Bold"/>
+
+        <Border Style="{StaticResource Graviton.SettingsCard}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Name="ServerTimeoutText" Text="{loc:LocalizedString ServerTimeout}" Style="{StaticResource Graviton.SettingsSubHeader}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                <psdk:NumericUpDown Value="{Binding ServerTimeout, Mode=TwoWay}" Minimum="5" Maximum="900" Style="{StaticResource Graviton.NumericUpDown}" Width="70" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
 
         <Border Style="{StaticResource Graviton.SettingsCard}">
             <StackPanel>

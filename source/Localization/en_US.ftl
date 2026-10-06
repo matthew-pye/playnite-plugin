@@ -65,6 +65,7 @@ OpenInBrowser = Open in browser
 ClientTokenAddressFailed = Cannot open the client token page because the RomM server address is not set.
 ImageFiles = Image files
 HTTPInUse = HTTP connections are not encrypted. Login details, tokens and other data may be visible on the network.
+ServerTimeout = Server request timeout (seconds)
 
 # MappingsTab
 MappingsTitle = Mappings

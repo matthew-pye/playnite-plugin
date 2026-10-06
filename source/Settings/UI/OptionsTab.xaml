@@ -268,7 +268,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Name="AutoCleanupSavesText" Text="{loc:LocalizedString AutoCleanOldSaves}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                        <psdk:NumericUpDown Grid.Column="1" Value="{Binding AutoCleanupSavesLimit, Mode=TwoWay}" Minimum="1" Maximum="100" Width="70" Margin="0,0,15,0" VerticalAlignment="Center" IsEnabled="{Binding AutoCleanupSaves}"/>
+                        <psdk:NumericUpDown Grid.Column="1" Value="{Binding AutoCleanupSavesLimit, Mode=TwoWay}" Minimum="1" Maximum="100" Style="{StaticResource Graviton.NumericUpDown}" Width="70" Margin="0,0,15,0" VerticalAlignment="Center" IsEnabled="{Binding AutoCleanupSaves}"/>
                         <ToggleButton Grid.Column="2" IsChecked="{Binding AutoCleanupSaves, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
