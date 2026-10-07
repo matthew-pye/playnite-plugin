@@ -4,49 +4,41 @@ on:
   push:
     tags:
       - "[0-9]+.[0-9]+.[0-9]+*"
+  workflow_dispatch:
 
 permissions:
-  contents: write
-  id-token: write
-  packages: write
-  actions: write
+  contents: read
 
 jobs:
   build:
-    runs-on: windows-2025-vs2026
+    runs-on: windows-2025
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Setup .NET
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 9.0.x
+          dotnet-version: 10.0.x
+
+      - name: Download Playnite 11 Toolbox
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path tools | Out-Null
+          Invoke-WebRequest `
+            -Uri "https://playnite.link/download/Toolbox.exe" `
+            -OutFile "tools/Toolbox.exe"
 
       - name: Restore dependencies
-        run: |
-          dotnet restore --locked-mode
-          dotnet add package Microsoft.Net.Sdk.Compilers.Toolset --version 9.0.300
+        run: dotnet restore source/Graviton.csproj
 
-      - name: Build with MSBuild
-        run: |
-          msbuild RomM.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:RestorePackages=false
+      - name: Build and package Graviton
+        run: dotnet build source/Graviton.csproj --configuration Release --no-restore
 
-      - name: Setup Playnite
-        run: |
-          Invoke-WebRequest -Uri "https://github.com/JosefNemec/Playnite/releases/download/10.35/Playnite1035.zip" -OutFile "Playnite.zip"
-          Expand-Archive "Playnite.zip" -DestinationPath "Playnite"
-
-      - name: Pack with Playnite
-        run: |
-          mkdir .\PackingOutput
-          & "Playnite\Toolbox.exe" pack .\bin\Release\net462 .\PackingOutput
-
-      - name: Upload Artifact
+      - name: Upload packaged extension
         uses: actions/upload-artifact@v4
         with:
-          name: packed-extension
-          path: PackingOutput
+          name: Graviton-pext2
+          path: source/bin/Release/*.pext2
+          if-no-files-found: error
