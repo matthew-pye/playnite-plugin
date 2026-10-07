@@ -78,71 +78,188 @@
     </Compile>
   </ItemGroup>
 
- <UsingTask TaskName="UpdateExtensionVersion" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+  <!--
+    extension.toml is generated from the constants at the top of GravitonPlugin.cs.
+  -->
+  <UsingTask TaskName="GenerateExtensionManifest" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SourceFile ParameterType="System.String" Required="true" />
+      <TemplateFile ParameterType="System.String" Required="true" />
+      <OutputFile ParameterType="System.String" Required="true" />
+      <ExtensionVersion ParameterType="System.String" Output="true" />
+    </ParameterGroup>
 
-  <ParameterGroup>
-    <SourceFile ParameterType="System.String" Required="true" />
-    <TemplateFile ParameterType="System.String" Required="true" />
-    <OutputFile ParameterType="System.String" Required="true" />
-  </ParameterGroup>
+    <Task>
+      <Reference Include="System" />
+      <Reference Include="System.Core" />
 
-  <Task>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text.RegularExpressions" />
 
-    <Using Namespace="System" />
-    <Using Namespace="System.IO" />
-    <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var source = File.ReadAllText(SourceFile);
 
-    <Code Type="Fragment" Language="cs"><![CDATA[
-      var source = File.ReadAllText(SourceFile);
+        var idMatch = Regex.Match(source, @"\bId\s*=\s*""([^""]+)""\s*;");
+        var nameMatch = Regex.Match(source, @"\bExternalIdName\s*=\s*""([^""]+)""\s*;");
 
-      var match = Regex.Match(
-          source,
-          @"new Version\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)");
+        if (!idMatch.Success)
+        {
+            Log.LogError("Could not find string constant 'Id' in " + SourceFile);
+            return false;
+        }
 
-      if (!match.Success)
-      {
-          Log.LogError(
-              "Could not find 'new Version(x,y,z)' in " + SourceFile);
-          return false;
-      }
+        if (!nameMatch.Success)
+        {
+            Log.LogError("Could not find string constant 'ExternalIdName' in " + SourceFile);
+            return false;
+        }
 
-      var version = string.Format(
-          "{0}.{1}.{2}",
-          match.Groups[1].Value,
-          match.Groups[2].Value,
-          match.Groups[3].Value);
+        var id = idMatch.Groups[1].Value;
+        var name = nameMatch.Groups[1].Value;
 
-      var toml = File.ReadAllText(TemplateFile);
+        var versionMatch = Regex.Match(
+            source,
+            @"\bVersion\s*=\s*new\s+Version\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)\s*;");
 
-      toml = Regex.Replace(
-          toml,
-          @"(?m)^version\s*=\s*[""'][^""']*[""']\s*$",
-          "version = \"" + version + "\"");
+        if (!versionMatch.Success)
+        {
+            Log.LogError("Could not find 'Version = new Version(x, y, z)' in " + SourceFile);
+            return false;
+        }
 
-      var directory = Path.GetDirectoryName(OutputFile);
+        ExtensionVersion = string.Format(
+            "{0}.{1}.{2}",
+            versionMatch.Groups[1].Value,
+            versionMatch.Groups[2].Value,
+            versionMatch.Groups[3].Value);
 
-      if (!string.IsNullOrEmpty(directory))
-      {
-          Directory.CreateDirectory(directory);
-      }
+        var toml = File.ReadAllText(TemplateFile);
 
-      File.WriteAllText(OutputFile, toml);
+        toml = Regex.Replace(toml, @"(?m)^id\s*=\s*[""'][^""']*[""']\s*$", "id = \"" + id + "\"");
+        toml = Regex.Replace(toml, @"(?m)^name\s*=\s*[""'][^""']*[""']\s*$", "name = \"" + name.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"");
+        toml = Regex.Replace(toml, @"(?m)^version\s*=\s*[""'][^""']*[""']\s*$", "version = \"" + ExtensionVersion + "\"");
 
-      Log.LogMessage(
-          MessageImportance.High,
-          "Generated extension.toml with version " + version);
+        var directory = Path.GetDirectoryName(OutputFile);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
 
-      return true;
-    ]]></Code>
-  </Task>
-</UsingTask>
+        File.WriteAllText(OutputFile, toml);
 
-<Target Name="GenerateExtensionToml" BeforeTargets="CopyFilesToOutputDirectory">
+        Log.LogMessage(MessageImportance.High, "Generated extension.toml: " + id + " / " + name + " / " + ExtensionVersion);
 
-  <UpdateExtensionVersion SourceFile="$(MSBuildProjectDirectory)\GravitonPlugin.cs" TemplateFile="$(MSBuildProjectDirectory)\extension.toml" OutputFile="$(TargetDir)extension.toml" />
+        return true;
+      ]]></Code>
+    </Task>
+  </UsingTask>
 
-</Target>
+  <UsingTask TaskName="PrunePlayniteRuntimeDirectories" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <RuntimeRoot ParameterType="System.String" Required="true" />
+      <RuntimeToKeep ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+
+    <Task>
+      <Reference Include="System" />
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        if (!Directory.Exists(RuntimeRoot))
+        {
+            return true;
+        }
+
+        foreach (var runtimeDirectory in Directory.GetDirectories(RuntimeRoot))
+        {
+            var runtimeName = Path.GetFileName(runtimeDirectory);
+            if (string.Equals(runtimeName, RuntimeToKeep, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            Directory.Delete(runtimeDirectory, true);
+            Log.LogMessage(MessageImportance.Normal, "Removed unused runtime: " + runtimeName);
+        }
+
+        return true;
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <PropertyGroup>
+    <!--
+      Collaborators can either place Toolbox.exe in ../tools, set the
+      PLAYNITE_TOOLBOX environment variable, or pass -p:PlayniteToolbox=...
+    -->
+    <PlayniteToolbox Condition="'$(PlayniteToolbox)' == '' and '$(PLAYNITE_TOOLBOX)' != ''">$(PLAYNITE_TOOLBOX)</PlayniteToolbox>
+    <PlayniteToolbox Condition="'$(PlayniteToolbox)' == '' and Exists('$(MSBuildProjectDirectory)\..\tools\Toolbox.exe')">$(MSBuildProjectDirectory)\..\tools\Toolbox.exe</PlayniteToolbox>
+
+    <!-- Keep every packaging artifact under bin/<Configuration>. No trailing
+         slash here: a trailing backslash inside a quoted Exec argument can
+         escape the closing quote on Windows. -->
+    <PlayniteBuildRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\bin\$(Configuration)'))</PlayniteBuildRoot>
+    <PlaynitePackageStageDir>$(PlayniteBuildRoot)\package</PlaynitePackageStageDir>
+  </PropertyGroup>
+
+  <Target Name="GenerateExtensionToml" AfterTargets="Build">
+    <GenerateExtensionManifest
+        SourceFile="$(MSBuildProjectDirectory)\GravitonPlugin.cs"
+        TemplateFile="$(MSBuildProjectDirectory)\extension.toml"
+        OutputFile="$(TargetDir)extension.toml">
+      <Output TaskParameter="ExtensionVersion" PropertyName="GravitonExtensionVersion" />
+    </GenerateExtensionManifest>
+  </Target>
+
+  <!-- Release output itself is Windows x64-only. Debug keeps the full NuGet
+       output so development/debugging is not altered. -->
+  <Target Name="PruneReleaseRuntimeAssets"
+          Condition="'$(Configuration)' == 'Release'"
+          DependsOnTargets="GenerateExtensionToml">
+    <PrunePlayniteRuntimeDirectories
+        RuntimeRoot="$(TargetDir)runtimes"
+        RuntimeToKeep="win-x64" />
+
+    <Message Importance="High"
+             Text="Pruned Release runtimes; keeping only win-x64 in $(TargetDir)runtimes" />
+  </Target>
+
+  <Target Name="StagePlaynitePackage"
+          Condition="'$(Configuration)' == 'Release'"
+          DependsOnTargets="PruneReleaseRuntimeAssets">
+    <RemoveDir Directories="$(PlaynitePackageStageDir)" Condition="Exists('$(PlaynitePackageStageDir)')" />
+    <MakeDir Directories="$(PlaynitePackageStageDir)" />
+
+    <!-- The Release output has already been pruned to win-x64, so stage the
+         complete plugin output as-is. -->
+    <ItemGroup>
+      <PlaynitePackageFiles Include="$(TargetDir)**\*" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(PlaynitePackageFiles)"
+          DestinationFiles="@(PlaynitePackageFiles->'$(PlaynitePackageStageDir)\%(RecursiveDir)%(Filename)%(Extension)')" />
+
+    <Message Importance="High"
+             Text="Staged Windows x64 Playnite package at $(PlaynitePackageStageDir)" />
+  </Target>
+
+  <Target Name="PackPlayniteExtension"
+          AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Release'"
+          DependsOnTargets="StagePlaynitePackage">
+    <Error Condition="'$(PlayniteToolbox)' == '' or !Exists('$(PlayniteToolbox)')"
+           Text="Playnite Toolbox.exe was not found. Put it in tools\Toolbox.exe beside the source folder (recommended), set PLAYNITE_TOOLBOX, or pass -p:PlayniteToolbox=..." />
+
+    <PropertyGroup>
+      <PlaynitePackageFile>$(PlayniteBuildRoot)\Graviton-$(GravitonExtensionVersion).pext2</PlaynitePackageFile>
+    </PropertyGroup>
+
+    <Message Importance="High"
+             Text="Packing Playnite extension to $(PlaynitePackageFile)" />
+
+    <Exec Command="&quot;$(PlayniteToolbox)&quot; pack &quot;$(PlaynitePackageStageDir)&quot; &quot;$(PlaynitePackageFile)&quot;" />
+  </Target>
 
 </Project>

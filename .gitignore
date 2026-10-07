@@ -485,3 +485,7 @@ $RECYCLE.BIN/
 
 # Packed extension files
 packed/
+
+# Local Playnite build tools (not redistributed with the project)
+tools/*.exe
+tools/*.pdb
