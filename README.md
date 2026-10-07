@@ -24,12 +24,12 @@ This plugin allows you to import your RomM library into Playnite. It queries the
 
 # Installation
 
-~~To install and configure the RomM Playnite plugin, check out the [Installation Guide][docs-installation-guide]~~
+To install the plugin, download the pext2 file from the releases page
 
 
 # Technical Support
 
-~~If you have any issues with the plugin, please [open an issue](https://github.com/matthew-pye/playnite-plugin/issues/new) in this repository. If the issue is with RomM itself, open an issue in the [RomM repository](https://github.com/rommapp/romm/issues/new/choose).~~
+If you have any issues with the plugin, please [open an issue](https://github.com/matthew-pye/playnite-plugin/issues/new) in this repository. If the issue is with RomM itself, open an issue in the [RomM repository](https://github.com/rommapp/romm/issues/new/choose).
 
 # Project Support
 
