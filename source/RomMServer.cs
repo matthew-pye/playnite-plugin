@@ -39,9 +39,9 @@ namespace Graviton
         void ConfigureTimeout(int seconds);
 
         Task<JsonDocument?> GETAsync(string APIPath, bool PublicEndpoint = false);
-        Task<JsonDocument?> POSTAsync(string APIPath, HttpContent content, bool PublicEndpoint = false);
+        Task<JsonDocument?> POSTAsync(string APIPath, HttpContent? content, bool PublicEndpoint = false);
         Task<JsonDocument?> POSTAsync(string APIPath, object json, bool PublicEndpoint = false);
-        Task<JsonDocument?> PUTAsync(string APIPath, HttpContent content, bool PublicEndpoint = false);
+        Task<JsonDocument?> PUTAsync(string APIPath, HttpContent? content, bool PublicEndpoint = false);
         Task<JsonDocument?> PUTAsync(string APIPath, object json, bool PublicEndpoint = false);
         Task<JsonDocument?> DELETEAsync(string APIPath, bool PublicEndpoint = false);
         Task<JsonDocument?> HEADAsync(string APIPath, bool PublicEndpoint = false);
@@ -231,9 +231,9 @@ namespace Graviton
         }
 
         public Task<JsonDocument?> GETAsync(string APIPath, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.GetAsync($"{Host}{APIPath}"), "graviton.GET.failed", "GETFailed");
-        public Task<JsonDocument?> POSTAsync(string APIPath, HttpContent content, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PostAsync($"{Host}{APIPath}", content), "graviton.POST.failed", "POSTFailed");
+        public Task<JsonDocument?> POSTAsync(string APIPath, HttpContent? content, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PostAsync($"{Host}{APIPath}", content), "graviton.POST.failed", "POSTFailed");
         public Task<JsonDocument?> POSTAsync(string APIPath, object json, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PostAsJsonAsync($"{Host}{APIPath}", json), "graviton.POST.failed", "POSTFailed");
-        public Task<JsonDocument?> PUTAsync(string APIPath, HttpContent content, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PutAsync($"{Host}{APIPath}", content), "graviton.PUT.failed", "PUTFailed");
+        public Task<JsonDocument?> PUTAsync(string APIPath, HttpContent? content, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PutAsync($"{Host}{APIPath}", content), "graviton.PUT.failed", "PUTFailed");
         public Task<JsonDocument?> PUTAsync(string APIPath, object json, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.PutAsJsonAsync($"{Host}{APIPath}", json), "graviton.PUT.failed", "PUTFailed");
         public Task<JsonDocument?> DELETEAsync(string APIPath, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.DeleteAsync($"{Host}{APIPath}"), "graviton.DELETE.failed", "DELETEFailed");
         public Task<JsonDocument?> HEADAsync(string APIPath, bool PublicEndpoint = false) => ExecuteAsync(APIPath, PublicEndpoint, () => httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, $"{Host}{APIPath}")), "graviton.HEAD.failed", "HEADFailed");

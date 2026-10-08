@@ -33,15 +33,15 @@ namespace Graviton.Models.ROM
     {
         public int Id { get; set; }
         public string? PlayniteID { get; set; }
-        public string? Name { get; set; }
+        public string Name { get; set; } = "Unknown Game";
         public string? SHA1 { get; set; }
 
         public string? FileName { get; set; }
         public int PatchFileId { get; set; } = -1;
 
         public bool HasMultipleFiles { get; set; }
-        public string? DownloadURL { get; set; }
-        public string? InstallPath { get; set; }
+        public string DownloadURL { get; set; } = "";
+        public string InstallPath { get; set; } = "";
         public string? InstalledPath { get; set; }
         public bool IsInstalledPathDirectory { get; set; }
 
@@ -62,7 +62,7 @@ namespace Graviton.Models.ROM
 
             // Save base ROM data
             toSave.Id = ROM.Id;
-            toSave.Name = ROM.Name;
+            toSave.Name = ROM.Name ?? "Unknown Game";
             toSave.SHA1 = ROM.SHA1;
             toSave.HasMultipleFiles = ROM.HasMultipleFiles;
             toSave.PlayniteID = string.IsNullOrEmpty(PlayniteID) ? GravitonPlugin.Instance.ImportedGames[$"{ROM.Id}"].PlayniteID : PlayniteID;
@@ -106,7 +106,7 @@ namespace Graviton.Models.ROM
         public void Resync(RomMRom ROM)
         {
             Id = ROM.Id;
-            Name = ROM.Name;
+            Name = ROM.Name ?? "Unknown Game";
             SHA1 = ROM.SHA1;
             HasMultipleFiles = ROM.HasMultipleFiles;
             InstallPath = EmulatorMapping.InstallPathToken + ROM.FullPath?.Replace(ROM.FileSystemPath ?? "", "");

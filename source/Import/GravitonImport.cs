@@ -489,6 +489,13 @@ namespace Graviton.Import
             }
         }
 
+        private async Task<List<(string gameID, Game? newGame)>?> ImportPatchfilesAsGames(RomMRom ROM)
+        {
+            return null;
+            
+            // TODO import patch / hack / translation as there own games
+        }
+
         private async Task<Game?> GenerateGame(RomMRom ROM)
         {
             Game game = new Game();

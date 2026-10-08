@@ -2,6 +2,7 @@
 
 using Playnite;
 
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;
 
@@ -17,7 +18,7 @@ namespace Graviton.Install.Downloads
         private readonly DownloadQueueViewModel DownloadQueueVM;
         private readonly SemaphoreSlim concurrencyGate;
 
-        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, CancellationTokenSource> activeDownloads = new();
+        private readonly ConcurrentDictionary<string, CancellationTokenSource> activeDownloads = new();
 
         public GravitonLogger? Logger;
         public int MaxConcurrent { get; }
@@ -72,6 +73,8 @@ namespace Graviton.Install.Downloads
                 }
             }
         }
+
+        public bool IsDownloading(string Id) => activeDownloads.TryGetValue(Id, out _);
 
         private async Task ProcessItem(DownloadQueueItem item, DownloadRequest req)
         {

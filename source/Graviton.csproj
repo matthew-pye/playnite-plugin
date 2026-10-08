@@ -61,6 +61,7 @@
     <PackageReference Include="GrindCore.SharpCompress" Version="0.50.5" />
     <PackageReference Include="Playnite.SDK" Version="11.0.0-alpha14" />
     <PackageReference Include="QRCoder" Version="1.8.0" />
+    <PackageReference Include="SocketIOClient" Version="4.0.5" />
     <PackageReference Include="Svg" Version="3.4.8" />
   </ItemGroup>
 
@@ -201,30 +202,20 @@
   </PropertyGroup>
 
   <Target Name="GenerateExtensionToml" AfterTargets="Build">
-    <GenerateExtensionManifest
-        SourceFile="$(MSBuildProjectDirectory)\GravitonPlugin.cs"
-        TemplateFile="$(MSBuildProjectDirectory)\extension.toml"
-        OutputFile="$(TargetDir)extension.toml">
+    <GenerateExtensionManifest SourceFile="$(MSBuildProjectDirectory)\GravitonPlugin.cs" TemplateFile="$(MSBuildProjectDirectory)\extension.toml" OutputFile="$(TargetDir)extension.toml">
       <Output TaskParameter="ExtensionVersion" PropertyName="GravitonExtensionVersion" />
     </GenerateExtensionManifest>
   </Target>
 
   <!-- Release output itself is Windows x64-only. Debug keeps the full NuGet
        output so development/debugging is not altered. -->
-  <Target Name="PruneReleaseRuntimeAssets"
-          Condition="'$(Configuration)' == 'Release'"
-          DependsOnTargets="GenerateExtensionToml">
-    <PrunePlayniteRuntimeDirectories
-        RuntimeRoot="$(TargetDir)runtimes"
-        RuntimeToKeep="win-x64" />
+  <Target Name="PruneReleaseRuntimeAssets" Condition="'$(Configuration)' == 'Release'" DependsOnTargets="GenerateExtensionToml">
+    <PrunePlayniteRuntimeDirectories RuntimeRoot="$(TargetDir)runtimes" RuntimeToKeep="win-x64" />
 
-    <Message Importance="High"
-             Text="Pruned Release runtimes; keeping only win-x64 in $(TargetDir)runtimes" />
+    <Message Importance="High" Text="Pruned Release runtimes; keeping only win-x64 in $(TargetDir)runtimes" />
   </Target>
 
-  <Target Name="StagePlaynitePackage"
-          Condition="'$(Configuration)' == 'Release'"
-          DependsOnTargets="PruneReleaseRuntimeAssets">
+  <Target Name="StagePlaynitePackage" Condition="'$(Configuration)' == 'Release'" DependsOnTargets="PruneReleaseRuntimeAssets">
     <RemoveDir Directories="$(PlaynitePackageStageDir)" Condition="Exists('$(PlaynitePackageStageDir)')" />
     <MakeDir Directories="$(PlaynitePackageStageDir)" />
 
@@ -234,26 +225,19 @@
       <PlaynitePackageFiles Include="$(TargetDir)**\*" />
     </ItemGroup>
 
-    <Copy SourceFiles="@(PlaynitePackageFiles)"
-          DestinationFiles="@(PlaynitePackageFiles->'$(PlaynitePackageStageDir)\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(PlaynitePackageFiles)" DestinationFiles="@(PlaynitePackageFiles->'$(PlaynitePackageStageDir)\%(RecursiveDir)%(Filename)%(Extension)')" />
 
-    <Message Importance="High"
-             Text="Staged Windows x64 Playnite package at $(PlaynitePackageStageDir)" />
+    <Message Importance="High" Text="Staged Windows x64 Playnite package at $(PlaynitePackageStageDir)" />
   </Target>
 
-  <Target Name="PackPlayniteExtension"
-          AfterTargets="Build"
-          Condition="'$(Configuration)' == 'Release'"
-          DependsOnTargets="StagePlaynitePackage">
-    <Error Condition="'$(PlayniteToolbox)' == '' or !Exists('$(PlayniteToolbox)')"
-           Text="Playnite Toolbox.exe was not found. Put it in tools\Toolbox.exe beside the source folder (recommended), set PLAYNITE_TOOLBOX, or pass -p:PlayniteToolbox=..." />
+  <Target Name="PackPlayniteExtension" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'" DependsOnTargets="StagePlaynitePackage">
+    <Error Condition="'$(PlayniteToolbox)' == '' or !Exists('$(PlayniteToolbox)')" Text="Playnite Toolbox.exe was not found. Put it in tools\Toolbox.exe beside the source folder (recommended), set PLAYNITE_TOOLBOX, or pass -p:PlayniteToolbox=..." />
 
     <PropertyGroup>
       <PlaynitePackageFile>$(PlayniteBuildRoot)\Graviton-$(GravitonExtensionVersion).pext2</PlaynitePackageFile>
     </PropertyGroup>
 
-    <Message Importance="High"
-             Text="Packing Playnite extension to $(PlaynitePackageFile)" />
+    <Message Importance="High" Text="Packing Playnite extension to $(PlaynitePackageFile)" />
 
     <Exec Command="&quot;$(PlayniteToolbox)&quot; pack &quot;$(PlaynitePackageStageDir)&quot; &quot;$(PlaynitePackageFile)&quot;" />
   </Target>

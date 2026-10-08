@@ -593,7 +593,7 @@ namespace Graviton.Install
 
         #endregion
 
-        private static void CopyFileWithProgress(string source, string destination, DownloadQueueItem item, CancellationToken token)
+        public static void CopyFileWithProgress(string source, string destination, DownloadQueueItem item, CancellationToken token)
         {
             item.SetStatus(DownloadStatus.Installing, Loc.GetString("DownloadStatusInstalling"));
 
@@ -644,7 +644,7 @@ namespace Graviton.Install
             }
         }
 
-        private static void CopyDirectoryWithProgress(string sourceDirectory, string destinationDirectory, DownloadQueueItem item, CancellationToken token)
+        public static void CopyDirectoryWithProgress(string sourceDirectory, string destinationDirectory, DownloadQueueItem item, CancellationToken token)
         {
             if (!Directory.Exists(sourceDirectory))
                 throw new DirectoryNotFoundException($"Source directory does not exist: {sourceDirectory}");
