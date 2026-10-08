@@ -153,22 +153,24 @@ namespace Graviton.Import
 
                 case BuiltInGameDataId.Links:
                     List<WebLink> links = new();
+
+                    links.Add(new("romm", $"{_plugin.Settings.Host}/rom/{ROM.Id}"));
+
                     if (ROM.SSId != null)
                     {
-                        links.Add(new WebLink("screenscraper", $"https://www.screenscraper.fr/gameinfos.php?gameid={ROM.SSId}"));
+                        links.Add(new("screenscraper", $"https://www.screenscraper.fr/gameinfos.php?gameid={ROM.SSId}"));
                     }
                     if (ROM.HasheousId != null)
                     {
-                        links.Add(new WebLink("hasheous", $"https://hasheous.org/index.html?page=dataobjectdetail&type=game&id={ROM.HasheousId}"));
+                        links.Add(new("hasheous", $"https://hasheous.org/index.html?page=dataobjectdetail&type=game&id={ROM.HasheousId}"));
                     }
                     if (ROM.RAId != null)
                     {
-                        links.Add(new WebLink("retroachievements", $"https://retroachievements.org/game/{ROM.RAId}"));
+                        links.Add(new("retroachievements", $"https://retroachievements.org/game/{ROM.RAId}"));
                     }
                     if (ROM.HLTBId != null)
                     {
-
-                        links.Add(new WebLink("howlongtobeat", $"https://howlongtobeat.com/game/{ROM.HLTBId}"));
+                        links.Add(new("howlongtobeat", $"https://howlongtobeat.com/game/{ROM.HLTBId}"));
                     }
 
                     if (links.Count > 0)
@@ -177,6 +179,8 @@ namespace Graviton.Import
                     return null;
                 case BuiltInGameDataId.ExternalIds:
                     List<ExternalIdentifier> Ids = new();
+                    Ids.Add(new("romm", ROM.Id.ToString()));
+
                     if (ROM.SSId != null)
                     {
                         Ids.Add(new("screenscraper", ROM.SSId.ToString()!));

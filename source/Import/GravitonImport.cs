@@ -413,6 +413,9 @@ namespace Graviton.Import
                 game.Favorite = ROM.Collections.Any(x => x.Name == "Favorites");
             }
 
+            // Update RomM link
+            game.Links?.Where(x => x.TypeId == "romm").ForEach(y => y.Url = $"{_plugin.Settings.Host}/rom/{ROM.Id}");
+
             await InstallUpdateDLC.RefreshCandidates(_mapping, ROM, _plugin.ImportedGames[gameID]);
 
             await _playniteAPI.Library.Games.UpdateAsync(game);
@@ -537,7 +540,10 @@ namespace Graviton.Import
 
             game.Links = new();
             game.ExternalIdentifiers = new();
+
             game.ExternalIdentifiers?.Add(new("romm", ROM.Id.ToString()));
+            game.Links.Add(new WebLink("romm", $"{_plugin.Settings.Host}/rom/{ROM.Id}"));
+
             if (ROM.IgdbId != null)
             {
                 game.ExternalIdentifiers?.Add(new("igdb", ROM.IgdbId.ToString()!));
@@ -598,6 +604,10 @@ namespace Graviton.Import
 
                 oldgame.Value.Id = ROM.Id;
                 game.LibraryGameId = $"{ROM.Id}";
+
+                game.ExternalIdentifiers?.Where(x => x.TypeId == "romm").ForEach(y => y.IdValue = ROM.Id.ToString());
+                game.Links?.Where(x => x.TypeId == "romm").ForEach(y => y.Url = $"{_plugin.Settings.Host}/rom/{ROM.Id}");
+
                 await _playniteAPI.Library.Games.UpdateAsync(game);
 
                 oldgame.Value.Save();

@@ -158,23 +158,24 @@ namespace Graviton
 
             Logger = new();
             Logger.Initialize();
-            Logger.Info("Logger Initialized");
+            Logger.Trace("Logger Initialized");
 
             GravitonNotify.Initialize(Instance, PlayniteApi, Logger);
-            Logger.Info("Notifications Initialized");
+            Logger.Trace("Notifications Initialized");
 
             CLIInstallDefinitions.Initialize();
             TitleIDInstallDefinitions.Initialize();
 
             await PlayniteApi.Library.Sources.AddAsync(new Source(Id, "Graviton"));
-            Logger.Info("Added Graviton to sources");
+            Logger.Trace("Added Graviton to sources");
 
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("romm", "RomM"));
             await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("igdb", "IGDB"));
             await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("screenscraper", "Screenscraper"));
             await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("hasheous", "Hasheous"));
             await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("retroachievements", "RetroAchievements"));
             await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("howlongtobeat", "HowLongToBeat"));
-            Logger.Info("Added IGDB, Screenscraper, Hasheous, RetroAchievements, HowLongToBeat to WebLinkTypes");
+            Logger.Trace("Added RomM, IGDB, Screenscraper, Hasheous, RetroAchievements, HowLongToBeat to WebLinkTypes");
 
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("romm", "RomM"));
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("igdb", "IGDB"));
@@ -182,35 +183,33 @@ namespace Graviton
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("hasheous", "Hasheous"));
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("retroachievements", "RetroAchievements"));
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("howlongtobeat", "HowLongToBeat"));
-            Logger.Info("Added RomM, IGDB, Screenscraper, Hasheous, RetroAchievements, HowLongToBeat to ExternalIdentifierTypes");
+            Logger.Trace("Added RomM, IGDB, Screenscraper, Hasheous, RetroAchievements, HowLongToBeat to ExternalIdentifierTypes");
 
             await PlayniteApi.Library.CompletionStatuses.AddAsync(new CompletionStatus("never_playing", "Never Playing"));
-            Logger.Info("Added Never Playing to CompletionStatuses");
+            Logger.Trace("Added Never Playing to CompletionStatuses");
 
             RomMServer = new(Instance);
-            Logger.Info("Created RomMServer Controller");
+            Logger.Trace("Created RomMServer Controller");
 
             SettingsHandler = new(Instance, PlayniteApi, Logger, RomMServer);
-            Logger.Info("Created Settings Handler");
+            Logger.Trace("Created Settings Handler");
 
             ImportController = new(Instance, PlayniteApi, Logger, RomMServer);
-            Logger.Info("Created Import Controller");
+            Logger.Trace("Created Import Controller");
 
             SaveController = new(Instance, PlayniteApi, Logger, RomMServer);
-            Logger.Info("Created Save Controller");
+            Logger.Trace("Created Save Controller");
 
             StatusController = new(Instance, PlayniteApi, Logger, RomMServer);
-            Logger.Info("Created Status Controller");
+            Logger.Trace("Created Status Controller");
 
             Account = new(Instance, PlayniteApi, Logger, RomMServer);
-            Logger.Info("Created Account Controller");
+            Logger.Trace("Created Account Controller");
 
             _downloadsViewModel = new();
             DownloadQueueController = new(Instance, PlayniteApi, Logger, RomMServer, _downloadsViewModel, maxConcurrent: 10);
-            Logger.Info("Created Download Queue Controller");
+            Logger.Trace("Created Download Queue Controller");
             _downloadsAppView = new();
-
-            Logger.Info($"Total Memory before ImportGames load: {GC.GetTotalMemory(true)}");
 
             ImportedGames = new ConcurrentDictionary<string, RomMRomLocal>();
             List<int> FailedCacheAdds = new List<int>();
@@ -239,8 +238,6 @@ namespace Graviton
             if(FailedCacheAdds.Count > 0)
                 Logger.Info($"Failed to add [{string.Join(", ", FailedCacheAdds)}] to Imported Games cache");
 
-            Logger.Info($"Total Memory after ImportGames load: {GC.GetTotalMemory(true)} with {ImportedGames.Count()} games added to the dictionary");
-
             Logger.Info("Finished Plugin Initialization");
         }
 
@@ -250,11 +247,11 @@ namespace Graviton
             if (result?.Success == true && result.Value is Emunight.IEmunightAPI emunightApi)
             {
                 EmunightAPI = emunightApi;
-                Logger.Info("Found Emunight plugin");
+                Logger.Trace("Found Emunight plugin");
             }
 
             PlayController = new(Instance, PlayniteApi, Logger, EmunightAPI ?? throw new Exception("EmunightAPI not found"));
-            Logger.Info("Created Play Controller");
+            Logger.Trace("Created Play Controller");
 
             Logger.Info("Finished Post Initialization");
 
@@ -295,7 +292,7 @@ namespace Graviton
                 Logger.Trace("Last Authenticated was null, skipping login");
 
 
-            Logger.Trace("Completed Application Startup");
+            Logger.Info("Completed Application Startup");
         }
 
         public override Task<PluginSettingsHandler?> GetSettingsHandlerAsync(GetSettingsHandlerArgs args)
