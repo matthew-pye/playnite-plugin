@@ -28,6 +28,7 @@ namespace Graviton.Install
 
         private readonly SocketIO _socket;
         private readonly SemaphoreSlim _installLock = new(1, 1);
+        private readonly SemaphoreSlim _connectingLock = new(1, 1);
 
         private bool _socketDisconnected = true;
         private CancellationTokenSource? _installHeartbeatCts;
@@ -41,8 +42,6 @@ namespace Graviton.Install
             _playniteAPI = playniteAPI;
             _logger = logger;
             _romMServer = server;
-
-            _installHeartbeatCts = new();
 
             _socket = new SocketIO(new Uri($"{plugin.Settings.Host.TrimEnd('/')}/devices"), new SocketIOOptions
             {
@@ -119,6 +118,14 @@ namespace Graviton.Install
 
         public async Task Connect()
         {
+            if (_plugin.Settings.UseBasicAuth)
+            {
+                _logger.Info("Remote installs disabled: Basic authentication is in use.");
+                return;
+            }
+
+            await _connectingLock.WaitAsync();
+
             try
             {
                 _logger.Trace("Starting remote install heartbeat");
@@ -143,28 +150,44 @@ namespace Graviton.Install
 
                 }
 
-                _logger.Trace("Claiming remote installs via REST");
                 await InstallQueued();
             }
             catch (Exception ex)
             {
                 _logger.Error($"Failed to start remote install controller: {ex}");
             }
+            finally
+            {
+                _connectingLock.Release();
+            }
         }
 
         public async Task Disconnect()
         {
-            _installHeartbeatCts?.Cancel();
+            await _connectingLock.WaitAsync();
 
-            await _socket.DisconnectAsync();
-
-            if (_installHeartbeatTask != null)
+            try
             {
-                await _installHeartbeatTask;
-                _installHeartbeatTask = null;
-            }
+                _installHeartbeatCts?.Cancel();
 
-            _installHeartbeatCts?.Dispose();
+                await _socket.DisconnectAsync();
+
+                if (_installHeartbeatTask != null)
+                {
+                    await _installHeartbeatTask;
+                    _installHeartbeatTask = null;
+                }
+
+                _installHeartbeatCts?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Failed to stop remote install controller: {ex}");
+            }
+            finally
+            {
+                _connectingLock.Release();
+            }      
         }
 
         public async Task InstallQueued()
@@ -172,7 +195,7 @@ namespace Graviton.Install
             // Wait for previous install requests to be started
             await _installLock.WaitAsync();
 
-            _logger.Info($"Claiming remote installs for device " + $"{_plugin.Settings.AccountState.DeviceID}");
+            _logger.Trace($"Claiming remote installs for device " + $"{_plugin.Settings.AccountState.DeviceID}");
 
             try
             {
@@ -183,7 +206,7 @@ namespace Graviton.Install
                     return;
                 }
 
-                _logger.Info($"Remote install claim response: " + $"{response.RootElement.GetRawText()}");
+                _logger.Trace($"Remote install claim response: " + $"{response.RootElement.GetRawText()}");
 
                 var installRequests = JsonSerializer.Deserialize<List<RomMRemoteInstallEvent>>(response);
                 if (installRequests == null)
@@ -355,6 +378,12 @@ namespace Graviton.Install
 
         public static async Task RestoreDownloadRequest(DownloadRequestBackup request)
         {
+            if (GravitonPlugin.Instance.Settings.UseBasicAuth)
+            {
+                GravitonPlugin.Logger.Info("Remote installs disabled: Basic authentication is in use.");
+                return;
+            }
+
             if (!GravitonPlugin.Instance.ImportedGames.ContainsKey(request.GameID))
                 throw new Exception(Loc.GetString("InstallGameIdNotFound", ("GameID", request.GameID ?? "")));
 

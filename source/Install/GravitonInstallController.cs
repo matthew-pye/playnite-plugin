@@ -40,7 +40,6 @@ namespace Graviton.Install
 
             UpdateDLCController = new(game, gameData);
         }
-
         public override async Task InstallAsync(InstallActionArgs args)
         {
             if (GameData.Id == (int)InstallStatus.Cancelled)
@@ -83,6 +82,71 @@ namespace Graviton.Install
                 return;
             }
   
+        }
+
+        public static async Task RecoverDownloads()
+        {
+            // Recover downloads after playnite exit / crash
+            var backupDir = Path.Combine(GravitonPlugin.Instance.PluginDataPath, "temp", "downloads");
+            if (Directory.Exists(backupDir))
+            {
+                GravitonPlugin.Logger.Trace("Download backup directory found!");
+
+                List<DownloadRequestBackup> downloadRequests = new();
+                foreach (var file in Directory.GetFiles(Path.Combine(GravitonPlugin.Instance.PluginDataPath, "temp", "downloads"), "*.tmp"))
+                {
+                    try
+                    {
+                        var request = JsonSerializer.Deserialize<DownloadRequestBackup>(File.ReadAllText(file));
+                        if (request == null)
+                        {
+                            File.Delete(file);
+                            continue;
+                        }
+                        else
+                        {
+                            downloadRequests.Add(request);
+                            GravitonPlugin.Logger.Trace($"Successfully deseralized {Path.GetFileName(file)}");
+                        }
+
+                    }
+                    catch (Exception ex)
+                    {
+                        GravitonPlugin.Logger.Error($"Failed to restore download request for {Path.GetFileName(file)}: {ex}");
+                    }
+                }
+
+                try
+                {
+                    if (downloadRequests.Any(x => x.InstallType == InstallType.UpdateDLC))
+                        await RecoverUpdateDLCInstall(downloadRequests.Where(x => x.InstallType == InstallType.UpdateDLC).ToList());
+                }
+                catch (Exception ex)
+                {
+                    GravitonPlugin.Logger.Error($"Failed to restore download request for Updates/DLCs: {ex}");
+                }
+
+                foreach (var request in downloadRequests.Where(x => x.InstallType != InstallType.UpdateDLC))
+                {
+                    GravitonPlugin.Logger.Trace($"Trying to restart download for {request.ID}");
+
+                    try
+                    {
+                        if (request.InstallType == InstallType.BaseGame)
+                            await GravitonInstallController.RecoverBaseGameDownload(request);
+                        else if (request.InstallType == InstallType.Remote)
+                            await GravitonRemoteInstallController.RestoreDownloadRequest(request);
+                    }
+                    catch (Exception ex)
+                    {
+                        GravitonPlugin.Logger.Error($"Failed to restore download request for {request.ID}: {ex}");
+                    }
+                }
+            }
+            else
+            {
+                Directory.CreateDirectory(backupDir);
+            }
         }
 
         private static async Task CancelInstall(Game Game)

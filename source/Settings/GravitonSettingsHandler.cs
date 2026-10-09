@@ -113,6 +113,8 @@ namespace Graviton.Settings
 
             InEditingMode = false;
 
+            await _plugin.Account?.Login(true)!;
+
             await Task.CompletedTask;
         }
 

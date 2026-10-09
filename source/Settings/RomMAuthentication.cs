@@ -49,8 +49,14 @@ namespace Graviton.Settings
                 return null;
             }
         }
-        public async Task<bool> Login()
+        public async Task<bool> Login(bool suppressNotification = false)
         {
+            if (_plugin.RemoteInstallController != null)
+            {
+                await _plugin.RemoteInstallController.Disconnect();
+                _plugin.RemoteInstallController = null;
+            }
+
             // Check Host and Client token/UsernamePassword are set!
             if (string.IsNullOrEmpty(_plugin.Settings.Host))
             {
@@ -112,12 +118,19 @@ namespace Graviton.Settings
                 return false;
             }
 
-            GravitonNotify.Notify("graviton.Account.loggedin", Loc.GetString("LoginSuccessful"), GravitonSeverity.Success);
+            if(!suppressNotification)
+                GravitonNotify.Notify("graviton.Account.loggedin", Loc.GetString("LoginSuccessful"), GravitonSeverity.Success);
 
             if (!(await SyncPlatforms()))
             {
                 _plugin.Settings.AccountState.LastAuthenticated = null;
                 return false;
+            }
+
+            if (!string.IsNullOrEmpty(_plugin.Settings.ClientTokenNP) && !_plugin.Settings.UseBasicAuth)
+            {
+                _plugin.RemoteInstallController = new(_plugin, _playniteAPI, _logger, _romMServer);
+                await _plugin.RemoteInstallController.Connect();
             }
 
             return true;
@@ -379,7 +392,7 @@ namespace Graviton.Settings
             newDevice.Client = "Graviton (Playnite Plugin)";
             newDevice.ClientVersion = GravitonPlugin.Version.ToString();
             newDevice.HostName = Environment.MachineName;
-            newDevice.Capabilities.RemoteInstall = true;
+            newDevice.Capabilities.RemoteInstall = !_plugin.Settings.UseBasicAuth && !string.IsNullOrWhiteSpace(_plugin.Settings.ClientTokenNP);
 
             var request = await _romMServer.POSTAsync("/api/devices", newDevice);
             if (request == null)
@@ -412,7 +425,7 @@ namespace Graviton.Settings
             newDevice.ClientVersion = GravitonPlugin.Version.ToString();
             newDevice.MACAddress = (from nic in NetworkInterface.GetAllNetworkInterfaces() where nic.OperationalStatus == OperationalStatus.Up select nic.GetPhysicalAddress().ToString()).FirstOrDefault();
             newDevice.HostName = Environment.MachineName;
-            newDevice.Capabilities.RemoteInstall = true;
+            newDevice.Capabilities.RemoteInstall = !_plugin.Settings.UseBasicAuth && !string.IsNullOrWhiteSpace(_plugin.Settings.ClientTokenNP);
 
             var result = await _romMServer.PUTAsync($"/api/devices/{_plugin.Settings.AccountState.DeviceID}", newDevice);
             if (result == null)
