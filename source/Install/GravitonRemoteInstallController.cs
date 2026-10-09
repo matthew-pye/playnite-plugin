@@ -10,6 +10,7 @@ using Graviton.Notifications;
 using Playnite;
 
 using SocketIOClient;
+using SocketIOClient.Common;
 
 using System.IO;
 using System.Text;
@@ -43,11 +44,16 @@ namespace Graviton.Install
 
             _installHeartbeatCts = new();
 
-            _socket = new SocketIO(new Uri($"{plugin.Settings.Host}/devices"), new SocketIOOptions
+            _socket = new SocketIO(new Uri($"{plugin.Settings.Host.TrimEnd('/')}/devices"), new SocketIOOptions
             {
                 Path = "/ws/socket.io",
                 Auth = new { token = plugin.Settings.ClientTokenNP },
-                Reconnection = false,
+
+                Transport = TransportProtocol.WebSocket,
+                AutoUpgrade = false,
+
+                Reconnection = true,
+                ReconnectionAttempts = 5,
                 ConnectionTimeout = TimeSpan.FromSeconds(10)
             });
 
