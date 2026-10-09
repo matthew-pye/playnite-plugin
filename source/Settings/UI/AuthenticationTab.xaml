@@ -298,7 +298,7 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Margin="10,5,10,10" VerticalAlignment="Center">
-                        <TextBox x:Name="ServerAddressBox" Text="{Binding Host, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString ServerText}" TextChanged="ServerAddressBox_TextChanged"/>
+                        <TextBox x:Name="ServerAddressBox" Text="{Binding Host, Mode=TwoWay}" local:Placeholder.Text="{loc:LocalizedString ServerText}"/>
                         <StackPanel Orientation="Horizontal" Margin="5,3,5,5">
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">

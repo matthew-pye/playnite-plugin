@@ -1,10 +1,12 @@
-﻿using Graviton.Notifications;
+﻿using Graviton.Models.Install;
+using Graviton.Notifications;
 
 using Playnite;
 
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;
+using System.Text.Json;
 
 namespace Graviton.Install.Downloads
 {
@@ -38,7 +40,7 @@ namespace Graviton.Install.Downloads
 
         public DownloadQueueViewModel ViewModel => DownloadQueueVM;
 
-        public void Enqueue(DownloadRequest req)
+        public void Enqueue(DownloadRequest req, DownloadRequestBackup backup)
         {
             var item = new DownloadQueueItem
             {
@@ -47,6 +49,15 @@ namespace Graviton.Install.Downloads
                 QueuedOn = DateTime.Now,
                 Cts = new CancellationTokenSource()
             };
+
+            // Backup download to be restored if needed
+            var backupPath = Path.Combine(_plugin.PluginDataPath, "temp", "downloads");
+            var tempPath = Path.Combine(backupPath, $"{req.Id}.tmp");
+
+            if(!Directory.Exists(backupPath))
+                Directory.CreateDirectory(backupPath);
+
+            File.WriteAllText(tempPath, JsonSerializer.Serialize(backup));
 
             activeDownloads[item.Id] = item.Cts;
 
@@ -79,11 +90,13 @@ namespace Graviton.Install.Downloads
         private async Task ProcessItem(DownloadQueueItem item, DownloadRequest req)
         {
             bool downloadFailed = false;
-
-            await concurrencyGate.WaitAsync().ConfigureAwait(false);
+            bool downloadStarted = false;
 
             try
             {
+                await concurrencyGate.WaitAsync(item.Cts.Token).ConfigureAwait(false);
+
+                downloadStarted = true;
                 await Download(item, req).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -112,7 +125,8 @@ namespace Graviton.Install.Downloads
             }
             finally 
             {
-                concurrencyGate.Release();
+                if(downloadStarted)
+                    concurrencyGate.Release();
             }
 
             // Exit if download failed
@@ -120,6 +134,11 @@ namespace Graviton.Install.Downloads
             {
                 activeDownloads.TryRemove(item.Id, out _);
                 RemoveFromList(item);
+
+                var tempPath = Path.Combine(_plugin.PluginDataPath, "temp", "downloads", $"{req.Id}.tmp");
+                if(File.Exists(tempPath))
+                    File.Delete(tempPath);
+
                 return;
             }
                
@@ -162,6 +181,10 @@ namespace Graviton.Install.Downloads
 
                 await Task.Delay(3000).ConfigureAwait(false);
                 RemoveFromList(item);
+
+                var tempPath = Path.Combine(_plugin.PluginDataPath, "temp", "downloads", $"{req.Id}.tmp");
+                if (File.Exists(tempPath))
+                    File.Delete(tempPath);
             }
         }
 

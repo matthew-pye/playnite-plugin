@@ -82,7 +82,7 @@ namespace Graviton.GameEdit
             if (installInfo.Mapping == null)
                 throw new Exception(Loc.GetString("InstallMappingNotFound"));
 
-            await GravitonInstallController.InstallSingleCandidate(installInfo, candidate, candidate.Category ?? "");
+            await GravitonInstallUpdateDLCController.InstallSingleCandidate(installInfo, candidate, candidate.Category ?? "");
         }
 
         private async Task UninstallCandidate(UpdateDLCCandidate candidate)

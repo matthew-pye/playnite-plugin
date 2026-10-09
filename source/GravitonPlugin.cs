@@ -50,6 +50,7 @@ namespace Graviton
         internal GameSessionHandler? GameSessionHandler { get; private set; }
         internal StatusController? StatusController { get; private set; }
         internal DownloadQueueController? DownloadQueueController { get; private set; }
+        internal GravitonRemoteInstallController? RemoteInstallController { get; private set; }
         internal GravitonPlayController? PlayController { get; private set; }
 
         internal ConcurrentDictionary<string, RomMRomLocal> ImportedGames { get; private set; } = new();
@@ -285,14 +286,95 @@ namespace Graviton
                         Logger.Info(Loc.GetString("PlatformsSynced", [("PlatformCount", Settings.RomMPlatforms.Count)]));
 
                     await Account.SyncUserData();
+                    await Account.UpdateDevice();
                     GravitonSettingsHandler.SaveSettings(PluginDataPath, Settings);
+
+
+                    Logger.Info("About to start remote install controller");
+                    if (!string.IsNullOrEmpty(Settings.AccountState.DeviceID))
+                    {
+                        Logger.Info("Creating remote install controller");
+                        RemoteInstallController = new(this, PlayniteApi, Logger, RomMServer);
+
+                        Logger.Info("Connecting remote install controller");
+                        _ = RemoteInstallController.Connect();
+
+                        Logger.Info("Remote install controller started");
+                    }
+
+                    // Recover downloads after playnite exit / crash
+                    var backupDir = Path.Combine(PluginDataPath, "temp", "downloads");
+                    if (Directory.Exists(backupDir))
+                    {
+                        Logger.Trace("Download backup directory found!");
+
+                        List<DownloadRequestBackup> downloadRequests = new();
+                        foreach (var file in Directory.GetFiles(Path.Combine(PluginDataPath, "temp", "downloads"), "*.tmp"))
+                        {
+                            try
+                            {
+                                var request = JsonSerializer.Deserialize<DownloadRequestBackup>(File.ReadAllText(file));
+                                if (request == null)
+                                {
+                                    File.Delete(file);
+                                    continue;
+                                }
+                                else
+                                {
+                                    downloadRequests.Add(request);
+                                    Logger.Trace($"Successfully deseralized {Path.GetFileName(file)}");
+                                }
+
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error($"Failed to restore download request for {Path.GetFileName(file)}: {ex}");
+                            }
+                        }
+
+                        try
+                        {
+                            if (downloadRequests.Any(x => x.InstallType == InstallType.UpdateDLC))
+                                await GravitonInstallController.RecoverUpdateDLCInstall(downloadRequests.Where(x => x.InstallType == InstallType.UpdateDLC).ToList());
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"Failed to restore download request for Updates/DLCs: {ex}");
+                        }
+
+                        foreach (var request in downloadRequests.Where(x => x.InstallType != InstallType.UpdateDLC))
+                        {
+                            Logger.Trace($"Trying to restart download for {request.ID}");
+
+                            try
+                            {
+                                if (request.InstallType == InstallType.BaseGame)
+                                    await GravitonInstallController.RecoverBaseGameDownload(request);
+                                else if (request.InstallType == InstallType.Remote)
+                                    await GravitonRemoteInstallController.RestoreDownloadRequest(request);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error($"Failed to restore download request for {request.ID}: {ex}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Directory.CreateDirectory(backupDir);
+                    }
                 }
             } 
             else
                 Logger.Trace("Last Authenticated was null, skipping login");
 
-
             Logger.Info("Completed Application Startup");
+        }
+
+        public override async Task OnApplicationShutdownAsync(OnApplicationShutdownArgs args)
+        {
+            if (RemoteInstallController != null)
+                await RemoteInstallController.Disconnect();
         }
 
         public override Task<PluginSettingsHandler?> GetSettingsHandlerAsync(GetSettingsHandlerArgs args)
@@ -359,26 +441,14 @@ namespace Graviton
                     if (!ImportedGames.ContainsKey(args.Game.LibraryGameId ?? ""))
                         throw new Exception(Loc.GetString("InstallGameIdNotFound", ("GameID", args.Game.LibraryGameId ?? "")));
 
-                    var gameinfo = ImportedGames[args.Game.LibraryGameId!];
+                    var localROM = ImportedGames[args.Game.LibraryGameId!];
+                    var mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId == localROM.MappingID);
 
-                    GameInstallInfo installInfo = new()
-                    {
-                        Id = gameinfo.Id,
-                        FileName = gameinfo.FileName ?? "",
-                        GameName = gameinfo.Name ?? "",
-                        HasMultipleFiles = gameinfo.HasMultipleFiles,
-                        DownloadURL = gameinfo.DownloadURL ?? "",
-                        InstallPath = gameinfo.InstallPath ?? "",
-                        PatchFileID = gameinfo.PatchFileId,
-                        Mapping = Settings.Mappings.FirstOrDefault(x => x.MappingId == gameinfo.MappingID),
-                        SaveTarget = gameinfo.SaveTarget,
-                        TitleID = gameinfo.TitleID,
-
-                    };
-                    Logger?.Trace($"Created install info\n{JsonSerializer.Serialize(installInfo, new JsonSerializerOptions { WriteIndented = true })}");
-
-                    if (installInfo.Mapping == null)
+                    if (mapping == null)
                         throw new Exception(Loc.GetString("InstallMappingNotFound"));
+
+                    var installInfo = GameInstallInfo.Build(localROM, mapping);
+                    Logger?.Trace($"Created install info\n{JsonSerializer.Serialize(installInfo, new JsonSerializerOptions { WriteIndented = true })}");
 
                     return [new GravitonInstallController(args.Game, installInfo)];
                 }

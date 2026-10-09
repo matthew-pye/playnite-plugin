@@ -1,5 +1,6 @@
 ﻿using Graviton.Install.Downloads;
 using Graviton.Models;
+using Graviton.Models.Install;
 using Graviton.Models.Notifications;
 using Graviton.Models.ROM;
 using Graviton.Models.RomM.Install;
@@ -10,7 +11,6 @@ using Playnite;
 
 using SocketIOClient;
 
-using System.CodeDom;
 using System.IO;
 using System.Text;
 using System.Text.Json;
@@ -28,11 +28,11 @@ namespace Graviton.Install
         private readonly SocketIO _socket;
         private readonly SemaphoreSlim _installLock = new(1, 1);
 
-        private bool _socketDisconnected = false;
+        private bool _socketDisconnected = true;
         private CancellationTokenSource? _installHeartbeatCts;
         private Task? _installHeartbeatTask;
 
-        private readonly HashSet<string> _remoteCancelledIds = new();
+        public static readonly HashSet<string> _remoteCancelledIds = new();
 
         public GravitonRemoteInstallController(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server)
         {
@@ -41,16 +41,20 @@ namespace Graviton.Install
             _logger = logger;
             _romMServer = server;
 
+            _installHeartbeatCts = new();
+
             _socket = new SocketIO(new Uri($"{plugin.Settings.Host}/devices"), new SocketIOOptions
             {
                 Path = "/ws/socket.io",
                 Auth = new { token = plugin.Settings.ClientTokenNP },
-                Reconnection = true,
-                ReconnectionAttempts = int.MaxValue
+                Reconnection = false,
+                ConnectionTimeout = TimeSpan.FromSeconds(10)
             });
 
             _socket.On("install:queued", async _ =>
             {
+                _logger.Trace("Socket recieved install:queued");
+
                 try
                 {
                    await InstallQueued();
@@ -63,12 +67,15 @@ namespace Graviton.Install
 
             _socket.On("install:cancelled", async response =>
             {
+                _logger.Trace("Socket recieved install:cancelled");
                 try
                 {
                     var installResponse = response.GetValue<RomMRemoteInstallEvent>(0);
 
+                    _logger.Trace($"Socket cancel reason: {installResponse?.Reason}");
+
                     if (installResponse?.Id != null)
-                        await CancelInstall(installResponse.Id);
+                        CancelInstall(installResponse.Id);
                 }
                 catch (Exception ex)
                 {
@@ -88,28 +95,55 @@ namespace Graviton.Install
                 _logger.Warn($"RomM remote install socket disconnected: {reason}");
                 _socketDisconnected = true;
             };
+            _socket.OnError += (_, error) =>
+            {
+                _logger.Error($"Socket.IO error: {error}");
+            };
+
+            _socket.OnReconnectError += (_, ex) =>
+            {
+                _logger.Error($"Socket.IO connection attempt failed: {ex}");
+            };
+
+            _socket.OnReconnectAttempt += (_, attempt) =>
+            {
+                _logger.Info($"Socket.IO connection attempt #{attempt}");
+            };
         }
 
         public async Task Connect()
         {
-            if (_installHeartbeatTask != null)
-                return;
-
-            _installHeartbeatCts = new CancellationTokenSource();
-            _installHeartbeatTask = StartInstallHeartbeat();
-
             try
             {
-                await _socket.ConnectAsync();
+                _logger.Trace("Starting remote install heartbeat");
+
+                if (_installHeartbeatTask != null)
+                    return;
+
+                _installHeartbeatCts = new CancellationTokenSource();
+                _installHeartbeatTask = StartInstallHeartbeat(_installHeartbeatCts.Token);
+
+                _logger.Trace("Attempting Socket.IO connection");
+
+                try
+                {
+                    await _socket.ConnectAsync();
+                    _logger.Trace("Socket.IO connection completed");
+                }
+                catch (Exception ex)
+                {
+                    _socketDisconnected = true;
+                    _logger.Error($"Remote install socket connection failed: {ex}");
+
+                }
+
+                _logger.Trace("Claiming remote installs via REST");
+                await InstallQueued();
             }
             catch (Exception ex)
             {
-                _socketDisconnected = true;
-                _logger.Error($"Remote install socket connection failed: {ex}");
-
+                _logger.Error($"Failed to start remote install controller: {ex}");
             }
-
-            await InstallQueued();
         }
 
         public async Task Disconnect()
@@ -125,13 +159,14 @@ namespace Graviton.Install
             }
 
             _installHeartbeatCts?.Dispose();
-            _installHeartbeatCts = null;
         }
 
         public async Task InstallQueued()
         {
             // Wait for previous install requests to be started
             await _installLock.WaitAsync();
+
+            _logger.Info($"Claiming remote installs for device " + $"{_plugin.Settings.AccountState.DeviceID}");
 
             try
             {
@@ -141,6 +176,8 @@ namespace Graviton.Install
                     _logger.Error($"Response from server was null");
                     return;
                 }
+
+                _logger.Info($"Remote install claim response: " + $"{response.RootElement.GetRawText()}");
 
                 var installRequests = JsonSerializer.Deserialize<List<RomMRemoteInstallEvent>>(response);
                 if (installRequests == null)
@@ -155,8 +192,14 @@ namespace Graviton.Install
                 }
 
             }
-            catch (Exception) { }
-            finally { _installLock.Release(); }
+            catch (Exception ex)
+            {
+                _logger.Error($"Failed to claim remote installations: {ex}");
+            }
+            finally
+            { 
+                _installLock.Release(); 
+            }
 
         }
 
@@ -188,7 +231,7 @@ namespace Graviton.Install
 
                     foreach (var fileid in request.fileIDs)
                     {
-                        var file = rom.Files.FirstOrDefault(x => x.Id.ToString() == fileid);
+                        var file = rom.Files.FirstOrDefault(x => x.Id == fileid);
 
                         if (file == null)
                             throw new Exception("ROM files doesn't contain requested ID");
@@ -215,30 +258,36 @@ namespace Graviton.Install
 
         }
 
-        private async Task CancelInstall(string id)
+        private void CancelInstall(string id)
         {
-            lock(_remoteCancelledIds)
+            var base64ID = Convert.ToBase64String(Encoding.UTF8.GetBytes(id));
+
+            if (_plugin.DownloadQueueController?.IsDownloading(base64ID) ?? false)
             {
-                _remoteCancelledIds.Add(id);
+                lock (_remoteCancelledIds)
+                {
+                    _remoteCancelledIds.Add(id);
+                }
+
+                _plugin.DownloadQueueController?.Cancel(base64ID);
             }
-
-            _plugin.DownloadQueueController?.Cancel(Convert.ToBase64String(Encoding.UTF8.GetBytes(id)));
+            
         }
 
-        private async Task CancelInstallRequest(string id)
+        public static async Task CancelInstallRequest(string id)
         {
-            await _romMServer.DELETEAsync($"/api/devices/{_plugin.Settings.AccountState.DeviceID}/installs/{id}");
+            await GravitonPlugin.RomMServer.DELETEAsync($"/api/devices/{GravitonPlugin.Instance.Settings.AccountState.DeviceID}/installs/{id}");
         }
 
-        private async Task UpdateInstallStatus(string id, string status, string? reason)
+        public static async Task UpdateInstallStatus(string id, string status, string? reason)
         {
-            await _romMServer.PUTAsync($"/api/devices/{_plugin.Settings.AccountState.DeviceID}/installs/{id}", new { status = status, reason = reason });
+            await GravitonPlugin.RomMServer.PUTAsync($"/api/devices/{GravitonPlugin.Instance.Settings.AccountState.DeviceID}/installs/{id}", new { status = status, reason = reason });
         }
 
 
         private async Task InstallGame(RomMRemoteInstallEvent installEvent, EmulatorMapping Mapping, RomMRom ROM, RomMRomLocal romMLocal)
         {
-            var Game = _playniteAPI.Library.Games.Get(romMLocal.Id.ToString()) ?? throw new Exception(Loc.GetString("InstallGameDataMissing"));
+            var Game = _playniteAPI.Library.Games.Get(romMLocal.PlayniteID ?? "") ?? throw new Exception(Loc.GetString("InstallGameDataMissing"));
 
             if(Game.InstallState == InstallState.Installed)
             {
@@ -251,7 +300,6 @@ namespace Graviton.Install
 
             var dstPath = Mapping.DestinationPathResolved ?? throw new Exception(Loc.GetString("InstallMappingDataMissing"));
             var installDir = romMLocal.InstallPath!.Replace(EmulatorMapping.InstallPathToken, dstPath);
-            var installPath = "";
 
             var tempDir = Path.Combine(_plugin.PluginDataPath, "temp", Game.Id.ToString());
             var tempPath = "";
@@ -260,12 +308,15 @@ namespace Graviton.Install
 
             if (installEvent.fileIDs.Count == 1)
             {
-                var file = ROM.Files.FirstOrDefault(x => x.Id.ToString() == installEvent.fileIDs[0]);
+                var file = ROM.Files.FirstOrDefault(x => x.Id == installEvent.fileIDs[0]);
                 if (file == null)
                     throw new Exception("Failed to find file with matching fileID");
 
                 downloadURL = $"/api/roms/{romMLocal.Id}/content/{Uri.EscapeDataString(file.FileName)}?file_ids={installEvent.fileIDs[0]}";
-                installDir = Path.GetDirectoryName(Path.Combine(dstPath, file.FullPath.Replace(ROM.FileSystemPath ?? "", "")));
+ 
+                installDir = Path.GetDirectoryName(Path.Combine(dstPath, Path.GetRelativePath(ROM.FileSystemPath ?? "", file.FullPath)));
+                installDir = installDir!.Replace("/", "\\");
+
                 tempPath = Path.Combine(tempDir, Path.GetFileName(file.FullPath));
 
                 // Skip download if the game is already installed
@@ -293,9 +344,33 @@ namespace Graviton.Install
                 tempPath = Path.Combine(tempDir, romMLocal.Name + ".zip");
             }
 
+            await CreateDownloadRequest(installEvent.Id, Mapping, downloadURL, tempPath, installDir, Game, romMLocal);
+        }
+
+        public static async Task RestoreDownloadRequest(DownloadRequestBackup request)
+        {
+            if (!GravitonPlugin.Instance.ImportedGames.ContainsKey(request.GameID))
+                throw new Exception(Loc.GetString("InstallGameIdNotFound", ("GameID", request.GameID ?? "")));
+
+            var localROM = GravitonPlugin.Instance.ImportedGames[request.GameID];
+            var game = GravitonPlugin.PlayniteApi.Library.Games.Get(localROM.PlayniteID ?? "");
+
+            if (game == null)
+                throw new Exception("Failed to find game in playnite");
+
+            var mapping = GravitonPlugin.Instance.Settings.Mappings.FirstOrDefault(x => x.MappingId == localROM.MappingID);
+
+            if (mapping == null)
+                throw new Exception(Loc.GetString("InstallMappingNotFound"));
+
+            await CreateDownloadRequest(request.ID, mapping, request.DownloadURL, request.DownloadPath, request.InstallDir, game, localROM);
+        }
+
+        private static async Task CreateDownloadRequest(string ID, EmulatorMapping mapping, string downloadURL, string tempPath, string installDir, Game Game, RomMRomLocal romMLocal)
+        {
             var req = new DownloadRequest
             {
-                Id = Convert.ToBase64String(Encoding.UTF8.GetBytes(installEvent.Id)),
+                Id = Convert.ToBase64String(Encoding.UTF8.GetBytes(ID)),
                 DisplayName = Game.Name,
 
                 DownloadUrl = downloadURL,
@@ -305,15 +380,15 @@ namespace Graviton.Install
                 {
                     Directory.CreateDirectory(installDir!);
 
-                    if (romMLocal.HasMultipleFiles || (Mapping.AutoExtract && ArchiveExtractor.IsFileCompressed(req.DownloadPath)))
+                    if (romMLocal.HasMultipleFiles || (mapping.AutoExtract && ArchiveExtractor.IsFileCompressed(req.DownloadPath)))
                     {
 
                         item.SetStatus(DownloadStatus.Extracting, Loc.GetString("DownloadStatusExtracting"));
-                        _logger?.Info($"Extracting {req.DownloadPath}...");
+                        GravitonPlugin.Logger?.Info($"Extracting {req.DownloadPath}...");
 
-                        if (_plugin.Settings.Use7z && !string.IsNullOrEmpty(_plugin.Settings.PathTo7z) && _plugin.Settings.PathTo7z.EndsWith("7z.exe", StringComparison.OrdinalIgnoreCase))
+                        if (GravitonPlugin.Instance.Settings.Use7z && !string.IsNullOrEmpty(GravitonPlugin.Instance.Settings.PathTo7z) && GravitonPlugin.Instance.Settings.PathTo7z.EndsWith("7z.exe", StringComparison.OrdinalIgnoreCase))
                         {
-                            await ArchiveExtractor.ExtractArchiveWith7z(_plugin.Settings.PathTo7z, req.DownloadPath, installDir!, item, item.Cts.Token);
+                            await ArchiveExtractor.ExtractArchiveWith7z(GravitonPlugin.Instance.Settings.PathTo7z, req.DownloadPath, installDir!, item, item.Cts.Token);
                         }
                         else
                         {
@@ -334,7 +409,7 @@ namespace Graviton.Install
                     {
                         var installedPath = Path.Combine(installDir!, Path.GetFileName(req.DownloadPath));
 
-                        GravitonInstallController.CopyFileWithProgress(req.DownloadPath, installedPath, item, item.Cts.Token);
+                        GravitonInstallHelpers.CopyFileWithProgress(req.DownloadPath, installedPath, item, item.Cts.Token);
 
                         romMLocal.InstalledPath = installedPath;
                         romMLocal.IsInstalledPathDirectory = false;
@@ -346,9 +421,9 @@ namespace Graviton.Install
 
                     romMLocal.Save();
                     Game.InstallState = InstallState.Installed;
-                    await _playniteAPI.Library.Games.UpdateAsync(Game);
+                    await GravitonPlugin.PlayniteApi.Library.Games.UpdateAsync(Game);
 
-                    await UpdateInstallStatus(installEvent.Id, RomMInstallStatus.Done, null);
+                    await UpdateInstallStatus(ID, RomMInstallStatus.Done, null);
 
                     if (File.Exists(req.DownloadPath))
                         File.Delete(req.DownloadPath);
@@ -361,44 +436,55 @@ namespace Graviton.Install
                     lock (_remoteCancelledIds)
                     {
                         // Don't send cancel request if cancel came from server
-                        if (_remoteCancelledIds.Contains(installEvent.Id))
+                        if (_remoteCancelledIds.Contains(ID))
                         {
-                           _remoteCancelledIds.Remove(installEvent.Id);
+                            _remoteCancelledIds.Remove(ID);
                             remoteCancelled = true;
-                        }   
+                        }
                     }
 
-                    if(!remoteCancelled)
-                        await CancelInstallRequest(installEvent.Id);
+                    if (!remoteCancelled)
+                        await CancelInstallRequest(ID);
+
+                    Game.InstallState = InstallState.Uninstalled;
+                    await GravitonPlugin.PlayniteApi.Library.Games.UpdateAsync(Game);
                 },
 
                 OnFailed = async ex =>
                 {
                     GravitonNotify.Notify("graviton.install.failed", Loc.GetString("DownloadFailed", ("GameName", Game.Name), ("Error", ex.Message)), GravitonSeverity.Error, ex);
-                    var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception(Loc.GetString("InstallGameDataMissing"));
+                    var game = GravitonPlugin.PlayniteApi.Library.Games.Get(Game.Id) ?? throw new Exception(Loc.GetString("InstallGameDataMissing"));
                     game.InstallState = InstallState.Uninstalled;
-                    await _playniteAPI.Library.Games.UpdateAsync(game);
+                    await GravitonPlugin.PlayniteApi.Library.Games.UpdateAsync(game);
 
-                    await UpdateInstallStatus(installEvent.Id, RomMInstallStatus.Failed , "An error occured in graviton");
+                    await UpdateInstallStatus(ID, RomMInstallStatus.Failed, "An error occured in graviton");
                 }
             };
 
+            DownloadRequestBackup backup = new()
+            {
+                InstallType = InstallType.Remote,
+                ID = ID,
+                GameID = romMLocal.Id.ToString(),
+                DownloadPath = tempPath,
+                InstallDir = installDir,
+                DownloadURL = downloadURL
+            };
+
+
             // Enqueue (non-blocking)
-            _plugin.DownloadQueueController?.Enqueue(req);
+            GravitonPlugin.Instance.DownloadQueueController?.Enqueue(req, backup);
         }
 
-
-        private async Task StartInstallHeartbeat()
+        private async Task StartInstallHeartbeat(CancellationToken token)
         {
-            if (_installHeartbeatCts == null)
-                return;
 
             using PeriodicTimer timer = new(TimeSpan.FromSeconds(30));
             var lastRecovery = DateTimeOffset.UtcNow;
 
             try
             {
-                while (await timer.WaitForNextTickAsync(_installHeartbeatCts.Token))
+                while (await timer.WaitForNextTickAsync(token))
                 {
                     var interval = _socketDisconnected ? TimeSpan.FromSeconds(30) : TimeSpan.FromMinutes(5);
 
@@ -409,6 +495,7 @@ namespace Graviton.Install
 
                     try
                     {
+                        _logger.Trace("Heartbeat running InstallQueued");
                         await InstallQueued();
                     }
                     catch (Exception ex)
@@ -417,7 +504,7 @@ namespace Graviton.Install
                     }
                 }
             }
-            catch (OperationCanceledException) when (_installHeartbeatCts.IsCancellationRequested)
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
                 // Something..
             }

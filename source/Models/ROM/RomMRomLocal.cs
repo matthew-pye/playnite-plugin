@@ -27,6 +27,24 @@ namespace Graviton.Models.ROM
         public int PatchFileID { get; set; }
 
         public EmulatorMapping? Mapping { get; set; }
+
+
+        public static GameInstallInfo Build(RomMRomLocal localROM, EmulatorMapping mapping)
+        {
+            return new()
+            {
+                Id = localROM.Id,
+                FileName = localROM.FileName ?? "",
+                GameName = localROM.Name ?? "",
+                HasMultipleFiles = localROM.HasMultipleFiles,
+                DownloadURL = localROM.DownloadURL ?? "",
+                InstallPath = localROM.InstallPath ?? "",
+                PatchFileID = localROM.PatchFileId,
+                Mapping = mapping,
+                SaveTarget = localROM.SaveTarget,
+                TitleID = localROM.TitleID,
+            };
+        }
     }
 
     public class RomMRomLocal

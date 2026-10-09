@@ -379,6 +379,7 @@ namespace Graviton.Settings
             newDevice.Client = "Graviton (Playnite Plugin)";
             newDevice.ClientVersion = GravitonPlugin.Version.ToString();
             newDevice.HostName = Environment.MachineName;
+            newDevice.Capabilities.RemoteInstall = true;
 
             var request = await _romMServer.POSTAsync("/api/devices", newDevice);
             if (request == null)
@@ -411,6 +412,7 @@ namespace Graviton.Settings
             newDevice.ClientVersion = GravitonPlugin.Version.ToString();
             newDevice.MACAddress = (from nic in NetworkInterface.GetAllNetworkInterfaces() where nic.OperationalStatus == OperationalStatus.Up select nic.GetPhysicalAddress().ToString()).FirstOrDefault();
             newDevice.HostName = Environment.MachineName;
+            newDevice.Capabilities.RemoteInstall = true;
 
             var result = await _romMServer.PUTAsync($"/api/devices/{_plugin.Settings.AccountState.DeviceID}", newDevice);
             if (result == null)

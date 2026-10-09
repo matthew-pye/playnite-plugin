@@ -18,7 +18,7 @@ namespace Graviton.Models.RomM.Install
         public long RomId { get; set; }
 
         [JsonPropertyName("file_ids")]
-        public List<string> fileIDs { get; set; } = [];
+        public List<long> fileIDs { get; set; } = [];
 
         [JsonPropertyName("status")]
         public string? Status { get; set; }

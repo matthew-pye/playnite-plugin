@@ -2,6 +2,12 @@
 
 namespace Graviton.Models.RomM
 {
+    public class RomMCapabilities
+    {
+        [JsonPropertyName("remote_install")]
+        public bool RemoteInstall { get; set; } = false;
+    }
+
     public class RomMRegisterDevice
     {
         [JsonPropertyName("name")]
@@ -21,6 +27,9 @@ namespace Graviton.Models.RomM
 
         [JsonPropertyName("hostname")]
         public string? HostName { get; set; }
+
+        [JsonPropertyName("capabilities")]
+        public RomMCapabilities Capabilities { get; set; } = new();
 
     }
 
