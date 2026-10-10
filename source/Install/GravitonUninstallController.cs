@@ -10,14 +10,18 @@ namespace Graviton.Install.Downloads
 {
     internal class GravitonUninstallController : UninstallController
     {
-        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
-        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
-        private GravitonLogger _logger { get => GravitonPlugin.Logger; }
+        private IGravitonContext _plugin;
+        private IPlayniteApi _playniteAPI;
+        private GravitonLogger _logger;
 
         private Game Game;
 
-        internal GravitonUninstallController(Game game) : base("", Loc.GetString("Uninstall"), game.Id)
+        internal GravitonUninstallController(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, Game game) : base("", Loc.GetString("Uninstall"), game.Id)
         {
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+
             Game = game;
         }
 
@@ -35,7 +39,7 @@ namespace Graviton.Install.Downloads
 
                     if (collidingROM.Count > 0)
                     {
-                        var result = await GravitonPlugin.PlayniteApi.Dialogs.ShowMessageAsync(Loc.GetString("OverlappingROMInstallsWarn"), button: MessageBoxButtons.YesNoCancel, severity: MessageBoxSeverity.Warning);
+                        var result = await _playniteAPI.Dialogs.ShowMessageAsync(Loc.GetString("OverlappingROMInstallsWarn"), button: MessageBoxButtons.YesNoCancel, severity: MessageBoxSeverity.Warning);
 
                         if (result == MessageBoxResult.Yes)
                         {
@@ -72,7 +76,7 @@ namespace Graviton.Install.Downloads
                 }
                 else
                 {
-                    GravitonPlugin.PlayniteApi?.Dialogs.ShowErrorMessageAsync(Loc.GetString("GameFolderNotFound", ("GameName", Game.Name)), Loc.GetString("GameNotFoundTitle"));
+                    await _playniteAPI.Dialogs.ShowErrorMessageAsync(Loc.GetString("GameFolderNotFound", ("GameName", Game.Name)), Loc.GetString("GameNotFoundTitle"));
                     romMLocal.InstalledPath = null;
                     romMLocal.IsInstalledPathDirectory = false;
                 }

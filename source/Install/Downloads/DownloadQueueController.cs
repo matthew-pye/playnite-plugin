@@ -1,4 +1,4 @@
-﻿using Graviton.Models.Install;
+using Graviton.Models.Install;
 using Graviton.Notifications;
 
 using Playnite;
@@ -12,7 +12,7 @@ namespace Graviton.Install.Downloads
 {
     public class DownloadQueueController
     {
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
         private GravitonLogger _logger;
         private IRomMServer _romMServer;
@@ -25,7 +25,7 @@ namespace Graviton.Install.Downloads
         public GravitonLogger? Logger;
         public int MaxConcurrent { get; }
 
-        public DownloadQueueController(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer, DownloadQueueViewModel downloadQueueVM, int maxConcurrent)
+        internal DownloadQueueController(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer, DownloadQueueViewModel downloadQueueVM, int maxConcurrent)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -207,7 +207,28 @@ namespace Graviton.Install.Downloads
             var totalBytes = response.Content.Headers.ContentLength;
             item.SetProgress(0, totalBytes ?? 1, !totalBytes.HasValue);
 
-            var downloadDirectory = Path.GetDirectoryName(req.DownloadPath);
+            using var httpStream = response.Content.ReadAsStream();
+
+            await CopyDownloadToFileAsync(httpStream, req.DownloadPath, downloaded =>
+                {
+                    if (totalBytes.HasValue && totalBytes.Value > 0)
+                    {
+                        item.SetProgress(downloaded, totalBytes.Value, false);
+                        var pct = (double)downloaded / totalBytes.Value * 100.0;
+                        item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloadingPct", ("Percent", pct.ToString("0"))));
+                    }
+                    else
+                    {
+                        item.SetProgress(downloaded, Math.Max(1, downloaded), true);
+                        item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloading"));
+                    }
+                },
+                ct).ConfigureAwait(false);
+        }
+
+        internal static async Task CopyDownloadToFileAsync(Stream source, string downloadPath, Action<long> onProgress, CancellationToken cancellationToken)
+        {
+            var downloadDirectory = Path.GetDirectoryName(downloadPath);
 
             if (!string.IsNullOrEmpty(downloadDirectory))
                 Directory.CreateDirectory(downloadDirectory);
@@ -215,43 +236,27 @@ namespace Graviton.Install.Downloads
             byte[] buffer = new byte[1024 * 256];
             long downloaded = 0;
             long lastUiUpdate = 0;
-            const long uiUpdateThreshold = 1024 * 512; // 512KB
+            const long uiUpdateThreshold = 1024 * 512;
 
-            using (var httpStream = response.Content.ReadAsStream())
-            using (var fileStream = new FileStream(req.DownloadPath, FileMode.Create, FileAccess.Write, FileShare.None, buffer.Length, true))
+            using var fileStream = new FileStream(downloadPath, FileMode.Create, FileAccess.Write, FileShare.None, buffer.Length, true);
+
+            while (true)
             {
-                while (true)
+                cancellationToken.ThrowIfCancellationRequested();
+
+                int read = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+                if (read <= 0)
+                    break;
+                
+                await fileStream.WriteAsync(buffer, 0, read, cancellationToken);
+                downloaded += read;
+
+                if (downloaded - lastUiUpdate >= uiUpdateThreshold)
                 {
-                    ct.ThrowIfCancellationRequested();
-
-                    int read = await httpStream.ReadAsync(buffer, 0, buffer.Length, ct);
-                    if (read <= 0)
-                    {
-                        break;
-                    }
-
-                    await fileStream.WriteAsync(buffer, 0, read, ct);
-
-                    downloaded += read;
-
-                    if (downloaded - lastUiUpdate >= uiUpdateThreshold)
-                    {
-                        lastUiUpdate = downloaded;
-
-                        if (totalBytes.HasValue && totalBytes.Value > 0)
-                        {
-                            item.SetProgress(downloaded, totalBytes.Value, false);
-                            var pct = (double)downloaded / totalBytes.Value * 100.0;
-                            item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloadingPct", ("Percent", pct.ToString("0"))));
-                        }
-                        else
-                        {
-                            item.SetProgress(downloaded, Math.Max(1, downloaded), true);
-                            item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloading"));
-                        }
-                    }
+                    lastUiUpdate = downloaded;
+                    onProgress(downloaded);
                 }
-            }     
+            }
         }
 
         private void RemoveFromList(DownloadQueueItem item)

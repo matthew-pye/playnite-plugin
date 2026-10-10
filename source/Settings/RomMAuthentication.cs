@@ -13,16 +13,16 @@ using System.Windows.Controls;
 
 namespace Graviton.Settings
 {
-    internal class RomMAuthentication
+    public class RomMAuthentication
     {
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
         private GravitonLogger _logger;
         private IRomMServer _romMServer;
 
         private static readonly Regex _iconPathRegex = new Regex(@"^users/[^/]+/profile/avatar\.(png|jpg|jpeg|webp)$");
 
-        public RomMAuthentication(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server)
+        internal RomMAuthentication(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -30,7 +30,7 @@ namespace Graviton.Settings
             _romMServer = server;
         }
 
-        public async Task<ServerInfo?> Heartbeat()
+        internal async Task<ServerInfo?> Heartbeat()
         {
             var result = await _romMServer.GETAsync("/api/heartbeat", true);
             if(result == null)
@@ -387,9 +387,9 @@ namespace Graviton.Settings
 
             // Setup data for new device to be added to RomM
             RomMRegisterDevice newDevice = new();
-            newDevice.Name = $"Graviton-{Environment.MachineName}";
+            newDevice.Name = $"Graviton ({Environment.MachineName})";
             newDevice.Platform = "Windows";
-            newDevice.Client = "Graviton (Playnite Plugin)";
+            newDevice.Client = "Graviton";
             newDevice.ClientVersion = GravitonPlugin.Version.ToString();
             newDevice.HostName = Environment.MachineName;
             newDevice.Capabilities.RemoteInstall = !_plugin.Settings.UseBasicAuth && !string.IsNullOrWhiteSpace(_plugin.Settings.ClientTokenNP);
@@ -420,8 +420,9 @@ namespace Graviton.Settings
 
             // Rebuild device data
             RomMRegisterDevice newDevice = new();
+            newDevice.Name = $"Graviton ({Environment.MachineName})";
             newDevice.Platform = "Windows";
-            newDevice.Client = "Graviton (Playnite Plugin)";
+            newDevice.Client = "Graviton";
             newDevice.ClientVersion = GravitonPlugin.Version.ToString();
             newDevice.MACAddress = (from nic in NetworkInterface.GetAllNetworkInterfaces() where nic.OperationalStatus == OperationalStatus.Up select nic.GetPhysicalAddress().ToString()).FirstOrDefault();
             newDevice.HostName = Environment.MachineName;

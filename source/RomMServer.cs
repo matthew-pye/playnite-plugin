@@ -1,4 +1,5 @@
 ﻿using Graviton.Models.Notifications;
+using Graviton.Notifications;
 
 using Playnite;
 
@@ -57,15 +58,20 @@ namespace Graviton
 
     internal class RomMServer : IRomMServer
     {
-        private HttpClient httpClient = new HttpClient();
+        private IGravitonContext _plugin;
+        private IPlayniteApi _playniteAPI;
+        private GravitonLogger _logger;
 
-        private GravitonPlugin? _plugin;
+
+        private HttpClient httpClient = new HttpClient();
 
         private string Host => _plugin?.Settings.Host ?? "";
 
-        public RomMServer(GravitonPlugin plugin)
+        public RomMServer(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger)
         {
             _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
 
             httpClient.DefaultRequestHeaders.Accept.Clear();
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -78,7 +84,7 @@ namespace Graviton
             if (!httpClient.DefaultRequestHeaders.Contains(name))
             {
                 httpClient.DefaultRequestHeaders.Add(name, value);
-                GravitonPlugin.Logger?.Trace($"Added header: {name}");
+                _logger?.Trace($"Added header: {name}");
             }
 
                 
@@ -88,7 +94,7 @@ namespace Graviton
             if (httpClient.DefaultRequestHeaders.Contains(name))
             {
                 httpClient.DefaultRequestHeaders.Remove(name);
-                GravitonPlugin.Logger?.Trace($"Removed header: {name}");
+                _logger?.Trace($"Removed header: {name}");
             }
                 
         }
@@ -104,7 +110,7 @@ namespace Graviton
                 httpClient.DefaultRequestHeaders.Add(header.Name, header.Value);
             }
 
-            GravitonPlugin.Logger?.Trace($"Configured RomMServer to use basic auth");
+            _logger?.Trace($"Configured RomMServer to use basic auth");
         }
         public void ConfigureClientToken(string clientToken)
         {
@@ -116,7 +122,7 @@ namespace Graviton
                 httpClient.DefaultRequestHeaders.Add(header.Name, header.Value);
             }
 
-            GravitonPlugin.Logger?.Trace($"Configured RomMServer to use client token auth");
+            _logger?.Trace($"Configured RomMServer to use client token auth");
         }
 
         public void ConfigureTimeout(int seconds)
@@ -152,10 +158,10 @@ namespace Graviton
             Stream? content = null;
             try
             {
-                GravitonPlugin.Logger?.Trace($"Sending request for {apiPath}");
+                _logger?.Trace($"Sending request for {apiPath}");
                 response = await send();
                 content = await response.Content.ReadAsStreamAsync();
-                GravitonPlugin.Logger?.Trace($"Read response from server");
+                _logger?.Trace($"Read response from server");
 
                 response.EnsureSuccessStatusCode();
 
@@ -184,7 +190,7 @@ namespace Graviton
                     var displayMessage = ExtractErrorResponse(body);
 
                     GravitonNotify.Notify("graviton.request.4xx", Loc.GetString("ServerResponded", ("Message", displayMessage)), GravitonSeverity.Error);
-                    GravitonPlugin.Logger?.Error($"Path: {apiPath}\nRaw Details: {body}");
+                    _logger?.Error($"Path: {apiPath}\nRaw Details: {body}");
                 }
                 else
                 {
@@ -208,7 +214,7 @@ namespace Graviton
 
             try
             {
-                GravitonPlugin.Logger?.Trace($"Sending request for {apiPath}");
+                _logger?.Trace($"Sending request for {apiPath}");
                 var response = await send();
 
                 if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)

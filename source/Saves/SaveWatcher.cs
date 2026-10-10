@@ -1,9 +1,17 @@
-﻿using System.IO;
+﻿using Graviton.Notifications;
+
+using Playnite;
+
+using System.IO;
 
 namespace Graviton.Saves
 {
     public class SaveWatcher
     {
+        private IGravitonContext _plugin;
+        private IPlayniteApi _playniteAPI;
+        private GravitonLogger _logger;
+
         public byte[]? NewestSaveScreenshot;
 
         private List<FileSystemWatcher> FileWatchers = new();
@@ -11,8 +19,12 @@ namespace Graviton.Saves
         private readonly object _fileUpdateLock = new object();
         private ScreenshotService ScreenCapture;
 
-        public SaveWatcher(ScreenshotService service)
+        internal SaveWatcher(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, ScreenshotService service)
         {
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+
             ScreenCapture = service;
         }
 
@@ -55,7 +67,7 @@ namespace Graviton.Saves
                 }
                 else
                 {
-                    GravitonPlugin.Logger.Error($"{path} doesn't exist cannot watch!");
+                    _logger.Error($"{path} doesn't exist cannot watch!");
                 }
             }
 
@@ -89,7 +101,7 @@ namespace Graviton.Saves
                 // Debounce changes incase multiple file change at once don't clash with each other
                 if ((now - LastFileUpdate) > TimeSpan.FromMilliseconds(500))
                 {
-                    var image = ScreenCapture.GetScreenshotFromSecondsAgo(GravitonPlugin.Instance.Settings.SecondsBeforeSave);
+                    var image = ScreenCapture.GetScreenshotFromSecondsAgo(_plugin.Settings.SecondsBeforeSave);
                     if (image != null)
                     {
                         NewestSaveScreenshot = image;

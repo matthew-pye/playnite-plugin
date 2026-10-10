@@ -19,9 +19,9 @@ using System.Text.Json;
 
 namespace Graviton.Install
 {
-    internal class GravitonRemoteInstallController
+    public class GravitonRemoteInstallController
     {
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
         private GravitonLogger _logger;
         private IRomMServer _romMServer;
@@ -36,7 +36,7 @@ namespace Graviton.Install
 
         public static readonly HashSet<string> _remoteCancelledIds = new();
 
-        public GravitonRemoteInstallController(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server)
+        internal GravitonRemoteInstallController(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -250,7 +250,7 @@ namespace Graviton.Install
                     if (mapping == null)
                         throw new Exception("No mapping found that matches this game");
 
-                    var response = await GravitonPlugin.RomMServer.GETAsync($"/api/roms/{localROM.Id}");
+                    var response = await _romMServer.GETAsync($"/api/roms/{localROM.Id}");
                     if (response == null)
                         throw new Exception("Null response from server");
 

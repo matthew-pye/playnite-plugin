@@ -20,13 +20,13 @@ namespace Graviton.Saves
 {
     internal class SaveManager
     {
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
         private GravitonLogger _logger;
         private IRomMServer _romMServer;
         private SaveController SaveController => _plugin.SaveController!;
 
-        public SaveManager(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer)
+        public SaveManager(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -493,7 +493,7 @@ namespace Graviton.Saves
             var negotiate = SaveController.Negotiator.BuildNegotiate(new() { rom });
             if (negotiate.Saves.Count <= 0)
             {
-                GravitonPlugin.Logger.Error("[SaveManager] No saves in negotiate, skipping!");
+                _logger.Error("[SaveManager] No saves in negotiate, skipping!");
                 return;
             }
 

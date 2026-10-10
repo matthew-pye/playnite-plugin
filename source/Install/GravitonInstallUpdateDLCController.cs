@@ -18,22 +18,23 @@ using System.Windows;
 namespace Graviton.Install
 {
 
-    internal class GravitonInstallUpdateDLCController
+    public class GravitonInstallUpdateDLCController
     {
-        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
-        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
-        private GravitonLogger _logger { get => GravitonPlugin.Logger; }
+        private IGravitonContext _plugin;
+        private IPlayniteApi _playniteAPI;
+        private GravitonLogger _logger;
+        private IRomMServer _romMServer;
 
-        public GameInstallInfo GameData;
-        private Game Game;
-
-        internal GravitonInstallUpdateDLCController(Game game, GameInstallInfo gameData)
+        internal GravitonInstallUpdateDLCController(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server)
         {
-            GameData = gameData;
-            Game = game;
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+            _romMServer = server;
+
         }
 
-        public static async Task InstallSingleCandidate(GameInstallInfo installInfo, UpdateDLCCandidate candidate, string category)
+        internal async Task InstallSingleCandidate(GameInstallInfo installInfo, UpdateDLCCandidate candidate, string category)
         {
 
             var reqID = Guid.NewGuid().ToString();
@@ -59,7 +60,7 @@ namespace Graviton.Install
             GravitonPlugin.Instance.DownloadQueueController?.Enqueue(req, backup);
         }
 
-        public static async Task RecoverUpdateDLCInstall(List<DownloadRequestBackup> requests)
+        internal async Task RecoverUpdateDLCInstall(List<DownloadRequestBackup> requests)
         {
             List<(DownloadRequest req, DownloadRequestBackup backup)> downloadRequests = new();
 
@@ -108,8 +109,8 @@ namespace Graviton.Install
                 GravitonPlugin.Instance.DownloadQueueController?.Enqueue(request.req, request.backup);
             } 
         }
-       
-        public async Task<DownloadRequest?> BuildUpdateDLCRequests(RomMRom ROM, ObservableCollection<UpdateDLCCandidate> candidates, string category, DownloadRequest? previousInstall = null)
+
+        internal async Task<DownloadRequest?> BuildUpdateDLCRequests(GameInstallInfo GameData, RomMRom ROM, ObservableCollection<UpdateDLCCandidate> candidates, string category, DownloadRequest? previousInstall = null)
         {
             if (!ROM.Files.Any(x => x.Category == category))
             {
@@ -160,7 +161,7 @@ namespace Graviton.Install
                     InstallType = InstallType.UpdateDLC,
                     GameID = GameData.Id.ToString(),
                     ID = reqID,
-                    DownloadPath = Path.Combine(GravitonPlugin.Instance.PluginDataPath, "temp", reqID, candidateFilename),
+                    DownloadPath = Path.Combine(_plugin.PluginDataPath, "temp", reqID, candidateFilename),
 
                     Candidate = candidate,
                     Category = category,
@@ -179,7 +180,7 @@ namespace Graviton.Install
 
             return previousInstall;
         }
-        private static DownloadRequest CreateUpdateDLCRequest(GameInstallInfo installInfo, UpdateDLCCandidate candidate, string category, InstallStyles style, DownloadRequestBackup backup, Task? previousInstall = null)
+        private DownloadRequest CreateUpdateDLCRequest(GameInstallInfo installInfo, UpdateDLCCandidate candidate, string category, InstallStyles style, DownloadRequestBackup backup, Task? previousInstall = null)
         {
             var req = new DownloadRequest
             {
@@ -217,7 +218,7 @@ namespace Graviton.Install
 
         private async Task<ObservableCollection<UpdateDLCCandidate>> SelectCandidatesWindow(ObservableCollection<UpdateDLCCandidate> candidates, InstallMode mode, string category)
         {
-            var window = GravitonPlugin.PlayniteApi.CreateWindow(new WindowCreationOptions
+            var window = _playniteAPI.CreateWindow(new WindowCreationOptions
             {
                 ShowMinimizeButton = false,
                 ShowMaximizeButton = true,
@@ -230,7 +231,7 @@ namespace Graviton.Install
 
             window.Title = $"Install {category}";
             window.Content = selector;
-            window.Owner = GravitonPlugin.PlayniteApi.GetLastActiveWindow();
+            window.Owner = _playniteAPI.GetLastActiveWindow();
             window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
             window.ShowDialog();
 
@@ -240,7 +241,7 @@ namespace Graviton.Install
             return candidates;
         }
 
-        private static async Task InstallCandidate(DownloadQueueItem item, DownloadRequest req, UpdateDLCCandidate candidate, InstallStyles style, GameInstallInfo installInfo, string category)
+        private async Task InstallCandidate(DownloadQueueItem item, DownloadRequest req, UpdateDLCCandidate candidate, InstallStyles style, GameInstallInfo installInfo, string category)
         {
             
             string workingPath = Path.Combine(Path.GetDirectoryName(req.DownloadPath)!, "extracted", req.Id);
@@ -303,7 +304,7 @@ namespace Graviton.Install
                     break;
             }
         }
-        private static async Task CLIInstall(DownloadQueueItem item, DownloadRequest req, UpdateDLCCandidate candidate, GameInstallInfo installInfo, string category, string workingPath)
+        private async Task CLIInstall(DownloadQueueItem item, DownloadRequest req, UpdateDLCCandidate candidate, GameInstallInfo installInfo, string category, string workingPath)
         {
             // Check downloaded file need to be extracted by check the number of files IDs in the download URL
             if(candidate.FileIDs.Count > 1)
@@ -415,7 +416,7 @@ namespace Graviton.Install
                 item.SetStatus(DownloadStatus.Installing, Loc.GetString("DownloadStatusInstallingRatio", ("Current", progress), ("Max", files.Count)));
             }
         }
-        private static void MappedFolderInstall(DownloadQueueItem item, DownloadRequest req, UpdateDLCCandidate candidate, GameInstallInfo installInfo, string category, string workingPath)
+        private void MappedFolderInstall(DownloadQueueItem item, DownloadRequest req, UpdateDLCCandidate candidate, GameInstallInfo installInfo, string category, string workingPath)
         {
             TitleIDInstallDefinition? definition = category == RomMCategory.Update ? installInfo.Mapping?.UpdateTitleIDDefinition : category == RomMCategory.DLC ? installInfo.Mapping?.DLCTitleIDDefinition : null;
             string? installPath = category == RomMCategory.Update ? installInfo.Mapping?.UpdateInstallPath : category == RomMCategory.DLC ? installInfo.Mapping?.DLCInstallPath : null;

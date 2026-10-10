@@ -1,4 +1,4 @@
-﻿using Graviton.Models;
+using Graviton.Models;
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM;
 using Graviton.Models.ROM;
@@ -16,13 +16,13 @@ namespace Graviton.Saves
 {
     internal class SaveNegotiator
     {
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
         private GravitonLogger _logger;
         private IRomMServer _romMServer;
         private SaveController SaveController => _plugin.SaveController!;
 
-        public SaveNegotiator(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer)
+        public SaveNegotiator(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -36,7 +36,7 @@ namespace Graviton.Saves
 
             if (negotiate.Saves.Count <= 0) // Nothing to sync
             {
-                GravitonPlugin.Logger.Error("[SaveManager] No saves in negotiate, skipping!");
+                _logger.Error("[SaveManager] No saves in negotiate, skipping!");
                 return null;
             }
 
@@ -54,48 +54,8 @@ namespace Graviton.Saves
                     continue;
                 }
 
-               var operation = response.Operations.FirstOrDefault(x => x.ROMID == rom.Id && x.Slot == rom.LocalSave.Slot);
-               rom.LocalSave.ServerLastUpdatedAt = null;
-
-               if (operation == null)
-               {
-                    rom.LocalSave.Status = SaveStatus.Unknown;
-                    rom.LocalSave.ServerHash = null; 
-               }
-               else
-               {
-                    rom.LocalSave.ServerHash = operation.ServerContentHash;
-                    DateTime lastUpdatedAt;
-                    if (DateTime.TryParse(operation.ServerUpdatedAt!, out lastUpdatedAt))
-                        rom.LocalSave.ServerLastUpdatedAt = lastUpdatedAt;
-
-                    switch (operation.Action)
-                    {
-                        case SaveSyncStatus.upload:
-                            rom.LocalSave.Status = SaveStatus.LocalNewer;
-                            break;
-
-                        case SaveSyncStatus.download:
-                            rom.LocalSave.Status = SaveStatus.RemoteNewer;
-                            break;
-
-                        case SaveSyncStatus.no_op:
-                            rom.LocalSave.Status = SaveStatus.Synced;
-                            break;
-
-                        case SaveSyncStatus.conflict:
-                            rom.LocalSave.Status = SaveStatus.Conflicted;
-                            break;
-
-                        case SaveSyncStatus.delete:
-                            rom.LocalSave.Status = SaveStatus.ServerDeleted;
-                            break;
-
-                        default:
-                            rom.LocalSave.Status = SaveStatus.Unknown;
-                            break;
-                    }
-                }
+                var operation = FindOperationForSave(response.Operations, rom.Id, rom.LocalSave.Slot);
+                ApplySoftNegotiationOperation(rom.LocalSave, operation);
 
                 var mapping = _plugin.Settings.Mappings.FirstOrDefault(x => x.MappingId == rom.MappingID);
                 if (mapping != null && rom.LocalSave != null)
@@ -105,6 +65,65 @@ namespace Graviton.Saves
             }
 
             return roms;
+        }
+
+        internal static void ApplySoftNegotiationOperation(GravitonSave save, RomMNegotiateOperations? operation)
+        {
+            save.ServerLastUpdatedAt = null;
+
+            if (operation == null)
+            {
+                save.Status = SaveStatus.Unknown;
+                save.ServerHash = null;
+                return;
+            }
+
+            save.ServerHash = operation.ServerContentHash;
+
+            if (DateTime.TryParse(operation.ServerUpdatedAt, out var lastUpdatedAt))
+            {
+                save.ServerLastUpdatedAt = lastUpdatedAt;
+            }
+
+            switch (operation.Action)
+            {
+                case SaveSyncStatus.upload:
+                    save.Status = SaveStatus.LocalNewer;
+                    break;
+
+                case SaveSyncStatus.download:
+                    save.Status = SaveStatus.RemoteNewer;
+                    break;
+
+                case SaveSyncStatus.no_op:
+                    save.Status = SaveStatus.Synced;
+                    break;
+
+                case SaveSyncStatus.conflict:
+                    save.Status = SaveStatus.Conflicted;
+                    break;
+
+                case SaveSyncStatus.delete:
+                    save.Status = SaveStatus.ServerDeleted;
+                    break;
+
+                default:
+                    save.Status = SaveStatus.Unknown;
+                    break;
+            }
+        }
+
+        internal static RomMNegotiateOperations? FindOperationForSave(IEnumerable<RomMNegotiateOperations> operations, int romId, string? slot)
+        {
+            foreach (var operation in operations)
+            {
+                if (operation.ROMID == romId && operation.Slot == slot)
+                {
+                    return operation;
+                }
+            }
+
+            return null;
         }
 
         public async Task NegotiateSave(RomMRomLocal rom, byte[]? screenshot = null)
@@ -121,7 +140,7 @@ namespace Graviton.Saves
             var negotiate = BuildNegotiate(new() { rom });
             if (negotiate.Saves.Count <= 0) // Nothing to sync
             {
-                GravitonPlugin.Logger.Error("[SaveManager] No saves in negotiate, skipping!");
+                _logger.Error("[SaveManager] No saves in negotiate, skipping!");
                 return;
             }
 
@@ -137,7 +156,7 @@ namespace Graviton.Saves
             }
             else
             {
-                var operation = response.Operations.FirstOrDefault(x => x.ROMID == rom.Id && x.Slot == rom.LocalSave.Slot);
+                var operation = FindOperationForSave(response.Operations, rom.Id, rom.LocalSave.Slot);
                 rom.LocalSave.ServerLastUpdatedAt = null;
 
                 if (operation == null)
@@ -491,7 +510,7 @@ namespace Graviton.Saves
 
             if(save.LastSyncedAt == null || !save.LastSyncedAt.HasValue)
             {
-                GravitonPlugin.Logger.Error($"{save.GameName} save LastSyncedAt was null cannot resolve conflict");
+                _logger.Error($"{save.GameName} save LastSyncedAt was null cannot resolve conflict");
                 save.Status = SaveStatus.Conflicted; 
                 return SaveSyncStatus.conflict;
             }

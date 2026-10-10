@@ -1,4 +1,6 @@
-﻿using Graviton.Install.Downloads;
+﻿using ExCSS;
+
+using Graviton.Install.Downloads;
 using Graviton.Models;
 using Graviton.Models.Install;
 using Graviton.Models.Notifications;
@@ -21,70 +23,27 @@ namespace Graviton.Install
         Installed,
     }
 
-    internal class GravitonInstallController : InstallController
+    public class GravitonInstallController
     {
-        private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
-        private IPlayniteApi _playniteAPI { get => GravitonPlugin.PlayniteApi; }
-        private GravitonLogger _logger { get => GravitonPlugin.Logger; }
+        private IGravitonContext _plugin;
+        private IPlayniteApi _playniteAPI;
+        private GravitonLogger _logger;
+        private IRomMServer _romMServer;
 
-        private GravitonInstallUpdateDLCController UpdateDLCController;
+        public GravitonInstallUpdateDLCController UpdateDLCController;
 
-        public GameInstallInfo GameData;
 
-        private Game Game;
-
-        internal GravitonInstallController(Game game, GameInstallInfo gameData) : base(GravitonPlugin.Id, "Download", game.LibraryGameId ?? throw new Exception(Loc.GetString("InstallLibraryGameIdMissing")))
+        internal GravitonInstallController(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server)
         {
-            GameData = gameData;
-            Game = game;
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+            _romMServer = server;
 
-            UpdateDLCController = new(game, gameData);
-        }
-        public override async Task InstallAsync(InstallActionArgs args)
-        {
-            if (GameData.Id == (int)InstallStatus.Cancelled)
-            {
-                await CancelInstall(Game);
-                return;
-            }
-
-            var response = await GravitonPlugin.RomMServer.GETAsync($"/api/roms/{GameData.Id}");
-            if (response == null)
-            {
-                await CancelInstall(Game);
-                return;
-            }
-
-            try
-            {
-                var rom = JsonSerializer.Deserialize<RomMRom>(response);
-                if (rom == null)
-                    throw new Exception("ROM is null");
-
-                await DownloadInstallROM(rom);
-
-                DownloadRequest? previousInstall = null;
-
-                var localROM = _plugin.ImportedGames[Game.LibraryGameId!];
-                await InstallUpdateDLC.RefreshCandidates(GameData.Mapping!, rom, localROM);
-
-                if (GameData.Mapping?.UpdateInstallStyle != InstallStyles.None)
-                    previousInstall = await UpdateDLCController.BuildUpdateDLCRequests(rom, localROM.UpdateCandidates, RomMCategory.Update, previousInstall);
-
-                if (GameData.Mapping?.DLCInstallStyle != InstallStyles.None)
-                    previousInstall = await UpdateDLCController.BuildUpdateDLCRequests(rom, localROM.DLCCandidates, RomMCategory.DLC, previousInstall);
-
-                localROM.Save();
-            }
-            catch (Exception)
-            {
-                await CancelInstall(Game);
-                return;
-            }
-  
+            UpdateDLCController = new(plugin, playniteAPI, logger, server);
         }
 
-        public static async Task RecoverDownloads()
+        internal async Task RecoverDownloads()
         {
             // Recover downloads after playnite exit / crash
             var backupDir = Path.Combine(GravitonPlugin.Instance.PluginDataPath, "temp", "downloads");
@@ -92,29 +51,15 @@ namespace Graviton.Install
             {
                 GravitonPlugin.Logger.Trace("Download backup directory found!");
 
-                List<DownloadRequestBackup> downloadRequests = new();
-                foreach (var file in Directory.GetFiles(Path.Combine(GravitonPlugin.Instance.PluginDataPath, "temp", "downloads"), "*.tmp"))
-                {
-                    try
+                var downloadRequests = ReadDownloadBackups(backupDir,
+                    file =>
                     {
-                        var request = JsonSerializer.Deserialize<DownloadRequestBackup>(File.ReadAllText(file));
-                        if (request == null)
-                        {
-                            File.Delete(file);
-                            continue;
-                        }
-                        else
-                        {
-                            downloadRequests.Add(request);
-                            GravitonPlugin.Logger.Trace($"Successfully deseralized {Path.GetFileName(file)}");
-                        }
-
-                    }
-                    catch (Exception ex)
+                        GravitonPlugin.Logger.Trace($"Successfully deseralized {Path.GetFileName(file)}");
+                    },
+                    (file, exception) =>
                     {
-                        GravitonPlugin.Logger.Error($"Failed to restore download request for {Path.GetFileName(file)}: {ex}");
-                    }
-                }
+                        GravitonPlugin.Logger.Error($"Failed to restore download request for {Path.GetFileName(file)}: {exception}");
+                    });
 
                 try
                 {
@@ -133,7 +78,7 @@ namespace Graviton.Install
                     try
                     {
                         if (request.InstallType == InstallType.BaseGame)
-                            await GravitonInstallController.RecoverBaseGameDownload(request);
+                            await RecoverBaseGameDownload(request);
                         else if (request.InstallType == InstallType.Remote)
                             await GravitonRemoteInstallController.RestoreDownloadRequest(request);
                     }
@@ -149,20 +94,42 @@ namespace Graviton.Install
             }
         }
 
-        private static async Task CancelInstall(Game Game)
+        internal List<DownloadRequestBackup> ReadDownloadBackups(string backupDir, Action<string>? onLoaded = null, Action<string, Exception>? onFailed = null)
         {
-            var game = GravitonPlugin.PlayniteApi.Library.Games.Get(Game.Id) ?? throw new Exception(Loc.GetString("InstallGameDataMissing"));
-            game.InstallState = InstallState.Uninstalled;
-            await GravitonPlugin.PlayniteApi.Library.Games.UpdateAsync(game);
+            List<DownloadRequestBackup> requests = new();
+
+            foreach (var file in Directory.GetFiles(backupDir, "*.tmp"))
+            {
+                try
+                {
+                    var request = JsonSerializer.Deserialize<DownloadRequestBackup>(File.ReadAllText(file));
+
+                    if (request == null)
+                    {
+                        File.Delete(file);
+                        continue;
+                    }
+
+                    requests.Add(request);
+                    onLoaded?.Invoke(file);
+                }
+                catch (Exception ex)
+                {
+                    onFailed?.Invoke(file, ex);
+                }
+            }
+
+            return requests;
         }
 
-        private async Task DownloadInstallROM(RomMRom ROM)
+        // Returns true if the game is already installed
+        internal async Task DownloadInstallROM(GameInstallInfo GameData, Game game, RomMRom ROM, Func<string, ulong, Task>? onInstalledCallback = null)
         {
             var dstPath = GameData.Mapping?.DestinationPathResolved ?? throw new Exception(Loc.GetString("InstallMappingDataMissing"));
 
             var installDir = GameData.InstallPath.Replace(EmulatorMapping.InstallPathToken, dstPath);
 
-            var tempDir = Path.Combine(_plugin.PluginDataPath, "temp", Game.Id.ToString());
+            var tempDir = Path.Combine(_plugin.PluginDataPath, "temp", game.Id.ToString());
             var tempPath = Path.Combine(tempDir, (GameData.HasMultipleFiles ? GameData.FileName + ".zip" : GameData.FileName));
 
             //TODO - Use this to check if already installed ROM needed downloading
@@ -171,7 +138,6 @@ namespace Graviton.Install
             // Skip download if the game is already installed
             if (!GameData.HasMultipleFiles && File.Exists(Path.Combine(installDir, GameData.FileName)))
             {
-                var game = _playniteAPI.Library.Games.Get(Game.Id) ?? throw new Exception(Loc.GetString("InstallGameDataMissing"));
                 _plugin.ImportedGames.TryGetValue(game.LibraryGameId ?? "", out var romMLocal);
                 if (romMLocal == null)
                     throw new Exception(Loc.GetString("InstallROMDataMissing"));
@@ -188,22 +154,23 @@ namespace Graviton.Install
                 }
                 romMLocal.Save();
 
-                game.InstallState = InstallState.Installed;
-                await _playniteAPI.Library.Games.UpdateAsync(game);
-
-                await GameInstalledAsync(new()
+                if (onInstalledCallback != null)
                 {
-                    InstallDirectory = installDir,
-                    InstallSize = (ulong)(new FileInfo(Path.Combine(installDir, GameData.FileName)).Length),
-                });
+                    await onInstalledCallback.Invoke(installDir, (ulong)(new FileInfo(Path.Combine(installDir, GameData.FileName)).Length));
+                }
+                else
+                {
+                    game.InstallState = InstallState.Installed;
+                    await _playniteAPI.Library.Games.UpdateAsync(game);
+                }
 
                 return;
             }
 
-            await CreateBaseGameInstallRequest(GameData, tempPath, installDir, Game);
+            await CreateBaseGameInstallRequest(GameData, tempPath, installDir, game, onInstalledCallback);
         }
 
-        public static async Task CreateBaseGameInstallRequest(GameInstallInfo GameData, string tempPath, string installDir, Game Game)
+        internal async Task CreateBaseGameInstallRequest(GameInstallInfo GameData, string tempPath, string installDir, Game Game, Func<string, ulong, Task>? onInstalledCallback = null)
         {
             var req = new DownloadRequest
             {
@@ -221,6 +188,9 @@ namespace Graviton.Install
                         throw new Exception(Loc.GetString("InstallROMDataMissing"));
 
                     Directory.CreateDirectory(installDir);
+
+                    string finalDir = "";
+                    ulong installSize = 0;
 
                     // Extract if needed (we treat extract as 0..100 in its own bar)
                     // This check may need changing in the case where a user has multiple archive files 
@@ -243,10 +213,8 @@ namespace Graviton.Install
                         romMLocal.InstalledPath = installDir;
                         romMLocal.IsInstalledPathDirectory = true;
 
-                        Game.InstallState = InstallState.Installed;
-                         Game.InstallSize = 0;
-                        Directory.GetFiles(installDir!).Select(x => (ulong)(new FileInfo(x).Length)).ForEach(y => Game.InstallSize += y);
-                        Game.InstallDirectory = installDir;
+                        Directory.GetFiles(installDir!).Select(x => (ulong)(new FileInfo(x).Length)).ForEach(y => installSize += y);
+                        finalDir = installDir;
                     }
                     else if (File.Exists(req.DownloadPath))
                     {
@@ -257,14 +225,24 @@ namespace Graviton.Install
                         romMLocal.InstalledPath = installedPath;
                         romMLocal.IsInstalledPathDirectory = false;
 
-                        Game.InstallState = InstallState.Installed;
-                        Game.InstallSize = (ulong)(new FileInfo(installedPath).Length);
-                        Game.InstallDirectory = installDir;
+                        installSize = (ulong)(new FileInfo(installedPath).Length);
+                        finalDir = installDir;
                     }
 
-                    romMLocal.Save();
-                    
-                    await GravitonPlugin.PlayniteApi.Library.Games.UpdateAsync(Game);
+                    if(onInstalledCallback != null)
+                    {
+                        await onInstalledCallback.Invoke(finalDir, installSize);
+                    }
+                    else
+                    {
+                        romMLocal.Save();
+
+                        Game.InstallState = InstallState.Installed;
+                        Game.InstallSize = installSize;
+                        Game.InstallDirectory = finalDir;
+
+                        await GravitonPlugin.PlayniteApi.Library.Games.UpdateAsync(Game);
+                    }
 
                     if (File.Exists(req.DownloadPath))
                         File.Delete(req.DownloadPath);
@@ -296,7 +274,7 @@ namespace Graviton.Install
             GravitonPlugin.Instance.DownloadQueueController?.Enqueue(req, backup);
         }
 
-        public static async Task RecoverBaseGameDownload(DownloadRequestBackup request)
+        internal async Task RecoverBaseGameDownload(DownloadRequestBackup request)
         {
             if (!GravitonPlugin.Instance.ImportedGames.ContainsKey(request.GameID))
                 throw new Exception(Loc.GetString("InstallGameIdNotFound", ("GameID", request.GameID ?? "")));
@@ -314,10 +292,17 @@ namespace Graviton.Install
 
             await CreateBaseGameInstallRequest(installInfo, request.DownloadPath, request.InstallDir, game);
         }
-        public static async Task RecoverUpdateDLCInstall(List<DownloadRequestBackup> requests)
+        internal async Task RecoverUpdateDLCInstall(List<DownloadRequestBackup> requests)
         {
-            await GravitonInstallUpdateDLCController.RecoverUpdateDLCInstall(requests);
+            await UpdateDLCController.RecoverUpdateDLCInstall(requests);
         }
 
+
+        private async Task CancelInstall(Game Game)
+        {
+            var game = GravitonPlugin.PlayniteApi.Library.Games.Get(Game.Id) ?? throw new Exception(Loc.GetString("InstallGameDataMissing"));
+            game.InstallState = InstallState.Uninstalled;
+            await GravitonPlugin.PlayniteApi.Library.Games.UpdateAsync(game);
+        }
     }
 }

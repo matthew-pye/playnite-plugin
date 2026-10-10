@@ -17,7 +17,7 @@ namespace Graviton.Saves
 {
     internal class SaveDiscovery
     {
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
         private GravitonLogger _logger;
         private IRomMServer _romMServer;
@@ -29,7 +29,7 @@ namespace Graviton.Saves
         private EmulatorMapping? Mapping;
         private List<RomMRomLocal>? ROMs;
 
-        public SaveDiscovery(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer)
+        public SaveDiscovery(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;

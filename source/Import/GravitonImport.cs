@@ -22,7 +22,7 @@ namespace Graviton.Import
 {
     internal class GravitonImport
     {
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
         private GravitonLogger _logger;
 
@@ -35,7 +35,7 @@ namespace Graviton.Import
 
         private static Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
 
-        public GravitonImport(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, ImportGamesArgs args, EmulatorMapping mapping)
+        public GravitonImport(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, ImportGamesArgs args, EmulatorMapping mapping)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -335,8 +335,8 @@ namespace Graviton.Import
 
                     _plugin.ImportedGames.TryRemove(gameID, out _);
 
-                    if(File.Exists($"{GravitonPlugin.Instance.PluginDataPath}/Games/{gameID}.json"))
-                        File.Delete($"{GravitonPlugin.Instance.PluginDataPath}/Games/{gameID}.json");
+                    if(File.Exists($"{_plugin.PluginDataPath}/Games/{gameID}.json"))
+                        File.Delete($"{_plugin.PluginDataPath}/Games/{gameID}.json");
 
                     return await ImportNewGame(ROM, gameID);
                 }

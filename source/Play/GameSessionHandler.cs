@@ -16,7 +16,7 @@ namespace Graviton.Play
 {
     public class GameSessionHandler
     {
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
         private GravitonLogger _logger;
 
@@ -34,14 +34,14 @@ namespace Graviton.Play
 
         public bool IsAGameRunning { get; private set; } = false;
 
-        public GameSessionHandler(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger)
+        internal GameSessionHandler(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
             _logger = logger;
 
-            ScreenshotCapture = new();
-            SaveWatcher = new(ScreenshotCapture);
+            ScreenshotCapture = new(plugin, playniteAPI, logger);
+            SaveWatcher = new(plugin, playniteAPI, logger, ScreenshotCapture);
         }
 
         public async Task GameStarting(OnGameStartingEventArgs args)

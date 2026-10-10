@@ -2,6 +2,7 @@
 using Graviton.Models.Notifications;
 using Graviton.Models.RomM.Rom;
 using Graviton.Models.Saves;
+using Graviton.Notifications;
 
 using Playnite;
 
@@ -121,7 +122,9 @@ namespace Graviton.Models.ROM
             return toSave;
         }
 
-        public void Resync(RomMRom ROM)
+        internal void Resync(RomMRom ROM) => Resync(GravitonPlugin.Logger, ROM);
+
+        internal void Resync(GravitonLogger logger, RomMRom ROM)
         {
             Id = ROM.Id;
             Name = ROM.Name ?? "Unknown Game";
@@ -137,7 +140,7 @@ namespace Graviton.Models.ROM
                 var romfile = DetermineFile(ROM);
                 if (romfile == null)
                 {
-                    GravitonPlugin.Logger.Error("[Importer] Unable to save ROM data as there is no rom file!");
+                    logger.Error("[Importer] Unable to save ROM data as there is no rom file!");
                     return;
                 }
 
@@ -150,7 +153,7 @@ namespace Graviton.Models.ROM
 
                 if (fileIDs == null || fileIDs.Count() <= 0)
                 {
-                    GravitonPlugin.Logger.Error("Unable to save ROM data as there are no files in the game category!");
+                    logger.Error("Unable to save ROM data as there are no files in the game category!");
                     return;
                 }
 
@@ -161,7 +164,9 @@ namespace Graviton.Models.ROM
             Save();
         }
 
-        public void Save()
+        internal void Save() => Save(GravitonPlugin.Instance);
+
+        internal void Save(IGravitonContext plugin)
         {
             try
             {
@@ -169,11 +174,11 @@ namespace Graviton.Models.ROM
                     LocalSave.SourceFilePaths = LocalSave.SourceFilePaths.Select(x => x.Replace("\\", "/")).ToObservableCollection();
 
                 // Write data to file
-                File.WriteAllText($"{GravitonPlugin.Instance.PluginDataPath}/Games/{Id}.json", JsonSerializer.Serialize(this));
-                if (GravitonPlugin.Instance.ImportedGames.ContainsKey($"{Id}"))
-                    GravitonPlugin.Instance.ImportedGames[$"{Id}"] = this;       
+                File.WriteAllText($"{plugin.PluginDataPath}/Games/{Id}.json", JsonSerializer.Serialize(this));
+                if (plugin.ImportedGames.ContainsKey($"{Id}"))
+                    plugin.ImportedGames[$"{Id}"] = this;       
                 else
-                    GravitonPlugin.Instance.ImportedGames.TryAdd($"{Id}", this);
+                    plugin.ImportedGames.TryAdd($"{Id}", this);
 
             }
             catch (Exception ex)

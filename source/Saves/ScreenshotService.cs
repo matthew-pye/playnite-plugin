@@ -1,4 +1,5 @@
 ﻿using Graviton.Models.Notifications;
+using Graviton.Notifications;
 
 using Playnite;
 
@@ -64,6 +65,10 @@ namespace Graviton.Saves
         }
         #endregion
 
+        private IGravitonContext _plugin;
+        private IPlayniteApi _playniteAPI;
+        private GravitonLogger _logger;
+
         private readonly ImageCodecInfo JpegEncoder = ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == ImageFormat.Jpeg.Guid);
 
         private readonly EncoderParameters JpegEncoderParams = new(1)
@@ -79,6 +84,13 @@ namespace Graviton.Saves
         private ConcurrentQueue<BufferedFrame> Frames = new();
         private readonly object CaptureLock = new();
         private Timer? CaptureTimer;
+
+        internal ScreenshotService(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger)
+        {
+            _plugin = plugin;
+            _playniteAPI = playniteAPI;
+            _logger = logger;
+        }
 
         public async Task<bool> Setup(int processID, int maxFramesCaptured, int intervalBetweenFrameCaptures = 1000)
         {
@@ -99,7 +111,7 @@ namespace Graviton.Saves
             }
             catch (Exception ex)
             {
-                GravitonPlugin.Logger.Error($"Failed to setup window capture!\n{ex}");
+                _logger.Error($"Failed to setup window capture!\n{ex}");
                 return false;
             }
         }
@@ -145,7 +157,7 @@ namespace Graviton.Saves
 
             if (closestFrame == null)
             {
-                GravitonPlugin.Logger.Error("Failed to find screenshot close to the requested time");
+                _logger.Error("Failed to find screenshot close to the requested time");
                 return null;
             }
             else
@@ -176,7 +188,7 @@ namespace Graviton.Saves
             }
             catch (Exception ex)
             {
-                GravitonPlugin.Logger.Error($"Failed to process captured frame!\n{ex}");
+                _logger.Error($"Failed to process captured frame!\n{ex}");
             }
             finally
             {
@@ -194,7 +206,7 @@ namespace Graviton.Saves
         {
             if (!IsWindow(WindowHandle))
             {
-                GravitonPlugin.Logger.Warn("Capture target window no longer exists; stopping capture.");
+                _logger.Warn("Capture target window no longer exists; stopping capture.");
                 _ = Stop();
                 return;
             }
@@ -241,7 +253,7 @@ namespace Graviton.Saves
                 // Resize image to selected max resolution
                 if (rect.Width < rect.Height)
                 {
-                    targetWidth = Math.Min((int)GravitonPlugin.Instance.Settings.ScreenshotResolution, rect.Width);
+                    targetWidth = Math.Min((int)_plugin.Settings.ScreenshotResolution, rect.Width);
                     targetHeight = (int)Math.Round(rect.Height * (targetWidth / (double)rect.Width));
 
                     if (targetWidth == rect.Width)
@@ -251,7 +263,7 @@ namespace Graviton.Saves
                 }
                 else
                 {
-                    targetHeight = Math.Min((int)GravitonPlugin.Instance.Settings.ScreenshotResolution, rect.Height);
+                    targetHeight = Math.Min((int)_plugin.Settings.ScreenshotResolution, rect.Height);
                     targetWidth = (int)Math.Round(rect.Width * (targetHeight / (double)rect.Height));
 
                     if (targetHeight == rect.Height)

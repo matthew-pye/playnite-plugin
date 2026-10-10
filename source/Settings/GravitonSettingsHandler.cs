@@ -19,16 +19,16 @@ namespace Graviton.Settings
     {
         public bool InEditingMode { get; private set; }
 
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
-        private static GravitonLogger? _logger;
+        private GravitonLogger _logger;
         private IRomMServer _romMServer;
 
         [ObservableProperty] private GravitonPluginSettings settings = new();
 
         private List<string> _originalHeaders = [];
 
-        public GravitonSettingsHandler(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server) 
+        internal GravitonSettingsHandler(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server) 
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -52,7 +52,7 @@ namespace Graviton.Settings
             {
                 mapping.AvailablePlatforms = Settings.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
                 _logger?.Trace($"Updated availiable platforms");
-                mapping.AvailableEmulators = ((IEnumerable<EmulatorBase>)GravitonPlugin.Instance.EmunightAPI!.ImportedEmulators).Concat(GravitonPlugin.Instance.EmunightAPI.CustomEmulators).OrderBy(e => e.Name).ToObservableCollection();
+                mapping.AvailableEmulators = ((IEnumerable<EmulatorBase>)_plugin.EmunightAPI!.ImportedEmulators).Concat(_plugin.EmunightAPI.CustomEmulators).OrderBy(e => e.Name).ToObservableCollection();
                 _logger?.Trace($"Updated availiable emulators");
             }
 
@@ -131,7 +131,7 @@ namespace Graviton.Settings
             try
             {
                 File.WriteAllText(setFile, JsonSerializer.Serialize<GravitonPluginSettings>(settings, new JsonSerializerOptions { WriteIndented = true }));
-                _logger?.Trace($"Saved settings to {setFile}");
+                GravitonPlugin.Logger?.Trace($"Saved settings to {setFile}");
             }
             catch (Exception ex)
             {
@@ -148,7 +148,7 @@ namespace Graviton.Settings
                 try
                 {
                     var file = File.ReadAllText(setFile);
-                    _logger?.Trace($"Red settings.json");
+                    GravitonPlugin.Logger?.Trace($"Red settings.json");
 
                     settings = JsonSerializer.Deserialize<GravitonPluginSettings>(file);
                     if (settings != null)
@@ -156,9 +156,9 @@ namespace Graviton.Settings
                         foreach (var mapping in settings.Mappings)
                         {
                             mapping.AvailablePlatforms = settings.RomMPlatforms.Where(x => x.RomCount > 0).ToObservableCollection();
-                            _logger?.Trace($"Restored Available Platforms");
+                            GravitonPlugin.Logger?.Trace($"Restored Available Platforms");
                             mapping.AvailableEmulators = ((IEnumerable<EmulatorBase>)GravitonPlugin.Instance.EmunightAPI!.ImportedEmulators).Concat(GravitonPlugin.Instance.EmunightAPI.CustomEmulators).OrderBy(e => e.Name).ToObservableCollection();
-                            _logger?.Trace($"Restored Available Emulators");
+                            GravitonPlugin.Logger?.Trace($"Restored Available Emulators");
                         }
                     }
                 }
@@ -170,12 +170,12 @@ namespace Graviton.Settings
 
             if (settings is null)
             {
-                _logger?.Trace($"No settings.json file found, creating new settings");
+                GravitonPlugin.Logger?.Trace($"No settings.json file found, creating new settings");
                 return new GravitonPluginSettings();
             }
             else
             {
-                _logger?.Trace($"Loaded settings");
+                GravitonPlugin.Logger?.Trace($"Loaded settings");
                 return settings;
             }
         }       

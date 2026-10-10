@@ -90,41 +90,44 @@ namespace Graviton.Saves
             try
             {
                 Directory.CreateDirectory(destinationPath);
+                ObservableCollection<string> result;
 
-                using var archive = ArchiveFactory.OpenArchive(tempSaveLocation);
-
-                var destinationFull = Path.GetFullPath(destinationPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                var destinationRoot = destinationFull + Path.DirectorySeparatorChar;
-
-                var fileEntries = archive.Entries.Where(e => !e.IsDirectory).ToList();
-
-                var resolvedPaths = new List<string>(fileEntries.Count);
-                foreach (var entry in fileEntries)
+                using (var archive = ArchiveFactory.OpenArchive(tempSaveLocation))
                 {
-                    if (entry.Key == null) 
+                    var destinationFull = Path.GetFullPath(destinationPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                    var destinationRoot = destinationFull + Path.DirectorySeparatorChar;
+
+                    var fileEntries = archive.Entries.Where(e => !e.IsDirectory).ToList();
+
+                    var resolvedPaths = new List<string>(fileEntries.Count);
+                    foreach (var entry in fileEntries)
                     {
-                        GravitonPlugin.Logger.Warn($"[UnpackSave] Entry key was null, skipping!");
-                        continue; 
+                        if (entry.Key == null)
+                        {
+                            GravitonPlugin.Logger.Warn($"[UnpackSave] Entry key was null, skipping!");
+                            continue;
+                        }
+
+                        var resolvedPath = Path.GetFullPath(Path.Combine(destinationFull, entry.Key));
+                        if (!resolvedPath.StartsWith(destinationRoot, StringComparison.OrdinalIgnoreCase))
+                        {
+                            GravitonNotify.Notify("graviton.unpacksave.failed", Loc.GetString("ArchiveResolvesOutside", ("Entry", entry.Key)), GravitonSeverity.Error);
+                            return null;
+                        }
+                        resolvedPaths.Add(resolvedPath);
                     }
 
-                    var resolvedPath = Path.GetFullPath(Path.Combine(destinationFull, entry.Key));
-                    if (!resolvedPath.StartsWith(destinationRoot,StringComparison.OrdinalIgnoreCase))
+                    archive.WriteToDirectory(destinationPath, new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
+
+                    if (fileEntries.Count > 0 && !Directory.EnumerateFileSystemEntries(destinationPath).Any())
                     {
-                        GravitonNotify.Notify("graviton.unpacksave.failed", Loc.GetString("ArchiveResolvesOutside", ("Entry", entry.Key)), GravitonSeverity.Error);
+                        GravitonNotify.Notify("graviton.unpacksave.failed", Loc.GetString("ExtractionEmpty"), GravitonSeverity.Error);
                         return null;
                     }
-                    resolvedPaths.Add(resolvedPath);
+
+                    var sourcePaths = resolvedPaths.Where(File.Exists).ToList();
+                    result = CollapseUnpackedPaths(sourcePaths, destinationFull);
                 }
-
-                archive.WriteToDirectory(destinationPath, new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
-
-                if (fileEntries.Count > 0 && !Directory.EnumerateFileSystemEntries(destinationPath).Any())
-                {
-                    GravitonNotify.Notify("graviton.unpacksave.failed", Loc.GetString("ExtractionEmpty"), GravitonSeverity.Error);
-                    return null;
-                }
-
-                var sourcePaths = resolvedPaths.Where(File.Exists).ToList();
 
                 try
                 {
@@ -135,7 +138,7 @@ namespace Graviton.Saves
                     GravitonPlugin.Logger.Warn(ex, $"Extraction succeeded but failed to delete temp file {tempSaveLocation}");
                 }
 
-                return CollapseUnpackedPaths(sourcePaths, destinationFull);
+                return result;
             }
             catch (Exception ex)
             {

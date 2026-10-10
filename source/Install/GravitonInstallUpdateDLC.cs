@@ -205,7 +205,7 @@ namespace Graviton.Install
             }
         }
 
-        private static void MergeCandidates(ObservableCollection<UpdateDLCCandidate> existing, List<UpdateDLCCandidate> discovered, string category)
+        internal static void MergeCandidates(ObservableCollection<UpdateDLCCandidate> existing, List<UpdateDLCCandidate> discovered, string category)
         {
             foreach (var candidate in discovered)
             {

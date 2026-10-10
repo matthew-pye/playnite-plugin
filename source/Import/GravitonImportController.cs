@@ -23,7 +23,7 @@ namespace Graviton.Import
 {
     public class GravitonImportController
     {
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
         private GravitonLogger _logger;
         private IRomMServer _romMServer;
@@ -31,7 +31,7 @@ namespace Graviton.Import
         private static readonly Regex _SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
         private static readonly Regex _platformSlugRegex = new Regex("^[a-zA-Z0-9_\\-]+$");
 
-        public GravitonImportController(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server)
+        internal GravitonImportController(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer server)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;

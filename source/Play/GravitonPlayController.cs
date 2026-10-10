@@ -13,14 +13,14 @@ using static Playnite.Plugin;
 
 namespace Graviton.Play
 {
-    internal class GravitonPlayController
+    public class GravitonPlayController
     {
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
         private GravitonLogger _logger;
         private IEmunightAPI _emunightAPI;
 
-        public GravitonPlayController(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IEmunightAPI emunightAPI)
+        internal GravitonPlayController(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IEmunightAPI emunightAPI)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;

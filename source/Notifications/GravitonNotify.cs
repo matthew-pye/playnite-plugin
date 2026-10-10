@@ -14,13 +14,13 @@ namespace Graviton
         public static readonly List<GravitonNotification> Notifications = new();
         public static event Action<GravitonNotification>? OnNotificationAdded;
 
-        private static GravitonPlugin? _plugin;
+        private static IGravitonContext? _plugin;
         private static IPlayniteApi? _playniteAPI;
         private static GravitonLogger? _logger;
 
         private static bool IsInitialized = false;
 
-        public static void Initialize(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger)
+        internal static void Initialize(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;

@@ -5,16 +5,16 @@ using Playnite;
 
 namespace Graviton.GameEdit
 {
-    public class GravitonGameEditHandler : GameEditSessionHandler
+    internal class GravitonGameEditHandler : GameEditSessionHandler
     {
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
         private GravitonLogger _logger;
 
         private RomMRomLocal? _game;
 
 
-        public GravitonGameEditHandler(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, Game game)
+        internal GravitonGameEditHandler(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, Game game)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;

@@ -26,7 +26,9 @@ namespace Graviton.Models
         private bool HasRelativePath(string relativePath)
         {
             var expectsDirectory = relativePath.EndsWith('/');
-            var parts = relativePath.Replace('\\', '/').Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+            var isRegex = relativePath.StartsWith(TitleIDInstallDefinitions.RegexPrefix, StringComparison.OrdinalIgnoreCase);
+            string[] parts = isRegex ? [relativePath] : relativePath.Replace('\\', '/').Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
 
             FileTreeNode<TNode>? current = this;
 

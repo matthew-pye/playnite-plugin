@@ -12,7 +12,7 @@ namespace Graviton.Import
 {
     public class GravitonMetadataProviderGameSession : MetadataProviderGameSession
     {
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
         private GravitonLogger _logger;
         private IRomMServer _romMServer;
@@ -23,7 +23,7 @@ namespace Graviton.Import
 
         private static (DateTime, RomMUser?) UserData;
 
-        public GravitonMetadataProviderGameSession(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer, Game game) : base(game) 
+        internal GravitonMetadataProviderGameSession(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer, Game game) : base(game) 
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -221,12 +221,12 @@ namespace Graviton.Import
 
     public class GravitonMetadataProvider : MetadataProvider
     {
-        private GravitonPlugin _plugin;
+        private IGravitonContext _plugin;
         private IPlayniteApi _playniteAPI;
         private GravitonLogger _logger;
         private IRomMServer _romMServer;
 
-        public GravitonMetadataProvider(GravitonPlugin plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer)
+        internal GravitonMetadataProvider(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;

@@ -22,41 +22,48 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Windows;
 
 
 namespace Graviton
 {
-    public class GravitonPlugin : Plugin
+    internal interface IGravitonContext
+    {
+        public IEmunightAPI? EmunightAPI { get; }
+
+        GravitonImportController? ImportController { get; }
+        SaveController? SaveController { get; }
+        GameSessionHandler? GameSessionHandler { get; }
+        StatusController? StatusController { get; }
+        DownloadQueueController? DownloadQueueController { get; }
+        GravitonInstallController? InstallController { get; }
+        GravitonRemoteInstallController? RemoteInstallController { get; set; }
+
+        public RomMAuthentication? Account { get; }
+
+        string PluginDLLPath { get; }
+        string PluginDataPath { get; }
+
+        bool PluginInitialized { get; set; }
+        bool ImportInProgress { get; set; }
+
+        GravitonPluginSettings Settings { get; set; }
+
+        ConcurrentDictionary<string, RomMRomLocal> ImportedGames { get; }
+    }
+
+    public class GravitonPlugin : Plugin, IGravitonContext
     {
         public static readonly string Id = "Matthew-Pye.Graviton";
         public static readonly string ExternalIdType = "graviton";
         public static readonly string ExternalIdName = "Graviton (RomM Library)";
-        public static readonly Version Version = new Version(0,4,0);
+        public static readonly Version Version = new Version(0, 4, 0);
 
-        internal string PluginDLLPath { get; private set; } = "";
-        internal string PluginDataPath { get; private set; } = "";
+        public string PluginDLLPath { get; private set; } = "";
+        public string PluginDataPath { get; private set; } = "";
 
-        internal static GravitonPlugin Instance { get; private set; } = null!;
-        internal static IPlayniteApi PlayniteApi { get; private set; } = null!;
-        internal static GravitonLogger Logger { get; private set; } = new();
-        internal static RomMServer RomMServer { get; private set; } = null!;
-
-        internal IEmunightAPI? EmunightAPI { get; private set; }
-
-        internal GravitonImportController? ImportController { get; private set; }
-        internal SaveController? SaveController { get; private set; }
-        internal GameSessionHandler? GameSessionHandler { get; private set; }
-        internal StatusController? StatusController { get; private set; }
-        internal DownloadQueueController? DownloadQueueController { get; private set; }
-        internal GravitonPlayController? PlayController { get; private set; }
-        internal GravitonRemoteInstallController? RemoteInstallController { get; set; }
-
-        internal ConcurrentDictionary<string, RomMRomLocal> ImportedGames { get; private set; } = new();
-
-        internal GravitonPluginSettings Settings 
-        { 
+        public GravitonPluginSettings Settings
+        {
             get
             {
                 if (SettingsHandler != null && SettingsHandler.InEditingMode)
@@ -65,21 +72,39 @@ namespace Graviton
                 return _settings;
             }
             set
-            { _settings = value; } 
-        } 
+            { _settings = value; }
+        }
+
+        public ConcurrentDictionary<string, RomMRomLocal> ImportedGames { get; private set; } = new();
+
+        internal static GravitonPlugin Instance { get; private set; } = null!;
+        internal static IPlayniteApi PlayniteApi { get; private set; } = null!;
+        internal static GravitonLogger Logger { get; private set; } = new();
+        internal static RomMServer RomMServer { get; private set; } = null!;
+
+        public IEmunightAPI? EmunightAPI { get; private set; }
+
+        public GravitonImportController? ImportController { get; private set; }
+        public SaveController? SaveController { get; private set; }
+        public GameSessionHandler? GameSessionHandler { get; private set; }
+        public StatusController? StatusController { get; private set; }
+        public DownloadQueueController? DownloadQueueController { get; private set; }
+        public GravitonPlayController? PlayController { get; private set; }
+        public GravitonInstallController? InstallController { get; private set; }
+        public GravitonRemoteInstallController? RemoteInstallController { get; set; }
+
 
         private GravitonPluginSettings _settings = new();
 
         internal GravitonSettingsHandler? SettingsHandler { get; set; }
-        internal RomMAuthentication? Account { get; private set; }
+        public RomMAuthentication? Account { get; private set; }
 
         private RomMDownloadsAppViewItem? _downloadsAppView { get; set; }
         private DownloadQueueViewModel? _downloadsViewModel;
 
-        internal static Regex SHA1Regex = new Regex("^[a-fA-F0-9]{40}$");
+        public bool PluginInitialized { get; set; } = false;
+        public bool ImportInProgress { get; set; } = false;
 
-        internal bool PluginInitialized = false;
-        internal bool ImportInProgress = false;
 
         public GravitonPlugin() : base()
         {
@@ -189,7 +214,7 @@ namespace Graviton
             await PlayniteApi.Library.CompletionStatuses.AddAsync(new CompletionStatus("never_playing", "Never Playing"));
             Logger.Trace("Added Never Playing to CompletionStatuses");
 
-            RomMServer = new(Instance);
+            RomMServer = new(Instance, PlayniteApi, Logger);
             Logger.Trace("Created RomMServer Controller");
 
             SettingsHandler = new(Instance, PlayniteApi, Logger, RomMServer);
@@ -197,6 +222,9 @@ namespace Graviton
 
             ImportController = new(Instance, PlayniteApi, Logger, RomMServer);
             Logger.Trace("Created Import Controller");
+
+            InstallController = new(Instance, PlayniteApi, Logger, RomMServer);
+            Logger.Trace("Created Install Controller");
 
             SaveController = new(Instance, PlayniteApi, Logger, RomMServer);
             Logger.Trace("Created Save Controller");
@@ -286,7 +314,7 @@ namespace Graviton
 
                     if (loginSuccessful)
                     {
-                        await GravitonInstallController.RecoverDownloads();
+                        await InstallController!.RecoverDownloads();
                     }
                     else
                     {
@@ -381,7 +409,7 @@ namespace Graviton
                     var installInfo = GameInstallInfo.Build(localROM, mapping);
                     Logger?.Trace($"Created install info\n{JsonSerializer.Serialize(installInfo, new JsonSerializerOptions { WriteIndented = true })}");
 
-                    return [new GravitonInstallController(args.Game, installInfo)];
+                    return [new GravitonPlayniteInstallController(Instance, PlayniteApi, Logger!, RomMServer, args.Game, installInfo)];
                 }
                 catch (Exception ex)
                 {
@@ -404,7 +432,7 @@ namespace Graviton
                     if (!ImportedGames.ContainsKey(args.Game.LibraryGameId ?? ""))
                         throw new Exception(Loc.GetString("InstallGameIdNotFound", ("GameID", args.Game.LibraryGameId ?? "")));
 
-                    return [new GravitonUninstallController(args.Game)];
+                    return [new GravitonUninstallController(Instance, PlayniteApi, Logger!, args.Game)];
 
                 }
                 catch (Exception ex)
