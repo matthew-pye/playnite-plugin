@@ -75,7 +75,7 @@ namespace Graviton.Models.ROM
         public ObservableCollection<UpdateDLCCandidate> UpdateCandidates { get; set; } = new();
         public ObservableCollection<UpdateDLCCandidate> DLCCandidates { get; set; } = new();
 
-        public static RomMRomLocal? Build(Guid MappingID, RomMRom ROM, string PlayniteID = "")
+        internal static RomMRomLocal? Build(Guid MappingID, RomMRom ROM, string PlayniteID, IGravitonContext? plugin)
         {
             RomMRomLocal toSave = new RomMRomLocal();
 
@@ -118,13 +118,17 @@ namespace Graviton.Models.ROM
             }
             toSave.MappingID = MappingID;
 
-            toSave.Save();
+            if (plugin == null)
+                toSave.Save();
+            else
+                toSave.Save(plugin);
+
             return toSave;
         }
 
         internal void Resync(RomMRom ROM) => Resync(GravitonPlugin.Logger, ROM);
 
-        internal void Resync(GravitonLogger logger, RomMRom ROM)
+        internal void Resync(GravitonLogger logger, RomMRom ROM, IGravitonContext? plugin = null)
         {
             Id = ROM.Id;
             Name = ROM.Name ?? "Unknown Game";
@@ -159,9 +163,12 @@ namespace Graviton.Models.ROM
 
                 FileName = Path.GetFileName(ROM.FileName);
                 DownloadURL = $"/api/roms/{ROM.Id}/content/{Uri.EscapeDataString(ROM.FileName)}?file_ids={string.Join(',', fileIDs)}";
-            }   
+            }
 
-            Save();
+            if (plugin == null)
+                Save();
+            else
+                Save(plugin);
         }
 
         internal void Save() => Save(GravitonPlugin.Instance);

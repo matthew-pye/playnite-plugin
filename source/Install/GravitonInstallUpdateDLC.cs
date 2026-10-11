@@ -12,7 +12,7 @@ namespace Graviton.Install
 {
     public static class InstallUpdateDLC
     {
-        public static async Task<RomMRomLocal> RefreshCandidates(EmulatorMapping mapping, RomMRom ROM, RomMRomLocal LocalROM)
+        internal static async Task<RomMRomLocal> RefreshCandidates(EmulatorMapping mapping, RomMRom ROM,RomMRomLocal LocalROM, IGravitonContext? plugin = null)
         {
             var updates = await FindCategoryCandidates(mapping, ROM, RomMCategory.Update) ?? [];
             MergeCandidates(LocalROM.UpdateCandidates, updates, RomMCategory.Update);
@@ -20,8 +20,11 @@ namespace Graviton.Install
             var dlc = await FindCategoryCandidates(mapping, ROM, RomMCategory.DLC) ?? [];
             MergeCandidates(LocalROM.DLCCandidates, dlc, RomMCategory.DLC);
 
-            LocalROM.Save();
-
+            if (plugin == null)
+                LocalROM.Save(); 
+            else
+                LocalROM.Save(plugin);
+            
             return LocalROM;
         }
 

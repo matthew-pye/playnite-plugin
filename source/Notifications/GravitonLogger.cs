@@ -1,4 +1,4 @@
-﻿using Graviton.Settings;
+using Graviton.Settings;
 
 using Playnite;
 
@@ -37,7 +37,18 @@ namespace Graviton.Notifications
 
     public class GravitonLogger
     {
-        GravitonPluginSettings Settings => GravitonPlugin.Instance.Settings;
+        private readonly GravitonPluginSettings? _settings;
+
+        GravitonPluginSettings Settings => _settings ?? GravitonPlugin.Instance.Settings;
+
+        public GravitonLogger()
+        {
+        }
+
+        public GravitonLogger(GravitonPluginSettings settings)
+        {
+            _settings = settings;
+        }
 
         internal ILogger Logger { get; private set; } = null!;
         internal ILogger DebugLogger { get; private set; } = null!;

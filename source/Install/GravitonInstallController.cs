@@ -152,18 +152,8 @@ namespace Graviton.Install
                     romMLocal.InstalledPath = installDir;
                     romMLocal.IsInstalledPathDirectory = true;
                 }
-                romMLocal.Save();
 
-                if (onInstalledCallback != null)
-                {
-                    await onInstalledCallback.Invoke(installDir, (ulong)(new FileInfo(Path.Combine(installDir, GameData.FileName)).Length));
-                }
-                else
-                {
-                    game.InstallState = InstallState.Installed;
-                    await _playniteAPI.Library.Games.UpdateAsync(game);
-                }
-
+                await CompleteBaseGameInstallationAsync(romMLocal, game, installDir, (ulong)(new FileInfo(Path.Combine(installDir, GameData.FileName)).Length), onInstalledCallback);
                 return;
             }
 
@@ -229,20 +219,7 @@ namespace Graviton.Install
                         finalDir = installDir;
                     }
 
-                    if(onInstalledCallback != null)
-                    {
-                        await onInstalledCallback.Invoke(finalDir, installSize);
-                    }
-                    else
-                    {
-                        romMLocal.Save();
-
-                        Game.InstallState = InstallState.Installed;
-                        Game.InstallSize = installSize;
-                        Game.InstallDirectory = finalDir;
-
-                        await GravitonPlugin.PlayniteApi.Library.Games.UpdateAsync(Game);
-                    }
+                    await CompleteBaseGameInstallationAsync(romMLocal, Game, finalDir, installSize, onInstalledCallback);
 
                     if (File.Exists(req.DownloadPath))
                         File.Delete(req.DownloadPath);
@@ -272,6 +249,23 @@ namespace Graviton.Install
                 InstallDir = installDir
             };
             GravitonPlugin.Instance.DownloadQueueController?.Enqueue(req, backup);
+        }
+
+        internal async Task CompleteBaseGameInstallationAsync(RomMRomLocal localROM, Game game, string installDirectory, ulong installSize, Func<string, ulong, Task>? onInstalledCallback = null)
+        {
+            localROM.Save(_plugin);
+
+            if (onInstalledCallback != null)
+            {
+                await onInstalledCallback(installDirectory, installSize);
+                return;
+            }
+
+            game.InstallState = InstallState.Installed;
+            game.InstallSize = installSize;
+            game.InstallDirectory = installDirectory;
+
+            await _playniteAPI.Library.Games.UpdateAsync(game);
         }
 
         internal async Task RecoverBaseGameDownload(DownloadRequestBackup request)

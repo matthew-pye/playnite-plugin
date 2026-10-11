@@ -344,7 +344,7 @@ namespace Graviton.Import
                 {
                     _logger?.Warn($"Recovered stale Playnite ID for RomM ROM {gameID}: " + $"{_plugin.ImportedGames[gameID].PlayniteID} -> {game.Id}");
                     _plugin.ImportedGames[gameID].PlayniteID = game.Id;
-                    _plugin.ImportedGames[gameID].Save();
+                    _plugin.ImportedGames[gameID].Save(_plugin);
                 }   
             }
 
@@ -416,10 +416,10 @@ namespace Graviton.Import
             // Update RomM link
             game.Links?.Where(x => x.TypeId == "romm").ForEach(y => y.Url = $"{_plugin.Settings.Host}/rom/{ROM.Id}");
 
-            await InstallUpdateDLC.RefreshCandidates(_mapping, ROM, _plugin.ImportedGames[gameID]);
+            await InstallUpdateDLC.RefreshCandidates(_mapping, ROM, _plugin.ImportedGames[gameID], _plugin);
 
             await _playniteAPI.Library.Games.UpdateAsync(game);
-            _plugin.ImportedGames[gameID].Resync(ROM);
+            _plugin.ImportedGames[gameID].Resync(_logger!, ROM, _plugin);
 
             ROM.Processed = true; // Skips the ROM being remerged if user has split the ROMs apart
             return new(gameID, null);
@@ -430,8 +430,8 @@ namespace Graviton.Import
             var importedGame = await GenerateGame(ROM);
             if (importedGame != null)
             {
-                
-                var localrom = RomMRomLocal.Build(_mapping.MappingId, ROM, importedGame.Id);
+
+                var localrom = RomMRomLocal.Build(_mapping.MappingId, ROM, importedGame.Id, _plugin);
 
                 if (localrom == null)
                 {
@@ -440,8 +440,8 @@ namespace Graviton.Import
                 } 
                 else
                 {
-                    await InstallUpdateDLC.RefreshCandidates(_mapping, ROM, localrom);
-                    localrom.Save();
+                    await InstallUpdateDLC.RefreshCandidates(_mapping, ROM, localrom, _plugin);
+                    localrom.Save(_plugin);
                     await _playniteAPI.Library.Games.AddAsync(importedGame);
 
                     // Import game sessions
@@ -496,7 +496,7 @@ namespace Graviton.Import
             // TODO import patch / hack / translation as there own games
         }
 
-        private async Task<Game?> GenerateGame(RomMRom ROM)
+        internal async Task<Game?> GenerateGame(RomMRom ROM)
         {
             Game game = new Game();
 

@@ -20,12 +20,16 @@ namespace Graviton.Install.Downloads
         private readonly DownloadQueueViewModel DownloadQueueVM;
         private readonly SemaphoreSlim concurrencyGate;
 
+
         private readonly ConcurrentDictionary<string, CancellationTokenSource> activeDownloads = new();
 
-        public GravitonLogger? Logger;
         public int MaxConcurrent { get; }
 
-        internal DownloadQueueController(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer, DownloadQueueViewModel downloadQueueVM, int maxConcurrent)
+        private readonly Action<Action> _dispatchToUI;
+        private readonly Func<Task> _finishDelay;
+        private readonly Action<Func<Task>> _startWorker;
+
+        internal DownloadQueueController(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, IRomMServer romMServer, DownloadQueueViewModel downloadQueueVM, int maxConcurrent, Action<Action>? dispatchToUI = null, Func<Task>? finishDelay = null, Action<Func<Task>>? startWorker = null) 
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
@@ -36,6 +40,16 @@ namespace Graviton.Install.Downloads
 
             MaxConcurrent = Math.Max(1, maxConcurrent);
             concurrencyGate = new SemaphoreSlim(MaxConcurrent, MaxConcurrent);
+
+            _dispatchToUI = dispatchToUI ?? UIDispatcher.Invoke;
+            _finishDelay = finishDelay ?? (() =>
+            {
+                return Task.Delay(3000);
+            });
+            _startWorker = startWorker ?? (work =>
+            {
+                _ = Task.Run(work);
+            });
         }
 
         public DownloadQueueViewModel ViewModel => DownloadQueueVM;
@@ -61,13 +75,19 @@ namespace Graviton.Install.Downloads
 
             activeDownloads[item.Id] = item.Cts;
 
-            item.SetStatus(DownloadStatus.Queued, Loc.GetString("DownloadStatusQueued"));
+            item.SetStatus(DownloadStatus.Queued, _playniteAPI.GetLocalizedString("DownloadStatusQueued"));
             item.SetProgress(0, 1, true);
 
-            UIDispatcher.Invoke(() => DownloadQueueVM.Items.Add(item));
+            _dispatchToUI(() =>
+            {
+                DownloadQueueVM.Items.Add(item);
+            });
 
             // fire and forget background worker
-            Task.Run(async () => await ProcessItem(item, req));
+            _startWorker(() =>
+            {
+                return ProcessItem(item, req);
+            });
         }
 
         public void Cancel(string Id)
@@ -80,7 +100,7 @@ namespace Graviton.Install.Downloads
                 }
                 catch (Exception ex)
                 {
-                    Logger?.Warn(ex, "An error occurred while cancelling a download.");
+                    _logger?.Warn(ex, "An error occurred while cancelling a download.");
                 }
             }
         }
@@ -101,7 +121,7 @@ namespace Graviton.Install.Downloads
             }
             catch (OperationCanceledException)
             {
-                item.SetStatus(DownloadStatus.Canceled, Loc.GetString("DownloadStatusCanceled"));
+                item.SetStatus(DownloadStatus.Canceled, _playniteAPI.GetLocalizedString("DownloadStatusCanceled"));
                 item.SetProgress(0, 1, false);
 
                 TryCleanupTempDirectory(req);
@@ -109,18 +129,18 @@ namespace Graviton.Install.Downloads
                 req.InstallCompletion.TrySetCanceled();
                 await req.OnCancelled.Invoke();
                 
-                await Task.Delay(3000).ConfigureAwait(false);
+                await _finishDelay().ConfigureAwait(false);
                 downloadFailed = true;
             }
             catch (Exception ex)
             {
-                item.SetStatus(DownloadStatus.Failed, Loc.GetString("DownloadStatusFailed"));
+                item.SetStatus(DownloadStatus.Failed, _playniteAPI.GetLocalizedString("DownloadStatusFailed"));
                 TryCleanupTempDirectory(req);
 
                 req.InstallCompletion.TrySetException(ex);
                 await req.OnFailed.Invoke(ex);
                 
-                await Task.Delay(3000).ConfigureAwait(false);
+                await _finishDelay().ConfigureAwait(false);
                 downloadFailed = true;
             }
             finally 
@@ -147,20 +167,20 @@ namespace Graviton.Install.Downloads
                 if (req.WaitForInstall != null)
                 {
                     item.SetProgress(0, 1, true);
-                    item.SetStatus(DownloadStatus.Waiting, Loc.GetString("DownloadStatusWaiting"));
+                    item.SetStatus(DownloadStatus.Waiting, _playniteAPI.GetLocalizedString("DownloadStatusWaiting"));
                     await req.WaitForInstall.WaitAsync(item.Cts.Token);
                 }
 
                 await req.OnDownloadComplete.Invoke(item, req);
 
-                item.SetStatus(DownloadStatus.Completed, Loc.GetString("DownloadStatusCompleted"));
+                item.SetStatus(DownloadStatus.Completed, _playniteAPI.GetLocalizedString("DownloadStatusCompleted"));
                 item.SetProgress(item.ProgressMaximum, item.ProgressMaximum, false);
 
                 req.InstallCompletion.TrySetResult(true);
             }
             catch (OperationCanceledException)
             {
-                item.SetStatus(DownloadStatus.Canceled, Loc.GetString("DownloadStatusCanceled"));
+                item.SetStatus(DownloadStatus.Canceled, _playniteAPI.GetLocalizedString("DownloadStatusCanceled"));
                 item.SetProgress(0, 1, false);
 
                 req.InstallCompletion.TrySetCanceled();
@@ -169,7 +189,7 @@ namespace Graviton.Install.Downloads
             }
             catch (Exception ex)
             {
-                item.SetStatus(DownloadStatus.Failed, Loc.GetString("DownloadStatusFailed"));
+                item.SetStatus(DownloadStatus.Failed, _playniteAPI.GetLocalizedString("DownloadStatusFailed"));
 
                 req.InstallCompletion.TrySetException(ex);
                 await req.OnFailed.Invoke(ex); 
@@ -179,7 +199,7 @@ namespace Graviton.Install.Downloads
                 TryCleanupTempDirectory(req);
                 activeDownloads.TryRemove(item.Id, out _);
 
-                await Task.Delay(3000).ConfigureAwait(false);
+                await _finishDelay().ConfigureAwait(false);
                 RemoveFromList(item);
 
                 var tempPath = Path.Combine(_plugin.PluginDataPath, "temp", "downloads", $"{req.Id}.tmp");
@@ -192,12 +212,12 @@ namespace Graviton.Install.Downloads
         {
             var ct = item.Cts.Token;
 
-            item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloading"));
+            item.SetStatus(DownloadStatus.Downloading, _playniteAPI.GetLocalizedString("DownloadStatusDownloading"));
             item.SetProgress(0, 1, true);
 
             using var response = await _romMServer.RawGETAsync(req.DownloadUrl);
             if (response == null || response.Content == null)
-                throw new Exception(Loc.GetString("DownloadServerNullResponse"));
+                throw new Exception(_playniteAPI.GetLocalizedString("DownloadServerNullResponse"));
 
             if ((int)response.Status < 200 || (int)response.Status >= 300)
             {
@@ -215,12 +235,12 @@ namespace Graviton.Install.Downloads
                     {
                         item.SetProgress(downloaded, totalBytes.Value, false);
                         var pct = (double)downloaded / totalBytes.Value * 100.0;
-                        item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloadingPct", ("Percent", pct.ToString("0"))));
+                        item.SetStatus(DownloadStatus.Downloading, _playniteAPI.GetLocalizedString("DownloadStatusDownloadingPct", ("Percent", pct.ToString("0"))));
                     }
                     else
                     {
                         item.SetProgress(downloaded, Math.Max(1, downloaded), true);
-                        item.SetStatus(DownloadStatus.Downloading, Loc.GetString("DownloadStatusDownloading"));
+                        item.SetStatus(DownloadStatus.Downloading, _playniteAPI.GetLocalizedString("DownloadStatusDownloading"));
                     }
                 },
                 ct).ConfigureAwait(false);
@@ -263,7 +283,10 @@ namespace Graviton.Install.Downloads
         {
             if (item == null) return;
 
-            UIDispatcher.Invoke(() => DownloadQueueVM.Items.Remove(item));
+            _dispatchToUI(() =>
+            {
+                DownloadQueueVM.Items.Remove(item);
+            });
         }
 
         private void TryCleanupTempDirectory(DownloadRequest req)
@@ -280,7 +303,7 @@ namespace Graviton.Install.Downloads
             }
             catch (Exception ex)
             {
-                Logger?.Warn(ex, $"Cleanup failed for {req.DisplayName}.");
+                _logger?.Warn(ex, $"Cleanup failed for {req.DisplayName}.");
             }
         }
 

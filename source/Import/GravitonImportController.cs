@@ -39,7 +39,7 @@ namespace Graviton.Import
             _romMServer = server;
         }
 
-        public async Task<List<Game>> Import(ImportGamesArgs args)
+        internal async Task<List<Game>> Import(ImportGamesArgs args)
         {
             try
             {
@@ -168,7 +168,7 @@ namespace Graviton.Import
             }
         }
 
-        private async Task RemoveMissingGames(List<string> ImportedGames, List<EmulatorMapping> processedMappings)
+        internal async Task RemoveMissingGames(List<string> ImportedGames, List<EmulatorMapping> processedMappings)
         {
             _logger.Info($"Started removeal of games that weren't imported");
 
@@ -235,7 +235,7 @@ namespace Graviton.Import
         }
 
 
-        private string BuildGeneralROMUrl()
+        internal string BuildGeneralROMUrl()
         {
             string url = $"/api/roms";
             string options = "?";
@@ -266,7 +266,7 @@ namespace Graviton.Import
             return url + options;
         }
 
-        private async Task<List<RomMRom>> DownloadROMData(ImportGamesArgs args, string url, RomMPlatform platform)
+        internal async Task<List<RomMRom>> DownloadROMData(ImportGamesArgs args, string url, RomMPlatform platform)
         {
             _logger.Info($"Starting to fetch games for {platform.Name}");
 
@@ -321,7 +321,7 @@ namespace Graviton.Import
         }
 
 
-        public async Task<List<RomMPlatform>?> FetchPlatforms()
+        internal async Task<List<RomMPlatform>?> FetchPlatforms()
         {
             var result = await _romMServer.GETAsync("/api/platforms");
             if (result == null)
@@ -366,7 +366,7 @@ namespace Graviton.Import
             return platforms;
         }
 
-        public async Task<List<RomMCollection>> FetchManualCollections()
+        internal async Task<List<RomMCollection>> FetchManualCollections()
         {
             List<RomMCollection> collections = new List<RomMCollection>();
 
@@ -388,7 +388,7 @@ namespace Graviton.Import
             return collections;
         }
 
-        public async Task<List<RomMCollection>> FetchSmartCollections()
+        internal async Task<List<RomMCollection>> FetchSmartCollections()
         {
             List<RomMCollection> collections = new List<RomMCollection>();
 
