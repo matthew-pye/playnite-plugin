@@ -1,4 +1,4 @@
-﻿using Graviton.Models.Notifications;
+using Graviton.Models.Notifications;
 using Graviton.Notifications;
 
 using Playnite;
@@ -63,15 +63,20 @@ namespace Graviton
         private GravitonLogger _logger;
 
 
-        private HttpClient httpClient = new HttpClient();
+        private readonly Func<HttpClient> _httpClientFactory;
+        private HttpClient httpClient;
 
         private string Host => _plugin?.Settings.Host ?? "";
 
-        public RomMServer(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger)
+        public RomMServer(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger) : this(plugin, playniteAPI, logger, () => new HttpClient()) {}
+
+        internal RomMServer(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, Func<HttpClient> httpClientFactory)
         {
             _plugin = plugin;
             _playniteAPI = playniteAPI;
             _logger = logger;
+            _httpClientFactory = httpClientFactory;
+            httpClient = _httpClientFactory();
 
             httpClient.DefaultRequestHeaders.Accept.Clear();
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -127,10 +132,8 @@ namespace Graviton
 
         public void ConfigureTimeout(int seconds)
         {
-            var newClient = new HttpClient()
-            {
-                Timeout = TimeSpan.FromSeconds(seconds),
-            };
+            var newClient = _httpClientFactory();
+            newClient.Timeout = TimeSpan.FromSeconds(seconds);
 
             newClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             newClient.DefaultRequestHeaders.Authorization = httpClient.DefaultRequestHeaders.Authorization;

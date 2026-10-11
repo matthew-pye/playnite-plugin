@@ -201,9 +201,9 @@ namespace Graviton.Install
                     candidate.Status = InstallStatus.Installed;
                     candidate.PreviousInstallStyle = style;
 
-                    if (GravitonPlugin.Instance.ImportedGames.TryGetValue(backup.GameID, out var localROM))
+                    if (_plugin.ImportedGames.TryGetValue(backup.GameID, out var localROM))
                     {
-                        localROM.Save();
+                        localROM.Save(_plugin);
                     }
                 },
 
@@ -243,7 +243,8 @@ namespace Graviton.Install
 
         private async Task InstallCandidate(DownloadQueueItem item, DownloadRequest req, UpdateDLCCandidate candidate, InstallStyles style, GameInstallInfo installInfo, string category)
         {
-            
+            item.Cts.Token.ThrowIfCancellationRequested();
+
             string workingPath = Path.Combine(Path.GetDirectoryName(req.DownloadPath)!, "extracted", req.Id);
 
             switch (style)
