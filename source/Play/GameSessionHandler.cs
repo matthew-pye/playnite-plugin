@@ -48,7 +48,6 @@ namespace Graviton.Play
         {
             // Set GameID
             var gameID = args.Game.LibraryGameId;
-            GameID = gameID;
 
             if (IsAGameRunning)
             {
@@ -56,6 +55,8 @@ namespace Graviton.Play
                 args.CancelStartup = true;
                 return;
             }
+
+            GameID = gameID;
 
             if (string.IsNullOrEmpty(gameID))
             {

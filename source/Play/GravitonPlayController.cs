@@ -170,7 +170,7 @@ namespace Graviton.Play
                 }
 
                 // Check to see if emulator supports no extention and if the installed game has no extention
-                if(fileTypes.Contains("\u003Cnone\u003E") && !_plugin.ImportedGames[game.LibraryGameId!].InstalledPath!.Contains('.'))
+                if(fileTypes.Contains("\u003Cnone\u003E") && string.IsNullOrEmpty(Path.GetExtension(_plugin.ImportedGames[game.LibraryGameId!].InstalledPath!)))
                 {
                     return new List<string> { _plugin.ImportedGames[game.LibraryGameId!].InstalledPath! };
                 }
