@@ -54,7 +54,7 @@ namespace Graviton.Install.Downloads
 
                                 rom.Value.InstalledPath = null;
                                 rom.Value.IsInstalledPathDirectory = false;
-                                rom.Value.Save();
+                                rom.Value.Save(_plugin);
                             }
                         }
                         else if(result == MessageBoxResult.No) { }
@@ -81,7 +81,7 @@ namespace Graviton.Install.Downloads
                     romMLocal.IsInstalledPathDirectory = false;
                 }
 
-                romMLocal.Save();
+                romMLocal.Save(_plugin);
             }
             catch (Exception ex)
             {

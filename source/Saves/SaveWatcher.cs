@@ -1,4 +1,4 @@
-﻿using Graviton.Notifications;
+using Graviton.Notifications;
 
 using Playnite;
 
@@ -8,51 +8,62 @@ namespace Graviton.Saves
 {
     public class SaveWatcher
     {
-        private IGravitonContext _plugin;
-        private IPlayniteApi _playniteAPI;
-        private GravitonLogger _logger;
+        private readonly IGravitonContext _plugin;
+        private readonly GravitonLogger _logger;
+
+        private readonly Func<int, byte[]?> _getScreenshot;
+        private readonly Func<DateTime> _utcNow;
 
         public byte[]? NewestSaveScreenshot;
 
-        private List<FileSystemWatcher> FileWatchers = new();
-        private DateTime LastFileUpdate = DateTime.UtcNow;
-        private readonly object _fileUpdateLock = new object();
-        private ScreenshotService ScreenCapture;
+        private readonly List<FileSystemWatcher> FileWatchers = new();
+        private DateTime LastFileUpdate = DateTime.MinValue;
+        private readonly object _fileUpdateLock = new();
 
-        internal SaveWatcher(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, ScreenshotService service)
+        internal SaveWatcher(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, ScreenshotService service) : this(plugin, playniteAPI, logger, service.GetScreenshotFromSecondsAgo) {}
+
+        internal SaveWatcher(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, Func<int, byte[]?> getScreenshot, Func<DateTime>? utcNow = null)
         {
             _plugin = plugin;
-            _playniteAPI = playniteAPI;
             _logger = logger;
-
-            ScreenCapture = service;
+            _getScreenshot = getScreenshot;
+            _utcNow = utcNow ?? (() => DateTime.UtcNow);
         }
 
         public bool Setup(List<string> sourcePaths)
         {
-            NewestSaveScreenshot = null;
-
-            foreach (var path in sourcePaths)
+            // Dispose any old file watchers
+            foreach (var watcher in FileWatchers)
             {
-                if (File.Exists(path))
-                {
-                    var dir = Path.GetDirectoryName(path);
-                    if (dir == null)
-                        continue;
+                watcher.Dispose();
+            }
+            FileWatchers.Clear();
 
-                    FileSystemWatcher watcher = new()
-                    {
-                        Path = dir,
-                        IncludeSubdirectories = false,
-                        NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
-                        Filter = Path.GetFileName(path),
-                    };
-                    watcher.Created += OnChanged;
-                    watcher.Changed += OnChanged;
-                    watcher.Renamed += OnChanged;
-                    FileWatchers.Add(watcher);
+            NewestSaveScreenshot = null;
+            LastFileUpdate = DateTime.MinValue;
+
+            var uniquePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var sourcePath in sourcePaths)
+            {
+                if (string.IsNullOrWhiteSpace(sourcePath))
+                    continue;
+                
+                string path;
+                try
+                {
+                    path = Path.GetFullPath(sourcePath);
                 }
-                else if (Directory.Exists(path))
+                catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+                {
+                    _logger.Error($"Invalid save watch path: {sourcePath}");
+                    continue;
+                }
+
+                if (!uniquePaths.Add(path))
+                    continue;
+                
+                if (Directory.Exists(path))
                 {
                     FileSystemWatcher watcher = new()
                     {
@@ -67,49 +78,75 @@ namespace Graviton.Saves
                 }
                 else
                 {
-                    _logger.Error($"{path} doesn't exist cannot watch!");
+                    var dir = Path.GetDirectoryName(path);
+                    var isDirectoryPath = sourcePath.EndsWith(Path.DirectorySeparatorChar) || sourcePath.EndsWith(Path.AltDirectorySeparatorChar);
+
+                    if (isDirectoryPath || dir == null || !Directory.Exists(dir))
+                    {
+                        _logger.Error($"{sourcePath} doesn't exist cannot watch!");
+                        continue;
+                    }
+
+                    FileSystemWatcher watcher = new()
+                    {
+                        Path = dir,
+                        IncludeSubdirectories = false,
+                        NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
+                        Filter = Path.GetFileName(path),
+                    };
+                    watcher.Created += OnChanged;
+                    watcher.Changed += OnChanged;
+                    watcher.Renamed += OnChanged;
+                    FileWatchers.Add(watcher);
                 }
             }
 
-            if (FileWatchers.Count > 0)
+            return FileWatchers.Count > 0;
+        }
+
+        public Task Start()
+        {
+            foreach (var watcher in FileWatchers)
             {
-                return true;
+                watcher.EnableRaisingEvents = true;
             }
 
-            return false;
+            return Task.CompletedTask;
         }
 
-        public async Task Start()
+        public Task Stop()
         {
             foreach (var watcher in FileWatchers)
-                watcher.EnableRaisingEvents = true;
-        }
-
-        public async Task Stop()
-        {
-            foreach (var watcher in FileWatchers)
+            {
                 watcher.Dispose();
+            }
 
             FileWatchers.Clear();
+            return Task.CompletedTask;
         }
 
         private void OnChanged(object source, FileSystemEventArgs e)
         {
-            var now = DateTime.UtcNow;
+            var now = _utcNow();
             lock (_fileUpdateLock)
             {
-                // Debounce changes incase multiple file change at once don't clash with each other
-                if ((now - LastFileUpdate) > TimeSpan.FromMilliseconds(500))
+                if ((now - LastFileUpdate) <= TimeSpan.FromMilliseconds(500))
+                    return;
+                
+                try
                 {
-                    var image = ScreenCapture.GetScreenshotFromSecondsAgo(_plugin.Settings.SecondsBeforeSave);
+                    var image = _getScreenshot(_plugin.Settings.SecondsBeforeSave);
                     if (image != null)
                     {
                         NewestSaveScreenshot = image;
+                        LastFileUpdate = now;
                     }
-                    LastFileUpdate = now;
-                }   
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"Failed to capture save screenshot: {ex}");
+                }
             }
         }
-
     }
 }

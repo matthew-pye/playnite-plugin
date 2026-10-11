@@ -61,7 +61,7 @@ namespace Graviton.Saves
                 if (mapping != null && rom.LocalSave != null)
                     rom.LocalSave.SaveDirectoryTrees = SaveDirectoryTree.Build(mapping.SavePath, rom.LocalSave.SourceFilePaths.ToList());
 
-                rom.Save();
+                rom.Save(_plugin);
             }
 
             return roms;
@@ -226,7 +226,13 @@ namespace Graviton.Saves
                             if (DateTime.TryParse(operation.ServerUpdatedAt, out var updatedAt))
                                 rom.LocalSave.ServerLastUpdatedAt = updatedAt;
 
-                            await SaveController.Manager.Download(rom.LocalSave);
+                            var downloaded = await SaveController.Manager.Download(rom.LocalSave, true);
+                            if (downloaded.Status != SaveStatus.Synced)
+                            {
+                                operationFailed++;
+                                break;
+                            }
+
                             rom.LocalSave.IsTempRestored = false;
                             operationCompleted++;
                             break;
@@ -319,7 +325,7 @@ namespace Graviton.Saves
 
             }
 
-            rom.Save();
+            rom.Save(_plugin);
 
             var deviceid = new { operations_completed = operationCompleted, operations_failed = operationFailed};
             await _romMServer.POSTAsync($"/api/sync/sessions/{response.SessionID}/complete", deviceid);
@@ -420,7 +426,7 @@ namespace Graviton.Saves
                         {
                             rom.LocalSave.Status = SaveStatus.MissingFiles;
                             rom.LocalSave.MissingFiles = skippedPaths;
-                            rom.Save();
+                            rom.Save(_plugin);
                         }
                        
                        continue;
@@ -468,7 +474,7 @@ namespace Graviton.Saves
                     if(rom.LocalSave.Status == SaveStatus.MissingFiles)
                     {
                         rom.LocalSave.MissingFiles = skippedPaths;
-                        rom.Save();
+                        rom.Save(_plugin);
                         continue;
                     }
 
@@ -482,7 +488,7 @@ namespace Graviton.Saves
                 {
                     rom.LocalSave.Status = SaveStatus.MissingFiles;
                     rom.LocalSave.MissingFiles.Add(path);
-                    rom.Save();
+                    rom.Save(_plugin);
                     GravitonNotify.Notify("graviton.save.missingfiles", Loc.GetString("SaveFileMissingFiles", ("GameName", rom.Name!)), GravitonSeverity.Error);
                     continue;
                 }
