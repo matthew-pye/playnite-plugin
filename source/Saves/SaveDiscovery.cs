@@ -352,7 +352,7 @@ namespace Graviton.Saves
                 mappings = _plugin.Settings.Mappings.ToList();
             }
 
-            if (mappings.Count() <= 0 || !mappings.Any(x => x.MemoryCardSave == null))
+            if (mappings.Count == 0)
                 return null;
 
             List<MemoryCardSave> memoryCards = new();
@@ -450,7 +450,7 @@ namespace Graviton.Saves
                 mappings = _plugin.Settings.Mappings.ToList();
             }
 
-            if (mappings.Count() <= 0 || !mappings.Any(x => x.MemoryCardSave == null))
+            if (mappings.Count == 0)
                 return null;
 
             var response = await _romMServer.GETAsync("/api/memory-cards");
@@ -475,8 +475,8 @@ namespace Graviton.Saves
                     continue;
 
                 var cardVersions = JsonSerializer.Deserialize<List<RomMMemoryCardVersion>>(response);
-                if (cardVersions == null)
-                    return null;
+                if (cardVersions == null || cardVersions.Count == 0)
+                    continue;
 
                 cardVersions = cardVersions.OrderByDescending(x => DateTime.Parse(x.CreatedAt ?? DateTime.UnixEpoch.ToString())).ToList();
 
@@ -652,6 +652,9 @@ namespace Graviton.Saves
             if (mapping.FindSaveLayout == SaveLayoutStyle.Disabled)
                 return new();
 
+            if (!Directory.Exists(mapping.SavePath))
+                return new();
+
             List<GravitonSave>? saves = null;
 
             if (mapping.FindSaveLayout == SaveLayoutStyle.WholeFolder)
@@ -695,7 +698,7 @@ namespace Graviton.Saves
                     continue;
                 }
 
-                return saves;
+                return saves ?? new();
             }
 
             // Skip if no extensions are set
@@ -708,7 +711,8 @@ namespace Graviton.Saves
 
             foreach (var rom in roms.Where(x => x.MappingID == mapping.MappingId))
             {
-                var files = allFiles.Where(x =>  Path.GetFileNameWithoutExtension(x).Equals(rom.FileName, StringComparison.OrdinalIgnoreCase)).ToList();
+                var romBaseName = Path.GetFileNameWithoutExtension(rom.FileName);
+                var files = allFiles.Where(x => Path.GetFileNameWithoutExtension(x).Equals(romBaseName, StringComparison.OrdinalIgnoreCase)).ToList();
 
                 // Add files that match the save target
                 if (rom.SaveTarget != null)
@@ -716,15 +720,17 @@ namespace Graviton.Saves
                     files.AddRange(allFiles.Where(x => Path.GetFileNameWithoutExtension(x).Equals(rom.SaveTarget, StringComparison.OrdinalIgnoreCase)));
 
                     // Add gamecube gci files
-                    if (rom.SaveTarget.Length == 8)
+                    if (rom.SaveTarget.Length == 8 && rom.SaveTarget.All(Uri.IsHexDigit))
                     {
-                        var GCID = Encoding.ASCII.GetString(Convert.FromHexString(rom.SaveTarget));
+                        var gameCubeID = Encoding.ASCII.GetString(Convert.FromHexString(rom.SaveTarget));
+                        var gciRegex = new Regex($@"^..-{Regex.Escape(gameCubeID)}-.*\.gci$", RegexOptions.IgnoreCase);
 
-                        Regex GCIRegex = new Regex($@"^..-{Regex.Escape(GCID)}-.*\.gci$", RegexOptions.IgnoreCase);
-
-                        files.AddRange(allFiles.Where(x => GCIRegex.IsMatch(Path.GetFileName(x))));
+                        files.AddRange(allFiles.Where(file =>
+                        {
+                            return gciRegex.IsMatch(Path.GetFileName(file));
+                        }));
                     }
-                    
+
                 }
                     
                 if (files.Count <= 0)
@@ -740,6 +746,9 @@ namespace Graviton.Saves
                     else if (!extensions.Any(x => file.EndsWith("." + x, StringComparison.OrdinalIgnoreCase) || (x == "<none>" && !Path.HasExtension(file))))
                         files.Remove(file);
                 }
+
+                if (files.Count == 0)
+                    continue;
 
                 if (mapping.FindSaveLayout == SaveLayoutStyle.SingleFile)
                 {
@@ -796,7 +805,7 @@ namespace Graviton.Saves
                 }
             }
 
-            return saves;
+            return saves ?? new();
         }
 
         private bool IsAlreadyTracked(string rootPath, string file, string sourcePath)
