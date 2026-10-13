@@ -104,11 +104,32 @@ namespace Graviton.Models.RomM.Rom
         [JsonPropertyName("ra_id")]
         public int? RAId { get; set; }
 
+        [JsonPropertyName("launchbox_id")]
+        public int? LaunchboxId { get; set; }
+
         [JsonPropertyName("hasheous_id")]
         public int? HasheousId { get; set; }
 
+        [JsonPropertyName("tgdb_id")]
+        public int? TGDBId { get; set; }
+
+        [JsonPropertyName("flashpoint_id")]
+        public string? FlashpointId { get; set; }
+
         [JsonPropertyName("hltb_id")]
         public int? HLTBId { get; set; }
+
+        [JsonPropertyName("demozoo_id")]
+        public int? DemozooId { get; set; }
+
+        [JsonPropertyName("pouet_id")]
+        public int? PouetId { get; set; }
+
+        [JsonPropertyName("csdb_id")]
+        public int? CSDBId { get; set; }
+
+        [JsonPropertyName("steam_id")]
+        public int? SteamId { get; set; }
 
         // Platform
         [JsonPropertyName("platform_id")]

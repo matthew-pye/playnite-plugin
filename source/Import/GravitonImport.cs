@@ -493,7 +493,7 @@ namespace Graviton.Import
         {
             return null;
             
-            // TODO import patch / hack / translation as there own games
+            // TODO import patch / hack / translation as there own games while disabling several systems like save management & update dlc management
         }
 
         internal async Task<Game?> GenerateGame(RomMRom ROM)
@@ -580,6 +580,46 @@ namespace Graviton.Import
             {
                 game.Links.Add(new WebLink("howlongtobeat", $"https://howlongtobeat.com/game/{ROM.HLTBId}"));
                 game.ExternalIdentifiers?.Add(new("howlongtobeat", ROM.HLTBId.ToString()!));
+            }
+            if (ROM.MobyId != null)
+            {
+                game.Links.Add(new WebLink("mobygames", $"https://www.mobygames.com/game/{ROM.MobyId}"));
+                game.ExternalIdentifiers?.Add(new("mobygames", ROM.MobyId.ToString()!));
+            }
+            if (ROM.LaunchboxId != null)
+            {
+                game.Links.Add(new WebLink("launchbox", $"https://gamesdb.launchbox-app.com/games/details/{ROM.LaunchboxId}"));
+                game.ExternalIdentifiers?.Add(new("launchbox", ROM.LaunchboxId.ToString()!));
+            }
+            if (!string.IsNullOrEmpty(ROM.FlashpointId))
+            {
+                game.Links.Add(new WebLink("flashpoint", $"https://flashpointproject.github.io/flashpoint-database/search/#{ROM.FlashpointId}"));
+                game.ExternalIdentifiers?.Add(new("flashpoint", ROM.FlashpointId));
+            }
+            if (ROM.DemozooId != null)
+            {
+                game.Links.Add(new WebLink("demozoo", $"https://demozoo.org/productions/{ROM.DemozooId}"));
+                game.ExternalIdentifiers?.Add(new("demozoo", ROM.DemozooId.ToString()!));
+            }
+            if (ROM.PouetId != null)
+            {
+                game.Links.Add(new WebLink("pouet", $"https://www.pouet.net/prod.php?which={ROM.PouetId}"));
+                game.ExternalIdentifiers?.Add(new("pouet", ROM.PouetId.ToString()!));
+            }
+            if (ROM.PouetId != null)
+            {
+                game.Links.Add(new WebLink("pouet", $"https://www.pouet.net/prod.php?which={ROM.PouetId}"));
+                game.ExternalIdentifiers?.Add(new("pouet", ROM.PouetId.ToString()!));
+            }
+            if (ROM.CSDBId != null)
+            {
+                game.Links.Add(new WebLink("csdb", $"https://csdb.dk/release/?id={ROM.CSDBId}"));
+                game.ExternalIdentifiers?.Add(new("csdb", ROM.CSDBId.ToString()!));
+            }
+            if (ROM.SteamId != null)
+            {
+                game.Links.Add(new WebLink("steam", $"https://store.steampowered.com/app/{ROM.SteamId}"));
+                game.ExternalIdentifiers?.Add(new("steam", ROM.SteamId.ToString()!));
             }
 
             game.InstallDirectory = _mapping.DestinationPathResolved;

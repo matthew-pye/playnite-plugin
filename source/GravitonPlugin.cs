@@ -201,7 +201,14 @@ namespace Graviton
             await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("hasheous", "Hasheous"));
             await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("retroachievements", "RetroAchievements"));
             await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("howlongtobeat", "HowLongToBeat"));
-            Logger.Trace("Added RomM, IGDB, Screenscraper, Hasheous, RetroAchievements, HowLongToBeat to WebLinkTypes");
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("launchbox", "LaunchBox"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("mobygames", "Moby Games"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("flashpoint", "Flashpint"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("demozoo", "Demozoo"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("pouet", "Pouët"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("csdb", "CSDB"));
+            await PlayniteApi.Library.WebLinkTypes.AddAsync(new WebLinkType("steam", "Steam"));
+            Logger.Trace("Added WebLinkTypes");
 
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("romm", "RomM"));
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("igdb", "IGDB"));
@@ -209,7 +216,14 @@ namespace Graviton
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("hasheous", "Hasheous"));
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("retroachievements", "RetroAchievements"));
             await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("howlongtobeat", "HowLongToBeat"));
-            Logger.Trace("Added RomM, IGDB, Screenscraper, Hasheous, RetroAchievements, HowLongToBeat to ExternalIdentifierTypes");
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("launchbox", "LaunchBox"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("mobygames", "Moby Games")); 
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("flashpoint", "Flashpint"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("demozoo", "Demozoo"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("pouet", "Pouët"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("csdb", "CSDB"));
+            await PlayniteApi.Library.ExternalIdentifierTypes.AddAsync(new ExternalIdentifierType("steam", "Steam"));
+            Logger.Trace("Added ExternalIdentifierTypes");
 
             await PlayniteApi.Library.CompletionStatuses.AddAsync(new CompletionStatus("never_playing", "Never Playing"));
             Logger.Trace("Added Never Playing to CompletionStatuses");

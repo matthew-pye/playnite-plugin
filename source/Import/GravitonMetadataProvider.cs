@@ -172,6 +172,38 @@ namespace Graviton.Import
                     {
                         links.Add(new("howlongtobeat", $"https://howlongtobeat.com/game/{ROM.HLTBId}"));
                     }
+                    if (ROM.MobyId != null)
+                    {
+                        links.Add(new WebLink("mobygames", $"https://www.mobygames.com/game/{ROM.MobyId}"));
+                    }
+                    if (ROM.LaunchboxId != null)
+                    {
+                        links.Add(new WebLink("launchbox", $"https://gamesdb.launchbox-app.com/games/details/{ROM.LaunchboxId}"));
+                    }
+                    if (!string.IsNullOrEmpty(ROM.FlashpointId))
+                    {
+                        links.Add(new WebLink("flashpoint", $"https://flashpointproject.github.io/flashpoint-database/search/#{ROM.FlashpointId}"));
+                    }
+                    if (ROM.DemozooId != null)
+                    {
+                        links.Add(new WebLink("demozoo", $"https://demozoo.org/productions/{ROM.DemozooId}"));
+                    }
+                    if (ROM.PouetId != null)
+                    {
+                        links.Add(new WebLink("pouet", $"https://www.pouet.net/prod.php?which={ROM.PouetId}"));
+                    }
+                    if (ROM.PouetId != null)
+                    {
+                        links.Add(new WebLink("pouet", $"https://www.pouet.net/prod.php?which={ROM.PouetId}"));
+                    }
+                    if (ROM.CSDBId != null)
+                    {
+                        links.Add(new WebLink("csdb", $"https://csdb.dk/release/?id={ROM.CSDBId}"));
+                    }
+                    if (ROM.SteamId != null)
+                    {
+                        links.Add(new WebLink("steam", $"https://store.steampowered.com/app/{ROM.SteamId}"));
+                    }
 
                     if (links.Count > 0)
                         return links;
@@ -195,10 +227,40 @@ namespace Graviton.Import
                     }
                     if (ROM.HLTBId != null)
                     {
-
                         Ids.Add(new("howlongtobeat", ROM.HLTBId.ToString()!));
                     }
-
+                    if (ROM.MobyId != null)
+                    {
+                        Ids.Add(new("mobygames", ROM.MobyId.ToString()!));
+                    }
+                    if (ROM.LaunchboxId != null)
+                    {
+                        Ids.Add(new("launchbox", ROM.LaunchboxId.ToString()!));
+                    }
+                    if (!string.IsNullOrEmpty(ROM.FlashpointId))
+                    {
+                        Ids.Add(new("flashpoint", ROM.FlashpointId));
+                    }
+                    if (ROM.DemozooId != null)
+                    {
+                        Ids.Add(new("demozoo", ROM.DemozooId.ToString()!));
+                    }
+                    if (ROM.PouetId != null)
+                    {
+                        Ids.Add(new("pouet", ROM.PouetId.ToString()!));
+                    }
+                    if (ROM.PouetId != null)
+                    {
+                        Ids.Add(new("pouet", ROM.PouetId.ToString()!));
+                    }
+                    if (ROM.CSDBId != null)
+                    {
+                        Ids.Add(new("csdb", ROM.CSDBId.ToString()!));
+                    }
+                    if (ROM.SteamId != null)
+                    {
+                        Ids.Add(new("steam", ROM.SteamId.ToString()!));
+                    }
                     if (Ids.Count > 0)
                         return Ids;
 
