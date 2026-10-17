@@ -68,7 +68,7 @@ namespace Graviton
 
         private string Host => _plugin?.Settings.Host ?? "";
 
-        public RomMServer(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger) : this(plugin, playniteAPI, logger, () => new HttpClient()) {}
+        public RomMServer(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger) : this(plugin, playniteAPI, logger, () => new HttpClient(new HttpClientHandler { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate })) {}
 
         internal RomMServer(IGravitonContext plugin, IPlayniteApi playniteAPI, GravitonLogger logger, Func<HttpClient> httpClientFactory)
         {
