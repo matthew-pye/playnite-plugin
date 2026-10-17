@@ -103,21 +103,23 @@ namespace Graviton.Settings
             e.Handled = true;
         }
 
-        private async void Click_Authenticate(object sender, System.Windows.RoutedEventArgs e)
-        {
-            if (string.IsNullOrEmpty(_plugin.Settings.ClientTokenNP))
-            {
-                GravitonNotify.Notify("graviton.login.notoken", Loc.GetString("LoginNoToken"), GravitonSeverity.Warn);
-                e.Handled = true;
-                return;
-            }
+        // Removed manual client tokens as remote install doesn't support manually created tokens
 
-            ConnectButton.IsEnabled = false;
-            await _plugin.Account!.Login();
-            ConnectButton.IsEnabled = true;
-
-            e.Handled = true;
-        }
+        //private async void Click_Authenticate(object sender, System.Windows.RoutedEventArgs e)
+        //{
+        //    if (string.IsNullOrEmpty(_plugin.Settings.ClientTokenNP))
+        //    {
+        //        GravitonNotify.Notify("graviton.login.notoken", Loc.GetString("LoginNoToken"), GravitonSeverity.Warn);
+        //        e.Handled = true;
+        //        return;
+        //    }
+        //
+        //    ConnectButton.IsEnabled = false;
+        //    await _plugin.Account!.Login();
+        //    ConnectButton.IsEnabled = true;
+        //
+        //    e.Handled = true;
+        //}
 
         private void Hyperlink_ClientToken(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
         {
@@ -222,12 +224,12 @@ namespace Graviton.Settings
             }
 
             BasicLoginButton.IsEnabled = false;
-            ConnectButton.IsEnabled = false;
+            // ConnectButton.IsEnabled = false;
 
             await _plugin.Account!.Login();
 
             BasicLoginButton.IsEnabled = true;
-            ConnectButton.IsEnabled = true;
+            // ConnectButton.IsEnabled = true;
 
             e.Handled = true;
         }

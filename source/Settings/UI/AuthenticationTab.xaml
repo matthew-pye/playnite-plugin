@@ -344,8 +344,10 @@
                                 <TextBlock Name="OpenInBrowserText" Text="{loc:LocalizedString OpenInBrowser}" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
                         </StackPanel>
-
-                        <Separator Grid.Row="3" Margin="5,8" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
+                        
+                        <!-- Removed manual client tokens as remote install doesn't support manually created tokens -->
+                        
+                        <!--<Separator Grid.Row="3" Margin="5,8" Background="{DynamicResource Graviton.TransparentBackground.Colour}"/>
                         <Grid Margin="5" Grid.Row="4" VerticalAlignment="Bottom">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -355,7 +357,7 @@
                             <Button Grid.Column="1" Name="ConnectButton" Click="Click_Authenticate" Margin="5,0,5,0">
                                 <TextBlock Name="AuthButtonText" Text="{loc:LocalizedString Connect}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             </Button>
-                        </Grid>
+                        </Grid>-->
                     </Grid>
                     <!-- #endregion -->
 
