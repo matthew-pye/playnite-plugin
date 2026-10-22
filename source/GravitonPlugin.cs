@@ -113,7 +113,7 @@ namespace Graviton
 
             Instance = this;
 
-            XamlId = "Graviton.RomM";
+            XamlId = Id;
             LibrarySettings = new()
             {
                 LibraryName = ExternalIdName,
