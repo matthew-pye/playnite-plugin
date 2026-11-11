@@ -1,6 +1,7 @@
 ﻿using Graviton.Models.Notifications;
 using Graviton.Models.RomM;
 using Graviton.Models.RomM.Collection;
+using Graviton.Models.RomM.Metadata;
 using Graviton.Models.RomM.PlaySessions;
 using Graviton.Models.RomM.Rom;
 using Graviton.Notifications;
@@ -325,12 +326,35 @@ namespace Graviton.Status
                     var userCheevosData = userData?.RAProgression?.RAGames?.FirstOrDefault(x => x.ID == rom.RAId);
                     var cheevoSet = new List<ImportableAchievement>();
 
+                    var earnedRaIds = (userCheevosData?.EarnedAchievements ?? new()).Where(x => x.RA_ID != null).Select(x => x.RA_ID!.Value).ToHashSet();
+                    var badgeShareCounts = rom.MergedRAMetadata.Achievements.Where(x => x.ID == null || !earnedRaIds.Contains(x.ID.Value)).GroupBy(y => y.BadgeID ?? "").ToDictionary(z => z.Key, z => z.Count());
+
                     foreach (var cheevo in rom.MergedRAMetadata.Achievements)
                     {
                         if (args.CancelToken.IsCancellationRequested)
                             break;
 
-                        var userCheevoData = userCheevosData?.EarnedAchievements?.FirstOrDefault(x => x.ID.ToString() == cheevo.BadgeID);
+                        // Check for RA ID in the user data but fallback to badge ID matching for pre 5.5.x data
+                        RetroAchievement? userCheevoData = null;
+                        var earned = userCheevosData?.EarnedAchievements;
+
+                        if (earned != null)
+                        {
+                            userCheevoData = earned.FirstOrDefault(x => x.RA_ID != null && x.RA_ID == cheevo.ID);
+
+                            if (userCheevoData == null)
+                            {
+                                var legacyMatches = earned.Where(x => x.RA_ID == null && x.ID.ToString() == cheevo.BadgeID).ToList();
+
+                                badgeShareCounts.TryGetValue(cheevo.BadgeID ?? "", out var sharedBy);
+                                if (sharedBy < 1) 
+                                    sharedBy = 1;
+
+                                if (legacyMatches.Count > 0 && legacyMatches.Count >= sharedBy)
+                                    userCheevoData = legacyMatches[0];
+                            }
+                        }
+
 
                         cheevoSet.Add(new($"RA-{cheevo.ID}", cheevo.Title ?? "") 
                         {

@@ -8,6 +8,9 @@ namespace Graviton.Models.RomM.Metadata
         [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public int? ID { get; set; }
 
+        [JsonPropertyName("ra_id")]
+        public int? RA_ID { get; set; }
+
         [JsonPropertyName("date")]
         public string? Date { get; set; }
 
