@@ -57,7 +57,7 @@ namespace Graviton
         public static readonly string Id = "Matthew-Pye.Graviton";
         public static readonly string ExternalIdType = "graviton";
         public static readonly string ExternalIdName = "Graviton (RomM Library)";
-        public static readonly Version Version = new Version(0, 4, 0);
+        public static readonly Version Version = new Version(0, 5, 0);
 
         public string PluginDLLPath { get; private set; } = "";
         public string PluginDataPath { get; private set; } = "";
