@@ -2,7 +2,7 @@
 <!-- trunk-ignore(markdownlint/MD041) -->
 <div align="center">
 
-  <img src="https://github.com/matthew-pye/playnite-plugin/blob/main/source/pluginicon.png" height="180px" width="auto" alt="romm-muos logo">
+  <img src="https://raw.githubusercontent.com/matthew-pye/playnite-plugin/refs/heads/main/source/pluginicon.png" height="180px" width="auto" alt="romm-muos logo">
     <h3 style="font-size: 25px;">
     Graviton - RomM Library
   </h3>
@@ -10,13 +10,12 @@
 <br>
 
 [![license-badge-img]][license-badge]
-<!-- [![release-badge-img]][release-badge] -->
+[![release-badge-img]][release-badge]
 
   </div>
-</div>
 
 > [!WARNING]
-> This plugin is in a very alpha state but should have feature parity with the original playnite 10 version
+> This plugin is in a alpha state but should have feature parity with the original playnite 10 version
 
 # Overview
 
@@ -31,29 +30,27 @@ To install the plugin, download the pext2 file from the releases page
 
 If you have any issues with the plugin, please [open an issue](https://github.com/matthew-pye/playnite-plugin/issues/new) in this repository. If the issue is with RomM itself, open an issue in the [RomM repository](https://github.com/rommapp/romm/issues/new/choose).
 
-# Project Support
+## Support the RomM Developers
 
-Consider supporting the RomM developers on Open Collective.
+Consider supporting the RomM developers on Open Collective. Funds cover hosting, development, and maintenance, and they pass some along to community projects to nurture a healthy ecosystem of apps.
 
-[![oc-donate-img]][oc-donate]
+  <div dir="auto">
+    <a href="https://opencollective.com/romm" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/rommapp/romm/refs/heads/master/.github/resources/opencollective-badge.svg" alt="Open Collective" width="250" height="58"/></a>
+  </div>
 
-# Acknowledgement
+## Acknowledgement
 
 This plugin is a fork of the original playnite 10 plugin [Playnite Plugin](https://github.com/rommapp/playnite-plugin) by [@gantoine](https://github.com/gantoine).
 
 <!-- Badges -->
 
-[license-badge-img]: https://img.shields.io/github/license/rommapp/playnite-plugin?style=for-the-badge&color=a32d2a&kill_cache=2
+[license-badge-img]: https://img.shields.io/github/license/matthew-pye/playnite-plugin?style=for-the-badge&color=a32d2a&kill_cache=2
 [license-badge]: LICENSE
-[release-badge-img]: https://img.shields.io/github/v/release/rommapp/playnite-plugin?style=for-the-badge&kill_cache=2
-[release-badge]: https://github.com/rommapp/playnite-plugin/releases
+[release-badge-img]: https://img.shields.io/github/v/release/matthew-pye/playnite-plugin?include_prereleases&style=for-the-badge
+[release-badge]: https://github.com/matthew-pye/playnite-plugin/releases
 [discord-badge-img]: https://img.shields.io/badge/discord-7289da?style=for-the-badge
 [discord-badge]: https://discord.gg/P5HtHnhUDH
 
 <!-- Links -->
 
 [docs-installation-guide]: https://docs.romm.app/latest/Integrations/Playnite-plugin/
-[discord-invite]: https://invidget.switchblade.xyz/P5HtHnhUDH
-[discord-invite-url]: https://discord.gg/P5HtHnhUDH
-[oc-donate-img]: https://opencollective.com/romm/donate/button.png?color=blue
-[oc-donate]: https://opencollective.com/romm
