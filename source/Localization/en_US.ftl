@@ -97,7 +97,7 @@ AutoSaveDetectionTooltip =
     - Folder: Looks for a folder name that matches
         e.g. {"{"}SaveDirectory{"}"}/Final Fantasy VII (Europe)/
 
-SaveExtensions = Save Extensions
+SaveExtensions = Whitelisted Save Extensions
 SaveExtensionsPlaceholder = srm;sav;gci
 SaveLocation = Save Location
 ManageSaves = Manage Saves
@@ -130,6 +130,14 @@ CemuTitleIDPathNote = Select Cemu's mlc01\usr\title folder.
 XeniaTitleIDPathNote = Select Xenia's content root folder, usually Documents\Xenia.
 ShadPS4UpdatePathNote = Select the folder containing your installed shadPS4 games.
 ShadPS4DLCPathNote = Select shadPS4's add-on content folder.
+EnableMappingSaveSyncing = Enable save syncing for this emulator mapping
+EmulatorSaveName = Emulator Name
+SaveCoreName = Libretro Core Name
+CoreNameNotApplicable = N/A
+NewExtensionPlaceholder = Type an extension here and click add e.g. sav
+Optional = (Optional)
+SaveStateLocation = Save State Location
+DetectedStyle = Detected Save Layout: 
 
 # Enum display values
 InstallStyles_None = None

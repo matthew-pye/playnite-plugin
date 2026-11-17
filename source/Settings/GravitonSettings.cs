@@ -61,8 +61,10 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _keepStatusSynced = true;          
         [ObservableProperty] private bool _keepFavouritesSynced = false;      
         [ObservableProperty] private bool _keepPrivateNotesSynced = false;      
-        [ObservableProperty] private bool _keepPublicNotesSynced = false;      
-       
+        [ObservableProperty] private bool _keepPublicNotesSynced = false;
+
+        [ObservableProperty] private bool _saveSyncEnabled = true;
+
         [ObservableProperty] private bool _captureScreenshots = false;
         [ObservableProperty] private int _secondsBeforeSave = 15;
         [ObservableProperty] private ScreenshotResolution _screenshotResolution = ScreenshotResolution.P1080;

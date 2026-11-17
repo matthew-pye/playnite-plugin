@@ -4,6 +4,7 @@ using Emunight;
 
 using Graviton.Models.Install;
 using Graviton.Models.RomM.Platform;
+using Graviton.Models.Saves;
 
 using Playnite;
 
@@ -68,8 +69,16 @@ namespace Graviton.Models
         [ObservableProperty] private ObservableCollection<DynamicArgument> _DLCCLIUserArgs = new();
 
         // Saves
-        
+        [ObservableProperty] private bool _enableSaveSyncing;
+        [ObservableProperty] private string? _saveLocation;
+        [ObservableProperty] private SaveLayoutTypes? _foundSaveType;
+        [JsonIgnore] private SaveLayoutTypes _saveType = SaveLayoutTypes.Auto;
+        [ObservableProperty] private ObservableCollection<string> _whitelistExtensions = new();
 
+        [ObservableProperty] private string? _emulatorSaveName;
+        [ObservableProperty] private string? _coreSaveName;
+
+        [ObservableProperty] private string? _saveStateLocation;
 
         // UI
         [ObservableProperty] [property: JsonIgnore] private bool _isSelected = false;
@@ -112,7 +121,13 @@ namespace Graviton.Models
                 if (value is not ImportedEmulator imported || imported.ProfileSettings?.Any(p => p.ProfileId == EmulatorProfileId) != true)
                 {
                     EmulatorProfileId = null;
+                    CoreSaveName = null;
                 }
+
+                if (string.IsNullOrEmpty(EmulatorSaveName) || (_emulator != null && _emulator != value))
+                {
+                    EmulatorSaveName = value?.Name;
+                }    
 
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(AvailableProfiles));
@@ -152,6 +167,15 @@ namespace Graviton.Models
             {
                 _emulatorProfile = value;
                 EmulatorProfileId = value?.Id;
+
+                if (value != null && (string.IsNullOrEmpty(CoreSaveName) || (_emulatorProfile != null && _emulatorProfile != value)))
+                {
+                    if (Emulator != null && Emulator.Name.Equals("Retroarch", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var coreFile = _emulatorProfile?.WindowsData?.ProfileFiles?.ToList().FirstOrDefault(f => f.EndsWith("_libretro.dll", StringComparison.OrdinalIgnoreCase));
+                        CoreSaveName = coreFile != null ? Path.GetFileName(coreFile).Replace("_libretro.dll", "") : null;
+                    }
+                }    
 
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsSetup));
@@ -284,5 +308,24 @@ namespace Graviton.Models
             }
         }
 
+        public SaveLayoutTypes SaveType
+        {
+            get => _saveType;
+            set
+            {
+                _saveType = value;
+
+                if(value == SaveLayoutTypes.Auto && FoundSaveType == null)
+                {
+                    //Graviton.Instance.SaveController.Discovery.FindSaveLayout(this);
+                }
+                else if (value != SaveLayoutTypes.Auto)
+                {
+                    FoundSaveType = null;
+                }
+
+                OnPropertyChanged();
+            }
+        }
     }
 }

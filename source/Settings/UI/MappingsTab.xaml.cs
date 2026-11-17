@@ -128,5 +128,77 @@ namespace Graviton.Settings
 
             e.Handled = true;
         }
+
+        private async void BrowseSavesLocation_Click(object sender, RoutedEventArgs e)
+        {
+            var path = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync();
+
+            if (SelectedMapping != null && path != null)
+                SelectedMapping.SaveLocation = path[0];
+
+            e.Handled = true;
+        }
+
+        private async void BrowseSaveStateLocation_Click(object sender, RoutedEventArgs e)
+        {
+            var path = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync();
+
+            if (SelectedMapping != null && path != null)
+                SelectedMapping.SaveStateLocation = path[0];
+
+            e.Handled = true;
+        }
+
+        private void AddWhitelistedExtension_Click(object sender, RoutedEventArgs e)
+        {
+            if (SelectedMapping != null)
+            {
+                SelectedMapping.WhitelistExtensions.Add(TempExtentionBox.Text);
+                TempExtentionBox.Text = "";
+
+                e.Handled = true;
+            }
+        }
+
+        private void DeleteWhitelistedExtension_Click(object sender, RoutedEventArgs e)
+        {
+            if (SelectedMapping != null && sender is Button button && button.DataContext is string extension)
+            {
+                SelectedMapping.WhitelistExtensions.Remove(extension);
+                e.Handled = true;
+            }
+        }
+
+        private void EditEmulatorName_Click(object sender, RoutedEventArgs e)
+        {
+            if(EmulatorNameBox.IsEnabled)
+            {
+                EditEmuNameText.Text = "\xea73";
+                EmulatorNameBox.IsEnabled = false;
+            }
+            else
+            {
+                EditEmuNameText.Text = "\xeb4b";
+                EmulatorNameBox.IsEnabled = true;
+            }
+
+            e.Handled = true;
+        }
+
+        private void EditCoreName_Click(object sender, RoutedEventArgs e)
+        {
+            if (CoreNameBox.IsEnabled)
+            {
+                EditCoreNameText.Text = "\xea73";
+                CoreNameBox.IsEnabled = false;
+            }
+            else
+            {
+                EditCoreNameText.Text = "\xeb4b";
+                CoreNameBox.IsEnabled = true;
+            }
+
+            e.Handled = true;
+        }
     }
 }

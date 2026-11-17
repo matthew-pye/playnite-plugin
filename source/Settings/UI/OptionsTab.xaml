@@ -19,11 +19,7 @@
                 <ResourceDictionary Source="pack://application:,,,/Graviton;component/ThemingDefaults.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <ObjectDataProvider x:Key="SaveConflictResolveValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
-                <ObjectDataProvider.MethodParameters>
-                    <x:Type TypeName="savmodels:SaveConflictResolve"/>
-                </ObjectDataProvider.MethodParameters>
-            </ObjectDataProvider>
+
             <ObjectDataProvider x:Key="ScreenshotResolutionValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
                 <ObjectDataProvider.MethodParameters>
                     <x:Type TypeName="savmodels:ScreenshotResolution"/>
@@ -224,52 +220,8 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="SaveSyncEnabledText" Text="{loc:LocalizedString Enabled}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                        <TextBlock Grid.Column="0" Name="SaveSyncEnabledText" Text="{loc:LocalizedString EnableSaveSyncing}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
                         <ToggleButton Grid.Column="1" IsChecked="{Binding SaveSyncEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
-                    </Grid>
-
-                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}" IsEnabled="{Binding SaveSyncEnabled}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="DownloadSaveOnLaunchText" Text="{loc:LocalizedString DownloadSaveOnLaunch}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                        <ToggleButton Grid.Column="1" IsChecked="{Binding DownloadSaveOnLaunch, Mode=TwoWay}" VerticalAlignment="Center"/>
-                    </Grid>
-
-                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}" IsEnabled="{Binding SaveSyncEnabled}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="UploadSaveOnFinishedText" Text="{loc:LocalizedString UploadSaveOnFinished}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                        <ToggleButton Grid.Column="1" IsChecked="{Binding UploadSaveOnFinished, Mode=TwoWay}" VerticalAlignment="Center"/>
-                    </Grid>
-
-                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}" IsEnabled="{Binding SaveSyncEnabled}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="ConflictStyleText" Text="{loc:LocalizedString SaveConflictsLabel}" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                        <ComboBox Grid.Column="1" MinWidth="200" ItemsSource="{Binding Source={StaticResource SaveConflictResolveValues}}" SelectedItem="{Binding SaveConflictStyle, Mode=TwoWay}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}"/>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </Grid>
-
-                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}" IsEnabled="{Binding SaveSyncEnabled}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="AutoCleanupSavesText" Text="{loc:LocalizedString AutoCleanOldSaves}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                        <psdk:NumericUpDown Grid.Column="1" Value="{Binding AutoCleanupSavesLimit, Mode=TwoWay}" Minimum="1" Maximum="100" Style="{StaticResource Graviton.NumericUpDown}" Width="70" Margin="0,0,15,0" VerticalAlignment="Center" IsEnabled="{Binding AutoCleanupSaves}"/>
-                        <ToggleButton Grid.Column="2" IsChecked="{Binding AutoCleanupSaves, Mode=TwoWay}" VerticalAlignment="Center"/>
                     </Grid>
 
                     <Separator Background="{DynamicResource Graviton.TransparentBackground.Colour}" Margin="0,12"/>
@@ -305,23 +257,6 @@
                         <TextBlock Name="SecondsBeforeSubTitle" Text="{loc:LocalizedString SecondsBeforeSubTitle}" Style="{StaticResource Graviton.SettingsHelperText}"/>
                         <Slider Name="ScreenshotMaxCapture" Margin="0,0,10,0" Value="{Binding SecondsBeforeSave}" VerticalAlignment="Center" Minimum="0" Maximum="60" TickPlacement="BottomRight" TickFrequency="5" IsSnapToTickEnabled="False"/>
                     </StackPanel>
-                </StackPanel>
-            </Border>
-            <!--#endregion-->
-
-            <!--#region Save State Syncing -->
-            <Border Style="{StaticResource Graviton.SettingsCard}">
-                <StackPanel>
-                    <TextBlock Name="SaveStateSyncTitle" Text="{loc:LocalizedString SaveStateSync}" Style="{StaticResource Graviton.SettingsSectionHeader}" />
-
-                    <Grid Style="{StaticResource Graviton.SettingsToggleRow}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="SaveStateSyncEnabledText" Text="{loc:LocalizedString Enabled}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                        <ToggleButton Grid.Column="1" IsChecked="{Binding SaveStateSyncEnabled, Mode=TwoWay}" VerticalAlignment="Center"/>
-                    </Grid>
                 </StackPanel>
             </Border>
             <!--#endregion-->

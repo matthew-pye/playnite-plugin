@@ -83,7 +83,7 @@
                         <TextBlock Text="{loc:LocalizedString Mappings}"/>
                     </StackPanel>
                 </TabItem.Header>
-                <s:MappingsTab x:Name="MappingsTabControl" Margin="5,10,5,5" ManageSavesRequested="MappingsTab_ManageSavesRequested"/>
+                <s:MappingsTab x:Name="MappingsTabControl" Margin="5,10,5,5"/>
             </TabItem>
 
             <!-- Dev options -->
