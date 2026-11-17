@@ -709,14 +709,6 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Name="SaveOptionText" Text="{loc:LocalizedString Saves}" Grid.Column="0" Grid.Row="0" Style="{StaticResource Graviton.SettingsSectionHeader}" TextTrimming="CharacterEllipsis"/>
-
-                            <Button Click="OpenSaveManager_Click" Grid.Column="1" Grid.Row="0" Margin="0,0,0,14" HorizontalAlignment="Right">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Name="OpenSaveManagerIcon" Text="&#xf019;" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2"/>
-                                    <TextBlock Name="OpenSaveManagerText" Text="{loc:LocalizedString ManageSaves}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2"/>
-                                </StackPanel>
-                              </Button>
-
                             <TextBlock Name="AutoDetectionStyleText" Text="{loc:LocalizedString AutoSaveDetection}" FontWeight="SemiBold" FontSize="14" Margin="0,10,10,0" Grid.Column="0" Grid.Row="1" Foreground="{DynamicResource Graviton.SubText.Colour}" TextTrimming="CharacterEllipsis"/>
                             <ComboBox Name="AutoDetectionStyleCombo" Height="36" Padding="8,0" VerticalContentAlignment="Center" Margin="0,0,10,0" Grid.Column="0" Grid.Row="2" Tag="{loc:LocalizedString AutoSaveStylePlaceholder}" ItemsSource="{Binding Source={StaticResource SaveLayoutStyleValues}}" SelectedItem="{Binding FindSaveLayout, Mode=TwoWay}" ToolTip="{loc:LocalizedString AutoSaveDetectionTooltip}">
                                 <ComboBox.ItemTemplate>
@@ -735,9 +727,6 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBox Grid.Column="0" Name="SavePathBox" Text="{Binding SavePath, Mode=TwoWay}" Height="36" Padding="3,0" VerticalContentAlignment="Center" local:Placeholder.Text="{loc:LocalizedString NoFolderPlaceholder}"/>
-                                <Button Click="Click_BrowseSaveDestination" Grid.Column="1" Margin="5,0,0,0">
-                                    <TextBlock Name="SaveLocButtonText" Text="{loc:LocalizedString Browse}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Button>
                             </Grid>
                         </Grid>
                     </Border>

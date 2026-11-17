@@ -95,15 +95,8 @@ namespace Graviton.Play
             StartProperties = args.StartProperties;
 
             // Check if save needs syncing before starting game
-            if (ROM.LocalSave != null && _plugin.Settings.SaveSyncEnabled)
+            if (ROM.LocalSave != null)
             {
-                if (_plugin.Settings.DownloadSaveOnLaunch)
-                {
-                    if (!ROM.LocalSave.IsTempRestored)
-                        await SaveController.Negotiator.NegotiateSave(ROM);
-                }
-                else
-                    GravitonNotify.Notify("graviton.sync.notenabled", Loc.GetString("SyncBeforeGameStartDisabled"), GravitonSeverity.Info);
 
             }
 
@@ -184,21 +177,21 @@ namespace Graviton.Play
                 _ = _plugin.StatusController?.StartActivityHeartbeat(GameID!);
 
             // Start screenshot capture for save screenshots
-            if (ROM.LocalSave != null && _plugin.Settings.SaveSyncEnabled && _plugin.Settings.CaptureScreenshots)
+            if (ROM.LocalSave != null && _plugin.Settings.CaptureScreenshots)
             {
-                if (ROM.LocalSave.SourceFilePaths.Count > 0 && Mapping != null)
-                {
-                    var paths = ROM.LocalSave.SourceFilePaths.Select(x => x.Replace(EmulatorMapping.SavePathToken, Mapping.SavePath)).ToList();
-
-                    SaveWatcher!.Setup(paths);
-
-                    var maxFrames = Math.Max(1, _plugin.Settings.SecondsBeforeSave);
-                    await ScreenshotCapture!.Setup(args.StartedArgs.StartedProcessId, maxFrames);
-
-                    await ScreenshotCapture.Start();
-                    await SaveWatcher.Start();
-                    
-                }
+                //if (ROM.LocalSave.SourceFilePaths.Count > 0 && Mapping != null)
+                //{
+                //    var paths = ROM.LocalSave.SourceFilePaths.Select(x => x.Replace(EmulatorMapping.SavePathToken, Mapping.SavePath)).ToList();
+                //
+                //    SaveWatcher!.Setup(paths);
+                //
+                //    var maxFrames = Math.Max(1, _plugin.Settings.SecondsBeforeSave);
+                //    await ScreenshotCapture!.Setup(args.StartedArgs.StartedProcessId, maxFrames);
+                //
+                //    await ScreenshotCapture.Start();
+                //    await SaveWatcher.Start();
+                //    
+                //}
             }
 
         }
@@ -254,19 +247,9 @@ namespace Graviton.Play
             await ScreenshotCapture!.Stop();
 
             // Check to see if save needs uploading
-            if (_plugin.Settings.SaveSyncEnabled && ROM.LocalSave != null)
+            if (ROM.LocalSave != null)
             {
-                if (_plugin.Settings.UploadSaveOnFinished)
-                {
-                    if (ROM.LocalSave.IsTempRestored)
-                        await SaveController.Manager.CheckRestoredSaveNeedUploading(ROM, SaveWatcher?.NewestSaveScreenshot);
-                    else
-                        await SaveController.Negotiator.NegotiateSave(ROM, SaveWatcher?.NewestSaveScreenshot);
-                }
-                else
-                {
-                    GravitonNotify.Notify("graviton.sync.notenabled", Loc.GetString("SyncAfterGameQuitDisabled"), GravitonSeverity.Info);
-                }
+                
             }
 
             _psRuntime?.Dispose();

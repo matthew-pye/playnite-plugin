@@ -2,7 +2,6 @@
 
 using Graviton.Models;
 using Graviton.Models.Notifications;
-using Graviton.Saves;
 
 using Playnite;
 
@@ -110,27 +109,6 @@ namespace Graviton.Settings
 
         }
 
-        private void OpenSaveManager_Click(object sender, RoutedEventArgs e)
-        {
-            if (SelectedMapping == null)
-                return;
-
-            var tab = new SaveManagementView();
-            _ = tab.Load(SelectedMapping);
-
-            RaiseEvent(new ManageSavesRequestedEventArgs(ManageSavesRequestedEvent, tab));
-        }
-
-        private async void Click_BrowseSaveDestination(object sender, RoutedEventArgs e)
-        {
-            var path = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync();
-
-            if (SelectedMapping != null && path != null)
-                SelectedMapping.SavePath = path[0];
-
-            e.Handled = true;
-        }
-
         private async void BrowseDLCInstallPath_Click(object sender, RoutedEventArgs e)
         {
             var path = await GravitonPlugin.PlayniteApi.Dialogs.SelectFolderAsync();
@@ -150,11 +128,5 @@ namespace Graviton.Settings
 
             e.Handled = true;
         }
-    }
-
-    public class ManageSavesRequestedEventArgs : RoutedEventArgs
-    {
-        public SaveManagementView Tab { get; }
-        public ManageSavesRequestedEventArgs(RoutedEvent routedEvent, SaveManagementView tab) : base(routedEvent) => Tab = tab;
     }
 }

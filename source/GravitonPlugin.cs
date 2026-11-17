@@ -22,8 +22,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
-using System.Windows;
-
 
 namespace Graviton
 {
@@ -583,14 +581,6 @@ namespace Graviton
                              DefaultHeight = 900
                          });
 
-                        var manageSavesView = new SaveManagementWindow();
-
-                        window.Title = Loc.GetString("SaveManagerTitle");
-                        window.Content = manageSavesView;
-                        window.Owner = PlayniteApi.GetLastActiveWindow();
-                        window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
-                        window.ShowDialog();
-
                     })];
                 }
 
@@ -686,19 +676,6 @@ namespace Graviton
                              DefaultWidth = 1600,
                              DefaultHeight = 900
                          });
-                        Logger?.Trace($"Created window for save management");
-
-                        var manageSavesView = new SaveManagementWindow(roms);
-                        Logger?.Trace($"Created save management view");
-
-                        window.Title = Loc.GetString("SaveManagerTitle");
-                        window.Content = manageSavesView;
-                        window.Owner = PlayniteApi.GetLastActiveWindow();
-                        window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
-
-                        Logger?.Trace($"Showing save management window");
-                        window.ShowDialog();
-                        Logger?.Trace($"Closed save management window");
 
                     })];
             }

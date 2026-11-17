@@ -83,6 +83,10 @@
     </Compile>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Saves\UI\" />
+  </ItemGroup>
+
   <!--
     extension.toml is generated from the constants at the top of GravitonPlugin.cs.
   -->

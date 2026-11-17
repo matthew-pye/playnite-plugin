@@ -178,7 +178,7 @@ namespace Graviton.Models.ROM
             try
             {
                 if (LocalSave != null)
-                    LocalSave.SourceFilePaths = LocalSave.SourceFilePaths.Select(x => x.Replace("\\", "/")).ToObservableCollection();
+                    //LocalSave.SourceFilePaths = LocalSave.SourceFilePaths.Select(x => x.Replace("\\", "/")).ToObservableCollection();
 
                 // Write data to file
                 File.WriteAllText($"{plugin.PluginDataPath}/Games/{Id}.json", JsonSerializer.Serialize(this));

@@ -21,13 +21,6 @@ namespace Graviton.Settings
 #endif
         }
 
-        private void MappingsTab_ManageSavesRequested(object sender, RoutedEventArgs e)
-        {
-            var tab = ((ManageSavesRequestedEventArgs)e).Tab;
-            tab.BackRequested += (_, _) => CloseFullView();
-            ShowInFullView(tab);
-        }
-
         private void ShowInFullView(FrameworkElement content)
         {
             SettingsFullView.Content = content;

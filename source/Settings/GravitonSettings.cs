@@ -62,19 +62,10 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _keepFavouritesSynced = false;      
         [ObservableProperty] private bool _keepPrivateNotesSynced = false;      
         [ObservableProperty] private bool _keepPublicNotesSynced = false;      
-
-        [ObservableProperty] private bool _saveSyncEnabled = true;      
-        [ObservableProperty] private bool _downloadSaveOnLaunch = true;      
-        [ObservableProperty] private bool _uploadSaveOnFinished = true;      
-        [ObservableProperty] private SaveConflictResolve _saveConflictStyle = SaveConflictResolve.Ask;
-        [ObservableProperty] private bool _autoCleanupSaves = true;
-        [ObservableProperty] private int _autoCleanupSavesLimit = 10;
        
         [ObservableProperty] private bool _captureScreenshots = false;
         [ObservableProperty] private int _secondsBeforeSave = 15;
         [ObservableProperty] private ScreenshotResolution _screenshotResolution = ScreenshotResolution.P1080;
-
-        [ObservableProperty] private bool _saveStateSyncEnabled = false;
 
         [ObservableProperty] private bool _debuggingEnabled = false;
 
@@ -180,14 +171,6 @@ namespace Graviton.Settings
                 KeepFavouritesSynced = this.KeepFavouritesSynced,
                 KeepPrivateNotesSynced = this.KeepPrivateNotesSynced,
                 KeepPublicNotesSynced = this.KeepPublicNotesSynced,
-
-                SaveSyncEnabled = this.SaveSyncEnabled,
-                SaveStateSyncEnabled = this.SaveStateSyncEnabled,
-                DownloadSaveOnLaunch = this.DownloadSaveOnLaunch,
-                UploadSaveOnFinished = this.UploadSaveOnFinished,
-                SaveConflictStyle = this.SaveConflictStyle,
-                AutoCleanupSaves = this.AutoCleanupSaves,
-                AutoCleanupSavesLimit = this.AutoCleanupSavesLimit,
 
                 CaptureScreenshots = this.CaptureScreenshots,
                 ScreenshotResolution = this.ScreenshotResolution,

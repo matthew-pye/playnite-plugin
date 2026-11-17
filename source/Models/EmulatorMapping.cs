@@ -4,7 +4,6 @@ using Emunight;
 
 using Graviton.Models.Install;
 using Graviton.Models.RomM.Platform;
-using Graviton.Models.Saves;
 
 using Playnite;
 
@@ -69,12 +68,7 @@ namespace Graviton.Models
         [ObservableProperty] private ObservableCollection<DynamicArgument> _DLCCLIUserArgs = new();
 
         // Saves
-        [ObservableProperty] private SaveLayoutStyle _findSaveLayout = SaveLayoutStyle.Disabled;
-        [ObservableProperty] private string _findSaveFileExtensions = "";
-        [ObservableProperty] private string _savePath = "";
-        [ObservableProperty] private bool _extractArchivedSaves = true;
-        [ObservableProperty] private string _saveStatePath = "";
-        [ObservableProperty] private MemoryCardSave? _memoryCardSave = null;
+        
 
 
         // UI
