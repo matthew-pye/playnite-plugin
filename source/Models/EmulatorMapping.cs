@@ -72,7 +72,7 @@ namespace Graviton.Models
         [ObservableProperty] private bool _enableSaveSyncing;
         [ObservableProperty] private string? _saveLocation;
         [ObservableProperty] private SaveLayoutTypes? _foundSaveType;
-        [JsonIgnore] private SaveLayoutTypes _saveType = SaveLayoutTypes.Auto;
+        private SaveLayoutTypes _saveType = SaveLayoutTypes.Auto;
         [ObservableProperty] private ObservableCollection<string> _whitelistExtensions = new();
 
         [ObservableProperty] private string? _emulatorSaveName;
@@ -115,19 +115,19 @@ namespace Graviton.Models
             get => _emulator;
             set
             {
+                if (string.IsNullOrEmpty(EmulatorSaveName) || (_emulator != null && _emulator != value))
+                {
+                    EmulatorSaveName = value?.Name;
+                    CoreSaveName = null;
+                }
+
                 _emulator = value;
                 EmulatorId = value?.Id;
 
                 if (value is not ImportedEmulator imported || imported.ProfileSettings?.Any(p => p.ProfileId == EmulatorProfileId) != true)
                 {
                     EmulatorProfileId = null;
-                    CoreSaveName = null;
                 }
-
-                if (string.IsNullOrEmpty(EmulatorSaveName) || (_emulator != null && _emulator != value))
-                {
-                    EmulatorSaveName = value?.Name;
-                }    
 
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(AvailableProfiles));
@@ -165,17 +165,22 @@ namespace Graviton.Models
             get => _emulatorProfile;
             set
             {
-                _emulatorProfile = value;
-                EmulatorProfileId = value?.Id;
-
+               
                 if (value != null && (string.IsNullOrEmpty(CoreSaveName) || (_emulatorProfile != null && _emulatorProfile != value)))
                 {
-                    if (Emulator != null && Emulator.Name.Equals("Retroarch", StringComparison.OrdinalIgnoreCase))
+                    if (Emulator != null && value?.WindowsData?.ProfileFiles != null && value.WindowsData.ProfileFiles.Any(x => x.EndsWith("_libretro.dll", StringComparison.OrdinalIgnoreCase)) )
                     {
-                        var coreFile = _emulatorProfile?.WindowsData?.ProfileFiles?.ToList().FirstOrDefault(f => f.EndsWith("_libretro.dll", StringComparison.OrdinalIgnoreCase));
-                        CoreSaveName = coreFile != null ? Path.GetFileName(coreFile).Replace("_libretro.dll", "") : null;
+                        var coreFile = value?.WindowsData?.ProfileFiles?.ToList().FirstOrDefault(f => f.EndsWith("_libretro.dll", StringComparison.OrdinalIgnoreCase));
+                        CoreSaveName = coreFile != null ? Path.GetFileName(coreFile).Replace("_libretro.dll", "", StringComparison.OrdinalIgnoreCase) : null;
                     }
-                }    
+                    else
+                    {
+                        CoreSaveName = null;
+                    }
+                }
+
+                _emulatorProfile = value;
+                EmulatorProfileId = value?.Id;
 
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsSetup));
