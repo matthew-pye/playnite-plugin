@@ -88,5 +88,8 @@ namespace Graviton.Models.RomM
 
         [JsonPropertyName("updated_at")]
         public DateTime UpdatedAt { get; set; }
+
+        [JsonPropertyName("is_own")]
+        public bool IsOwn { get; set; }
     }
 }

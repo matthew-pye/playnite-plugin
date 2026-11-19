@@ -64,6 +64,10 @@ namespace Graviton.Settings
         [ObservableProperty] private bool _keepPublicNotesSynced = false;
 
         [ObservableProperty] private bool _saveSyncEnabled = true;
+        [ObservableProperty] private bool _pullOnLaunch = true;
+        [ObservableProperty] private bool _pushOnExit = true;
+        [ObservableProperty] private int _keepLocalBackups = 5;
+        [ObservableProperty] private string? _backupFolder;
 
         [ObservableProperty] private bool _captureScreenshots = false;
         [ObservableProperty] private int _secondsBeforeSave = 15;

@@ -9,6 +9,7 @@ using Playnite;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Graviton.Models.ROM
 {
@@ -22,7 +23,7 @@ namespace Graviton.Models.ROM
         public string DownloadURL { get; set; }
         public string InstallPath { get; set; }
 
-        public string? SaveTarget { get; set; }
+        public string? SaveTarget { get; set; } 
         public string? TitleID { get; set; }
 
         public int PatchFileID { get; set; }
@@ -66,11 +67,14 @@ namespace Graviton.Models.ROM
 
         public string? TitleID { get; set; }
         public string? SaveTarget { get; set; }
-
+        public string? SaveTargetLayout { get; set; }
         public Guid MappingID { get; set; }
 
-        public GravitonSave? LocalSave { get; set; }
-        //public LocalSaveState SaveStates { get; set; } = new();
+        public int? ChannelFileId { get; set; }
+        public LocalSave? CurrentSave { get; set; }
+        public ObservableCollection<PlaythroughLocal> Playthroughs { get; set; } = new();
+        [JsonIgnore] public PlaythroughLocal? ActivePlaythrough => Playthroughs.FirstOrDefault(x => x.IsActive);
+
 
         public ObservableCollection<UpdateDLCCandidate> UpdateCandidates { get; set; } = new();
         public ObservableCollection<UpdateDLCCandidate> DLCCandidates { get; set; } = new();
@@ -88,6 +92,8 @@ namespace Graviton.Models.ROM
 
             toSave.TitleID = ROM.TitleID;
             toSave.SaveTarget = ROM.SaveTarget;
+            toSave.SaveTargetLayout = ROM.SaveTargetLayout;
+            toSave.ChannelFileId = DetermineChannelFileId(ROM);
 
             toSave.InstallPath = EmulatorMapping.InstallPathToken + ROM.FullPath?.Replace(ROM.FileSystemPath ?? "", "");
 
@@ -138,6 +144,8 @@ namespace Graviton.Models.ROM
 
             TitleID = ROM.TitleID;
             SaveTarget = ROM.SaveTarget;
+            SaveTargetLayout = ROM.SaveTargetLayout;
+            ChannelFileId = DetermineChannelFileId(ROM);
 
             if (!ROM.HasMultipleFiles)
             {
@@ -177,11 +185,9 @@ namespace Graviton.Models.ROM
         {
             try
             {
-                if (LocalSave != null)
-                    //LocalSave.SourceFilePaths = LocalSave.SourceFilePaths.Select(x => x.Replace("\\", "/")).ToObservableCollection();
-
                 // Write data to file
                 File.WriteAllText($"{plugin.PluginDataPath}/Games/{Id}.json", JsonSerializer.Serialize(this));
+
                 if (plugin.ImportedGames.ContainsKey($"{Id}"))
                     plugin.ImportedGames[$"{Id}"] = this;       
                 else
@@ -203,6 +209,19 @@ namespace Graviton.Models.ROM
                 return ROM.Files.Where(x => x.Category == RomMCategory.Game).OrderBy(f => f.FullPath.Count(c => c == '/')).FirstOrDefault();
 
             return ROM.Files.FirstOrDefault();
+        }
+
+        static readonly HashSet<string> LoaderExtensions = new(StringComparer.OrdinalIgnoreCase) { "cue", "gdi", "ccd", "mds", "toc" };
+
+        static int? DetermineChannelFileId(RomMRom ROM)
+        {
+            if (ROM.Files == null)
+                return null;
+
+            var gameFiles = ROM.Files.Where(f => string.IsNullOrEmpty(f.Category) || f.Category == RomMCategory.Game).OrderBy(f => f.FileName.ToLowerInvariant(), StringComparer.Ordinal).ToList();
+            var loadersFiles = gameFiles.Where(f => LoaderExtensions.Contains(Path.GetExtension(f.FileName).TrimStart('.'))).ToList();
+            
+            return (loadersFiles.Count > 0 ? loadersFiles : gameFiles).FirstOrDefault()?.Id;
         }
 
     }

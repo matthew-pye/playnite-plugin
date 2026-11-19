@@ -249,6 +249,9 @@ namespace Graviton.Models.RomM.Rom
         [JsonPropertyName("save_target")]
         public string? SaveTarget { get; set; }
 
+        [JsonPropertyName("save_target_layout")]
+        public string? SaveTargetLayout { get; set; }
+
         [JsonPropertyName("full_path")]
         public string? FullPath { get; set; }
 
