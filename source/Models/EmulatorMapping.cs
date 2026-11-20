@@ -74,6 +74,7 @@ namespace Graviton.Models
         [ObservableProperty] private SaveLayoutTypes? _foundSaveType;
         private SaveLayoutTypes _saveType = SaveLayoutTypes.Auto;
         [ObservableProperty] private ObservableCollection<string> _whitelistExtensions = new();
+        [ObservableProperty] private ObservableCollection<LocalCardSave> _saveCards = new();
 
         [ObservableProperty] private string? _emulatorSaveName;
         [ObservableProperty] private string? _coreSaveName;
