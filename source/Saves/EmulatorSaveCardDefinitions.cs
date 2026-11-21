@@ -50,17 +50,10 @@
             if (EmulatorID == null)
                 return null;
 
-            if(EmulatorID != null && CoreID != null)
-            {
-                return Definitions.Where(x => (!string.IsNullOrEmpty(EmulatorID) && x.EmulatorID.Equals(EmulatorID, StringComparison.OrdinalIgnoreCase)
-                                           && x.CoreIDs != null && x.CoreIDs.Contains(CoreID))
-                                           || (PlatformIDs != null && x.PlatformIDs != null && PlatformIDs.Any(y => x.PlatformIDs.Contains(y)))).ToList();
-            }
-            else
-            {
-                return Definitions.Where(x => (!string.IsNullOrEmpty(EmulatorID) && x.EmulatorID.Equals(EmulatorID, StringComparison.OrdinalIgnoreCase))
-                                           || (PlatformIDs != null && x.PlatformIDs != null && PlatformIDs.Any(y => x.PlatformIDs.Contains(y)))).ToList();
-            }
+            return Definitions.Where(x => x.EmulatorID.Equals(EmulatorID, StringComparison.OrdinalIgnoreCase)
+                                      && (x.CoreIDs == null || (CoreID != null && x.CoreIDs.Contains(CoreID, StringComparer.OrdinalIgnoreCase)))
+                                      && (x.PlatformIDs == null || (PlatformIDs?.Any(p => x.PlatformIDs.Contains(p, StringComparer.OrdinalIgnoreCase)) ?? false))).ToList();
+            
         }
     }
 }

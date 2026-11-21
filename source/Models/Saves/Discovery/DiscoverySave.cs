@@ -24,6 +24,7 @@ namespace Graviton.Models.Saves.Discovery
         public SaveLayoutTypes Type { get; set; }
         public long SizeBytes { get; set; }
         public int FileCount { get; set; }
+        public DateTime LatestFileWrite { get; set; } = DateTime.MinValue;
         public List<DiscoveryCandidate> Candidates { get; set; } = new();
         [ObservableProperty] private DiscoveryStatus _status;
 

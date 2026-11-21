@@ -2,8 +2,6 @@
 {
     public partial class LocalSave
     {
-        public string? SnapshotId { get; set; }
-
         public List<string> SourcePaths { get; set; } = new();        
         public SaveLayoutTypes Type { get; set; } = SaveLayoutTypes.Single;
         public SaveMatchStyle MatchedBy { get; set; } = SaveMatchStyle.None; 
@@ -19,8 +17,6 @@
 
     public partial class LocalCardSave
     {
-        public string? SnapshotId { get; set; }
-
         public List<int> LinkedROMs { get; set; } = new();
 
         public string? SourcePath { get; set; }

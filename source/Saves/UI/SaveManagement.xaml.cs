@@ -1,4 +1,5 @@
 ﻿using System.Windows.Controls;
+using System.Windows;
 
 namespace Graviton.Saves
 {
@@ -11,10 +12,9 @@ namespace Graviton.Saves
 
         public SaveManagement(SaveManagementContext context)
         {
-            _context = context;
-
             InitializeComponent();
 
+            _context = context;
             SaveManagementUI.DataContext = _context;
         }
 
@@ -30,7 +30,8 @@ namespace Graviton.Saves
 
         private void DiscoveredTab_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-
+            GamesList.Visibility = Visibility.Visible;
+            SaveDiscoveryUI.Visibility = Visibility.Visible;
         }
 
         private void AllGamesTab_Click(object sender, System.Windows.RoutedEventArgs e)

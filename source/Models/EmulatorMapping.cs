@@ -16,14 +16,21 @@ using System.Text.Json.Serialization;
 namespace Graviton.Models
 {
 
-    public partial class EmulatorMapping : ObservableObject
+    public partial class EmulatorMapping : ObservableObject, IJsonOnDeserialized
     {
         public static readonly string SavePathToken = "{MappingSavePath}";
         public static readonly string InstallPathToken = "{MappingInstallPath}";
 
         private GravitonPlugin _plugin { get => GravitonPlugin.Instance; }
 
-        [JsonConstructor] public EmulatorMapping() { }
+        private bool _loaded = true;            
+
+        [JsonConstructor] public EmulatorMapping() 
+        { 
+            _loaded = false; 
+        } 
+
+        void IJsonOnDeserialized.OnDeserialized() => _loaded = true;
 
         public EmulatorMapping(ObservableCollection<EmulatorBase> emulators, ObservableCollection<RomMPlatform> romMPlatforms)
         {
@@ -70,7 +77,7 @@ namespace Graviton.Models
 
         // Saves
         [ObservableProperty] private bool _enableSaveSyncing;
-        [ObservableProperty] private string? _saveLocation;
+        private string? _saveLocation;
         [ObservableProperty] private SaveLayoutTypes? _foundSaveType;
         private SaveLayoutTypes _saveType = SaveLayoutTypes.Auto;
         [ObservableProperty] private ObservableCollection<string> _whitelistExtensions = new();
@@ -314,6 +321,30 @@ namespace Graviton.Models
             }
         }
 
+        public string? SaveLocation
+        {
+            get => _saveLocation;
+            set
+            {
+
+                if(_loaded && _saveLocation != null && !string.Equals(_saveLocation, value, StringComparison.OrdinalIgnoreCase))
+                {
+                    _saveLocation = value;
+
+                    if (!string.IsNullOrEmpty(value) && Directory.Exists(value))
+                    {
+                        _ = FindSaveType();
+                    }
+                }
+                else
+                {
+                    _saveLocation = value;
+                }
+
+                OnPropertyChanged();
+            }
+        }
+
         public SaveLayoutTypes SaveType
         {
             get => _saveType;
@@ -321,17 +352,35 @@ namespace Graviton.Models
             {
                 _saveType = value;
 
-                if(value == SaveLayoutTypes.Auto && FoundSaveType == null)
+                if(_loaded)
                 {
-                    //Graviton.Instance.SaveController.Discovery.FindSaveLayout(this);
-                }
-                else if (value != SaveLayoutTypes.Auto)
-                {
-                    FoundSaveType = null;
+                    if (value == SaveLayoutTypes.Auto && FoundSaveType == null)
+                    {
+                        _ = FindSaveType();
+                    }
+                    else if (value != SaveLayoutTypes.Auto)
+                    {
+                        FoundSaveType = null;
+                    }
                 }
 
                 OnPropertyChanged();
             }
         }
+
+        private async Task FindSaveType()
+        {
+            // TODO add a lock to stop possible race condition or add cancel token to stop previous find layout call if path updated
+
+            try 
+            { 
+                FoundSaveType = await Task.Run(() => _plugin.SaveController!.Discoverer.FindLayoutType(this)); 
+            }
+            catch (Exception ex)
+            {
+                GravitonPlugin.Logger.Error($"Failed to set the found save type: {ex}");
+            }
+        }
+
     }
 }

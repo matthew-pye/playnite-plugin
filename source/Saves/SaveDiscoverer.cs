@@ -184,7 +184,30 @@ namespace Graviton.Saves
 
         public SaveLayoutTypes? FindLayoutType(EmulatorMapping mapping)
         {
-            
+            var fileSaves = FindFileSaves(mapping);
+            var folderSaves = FindFolderSaves(mapping);
+            var cardsSaves = FindCardSaves(mapping);
+
+            var fileSavesLastWrite = fileSaves?.Select(x => x.LatestFileWrite).OrderByDescending(y => y).FirstOrDefault();
+            var folderSavesLastWrite = folderSaves?.Select(x => x.LatestFileWrite).OrderByDescending(y => y).FirstOrDefault();
+            var cardSavesLastWrite = cardsSaves?.Select(x => x.LatestFileWrite).OrderByDescending(y => y).FirstOrDefault();
+
+            if (cardSavesLastWrite > folderSavesLastWrite && cardSavesLastWrite > fileSavesLastWrite)
+                return SaveLayoutTypes.Card;
+
+
+            if (folderSavesLastWrite > fileSavesLastWrite && folderSavesLastWrite > cardSavesLastWrite)
+                return SaveLayoutTypes.Folder;
+
+
+            var singleSaveCount = fileSaves?.Where(x => x.Type == SaveLayoutTypes.Single).Count() ?? 0;
+            var multiSaveCount = fileSaves?.Where(x => x.Type == SaveLayoutTypes.Multi).Count() ?? 0;
+
+            if (multiSaveCount > 0)
+                return SaveLayoutTypes.Multi;
+
+            if (singleSaveCount > 0)
+                return SaveLayoutTypes.Single;
 
             return null;
         }
@@ -245,6 +268,9 @@ namespace Graviton.Saves
                         var fileInfo = new FileInfo(file);
                         discoveredFolderSave.FileCount++;
                         discoveredFolderSave.SizeBytes += fileInfo.Length;
+                        
+                        if(fileInfo.LastWriteTimeUtc > discoveredFolderSave.LatestFileWrite)
+                            discoveredFolderSave.LatestFileWrite = fileInfo.LastWriteTimeUtc;
                     }
 
                     discoveredSaves.Add(discoveredFolderSave);
@@ -280,6 +306,7 @@ namespace Graviton.Saves
                         Type = SaveLayoutTypes.Single,
                         SizeBytes = new FileInfo(matchedNameFiles[0]).Length,
                         FileCount = 1,
+                        LatestFileWrite = new FileInfo(matchedNameFiles[0]).LastWriteTimeUtc,
                         Candidates = new List<DiscoveryCandidate> { new DiscoveryCandidate { Rom = rom, MatchedStyle = SaveMatchStyle.Both } },
                         Status = DiscoveryStatus.Pending
                     });
@@ -293,6 +320,7 @@ namespace Graviton.Saves
                         Type = SaveLayoutTypes.Single,
                         SizeBytes = new FileInfo(matchedTargetFiles[0]).Length,
                         FileCount = 1,
+                        LatestFileWrite = new FileInfo(matchedTargetFiles[0]).LastWriteTimeUtc,
                         Candidates = new List<DiscoveryCandidate> { new DiscoveryCandidate{ Rom = rom, MatchedStyle = SaveMatchStyle.SaveTarget } },
                         Status = DiscoveryStatus.Pending
                     });
@@ -306,6 +334,7 @@ namespace Graviton.Saves
                         Type = SaveLayoutTypes.Single,
                         SizeBytes = new FileInfo(matchedNameFiles[0]).Length,
                         FileCount = 1,
+                        LatestFileWrite = new FileInfo(matchedNameFiles[0]).LastWriteTimeUtc,
                         Candidates = new List<DiscoveryCandidate> { new DiscoveryCandidate { Rom = rom, MatchedStyle = SaveMatchStyle.Filename } },
                         Status = DiscoveryStatus.Pending
                     });
@@ -335,13 +364,26 @@ namespace Graviton.Saves
 
                         foreach (var group in groups)
                         {
+                            DateTime lastWrite = DateTime.MinValue;
+                            long bytes = 0;
+
+                            foreach (var file in group.Files)
+                            {
+                                var fileInfo = new FileInfo(file);
+                                bytes += fileInfo.Length;
+
+                                if(fileInfo.LastWriteTimeUtc > lastWrite)
+                                    lastWrite = fileInfo.LastWriteTimeUtc;
+                            }
+
                             discoveredSaves.Add(new DiscoveredSave
                             {
                                 MappingId = mapping.MappingId,
                                 Paths = group.Files,
                                 Type = group.Files.Count > 1 ? SaveLayoutTypes.Multi : SaveLayoutTypes.Single,
-                                SizeBytes = group.Files.Sum(x => new FileInfo(x).Length),
+                                SizeBytes = bytes,
                                 FileCount = group.Files.Count,
+                                LatestFileWrite = lastWrite,
                                 Candidates = new List<DiscoveryCandidate> { new DiscoveryCandidate { Rom = rom, MatchedStyle = group.Style } },
                                 Status = DiscoveryStatus.Pending
                             });
@@ -350,9 +392,31 @@ namespace Graviton.Saves
                 }
             }
 
-            // TODO deduplicate discovered saves for roms that share the same save file(s)
+            var merged = new Dictionary<string, DiscoveredSave>();
+            foreach (var save in discoveredSaves)
+            {
+                var key = save.Type + "|" + string.Join("|", save.Paths.Select(path => Path.GetFullPath(path).ToLowerInvariant()).OrderBy(paths => paths, StringComparer.Ordinal)); ;
+                if (!merged.TryGetValue(key, out var existing)) 
+                { 
+                    merged[key] = save; 
+                    continue; 
+                }
 
-            return discoveredSaves;
+                foreach (var candidate in save.Candidates)
+                {
+                    var same = existing.Candidates.FirstOrDefault(x => x.Rom.Id == candidate.Rom.Id);
+                    if (same == null)
+                    {
+                        existing.Candidates.Add(candidate);
+                    }
+                    else
+                    {
+                        same.MatchedStyle |= candidate.MatchedStyle;
+                    }
+                }
+            }
+
+            return merged.Values.ToList();
         }
 
         private List<DiscoveredSave>? FindCardSaves(EmulatorMapping mapping)
@@ -366,7 +430,7 @@ namespace Graviton.Saves
 
             if(mapping.Emulator is ImportedEmulator emu)
             {
-                var definitions = SaveCardDefinitions.Find(emu.EmulatorId, mapping.Profile?.Id, mapping.Profile?.PlatformSpecIds.ToList());
+                var definitions = SaveCardDefinitions.Find(emu.EmulatorId, mapping.CoreSaveName, mapping.Profile?.PlatformSpecIds.ToList());
 
                 if (definitions == null)
                     return null;
@@ -391,6 +455,7 @@ namespace Graviton.Saves
                     Type = SaveLayoutTypes.Card,
                     SizeBytes = new FileInfo(file).Length,
                     FileCount = 1,
+                    LatestFileWrite = new FileInfo(file).LastWriteTimeUtc,
                     Candidates = candidates.ToList(),
                     Status = DiscoveryStatus.Pending
                 });

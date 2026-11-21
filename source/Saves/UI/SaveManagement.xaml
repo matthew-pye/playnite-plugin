@@ -175,36 +175,8 @@
             </Border>
 
             <!-- Discovery List -->
-            <ScrollViewer Grid.Row="3" Padding="5" Visibility="Collapsed">
-                <ItemsControl  Name="DiscoveryList">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Grid.Row="3" Style="{DynamicResource Graviton.SettingsCard}" Padding="5">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                    </Grid.RowDefinitions>
-
-                                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5">
-                                        <TextBlock Text="Emulator" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
-                                        <TextBlock Text="·" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
-                                        <TextBlock Text="Platform" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource Graviton.SubText.Colour}"/>
-                                    </StackPanel>
-
-                                    <ItemsControl>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <!-- Each found save -->
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+            <sav:SaveDiscoveryView x:Name="SaveDiscoveryUI" Visibility="Collapsed"/>
+            
         </Grid>
     </Grid>
     
